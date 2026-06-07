@@ -1,0 +1,56 @@
+// ─── 投稿・いいね・Q&A ────────────────────────────────────────────────────────
+
+model Pull {
+  id        String   @id @default(cuid())
+  machineId String
+  spotId    String
+  userId    String
+  gachaId   String
+  result    String   // hit / miss / duplicate
+  itemName  String?
+  imageUrl  String?
+  memo      String?
+  isPublic  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  machine Machine @relation(fields: [machineId], references: [id], onDelete: Cascade)
+  spot    Spot    @relation(fields: [spotId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gacha   Gacha   @relation(fields: [gachaId], references: [id], onDelete: Cascade)
+  likes   Like[]
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  userId    String
+  pullId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pull Pull @relation(fields: [pullId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, pullId])
+}
+
+model QA {
+  id        String   @id @default(cuid())
+  spotId    String
+  userId    String
+  text      String
+  createdAt DateTime @default(now())
+
+  spot    Spot       @relation(fields: [spotId], references: [id], onDelete: Cascade)
+  user    User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  answers QAAnswer[]
+}
+
+model QAAnswer {
+  id        String   @id @default(cuid())
+  qaId      String
+  userId    String
+  text      String
+  createdAt DateTime @default(now())
+
+  qa   QA   @relation(fields: [qaId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

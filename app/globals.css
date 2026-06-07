@@ -352,3 +352,12 @@
 .mikke-coachmark-ring-spin {
   animation: mikke-coachmark-ring-spin 4s linear infinite;
 }
+
+/* Scrollbar hide utility */
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

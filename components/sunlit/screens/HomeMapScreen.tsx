@@ -258,7 +258,7 @@ export function HomeMapScreen() {
   const recenter = () => { setLocToast(true); setTimeout(() => setLocToast(false), 1800); };
 
   return (
-    <div className="absolute inset-0 flex flex-col bg-[#FFFEEF]">
+    <div className="relative h-full flex flex-col bg-[#FFFEEF]">
 
       {/* ヘッダー */}
       <div className="flex-shrink-0 bg-white" style={{ borderBottom: '1.5px solid #EDE9D8' }}>

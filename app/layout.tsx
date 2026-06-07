@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Mikke! デモ",
+  title: "Mikke!",
   description: "リアルタイム・ガチャ在庫マップ（UI/UXプロトタイプ）",
 };
 

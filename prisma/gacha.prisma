@@ -1,0 +1,38 @@
+// ─── ガチャシリーズ ────────────────────────────────────────────────────────────
+
+model Gacha {
+  id             String   @id @default(cuid())
+  seriesName     String
+  ipName         String
+  kind           String   @default("gacha")
+  category       String
+  status         String   @default("on_sale")
+  price          Int
+  gradientFrom   String
+  gradientTo     String
+  startWeekLabel String?
+  lineup         String[] @default([])
+  isCollab       Boolean  @default(false)
+  isReissue      Boolean  @default(false)
+  isContinuation Boolean  @default(false)
+  commentCount   Int      @default(0)
+  weeklyPulls    Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  machines   Machine[]
+  pulls      Pull[]
+  gachaLikes GachaLike[]
+}
+
+model GachaLike {
+  id        String   @id @default(cuid())
+  userId    String
+  gachaId   String
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gacha Gacha @relation(fields: [gachaId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, gachaId])
+}

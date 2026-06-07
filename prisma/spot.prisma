@@ -1,0 +1,45 @@
+// ─── スポット・マシン ──────────────────────────────────────────────────────────
+
+model Spot {
+  id        String   @id @default(cuid())
+  name      String
+  address   String
+  lat       Float
+  lng       Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  machines     Machine[]
+  stockReports StockReport[]
+  pulls        Pull[]
+  qaItems      QA[]
+}
+
+model Machine {
+  id        String   @id @default(cuid())
+  spotId    String
+  gachaId   String
+  price     Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  spot         Spot          @relation(fields: [spotId], references: [id], onDelete: Cascade)
+  gacha        Gacha         @relation(fields: [gachaId], references: [id], onDelete: Cascade)
+  stockReports StockReport[]
+  pulls        Pull[]
+}
+
+model StockReport {
+  id        String   @id @default(cuid())
+  machineId String
+  spotId    String
+  userId    String
+  status    String   // in_stock / out_of_stock
+  quantity  String?  // low / normal / plenty
+  imageUrl  String?
+  createdAt DateTime @default(now())
+
+  machine Machine @relation(fields: [machineId], references: [id], onDelete: Cascade)
+  spot    Spot    @relation(fields: [spotId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

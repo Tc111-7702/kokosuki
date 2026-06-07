@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft, ChevronRight, Bell, MapPin, User, Lock, Info, LogOut } from 'lucide-react';
+import { authClient } from '@/lib/auth-client';
 
 function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
   return (
@@ -49,9 +51,16 @@ function ToggleRow({ label, on, onToggle, last }: { label: string; on: boolean; 
 }
 
 export function SettingsScreen({ onClose }: { onClose: () => void }) {
+  const router = useRouter();
   const [notif, setNotif] = useState({ release: true, restock: true, qa: true });
   const [favPublic, setFavPublic] = useState(true);
   const toggleNotif = (k: keyof typeof notif) => setNotif((p) => ({ ...p, [k]: !p[k] }));
+
+  const handleLogout = async () => {
+    if (!window.confirm('ログアウトしますか？')) return;
+    await authClient.signOut();
+    router.push('/login');
+  };
 
   return (
     <div className="absolute inset-0 z-40 flex flex-col bg-[#FFFEEF]">
@@ -94,7 +103,7 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
         </Section>
 
         <div className="bg-white" style={{ borderTop: '1px solid #F0ECD8', borderBottom: '1px solid #F0ECD8' }}>
-          <Row label="ログアウト" onClick={onClose} />
+          <Row label="ログアウト" onClick={handleLogout} />
           <Row label="退会" danger last />
         </div>
 
