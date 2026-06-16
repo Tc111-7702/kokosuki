@@ -6,7 +6,7 @@ import { Heart, X } from 'lucide-react';
 import { useSunlit } from '@/lib/sunlit/store';
 import { GACHA_ITEMS, getStatusLabel, getStatusStyle } from '@/lib/sunlit/gacha-data';
 import type { GachaItem } from '@/lib/sunlit/gacha-data';
-import { useIsMobile } from '@/lib/hooks/useIsMobile';
+import { useIsMobile } from '@/lib/useIsMobile';
 
 function FavoriteCard({
   item, isEditMode, tall, onTap, onUnlike,

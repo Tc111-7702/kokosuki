@@ -6,7 +6,7 @@ import { Heart, ChevronRight, Users, Bell, Sparkles, ArrowLeft, Search, X } from
 import { useSunlit } from '@/lib/sunlit/store';
 import { GACHA_ITEMS, getStatusLabel, getStatusStyle } from '@/lib/sunlit/gacha-data';
 import type { GachaItem } from '@/lib/sunlit/gacha-data';
-import { useIsMobile } from '@/lib/hooks/useIsMobile';
+import { useIsMobile } from '@/lib/useIsMobile';
 
 /* ─── types ─── */
 type HeroMode = 'new' | 'upcoming' | 'trending';

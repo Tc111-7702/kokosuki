@@ -9,7 +9,7 @@ import { GACHA_ITEMS, getStatusLabel, getStatusStyle } from '@/lib/sunlit/gacha-
 import { SettingsScreen } from './SettingsScreen';
 import { Avatar } from '../ui/Avatar';
 import { PullCard, PullGridCard, ReportCard } from '../ui/FeedCard';
-import { useIsMobile } from '@/lib/hooks/useIsMobile';
+import { useIsMobile } from '@/lib/useIsMobile';
 
 type MyProfile = {
   id: string;

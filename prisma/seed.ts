@@ -277,23 +277,9 @@ async function main() {
 
   console.log('✅ Machines created');
 
-  // ─── 在庫報告 ──────────────────────────────────────────────────────────────
+  // ─── Pull（ガチャ結果投稿） ────────────────────────────────────────────────
 
   const ago = (hours: number) => new Date(Date.now() - hours * 3600 * 1000);
-
-  await prisma.stockReport.createMany({
-    skipDuplicates: true,
-    data: [
-      { id: 'r1', machineId: 'm1', spotId: 's1', userId: kenta.id,  status: 'in_stock',     quantity: 'plenty', createdAt: ago(1.5) },
-      { id: 'r2', machineId: 'm3', spotId: 's3', userId: yuna.id,   status: 'out_of_stock',                     createdAt: ago(9) },
-      { id: 'r3', machineId: 'm1', spotId: 's4', userId: kenta.id,  status: 'in_stock',                         createdAt: ago(30) },
-      { id: 'r4', machineId: 'm1', spotId: 's1', userId: fukuda.id, status: 'in_stock',                         createdAt: ago(50) },
-    ],
-  });
-
-  console.log('✅ StockReports created');
-
-  // ─── Pull（ガチャ結果投稿） ────────────────────────────────────────────────
 
   await prisma.pull.createMany({
     skipDuplicates: true,
@@ -386,7 +372,7 @@ async function main() {
   await prisma.notification.createMany({
     skipDuplicates: true,
     data: [
-      { id: 'n1', userId: fukuda.id, type: 'restock',   title: '�在庫が復活！',  body: '渋谷で「ポケモン ミニフィギュア vol.5」が今、引けます',                     gachaId: 'g1', read: false, createdAt: new Date('2026-06-01T09:40:00Z') },
+      { id: 'n1', userId: fukuda.id, type: 'restock',   title: '�在庫が復活！',  body: '渋谷で「ポケモン ミニフィギュア vol.5」が今、引けます',                     gachaId: 'g1', read: false, createdAt: new Date('2026-06-01T09:40:00Z') },
       { id: 'n2', userId: fukuda.id, type: 'release',   title: '発売中',        body: '「ワンピース ガチャ 麦わらver.」が発売中。近くにあるかチェック',           gachaId: 'g4', read: false, createdAt: new Date('2026-06-01T07:00:00Z') },
       { id: 'n3', userId: fukuda.id, type: 'upcoming',  title: '来週発売',      body: '「ちいかわ もこもこマスコット」が6月第1週スタート。お知らせをオンにしました', gachaId: 'g9', read: true,  createdAt: new Date('2026-05-31T20:00:00Z') },
       { id: 'n4', userId: fukuda.id, type: 'community', title: 'みんなの動き',  body: 'お気に入りのポケモンを今週243人が引いています',                           gachaId: 'g6', read: true,  createdAt: new Date('2026-05-31T10:00:00Z') },

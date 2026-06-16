@@ -3,7 +3,7 @@
 import { SunlitProvider } from '@/lib/sunlit/store';
 import { PageNav } from '@/components/feature/PageNav';
 import { BottomNav } from '@/components/feature/BottomNav';
-import { useIsMobile } from '@/lib/hooks/useIsMobile';
+import { useIsMobile } from '@/lib/useIsMobile';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const isMobile = useIsMobile();
@@ -13,7 +13,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {isMobile ? (
         /* モバイル: コンテンツ上 + ボトムナビ下 */
         <div className="flex flex-col h-screen bg-[#F7F6F3]">
-          <main className="flex-1 overflow-hidden">
+          <main className="flex-1 overflow-hidden h-full">
             {children}
           </main>
           <BottomNav />
@@ -22,7 +22,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         /* デスクトップ: サイドバー左 + コンテンツ右 */
         <div className="flex h-screen bg-[#F7F6F3]">
           <PageNav />
-          <main className="flex-1 overflow-hidden">
+          <main className="flex-1 overflow-hidden h-full">
             {children}
           </main>
         </div>

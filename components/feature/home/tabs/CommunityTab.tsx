@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useSunlit } from '@/lib/sunlit/store';
 import { PullGridCard, StockScrollCard } from '@/components/sunlit/ui/FeedCard';
-import { useIsMobile } from '@/lib/hooks/useIsMobile';
+import { useIsMobile } from '@/lib/useIsMobile';
 
 export function CommunityTab() {
   const { feedItems } = useSunlit();

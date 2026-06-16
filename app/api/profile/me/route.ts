@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { prisma } from '@/lib/db';
+import { db } from '@/lib/db';
 import { headers } from 'next/headers';
 
 export async function GET() {
@@ -10,9 +10,7 @@ export async function GET() {
   }
 
   const user = session.user;
-  const profile = await prisma.userProfile.findUnique({
-    where: { userId: user.id },
-  });
+  const profile = await db.findProfileByUserId(user.id);
 
   return NextResponse.json({
     id:          user.id,

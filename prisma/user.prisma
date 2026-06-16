@@ -12,9 +12,8 @@ model User {
   sessions      Session[]
   accounts      Account[]
 
-  profile       UserProfile?
-  stockReports  StockReport[]
-  pulls         Pull[]
+  profile    UserProfile?
+  pulls      Pull[]
   likes         Like[]
   gachaLikes    GachaLike[]
   qaItems       QA[]

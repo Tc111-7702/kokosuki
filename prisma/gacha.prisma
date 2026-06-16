@@ -17,6 +17,12 @@ model Gacha {
   isContinuation Boolean  @default(false)
   commentCount   Int      @default(0)
   weeklyPulls    Int      @default(0)
+  // スクレイパー由来フィールド
+  imageUrl       String?
+  releaseDate    DateTime?
+  maker          String?
+  sourceUrl      String?
+  wpPostId       Int?     @unique
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
