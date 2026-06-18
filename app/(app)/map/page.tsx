@@ -157,6 +157,12 @@ export default function MapPage() {
         items.forEach((g) => map.set(g.id, g));
         gachaMapRef.current = map;
 
+        // ガチャデータ取得完了時点で位置情報が既に取れていれば再描画
+        if (currentPosRef.current && mapRef.current) {
+          const { lat, lng } = currentPosRef.current;
+          loadNearbySpots(mapRef.current, lat, lng, spotMarkersRef, filterRef.current, map, setSelectedSpot);
+        }
+
         if (stored.length > 0) {
           setFilterGachaIds(stored);
           filterRef.current = stored;
