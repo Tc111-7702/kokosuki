@@ -19,11 +19,13 @@ model Spot {
 }
 
 model Machine {
-  id        String   @id @default(cuid())
-  spotId    String
-  gachaId   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String    @id @default(cuid())
+  spotId        String
+  gachaId       String
+  stockStatus   String?
+  stockSyncedAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   spot  Spot  @relation(fields: [spotId], references: [id], onDelete: Cascade)
   gacha Gacha @relation(fields: [gachaId], references: [id], onDelete: Cascade)

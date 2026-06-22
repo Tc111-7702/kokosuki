@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { kansaiShopsPoller } from '@/lib/scrapers/gacha-island-shops';
 
 function haversine(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6_371_000;
@@ -17,26 +16,29 @@ function haversine(lat1: number, lng1: number, lat2: number, lng2: number): numb
 // GET /api/spots/nearby?lat=X&lng=Y&radius=20000
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const lat    = Number(searchParams.get('lat'));
-  const lng    = Number(searchParams.get('lng'));
-  const radius = Number(searchParams.get('radius') ?? '20000');
+  const lat             = Number(searchParams.get('lat'));
+  const lng             = Number(searchParams.get('lng'));
+  const radius          = Number(searchParams.get('radius') ?? '20000');
+  const addressContains = searchParams.get('addressContains') ?? undefined;
 
   if (!lat || !lng) {
     return NextResponse.json({ error: 'lat と lng は必須です' }, { status: 400 });
   }
 
-  if (!kansaiShopsPoller.isRunning()) {
-    kansaiShopsPoller.start();
-  }
-
-  const candidates = await db.findSpotsNearby(lat, lng, radius);
+  const candidates = await db.findSpotsNearby(lat, lng, radius, addressContains);
   const spots = candidates
     .map(({ machines, ...spot }) => ({
       ...spot,
       gachaIds: machines.map((m) => m.gachaId),
+      // gachaId → stockStatus のマップ
+      stockMap: Object.fromEntries(
+        machines
+          .filter((m) => m.stockStatus)
+          .map((m) => [m.gachaId, m.stockStatus as string])
+      ),
       distance: Math.round(haversine(lat, lng, spot.lat, spot.lng)),
     }))
-    .filter((spot) => spot.distance <= radius)
+    .filter((spot) => spot.distance <= radius && spot.gachaIds.length > 0)
     .sort((a, b) => a.distance - b.distance);
 
   return NextResponse.json({ spots });

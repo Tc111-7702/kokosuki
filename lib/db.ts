@@ -136,15 +136,16 @@ export const db = {
    * バウンディングボックスで絞ったスポット一覧を返す（JS側でHaversine距離フィルタ）
    * machinesも含め、gachaIdsをクライアント側フィルタリングに使用
    */
-  findSpotsNearby: (lat: number, lng: number, radiusMeters: number) => {
+  findSpotsNearby: (lat: number, lng: number, radiusMeters: number, addressContains?: string) => {
     const delta = radiusMeters / 111_000;
     return prisma.spot.findMany({
       where: {
         lat: { gte: lat - delta, lte: lat + delta },
         lng: { gte: lng - delta, lte: lng + delta },
+        ...(addressContains ? { address: { contains: addressContains } } : {}),
       },
       include: {
-        machines: { select: { gachaId: true } },
+        machines: { select: { gachaId: true, stockStatus: true } },
       },
     });
   },
@@ -152,6 +153,28 @@ export const db = {
   /** gachaIslandId を持つ全スポットを取得（Machineスクレイパー用） */
   findSpotsWithGachaIslandId: () =>
     prisma.spot.findMany({ where: { gachaIslandId: { not: null } } }),
+
+  /** googlePlaceId を持つ全スポットを取得（電話番号取得用） */
+  findSpotsWithPlaceId: () =>
+    prisma.spot.findMany({
+      where: { googlePlaceId: { not: null } },
+      select: { id: true, googlePlaceId: true, phone: true },
+    }),
+
+  /** googlePlaceId を更新 */
+  updateSpotPlaceId: (id: string, googlePlaceId: string) =>
+    prisma.spot.update({ where: { id }, data: { googlePlaceId } }),
+
+  /** googlePlaceId がない gachaIsland 由来スポットを取得 */
+  findSpotsWithoutPlaceId: () =>
+    prisma.spot.findMany({
+      where: { gachaIslandId: { not: null }, googlePlaceId: null },
+      select: { id: true, name: true, address: true, lat: true, lng: true },
+    }),
+
+  /** 電話番号を更新 */
+  updateSpotPhone: (id: string, phone: string) =>
+    prisma.spot.update({ where: { id }, data: { phone } }),
 
   // ── Gacha ────────────────────────────────────────────────────────────────
 
@@ -201,7 +224,6 @@ export const db = {
       },
     }),
 
-  
   // ── Machine ──────────────────────────────────────────────────────────────
 
   /** spotId + gachaId で Machine を upsert（重複排除） */

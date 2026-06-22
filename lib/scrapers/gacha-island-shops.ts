@@ -1,7 +1,4 @@
 import { db } from '@/lib/db';
-import { createPoller } from '@/lib/polling';
-
-export const KANSAI_SHOPS_POLL_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000; // 30日
 
 // 関西の都道府県スラッグ
 const KANSAI_PREFS = ['osaka', 'hyogo', 'kyoto', 'nara', 'shiga', 'wakayama'] as const;
@@ -122,10 +119,3 @@ export async function scrapeKansaiShops(): Promise<ShopScrapeResult> {
 
   return { saved, skipped, errors };
 }
-
-export const kansaiShopsPoller = createPoller(
-  () => scrapeKansaiShops().then((r) => {
-    console.log(`[kansaiShopsPoller] saved=${r.saved} skipped=${r.skipped}`);
-  }),
-  KANSAI_SHOPS_POLL_INTERVAL_MS,
-);

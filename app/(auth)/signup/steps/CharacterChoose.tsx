@@ -2,7 +2,7 @@
 
 import { ArrowLeft } from 'lucide-react';
 
-const IP_LIST = ['ポケモン', 'ワンピース', 'ハイキュー!!', '呪術廻戦', 'チェンソーマン', 'ジョジョ', 'ちいかわ', 'サンリオ', 'HUNTER×HUNTER', 'SPY×FAMILY', 'ドラゴンボール', 'ミッフィー'];
+const IP_LIST = ['ポケモン', 'ONE PIECE', 'ハイキュー!!', '呪術廻戦', 'チェンソーマン', 'ジョジョ', 'ちいかわ', 'サンリオ', 'HUNTER×HUNTER', 'SPY×FAMILY', 'ドラゴンボール', 'ミッフィー'];
 
 interface Props {
   selected: string[];

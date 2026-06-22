@@ -1,11 +1,5 @@
-'use client';
-
-import { MyPageScreen } from '@/components/sunlit/screens/MyPageScreen';
+import MyPageClient from './client';
 
 export default function MyPage() {
-  return (
-    <div className="h-full flex flex-col bg-[#F7F6F3]">
-      <MyPageScreen />
-    </div>
-  );
+  return <MyPageClient />;
 }
