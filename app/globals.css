@@ -361,3 +361,39 @@
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+/* Zoom slider - white track */
+.zoom-slider::-webkit-slider-runnable-track {
+  background: white;
+  border-radius: 3px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+}
+.zoom-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #F2B800;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+  margin-left: -6px;
+}
+.zoom-slider::-moz-range-track {
+  background: white;
+  border-radius: 3px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+}
+.zoom-slider::-moz-range-progress {
+  background: white;
+  border-radius: 3px;
+}
+.zoom-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #F2B800;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+}

@@ -1,5 +1,4 @@
 import { db } from '@/lib/db';
-import { createPoller } from '@/lib/polling';
 
 // ────────────────────────────────────────────────
 // ポーリング間隔（このファイルで一元管理）
@@ -177,9 +176,3 @@ export async function scrapeGachaIsland(
 // ────────────────────────────────────────────────
 // ポーラーインスタンス（通常時は最新2ページのみ取得）
 // ────────────────────────────────────────────────
-export const gachaIslandPoller = createPoller(
-  () => scrapeGachaIsland(2).then((r) => {
-    console.log(`[gachaIslandPoller] saved=${r.saved} skipped=${r.skipped}`);
-  }),
-  POLL_INTERVAL_MS,
-);

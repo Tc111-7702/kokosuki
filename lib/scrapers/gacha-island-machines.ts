@@ -1,7 +1,4 @@
 import { db } from '@/lib/db';
-import { createPoller } from '@/lib/polling';
-
-export const MACHINES_POLL_INTERVAL_MS = 24 * 60 * 60 * 1000; // 1日（入荷情報は頻繁に変わる）
 
 const BASE = 'https://gacha-island.jp/shops';
 
@@ -88,10 +85,3 @@ function guessPrefSlug(address: string): string | null {
   }
   return null;
 }
-
-export const kansaiMachinesPoller = createPoller(
-  () => scrapeKansaiMachines().then((r) => {
-    console.log(`[kansaiMachinesPoller] saved=${r.saved} skipped=${r.skipped}`);
-  }),
-  MACHINES_POLL_INTERVAL_MS,
-);

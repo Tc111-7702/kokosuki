@@ -48,7 +48,7 @@ async function main() {
       profile: {
         create: {
           handle: 'yamamoto',
-          favoriteIps: ['ポケモン', 'ワンピース'],
+          favoriteIps: ['ポケモン', 'ONE PIECE'],
           bio: '管理者',
         },
       },
@@ -148,8 +148,8 @@ async function main() {
         create: {
           handle: 'kenta',
           avatarUrl: 'https://api.dicebear.com/7.x/thumbs/svg?seed=kenta',
-          favoriteIps: ['ワンピース', 'ドラゴンボール'],
-          bio: 'ワンピースとドラゴンボール一筋。在庫報告まめにやってます',
+          favoriteIps: ['ONE PIECE', 'ドラゴンボール'],
+          bio: 'ONE PIECEとドラゴンボール一筋。在庫報告まめにやってます',
         },
       },
     },
@@ -161,7 +161,7 @@ async function main() {
   await prisma.userProfile.upsert({
     where: { userId: yamamoto.id },
     update: { handle: 'yamamoto' },
-    create: { userId: yamamoto.id, handle: 'yamamoto', favoriteIps: ['ポケモン', 'ワンピース'], bio: '管理者' },
+    create: { userId: yamamoto.id, handle: 'yamamoto', favoriteIps: ['ポケモン', 'ONE PIECE'], bio: '管理者' },
   });
   await prisma.userProfile.upsert({
     where: { userId: fukuda.id },
@@ -181,7 +181,7 @@ async function main() {
   await prisma.userProfile.upsert({
     where: { userId: kenta.id },
     update: { handle: 'kenta', avatarUrl: 'https://api.dicebear.com/7.x/thumbs/svg?seed=kenta' },
-    create: { userId: kenta.id, handle: 'kenta', avatarUrl: 'https://api.dicebear.com/7.x/thumbs/svg?seed=kenta', favoriteIps: ['ワンピース', 'ドラゴンボール'], bio: 'ワンピースとドラゴンボール一筋。在庫報告まめにやってます' },
+    create: { userId: kenta.id, handle: 'kenta', avatarUrl: 'https://api.dicebear.com/7.x/thumbs/svg?seed=kenta', favoriteIps: ['ONE PIECE', 'ドラゴンボール'], bio: 'ONE PIECEとドラゴンボール一筋。在庫報告まめにやってます' },
   });
   console.log('✅ Profiles upserted');
 
@@ -191,7 +191,7 @@ async function main() {
     { id: 'g1',  seriesName: 'ポケモン ミニフィギュア vol.5',            ipName: 'ポケモン',       kind: 'gacha', category: 'anime',     status: 'on_sale',     price: 300, gradientFrom: '#FFD84D', gradientTo: '#F59E0B', isContinuation: true,  lineup: ['ピカチュウ', 'リザードン', 'イーブイ', 'ミュウ', 'ゲンガー', 'カビゴン'], commentCount: 42, weeklyPulls: 127 },
     { id: 'g2',  seriesName: 'ハイキュー!! めじるしアクスタ 第4弾',      ipName: 'ハイキュー!!',   kind: 'gacha', category: 'anime',     status: 'on_sale',     price: 400, gradientFrom: '#FB923C', gradientTo: '#DC2626', isContinuation: true,  commentCount: 28, weeklyPulls: 84 },
     { id: 'g3',  seriesName: '呪術廻戦 マスコットフィギュア 最強編',      ipName: '呪術廻戦',       kind: 'gacha', category: 'anime',     status: 'on_sale',     price: 500, gradientFrom: '#7C3AED', gradientTo: '#1E1B4B', lineup: ['五条悟', '宿儺', '虎杖悠仁', '伏黒恵', '釘崎野薔薇'], commentCount: 65, weeklyPulls: 201 },
-    { id: 'g4',  seriesName: 'ワンピース ガチャ 麦わらver.',              ipName: 'ワンピース',     kind: 'gacha', category: 'anime',     status: 'on_sale',     price: 300, gradientFrom: '#2563EB', gradientTo: '#0C4A6E', lineup: ['ルフィ', 'ゾロ', 'ナミ', 'サンジ', 'チョッパー'], commentCount: 33, weeklyPulls: 156 },
+    { id: 'g4',  seriesName: 'ワンピース ガチャ 麦わらver.',              ipName: 'ONE PIECE',     kind: 'gacha', category: 'anime',     status: 'on_sale',     price: 300, gradientFrom: '#2563EB', gradientTo: '#0C4A6E', lineup: ['ルフィ', 'ゾロ', 'ナミ', 'サンジ', 'チョッパー'], commentCount: 33, weeklyPulls: 156 },
     { id: 'g5',  seriesName: 'チェンソーマン マスコット vol.2',           ipName: 'チェンソーマン', kind: 'gacha', category: 'anime',     status: 'on_sale',     price: 500, gradientFrom: '#475569', gradientTo: '#111827', isContinuation: true,  commentCount: 19, weeklyPulls: 67 },
     { id: 'g6',  seriesName: 'ポケモン ミニフィギュア 第4弾',             ipName: 'ポケモン',       kind: 'gacha', category: 'anime',     status: 'on_sale',     price: 300, gradientFrom: '#FDE047', gradientTo: '#EAB308', lineup: ['リザードン', 'ピカチュウ', 'フシギダネ', 'ゼニガメ', 'ミュウツー', 'ルカリオ'], commentCount: 88, weeklyPulls: 243 },
     { id: 'g7',  seriesName: 'ハイキュー!! アクリルスタンド 合宿編',     ipName: 'ハイキュー!!',   kind: 'gacha', category: 'anime',     status: 'on_sale',     price: 500, gradientFrom: '#F97316', gradientTo: '#9A3412', commentCount: 51, weeklyPulls: 178 },
@@ -373,7 +373,7 @@ async function main() {
     skipDuplicates: true,
     data: [
       { id: 'n1', userId: fukuda.id, type: 'restock',   title: '�在庫が復活！',  body: '渋谷で「ポケモン ミニフィギュア vol.5」が今、引けます',                     gachaId: 'g1', read: false, createdAt: new Date('2026-06-01T09:40:00Z') },
-      { id: 'n2', userId: fukuda.id, type: 'release',   title: '発売中',        body: '「ワンピース ガチャ 麦わらver.」が発売中。近くにあるかチェック',           gachaId: 'g4', read: false, createdAt: new Date('2026-06-01T07:00:00Z') },
+      { id: 'n2', userId: fukuda.id, type: 'release',   title: '発売中',        body: '「ONE PIECE ガチャ 麦わらver.」が発売中。近くにあるかチェック',           gachaId: 'g4', read: false, createdAt: new Date('2026-06-01T07:00:00Z') },
       { id: 'n3', userId: fukuda.id, type: 'upcoming',  title: '来週発売',      body: '「ちいかわ もこもこマスコット」が6月第1週スタート。お知らせをオンにしました', gachaId: 'g9', read: true,  createdAt: new Date('2026-05-31T20:00:00Z') },
       { id: 'n4', userId: fukuda.id, type: 'community', title: 'みんなの動き',  body: 'お気に入りのポケモンを今週243人が引いています',                           gachaId: 'g6', read: true,  createdAt: new Date('2026-05-31T10:00:00Z') },
     ],
