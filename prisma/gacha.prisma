@@ -18,6 +18,7 @@ model Gacha {
   commentCount   Int      @default(0)
   weeklyPulls    Int      @default(0)
   // スクレイパー由来フィールド
+  genre          String?
   imageUrl       String?
   releaseDate    DateTime?
   maker          String?

@@ -13,6 +13,7 @@ const SEARCH_ALIASES: Record<string, string[]> = {
   '呪術廻戦':        ['jjk', 'jujutsu'],
   'チェンソーマン':   ['chainsaw man', 'chainsawman'],
   'ハイキュー!!':    ['haikyuu', 'haikyu'],
+  'DEATH NOTE':      ['デスノート', 'デスノ', 'death note', 'deathnote'],
 };
 
 /** クエリがテキストにマッチするか（エイリアス含む） */

@@ -29,6 +29,7 @@ const PREF_CAPITALS: Record<string, string> = {
 let suppressDblclick = false;
 
 const NEARBY_RADIUS = 20000;
+const STATION_RADIUS = 1000;
 const STORAGE_KEY   = 'mikke_filter_gacha_ids';
 
 interface NearbySpot {
@@ -114,7 +115,7 @@ async function loadNearbySpots(
   filterGachaIds: string[],
   gachaMap: Map<string, GachaInfo>,
   onSpotClick: (spot: SpotDetail) => void,
-  options?: { radius?: number; addressFilter?: string },
+  options?: { radius?: number; addressFilter?: string; ignoreFilter?: boolean },
 ) {
   try {
     const radius = options?.radius ?? NEARBY_RADIUS;
@@ -128,8 +129,8 @@ async function loadNearbySpots(
     markersRef.current.forEach(m => m.remove());
     markersRef.current = [];
 
-    // 住所/駅検索時はフィルター無視してすべて表示
-    const ignoreFilter = !!addressFilter || !!options?.radius;
+    // ignoreFilter=true が明示された場合のみフィルター無視
+    const ignoreFilter = options?.ignoreFilter === true;
     const visible = (ignoreFilter || filterGachaIds.length === 0)
       ? spots
       : spots.filter(s => s.gachaIds.some(id => filterGachaIds.includes(id)));
@@ -432,11 +433,12 @@ export default function MapClient({ mapboxToken }: MapClientProps) {
     // ── ケース分岐 ──
 
     if (resolvedSpot && !contentResult) {
-      // ケース1: 店舗名のみ
+      // ケース1: 店舗名のみ（フィルター有効時はフィルターのガチャを表示）
       placeSearchPin(map, resolvedSpot.lat, resolvedSpot.lng);
       currentPinRef.current?.setLngLat([resolvedSpot.lng, resolvedSpot.lat]);
       setCurrentAddress(resolvedSpot.name);
       map.flyTo({ center: [resolvedSpot.lng, resolvedSpot.lat], zoom: 17, duration: 1000 });
+      if (filterRef.current.length > 0) setSearchOverrideIds(filterRef.current);
       setSelectedSpot(resolvedSpot);
 
     } else if (resolvedSpot && contentResult) {
@@ -452,7 +454,6 @@ export default function MapClient({ mapboxToken }: MapClientProps) {
       // ケース2: 住所/駅
       tempSearchPosRef.current = resolvedPos;
       const isStation = searchLocationType === 'station';
-      const STATION_RADIUS = 5000;
       if (isStation) {
         if (currentPinRef.current) {
           currentPinRef.current.setLngLat([resolvedPos.lng, resolvedPos.lat]);
@@ -490,7 +491,6 @@ export default function MapClient({ mapboxToken }: MapClientProps) {
       spotMarkersRef.current.forEach(m => m.remove());
       spotMarkersRef.current = [];
       const isStation78 = searchLocationType === 'station';
-      const STATION_RADIUS = 5000;
       if (isStation78) {
         if (currentPinRef.current) {
           currentPinRef.current.setLngLat([resolvedPos.lng, resolvedPos.lat]);
@@ -599,6 +599,7 @@ export default function MapClient({ mapboxToken }: MapClientProps) {
       }
       (map.getSource('station-range') as mapboxgl.GeoJSONSource)?.setData({ type: 'FeatureCollection', features: [] });
       reverseGeocode(lat, lng).then(addr => { if (addr) setCurrentAddress(addr); });
+      loadNearbySpots(map, lat, lng, spotMarkersRef, filterRef.current, gachaMapRef.current, setSelectedSpot);
     });
 
     // 駅アイコンクリックで現在地を移動＋「駅名（都道府県市区町村）」表示
@@ -616,12 +617,12 @@ export default function MapClient({ mapboxToken }: MapClientProps) {
       } else {
         currentPinRef.current = new mapboxgl.Marker({ color: '#F2B800' }).setLngLat([lng, lat]).addTo(map);
       }
-      (map.getSource('station-range') as mapboxgl.GeoJSONSource)?.setData(makeCircleGeoJSON(lng, lat, NEARBY_RADIUS));
+      (map.getSource('station-range') as mapboxgl.GeoJSONSource)?.setData(makeCircleGeoJSON(lng, lat, STATION_RADIUS));
       map.flyTo({ center: [lng, lat], zoom: Math.max(mapRef.current?.getZoom() ?? 14, 15), duration: 800 });
       reverseGeocode(lat, lng).then(addr => {
         setCurrentAddress(addr ? `${stationName}駅（${addr}）` : `${stationName}駅`);
       });
-      loadNearbySpots(map, lat, lng, spotMarkersRef, filterRef.current, gachaMapRef.current, setSelectedSpot);
+      loadNearbySpots(map, lat, lng, spotMarkersRef, filterRef.current, gachaMapRef.current, setSelectedSpot, { radius: STATION_RADIUS });
     };
 
     // スタイル読み込み後にレイヤーへのクリック＋ホバー膨張を登録
@@ -705,6 +706,7 @@ export default function MapClient({ mapboxToken }: MapClientProps) {
             .addTo(mapRef.current);
         }
         reverseGeocode(latitude, longitude).then(addr => { if (addr) setCurrentAddress(addr); });
+        (mapRef.current.getSource('station-range') as mapboxgl.GeoJSONSource)?.setData({ type: 'FeatureCollection', features: [] });
         loadNearbySpots(mapRef.current, latitude, longitude, spotMarkersRef, filterRef.current, gachaMapRef.current, setSelectedSpot);
       },
       err => console.warn('位置情報取得失敗:', err),
@@ -738,6 +740,7 @@ export default function MapClient({ mapboxToken }: MapClientProps) {
             .addTo(mapRef.current);
         }
         reverseGeocode(latitude, longitude).then(addr => { if (addr) setCurrentAddress(addr); });
+        (mapRef.current.getSource('station-range') as mapboxgl.GeoJSONSource)?.setData({ type: 'FeatureCollection', features: [] });
         loadNearbySpots(mapRef.current, latitude, longitude, spotMarkersRef, filterRef.current, gachaMapRef.current, setSelectedSpot);
       },
       err => console.warn('位置情報取得失敗:', err),

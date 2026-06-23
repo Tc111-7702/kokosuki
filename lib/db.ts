@@ -41,6 +41,7 @@ export interface GachaUpsertData {
   price: number;
   gradientFrom: string;
   gradientTo: string;
+  genre: string | null;
   maker: string | null;
   imageUrl: string | null;
   releaseDate: Date | null;
@@ -201,6 +202,7 @@ export const db = {
       update: {
         seriesName:  data.seriesName,
         ipName:      data.ipName,
+        genre:       data.genre,
         maker:       data.maker,
         imageUrl:    data.imageUrl,
         releaseDate: data.releaseDate,
@@ -216,6 +218,7 @@ export const db = {
         price:        data.price,
         gradientFrom: data.gradientFrom,
         gradientTo:   data.gradientTo,
+        genre:        data.genre,
         maker:        data.maker,
         imageUrl:     data.imageUrl,
         releaseDate:  data.releaseDate,

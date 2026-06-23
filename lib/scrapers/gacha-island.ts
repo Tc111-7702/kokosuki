@@ -153,6 +153,7 @@ export async function scrapeGachaIsland(
           price:        300,
           gradientFrom: from,
           gradientTo:   to,
+          genre:        ptSlug,
           maker:        makerSlug,
           imageUrl,
           releaseDate,
