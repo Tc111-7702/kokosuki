@@ -1,5 +1,5 @@
-import FeedDetailClient from './client';
+'use client';
 
 export default function FeedDetailPage() {
-  return <FeedDetailClient />;
+  return <div className="flex flex-col h-full bg-white" />;
 }

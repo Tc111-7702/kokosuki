@@ -25,7 +25,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'lat と lng は必須です' }, { status: 400 });
   }
 
-  const candidates = await db.findSpotsNearby(lat, lng, radius, addressContains);
+  const candidates = await db.findSpotsNearby(lat, lng, radius, addressContains).catch(() => []);
   const spots = candidates
     .map(({ machines, ...spot }) => ({
       ...spot,

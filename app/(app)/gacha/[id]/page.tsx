@@ -1,5 +1,5 @@
-import GachaDetailClient from './client';
+'use client';
 
 export default function GachaDetailPage() {
-  return <GachaDetailClient />;
+  return <div className="flex flex-col h-full bg-[#FFFEEF]" />;
 }

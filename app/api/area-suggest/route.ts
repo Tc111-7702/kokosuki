@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import municipalities from '@/lib/japan-municipalities.json';
+import municipalities from '@/lib/map/japan-municipalities.json';
 
 const data = municipalities as Record<string, string[]>;
 

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import stationsData from '@/lib/japan-stations.json';
+import stationsData from '@/lib/map/japan-stations.json';
 
 interface Station {
   name: string;

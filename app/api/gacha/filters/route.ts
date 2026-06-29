@@ -2,8 +2,14 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
 // GET /api/gacha/filters
-// フィルターUI用: ipNames一覧 + ガチャ一覧(id, seriesName, ipName)
 export async function GET() {
-  const data = await db.getGachaFilters();
-  return NextResponse.json(data);
+  try {
+    const data = await db.getGachaFilters();
+    return NextResponse.json(data, {
+      headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' },
+    });
+  } catch (e) {
+    console.error('[/api/gacha/filters]', e);
+    return NextResponse.json({ ipNames: [], items: [] }, { status: 500 });
+  }
 }

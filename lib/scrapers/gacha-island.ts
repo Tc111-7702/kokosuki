@@ -1,19 +1,50 @@
 import { db } from '@/lib/db';
 
-// ────────────────────────────────────────────────
-// ポーリング間隔（このファイルで一元管理）
-// ────────────────────────────────────────────────
-export const POLL_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24時間
+export const POLL_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 const WP_BASE = 'https://gacha-island.jp/wp-json/wp/v2';
-
-// ────────────────────────────────────────────────
-// ユーティリティ
-// ────────────────────────────────────────────────
 
 function extractClass(classList: string[], prefix: string): string | null {
   const hit = classList.find((c) => c.startsWith(`${prefix}-`));
   return hit ? hit.slice(prefix.length + 1) : null;
+}
+
+function parsePrice(html: string): number | null {
+  const m = html.match(/価格<\/th>\s*<td[^>]*>([^<]+)/);
+  if (m) {
+    const num = m[1].match(/(\d[\d,]*)/);
+    if (num) return parseInt(num[1].replace(/,/g, ''), 10);
+  }
+  return null;
+}
+
+function parseLineup(html: string): string[] {
+  const tableMatch = html.match(/商品内容<\/th>\s*<td[^>]*>([\s\S]*?)<\/td>/);
+  if (!tableMatch) return [];
+  const content = tableMatch[1]
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .trim();
+  return content
+    .split(/[\n]/)
+    .map((s) => s.replace(/^[・\s]+/, '').trim())
+    .filter(Boolean);
+}
+
+async function fetchPostDetail(
+  link: string,
+): Promise<{ price: number | null; lineup: string[] }> {
+  try {
+    const res = await fetch(link, {
+      headers: { 'User-Agent': 'mikke-scraper/1.0' },
+      next: { revalidate: 0 },
+    });
+    if (!res.ok) return { price: null, lineup: [] };
+    const html = await res.text();
+    return { price: parsePrice(html), lineup: parseLineup(html) };
+  } catch {
+    return { price: null, lineup: [] };
+  }
 }
 
 function parseReleaseDate(html: string): Date | null {
@@ -30,16 +61,10 @@ function parseReleaseDate(html: string): Date | null {
   return null;
 }
 
-/**
- * wp:term から日本語のipName（カテゴリ表示名）を取得する。
- * 子カテゴリ（特定IP名）を優先し、なければ親カテゴリ名を使う。
- */
 function extractIpName(wpTerms: WpTerm[][]): string {
   const categories = wpTerms.flat().filter((t) => t.taxonomy === 'category');
-  // 子カテゴリ優先（parent !== 0）
   const child = categories.find((c) => c.parent !== 0);
   if (child) return child.name;
-  // なければ親カテゴリ
   const parent = categories.find((c) => c.parent === 0);
   if (parent) return parent.name;
   return '不明';
@@ -63,9 +88,6 @@ function toCategory(slug: string | null): string {
   return 'other';
 }
 
-// ────────────────────────────────────────────────
-// WordPress REST API の型
-// ────────────────────────────────────────────────
 interface WpTerm {
   id: number;
   name: string;
@@ -86,9 +108,6 @@ interface WpPost {
   };
 }
 
-// ────────────────────────────────────────────────
-// スクレイプ本体
-// ────────────────────────────────────────────────
 export interface ScrapeResult {
   saved: number;
   skipped: number;
@@ -102,7 +121,6 @@ export async function scrapeGachaIsland(
   let skipped = 0;
   const errors: string[] = [];
 
-  // 1ページ目で総ページ数を取得し、maxPagesが未指定なら全ページ取得
   let totalPages = maxPages ?? 1;
 
   for (let page = 1; page <= totalPages; page++) {
@@ -114,10 +132,9 @@ export async function scrapeGachaIsland(
         headers: { 'User-Agent': 'mikke-scraper/1.0' },
         next: { revalidate: 0 },
       });
-      if (res.status === 400) break; // ページ超過 → 終了
+      if (res.status === 400) break;
       if (!res.ok) { errors.push(`Page ${page}: HTTP ${res.status}`); break; }
 
-      // 1ページ目でX-WP-TotalPagesを読み取り、全件取得モード時に上限を更新
       if (page === 1 && maxPages === undefined) {
         const total = parseInt(res.headers.get('X-WP-TotalPages') ?? '1', 10);
         totalPages = isNaN(total) ? 1 : total;
@@ -130,6 +147,8 @@ export async function scrapeGachaIsland(
       errors.push(`Page ${page}: fetch failed - ${String(e)}`);
       break;
     }
+
+    console.log(`[gacha-island] ページ ${page}/${totalPages} 処理中 (${posts.length}件)`);
 
     for (const post of posts) {
       try {
@@ -144,13 +163,23 @@ export async function scrapeGachaIsland(
         const { from, to } = ipGradientFromName(ipName);
         const status = releaseDate && releaseDate > new Date() ? 'coming_soon' : 'on_sale';
 
+        let price  = parsePrice(post.content.rendered);
+        let lineup = parseLineup(post.content.rendered);
+
+        if (price === null || lineup.length === 0) {
+          const detail = await fetchPostDetail(post.link);
+          if (price === null)       price  = detail.price;
+          if (lineup.length === 0)  lineup = detail.lineup;
+          await new Promise((r) => setTimeout(r, 500));
+        }
+
         await db.upsertGachaFromScraper({
           seriesName:   post.title.rendered,
           ipName,
           kind:         'gacha',
           category,
           status,
-          price:        300,
+          price:        price ?? 300,
           gradientFrom: from,
           gradientTo:   to,
           genre:        ptSlug,
@@ -159,6 +188,7 @@ export async function scrapeGachaIsland(
           releaseDate,
           sourceUrl:    post.link,
           wpPostId:     post.id,
+          lineup,
         });
         saved++;
       } catch (e) {
@@ -167,13 +197,8 @@ export async function scrapeGachaIsland(
       }
     }
 
-    // gacha-island.jp への負荷を抑える
     await new Promise((r) => setTimeout(r, 500));
   }
 
   return { saved, skipped, errors };
 }
-
-// ────────────────────────────────────────────────
-// ポーラーインスタンス（通常時は最新2ページのみ取得）
-// ────────────────────────────────────────────────
