@@ -30,7 +30,8 @@ const STORAGE_KEY   = 'mikke_filter_gacha_ids';
 
 export default function MapPage() {
   const searchParams   = useSearchParams();
-  const spotIdParam    = searchParams.get('spotId');
+  const spotIdParam        = searchParams.get('spotId');
+  const highlightGachaId   = searchParams.get('highlightGachaId') ?? undefined;
   const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN!;
   mapboxgl.accessToken = mapboxToken;
   const containerRef     = useRef<HTMLDivElement>(null);
@@ -259,6 +260,7 @@ export default function MapPage() {
         fetch('/api/profile/me').then(r => r.json()).then(profile => {
           const favIps: string[] = Array.isArray(profile.favoriteIps) ? profile.favoriteIps : [];
           setFavoriteIps(favIps);
+          if (skipFilter) return;
           if (stored.length > 0) {
             const favIds = items.filter(g => favIps.includes(g.ipName)).map(g => g.id);
             const merged = Array.from(new Set([...stored, ...favIds]));
@@ -602,6 +604,7 @@ export default function MapPage() {
           gachaMap={gachaMapRef.current}
           filterGachaIds={filterGachaIds}
           searchOverrideIds={searchOverrideIds}
+          highlightGachaId={highlightGachaId}
           currentPos={currentPosRef.current}
           onClose={() => { setSelectedSpot(null); setSearchOverrideIds(null); }}
         />
