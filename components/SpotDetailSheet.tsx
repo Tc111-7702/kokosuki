@@ -84,12 +84,12 @@ function StockBadge({ status }: { status: string | null }) {
 // ─── 商品カード ───────────────────────────────────────────────────────────────
 
 function GachaCard({ gacha, stockStatus }: { gacha: GachaInfo; stockStatus: string | null }) {
-  const [from, to] = ipGradient(gacha.ipName);
   const router = useRouter();
+  const [from, to] = ipGradient(gacha.ipName);
   return (
     <div className="flex-shrink-0 flex flex-col overflow-hidden"
-      style={{ width: 320, borderRadius: 20, background: 'white', boxShadow: '0 2px 12px rgba(0,0,0,0.10)', cursor: 'pointer' }}
-      onClick={() => router.push(`/gacha/${gacha.id}`)}>
+      onClick={() => router.push(`/gacha/${gacha.id}`)}
+      style={{ width: 320, borderRadius: 20, background: 'white', boxShadow: '0 2px 12px rgba(0,0,0,0.10)', cursor: 'pointer' }}>
       <div style={{ width: '100%', height: 300, background: `linear-gradient(135deg, ${from}, ${to})`, position: 'relative', overflow: 'hidden' }}>
         {gacha.imageUrl && (
           <img src={gacha.imageUrl} alt={gacha.seriesName}
@@ -272,4 +272,9 @@ export default function SpotDetailSheet({ spot, gachaMap, filterGachaIds, search
           <button className="flex-1 py-3 rounded-2xl text-[14px] font-bold" style={{ background: '#F2B800', color: 'white' }}>
             引いた！
           </button>
- 
+        </div>
+      </div>
+      {navOpen && <NavPickerModal spot={spot} currentPos={currentPos} onClose={() => setNavOpen(false)} />}
+    </>
+  );
+}

@@ -254,4 +254,11 @@ export function OshiNewSection() {
               width: i === index ? 24 : 9, height: 9, borderRadius: 5,
               background: i === index ? '#F2B800' : '#D9D4C4',
               transition: 'width 250ms, background 250ms',
-              border: 'none', padding: 0, cursor: 'pointer', flexShr
+              border: 'none', padding: 0, cursor: 'pointer', flexShrink: 0,
+            }} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
