@@ -100,6 +100,9 @@ export async function loadNearbySpots(
     if (!res.ok) return;
     const { spots }: { spots: NearbySpot[] } = await res.json();
 
+    // fetch完了後にマップが破棄されている場合はスキップ
+    if (!map.getContainer().isConnected) return;
+
     markersRef.current.forEach(m => m.remove());
     markersRef.current = [];
 
@@ -179,9 +182,4 @@ export async function loadSearchContentMarkers(
       );
     });
 
-    const marker = new mapboxgl.Marker({ element: el }).setLngLat([spot.lng, spot.lat]).addTo(map);
-    markersRef.current.push(marker);
-  }
-
-  return matched.length;
-}
+    const marker = new mapboxgl.Marker({
