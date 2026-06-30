@@ -1,6 +1,6 @@
 // ─── 投稿・いいね・Q&A ────────────────────────────────────────────────────────
 
-model Pull {
+model Post {
   id        String   @id @default(cuid())
   machineId String
   spotId    String
@@ -23,13 +23,13 @@ model Pull {
 model Like {
   id        String   @id @default(cuid())
   userId    String
-  pullId    String
+  postId    String
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  pull Pull @relation(fields: [pullId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, pullId])
+  @@unique([userId, postId])
 }
 
 model QA {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { List, Navigation, SlidersHorizontal, MapPin } from 'lucide-react';
@@ -45,11 +46,37 @@ export default function MapPage() {
   const [filterOpen, setFilterOpen]               = useState(false);
   const [filterGachaIds, setFilterGachaIds]       = useState<string[]>([]);
   const [selectedSpot, setSelectedSpot]           = useState<SpotDetail | null>(null);
+  const searchParams = useSearchParams();
+  const spotIdParam  = searchParams.get('spotId');
   const [searchOverrideIds, setSearchOverrideIds] = useState<string[] | null>(null);
   const [hasSearchResult, setHasSearchResult]     = useState(false);
   const [currentAddress, setCurrentAddress]       = useState<string | null>(null);
 
   filterRef.current = filterGachaIds;
+
+  // ?spotId=xxx で直接店舗シートを開く（フィルターはリセット）
+  useEffect(() => {
+    if (!spotIdParam) return;
+    // gacha/[id] から遷移した場合はフィルターを解除して店舗が必ず表示されるようにする
+    setFilterGachaIds([]);
+    filterRef.current = [];
+    fetch(`/api/spots/${spotIdParam}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (!d.spot) return;
+        setSelectedSpot(d.spot);
+        // マップが初期化済みならすぐ flyTo、まだなら準備できるまでポーリング
+        const flyToSpot = (retries = 20) => {
+          if (mapRef.current) {
+            mapRef.current.flyTo({ center: [d.spot.lng, d.spot.lat], zoom: 17, duration: 1200 });
+          } else if (retries > 0) {
+            setTimeout(() => flyToSpot(retries - 1), 200);
+          }
+        };
+        flyToSpot();
+      })
+      .catch(() => {});
+  }, [spotIdParam]);
 
   const [zoom, setZoom] = useState(14);
   const panTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -215,7 +242,9 @@ export default function MapPage() {
 
   // 初期化
   useEffect(() => {
-    const stored = loadStoredGachaIds();
+    // ?spotId=xxx からの遷移時はフィルターを適用しない
+    const skipFilter = !!spotIdParam;
+    const stored = skipFilter ? [] : loadStoredGachaIds();
     if (stored.length > 0) { setFilterGachaIds(stored); filterRef.current = stored; }
     // Supabase コールドスタート対策: 失敗時は最大3回リトライ
     const loadFilters = async (retries = 3): Promise<void> => {
@@ -230,6 +259,8 @@ export default function MapPage() {
           const { lat, lng } = currentPosRef.current;
           loadNearbySpots(mapRef.current, lat, lng, spotMarkersRef, filterRef.current, map, setSelectedSpot);
         }
+        // ?spotId=xxx 遷移時はフィルター設定をスキップ
+        if (skipFilter) return;
         fetch('/api/profile/me').then(r => r.json()).then(profile => {
           const favIps: string[] = Array.isArray(profile.favoriteIps) ? profile.favoriteIps : [];
           setFavoriteIps(favIps);
@@ -386,7 +417,8 @@ export default function MapPage() {
         if (!mapRef.current) return;
         const { longitude, latitude } = pos.coords;
         currentPosRef.current = { lat: latitude, lng: longitude };
-        mapRef.current.setCenter([longitude, latitude]);
+        // ?spotId=xxx 遷移時は店舗側の flyTo を優先するためセンター移動しない
+        if (!spotIdParam) mapRef.current.setCenter([longitude, latitude]);
         if (currentPinRef.current) {
           currentPinRef.current.setLngLat([longitude, latitude]);
         } else {
@@ -548,38 +580,4 @@ export default function MapPage() {
           </button>
           <button onMouseDown={() => startPan(PAN_STEP, 0)} onMouseUp={stopPan} onMouseLeave={stopPan}
             onTouchStart={() => startPan(PAN_STEP, 0)} onTouchEnd={stopPan}
-            className="flex items-center justify-center rounded-xl shadow active:scale-90 transition-transform select-none"
-            style={{ background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.18)' }}>
-            <svg viewBox="0 0 24 24" width={18} height={18}><path d="M19 12l-7-7v14z" fill="#555"/></svg>
-          </button>
-          <div />
-          <button onMouseDown={() => startPan(0, PAN_STEP)} onMouseUp={stopPan} onMouseLeave={stopPan}
-            onTouchStart={() => startPan(0, PAN_STEP)} onTouchEnd={stopPan}
-            className="flex items-center justify-center rounded-xl shadow active:scale-90 transition-transform select-none"
-            style={{ background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.18)' }}>
-            <svg viewBox="0 0 24 24" width={18} height={18}><path d="M12 19l7-7H5z" fill="#555"/></svg>
-          </button>
-          <div />
-        </div>
-      </div>
-
-      <FilterDrawer
-        isOpen={filterOpen}
-        onClose={() => setFilterOpen(false)}
-        onApply={handleFilterApply}
-        favoriteIps={favoriteIps}
-        currentGachaIds={filterGachaIds}
-      />
-      {selectedSpot && (
-        <SpotDetailSheet
-          spot={selectedSpot}
-          gachaMap={gachaMapRef.current}
-          filterGachaIds={filterGachaIds}
-          searchOverrideIds={searchOverrideIds}
-          currentPos={currentPosRef.current}
-          onClose={() => { setSelectedSpot(null); setSearchOverrideIds(null); }}
-        />
-      )}
-    </div>
-  );
-}
+            className="flex items-center justify-center round

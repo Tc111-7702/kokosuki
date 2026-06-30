@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { X, MapPin, Navigation, Phone } from 'lucide-react';
 
 // ─── 型定義 ──────────────────────────────────────────────────────────────────
@@ -84,9 +85,11 @@ function StockBadge({ status }: { status: string | null }) {
 
 function GachaCard({ gacha, stockStatus }: { gacha: GachaInfo; stockStatus: string | null }) {
   const [from, to] = ipGradient(gacha.ipName);
+  const router = useRouter();
   return (
     <div className="flex-shrink-0 flex flex-col overflow-hidden"
-      style={{ width: 320, borderRadius: 20, background: 'white', boxShadow: '0 2px 12px rgba(0,0,0,0.10)' }}>
+      style={{ width: 320, borderRadius: 20, background: 'white', boxShadow: '0 2px 12px rgba(0,0,0,0.10)', cursor: 'pointer' }}
+      onClick={() => router.push(`/gacha/${gacha.id}`)}>
       <div style={{ width: '100%', height: 300, background: `linear-gradient(135deg, ${from}, ${to})`, position: 'relative', overflow: 'hidden' }}>
         {gacha.imageUrl && (
           <img src={gacha.imageUrl} alt={gacha.seriesName}
@@ -269,9 +272,4 @@ export default function SpotDetailSheet({ spot, gachaMap, filterGachaIds, search
           <button className="flex-1 py-3 rounded-2xl text-[14px] font-bold" style={{ background: '#F2B800', color: 'white' }}>
             引いた！
           </button>
-        </div>
-      </div>
-      {navOpen && <NavPickerModal spot={spot} currentPos={currentPos} onClose={() => setNavOpen(false)} />}
-    </>
-  );
-}
+ 
