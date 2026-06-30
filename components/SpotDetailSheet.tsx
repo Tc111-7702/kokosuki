@@ -31,6 +31,7 @@ interface SpotDetailSheetProps {
   gachaMap: Map<string, GachaInfo>;
   filterGachaIds: string[];
   searchOverrideIds?: string[] | null; // セット時はこれだけ表示
+  highlightGachaId?: string;           // 先頭に固定するガチャID
   currentPos?: { lat: number; lng: number } | null;
   onClose: () => void;
 }
@@ -171,7 +172,7 @@ function NavPickerModal({ spot, currentPos, onClose }: {
   );
 }
 
-export default function SpotDetailSheet({ spot, gachaMap, filterGachaIds, searchOverrideIds, currentPos, onClose }: SpotDetailSheetProps) {
+export default function SpotDetailSheet({ spot, gachaMap, filterGachaIds, searchOverrideIds, highlightGachaId, currentPos, onClose }: SpotDetailSheetProps) {
   const sheetRef = useRef<HTMLDivElement>(null);
   const [navOpen, setNavOpen] = useState(false);
   if (!spot) return null;
@@ -184,6 +185,13 @@ export default function SpotDetailSheet({ spot, gachaMap, filterGachaIds, search
     })
     .map(id => gachaMap.get(id))
     .filter((g): g is GachaInfo => g !== undefined)
+    .sort((a, b) => {
+      if (highlightGachaId) {
+        if (a.id === highlightGachaId) return -1;
+        if (b.id === highlightGachaId) return 1;
+      }
+      return 0;
+    })
     .slice(0, 30);
 
   const knownCount = matchedGacha.filter(g => spot.stockMap[g.id]).length;
