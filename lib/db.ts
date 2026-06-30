@@ -94,10 +94,37 @@ export const db = {
       skipDuplicates: true,
     }),
 
+  getGachaLike: (userId: string, gachaId: string) =>
+    prisma.gachaLike.findUnique({
+      where: { userId_gachaId: { userId, gachaId } },
+    }),
+
+  toggleGachaLike: async (userId: string, gachaId: string) => {
+    const existing = await prisma.gachaLike.findUnique({
+      where: { userId_gachaId: { userId, gachaId } },
+    });
+    if (existing) {
+      await prisma.gachaLike.delete({ where: { userId_gachaId: { userId, gachaId } } });
+      return { liked: false };
+    } else {
+      await prisma.gachaLike.create({ data: { userId, gachaId } });
+      return { liked: true };
+    }
+  },
+
+  getGachaLikeCount: (gachaId: string) =>
+    prisma.gachaLike.count({ where: { gachaId } }),
+
   // ── Spot ─────────────────────────────────────────────────────────────────
 
   findSpotByGachaIslandId: (gachaIslandId: number) =>
     prisma.spot.findUnique({ where: { gachaIslandId } }),
+
+  getSpotById: (id: string) =>
+    prisma.spot.findUnique({
+      where: { id },
+      include: { machines: { select: { gachaId: true, stockStatus: true } } },
+    }),
 
   upsertSpotFromGachaIsland: (data: {
     gachaIslandId: number;
@@ -225,7 +252,16 @@ export const db = {
     }),
 
   getGachaById: (id: string) =>
-    prisma.gacha.findUnique({ where: { id } }),
+    prisma.gacha.findUnique({
+      where: { id },
+      select: {
+        id: true, seriesName: true, ipName: true, kind: true, category: true,
+        status: true, price: true, gradientFrom: true, gradientTo: true,
+        lineup: true, imageUrl: true, commentCount: true, weeklyPulls: true,
+        postCount: true, isCollab: true, isReissue: true, isContinuation: true,
+        genre: true, releaseDate: true, maker: true, sourceUrl: true,
+      },
+    }),
 
   getPopularGachas: async (limit = 20) => {
     const rows = await prisma.gacha.findMany({
@@ -233,37 +269,4 @@ export const db = {
       take: limit,
       select: {
         id: true, seriesName: true, ipName: true,
-        imageUrl: true, gradientFrom: true, gradientTo: true,
-        status: true, price: true,
-        _count: { select: { gachaLikes: true } },
-      },
-    });
-    return rows.map(({ _count, ...g }) => ({ ...g, likeCount: _count.gachaLikes }));
-  },
-
-  getRecommendedGachas: async (favoriteIps: string[], limit = 20) => {
-    if (favoriteIps.length === 0) return [];
-    const rows = await prisma.gacha.findMany({
-      where: { ipName: { in: favoriteIps } },
-      orderBy: { gachaLikes: { _count: 'desc' } },
-      take: limit,
-      select: {
-        id: true, seriesName: true, ipName: true,
-        imageUrl: true, gradientFrom: true, gradientTo: true,
-        status: true,
-        _count: { select: { gachaLikes: true } },
-      },
-    });
-    return rows.map(({ _count, ...g }) => ({ ...g, likeCount: _count.gachaLikes }));
-  },
-
-  // ── Machine ──────────────────────────────────────────────────────────────
-
-  upsertMachine: (spotId: string, gachaId: string) =>
-    prisma.machine.upsert({
-      where:  { spotId_gachaId: { spotId, gachaId } },
-      update: { updatedAt: new Date() },
-      create: { spotId, gachaId },
-    }),
-
-};
+ 

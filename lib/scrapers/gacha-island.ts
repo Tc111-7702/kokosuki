@@ -19,14 +19,18 @@ function parsePrice(html: string): number | null {
 }
 
 function parseLineup(html: string): string[] {
-  const tableMatch = html.match(/商品内容<\/th>\s*<td[^>]*>([\s\S]*?)<\/td>/);
-  if (!tableMatch) return [];
-  const content = tableMatch[1]
+  // 新形式: <h4>商品内容</h4><p>...</p>
+  const h4Match = html.match(/<h4[^>]*>商品内容<\/h4>\s*<p[^>]*>([\s\S]*?)<\/p>/);
+  // 旧形式: <th>商品内容</th><td>...</td>
+  const tdMatch = html.match(/商品内容<\/th>\s*<td[^>]*>([\s\S]*?)<\/td>/);
+  const raw = (h4Match ?? tdMatch)?.[1];
+  if (!raw) return [];
+  const content = raw
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<[^>]+>/g, '')
     .trim();
   return content
-    .split(/[\n]/)
+    .split(/\n/)
     .map((s) => s.replace(/^[・\s]+/, '').trim())
     .filter(Boolean);
 }

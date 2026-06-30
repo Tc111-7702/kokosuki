@@ -277,11 +277,11 @@ async function main() {
 
   console.log('✅ Machines created');
 
-  // ─── Pull（ガチャ結果投稿） ────────────────────────────────────────────────
+  // ─── Post（ガチャ結果投稿） ────────────────────────────────────────────────
 
   const ago = (hours: number) => new Date(Date.now() - hours * 3600 * 1000);
 
-  await prisma.pull.createMany({
+  await prisma.post.createMany({
     skipDuplicates: true,
     data: [
       { id: 'p1', machineId: 'm2', spotId: 's1', userId: yuna.id,   gachaId: 'g2', result: 'hit',       itemName: '影山飛雄 アクリルスタンド', imageUrl: 'https://picsum.photos/seed/haikyuu_pull/400/500',  memo: 'ずっと狙ってた影山引けた！！！',    isPublic: true, createdAt: ago(14) },
@@ -293,18 +293,18 @@ async function main() {
     ],
   });
 
-  console.log('✅ Pulls created');
+  console.log('✅ Posts created');
 
   // ─── いいね ────────────────────────────────────────────────────────────────
 
   await prisma.like.createMany({
     skipDuplicates: true,
     data: [
-      { userId: kenta.id,  pullId: 'p1' },
-      { userId: fukuda.id, pullId: 'p1' },
-      { userId: yuna.id,   pullId: 'p4' },
-      { userId: kenta.id,  pullId: 'p5' },
-      { userId: fukuda.id, pullId: 'p3' },
+      { userId: kenta.id,  postId: 'p1' },
+      { userId: fukuda.id, postId: 'p1' },
+      { userId: yuna.id,   postId: 'p4' },
+      { userId: kenta.id,  postId: 'p5' },
+      { userId: fukuda.id, postId: 'p3' },
     ],
   });
 

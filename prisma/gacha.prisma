@@ -17,6 +17,7 @@ model Gacha {
   isContinuation Boolean  @default(false)
   commentCount   Int      @default(0)
   weeklyPulls    Int      @default(0)
+  postCount      Int      @default(0)
   // スクレイパー由来フィールド
   genre          String?
   imageUrl       String?
@@ -28,7 +29,7 @@ model Gacha {
   updatedAt      DateTime @updatedAt
 
   machines   Machine[]
-  pulls      Pull[]
+  posts      Post[]
   gachaLikes GachaLike[]
 }
 
@@ -39,7 +40,4 @@ model GachaLike {
   createdAt DateTime @default(now())
 
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  gacha Gacha @relation(fields: [gachaId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, gachaId])
-}
+  gacha Gacha @relation(fields: [gachaId], references: [id], onDelete: Cascade
