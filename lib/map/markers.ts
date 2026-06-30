@@ -182,4 +182,9 @@ export async function loadSearchContentMarkers(
       );
     });
 
-    const marker = new mapboxgl.Marker({
+    const marker = new mapboxgl.Marker({ element: el }).setLngLat([spot.lng, spot.lat]).addTo(map);
+    markersRef.current.push(marker);
+  }
+
+  return matched.length;
+}
