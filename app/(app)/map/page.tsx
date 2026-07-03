@@ -1,10 +1,8 @@
-import nextDynamic from 'next/dynamic';
+import MapLoader from './MapLoader';
 
-// マップはブラウザ専用APIを使うためSSRを無効化し、静的プリレンダリングもスキップ
+// 静的プリレンダリングを無効化（マップはブラウザ専用API使用のため）
 export const dynamic = 'force-dynamic';
 
-const MapClient = nextDynamic(() => import('./MapClient'), { ssr: false });
-
 export default function MapPage() {
-  return <MapClient />;
+  return <MapLoader />;
 }
