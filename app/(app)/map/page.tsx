@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -28,7 +28,7 @@ const STORAGE_KEY   = 'mikke_filter_gacha_ids';
 // ─── MapClient ───────────────────────────────────────────────────────────────
 
 
-export default function MapPage() {
+function MapInner() {
   const searchParams   = useSearchParams();
   const spotIdParam        = searchParams.get('spotId');
   const highlightGachaId   = searchParams.get('highlightGachaId') ?? undefined;
@@ -610,5 +610,13 @@ export default function MapPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function MapPage() {
+  return (
+    <Suspense fallback={null}>
+      <MapInner />
+    </Suspense>
   );
 }
