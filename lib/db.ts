@@ -297,4 +297,9 @@ export const db = {
 
   upsertMachine: (spotId: string, gachaId: string) =>
     prisma.machine.upsert({
-      where:  { sp
+      where:  { spotId_gachaId: { spotId, gachaId } },
+      update: { updatedAt: new Date() },
+      create: { spotId, gachaId },
+    }),
+
+};
