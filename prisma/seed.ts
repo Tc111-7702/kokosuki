@@ -260,11 +260,11 @@ async function main() {
   // ─── マシン ────────────────────────────────────────────────────────────────
 
   const machineData = [
-    { id: 'm1', spotId: 's1', gachaId: 'g6', price: 300 },
-    { id: 'm2', spotId: 's1', gachaId: 'g2', price: 400 },
-    { id: 'm3', spotId: 's3', gachaId: 'g5', price: 500 },
-    { id: 'm4', spotId: 's4', gachaId: 'g4', price: 300 },
-    { id: 'm5', spotId: 's2', gachaId: 'g8', price: 500 },
+    { id: 'm1', spotId: 's1', gachaId: 'g6' },
+    { id: 'm2', spotId: 's1', gachaId: 'g2' },
+    { id: 'm3', spotId: 's3', gachaId: 'g5' },
+    { id: 'm4', spotId: 's4', gachaId: 'g4' },
+    { id: 'm5', spotId: 's2', gachaId: 'g8' },
   ];
 
   for (const m of machineData) {
