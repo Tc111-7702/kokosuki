@@ -4,9 +4,10 @@ import path from "path";
 const nextConfig: NextConfig = {
   // ワークスペースのルートをこのプロジェクト自身に固定（親ディレクトリを参照させない）
   outputFileTracingRoot: path.join(__dirname),
-  // @better-auth/kysely-adapter の SQLite dialect が kysely の削除済みエクスポートを
-  // 参照するため Turbopack の静的解析を回避（dynamic import なので実行時は問題なし）
-  serverExternalPackages: ['@better-auth/kysely-adapter'],
+  // @better-auth/kysely-adapter が kysely の削除済みエクスポートを参照するため
+  // Turbopack の externals-tracing を止める（kysely も一緒に外部扱いにしないと
+  // トレースが kysely/dist/index.js まで追いかけてしまう）
+  serverExternalPackages: ['@better-auth/kysely-adapter', 'kysely'],
 };
 
 export default nextConfig;
