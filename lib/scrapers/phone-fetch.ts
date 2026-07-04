@@ -1,4 +1,4 @@
-import { db } from '@/lib/db';
+import * as db from '@/lib/db';
 
 export interface PhoneFetchResult {
   updated: number;

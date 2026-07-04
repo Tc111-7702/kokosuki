@@ -25,13 +25,13 @@ export async function GET(request: Request) {
   if (suggest) {
     const [series, ips] = await Promise.all([
       prisma.gacha.findMany({
-        where: seriesWhere,
+        where: { isOnSale: true, ...seriesWhere },
         select: { seriesName: true },
         distinct: ['seriesName'],
         orderBy: { seriesName: 'asc' },
       }),
       prisma.gacha.findMany({
-        where: ipWhere,
+        where: { isOnSale: true, ...ipWhere },
         select: { ipName: true },
         distinct: ['ipName'],
         orderBy: { ipName: 'asc' },
@@ -47,7 +47,7 @@ export async function GET(request: Request) {
 
   // シリーズ名で先に検索
   const seriesMatches = await prisma.gacha.findMany({
-    where: seriesWhere,
+    where: { isOnSale: true, ...seriesWhere },
     select: { id: true, seriesName: true },
   });
   if (seriesMatches.length > 0) {
@@ -60,7 +60,7 @@ export async function GET(request: Request) {
 
   // IPName（ジャンル）で検索
   const ipMatches = await prisma.gacha.findMany({
-    where: ipWhere,
+    where: { isOnSale: true, ...ipWhere },
     select: { id: true, ipName: true },
   });
   if (ipMatches.length > 0) {

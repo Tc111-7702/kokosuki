@@ -57,6 +57,8 @@ interface FilterDrawerProps {
 // ─── localStorage ─────────────────────────────────────────────────────────────
 
 const STORAGE_KEY = 'mikke_filter_gacha_ids';
+// アクティブフィルターが解除されても「最後に選んだガチャ」を覚えておくキー
+const SEED_KEY    = 'mikke_filter_gacha_ids_seed';
 
 export function loadStoredGachaIds(): string[] {
   if (typeof window === 'undefined') return [];
@@ -68,8 +70,22 @@ export function loadStoredGachaIds(): string[] {
   }
 }
 
+function loadSeedGachaIds(): string[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(SEED_KEY);
+    return raw ? (JSON.parse(raw) as string[]) : [];
+  } catch {
+    return [];
+  }
+}
+
 function saveGachaIds(ids: string[]) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(ids)); } catch {}
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
+    // 選択したものは seed にも保存（解除後にドロワーで復元するため）
+    if (ids.length > 0) localStorage.setItem(SEED_KEY, JSON.stringify(ids));
+  } catch {}
 }
 
 // ─── コンポーネント ───────────────────────────────────────────────────────────
@@ -90,9 +106,12 @@ export default function FilterDrawer({
   const [allGacha, setAllGacha] = useState<GachaItem[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const [selectedGachaIds, setSelectedGachaIds] = useState<Set<string>>(() =>
-    new Set(currentGachaIds.length > 0 ? currentGachaIds : loadStoredGachaIds())
-  );
+  const [selectedGachaIds, setSelectedGachaIds] = useState<Set<string>>(() => {
+    if (currentGachaIds.length > 0) return new Set(currentGachaIds);
+    const stored = loadStoredGachaIds();
+    if (stored.length > 0) return new Set(stored);
+    return new Set(loadSeedGachaIds()); // アクティブフィルター解除後もseedから復元
+  });
 
   useEffect(() => {
     if (!isOpen) return;
@@ -113,10 +132,14 @@ export default function FilterDrawer({
         summary.sort((a, b) => b.count - a.count);
         setIpList(summary);
         const stored = loadStoredGachaIds();
+        const seed   = loadSeedGachaIds();
         if (currentGachaIds.length > 0) {
           setSelectedGachaIds(new Set(currentGachaIds));
         } else if (stored.length > 0) {
           setSelectedGachaIds(new Set(stored));
+        } else if (seed.length > 0) {
+          // アクティブフィルターが解除されていても前回の選択を復元
+          setSelectedGachaIds(new Set(seed));
         } else {
           const favIds = items.filter((g) => favoriteIps.includes(g.ipName)).map((g) => g.id);
           setSelectedGachaIds(new Set(favIds));
@@ -546,7 +569,7 @@ export default function FilterDrawer({
 
           <div className="px-4 pb-8 pt-3" style={{ borderTop: '1px solid #F0F0F0' }}>
             <button onClick={handleApply} className="w-full py-3.5 rounded-2xl text-[15px] font-bold" style={{ background: '#F2B800', color: 'white' }}>
-              適用する（{selectedGachaIds.size}件選択中）
+              {`適用する（${selectedGachaIds.size}件選択中）`}
             </button>
           </div>
         </>

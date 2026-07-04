@@ -57,9 +57,11 @@ export function expandQuery(q: string): string[] {
       return [val, q]; // エイリアス値を優先、元のクエリも保持
     }
   }
-  // 前方一致 or 部分一致
+  // エイリアスキーが入力を含む場合のみ展開
+  // ※ lower.includes(key) は除外: フル系列名に短いエイリアスが含まれてしまい
+  //   全シリーズが一致してしまうバグの原因になるため
   for (const [key, val] of Object.entries(GACHA_ALIASES)) {
-    if (key.toLowerCase().includes(lower) || lower.includes(key.toLowerCase())) {
+    if (key.toLowerCase().includes(lower)) {
       return [val, q];
     }
   }

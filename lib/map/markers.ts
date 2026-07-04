@@ -89,7 +89,13 @@ export async function loadNearbySpots(
   filterGachaIds: string[],
   gachaMap: Map<string, GachaInfo>,
   onSpotClick: (spot: SpotDetail) => void,
-  options?: { radius?: number; addressFilter?: string; ignoreFilter?: boolean },
+  options?: {
+    radius?: number;
+    addressFilter?: string;
+    ignoreFilter?: boolean;
+    excludeSpotIds?: Set<string>;
+    onSpotsLoaded?: (spots: NearbySpot[]) => void; // フィルター後・excludeSpotIds前の全スポット（リスト用）
+  },
 ) {
   try {
     const radius = options?.radius ?? NEARBY_RADIUS;
@@ -107,11 +113,19 @@ export async function loadNearbySpots(
     markersRef.current = [];
 
     const ignoreFilter = options?.ignoreFilter === true;
+    const excludeSpotIds = options?.excludeSpotIds;
     const visible = (ignoreFilter || filterGachaIds.length === 0)
       ? spots
       : spots.filter(s => s.gachaIds.some(id => filterGachaIds.includes(id)));
 
-    for (const spot of visible) {
+    // リスト用: excludeSpotIds 適用前の全マッチスポットを通知
+    options?.onSpotsLoaded?.(visible);
+
+    const visibleFiltered = excludeSpotIds
+      ? visible.filter(s => !excludeSpotIds.has(s.id))
+      : visible;
+
+    for (const spot of visibleFiltered) {
       const isUnfiltered = ignoreFilter || filterGachaIds.length === 0;
       const firstMatchId = isUnfiltered ? undefined : spot.gachaIds.find(id => filterGachaIds.includes(id));
       const firstGacha   = firstMatchId ? gachaMap.get(firstMatchId) : undefined;
@@ -152,14 +166,18 @@ export async function loadSearchContentMarkers(
   gachaMap: Map<string, GachaInfo>,
   markersRef: React.MutableRefObject<mapboxgl.Marker[]>,
   onSpotClick: (spot: SpotDetail, overrideIds: string[]) => void,
-  options?: { radius?: number; addressFilter?: string },
-): Promise<number> {
+  options?: {
+    radius?: number;
+    addressFilter?: string;
+    onSpotsLoaded?: (spots: NearbySpot[]) => void; // コンテンツマッチスポット（リスト用）
+  },
+): Promise<{ count: number; spotIds: Set<string> }> {
   const radius = options?.radius ?? NEARBY_RADIUS;
   const addressFilter = options?.addressFilter;
   let url = `/api/spots/nearby?lat=${lat}&lng=${lng}&radius=${radius}`;
   if (addressFilter) url += `&addressContains=${encodeURIComponent(addressFilter)}`;
   const res = await fetch(url);
-  if (!res.ok) return 0;
+  if (!res.ok) return { count: 0, spotIds: new Set() };
   const { spots }: { spots: NearbySpot[] } = await res.json();
 
   markersRef.current.forEach(m => m.remove());
@@ -168,23 +186,35 @@ export async function loadSearchContentMarkers(
   const contentSet = new Set(contentGachaIds);
   const matched = spots.filter(s => s.gachaIds.some(id => contentSet.has(id)));
 
+  // リスト用: コンテンツマッチスポットを通知
+  options?.onSpotsLoaded?.(matched);
+
   for (const spot of matched) {
     const firstMatchId = spot.gachaIds.find(id => contentSet.has(id));
-    const firstGacha   = firstMatchId ? gachaMap.get(firstMatchId) : undefined;
-    const el = createMarkerEl(firstGacha?.imageUrl ?? null, firstGacha?.ipName ?? '', '#F2B800', 52);
-
+    const firstGacha = firstMatchId ? gachaMap.get(firstMatchId) : undefined;
+    const el = createMarkerEl(
+      firstGacha?.imageUrl ?? null,
+      firstGacha?.ipName ?? '',
+      '#F2B800',
+    );
     el.addEventListener('click', () => {
       suppressDblclick = true;
-      setTimeout(() => { suppressDblclick = false; }, 600);
+      setTimeout(() => { suppressDblclick = false; }, 300);
       onSpotClick(
-        { id: spot.id, name: spot.name, address: spot.address, lat: spot.lat, lng: spot.lng, distance: spot.distance, phone: spot.phone, googleMapsUrl: spot.googleMapsUrl, gachaIds: spot.gachaIds, stockMap: spot.stockMap ?? {} },
-        contentGachaIds,
+        {
+          id: spot.id, name: spot.name, address: spot.address,
+          lat: spot.lat, lng: spot.lng,
+          phone: spot.phone ?? null, googleMapsUrl: spot.googleMapsUrl,
+          gachaIds: spot.gachaIds, stockMap: spot.stockMap,
+        },
+        spot.gachaIds.filter(id => contentSet.has(id)),
       );
     });
-
-    const marker = new mapboxgl.Marker({ element: el }).setLngLat([spot.lng, spot.lat]).addTo(map);
+    const marker = new mapboxgl.Marker({ element: el })
+      .setLngLat([spot.lng, spot.lat])
+      .addTo(map);
     markersRef.current.push(marker);
   }
 
-  return matched.length;
+  return { count: matched.length, spotIds: new Set(matched.map(s => s.id)) };
 }

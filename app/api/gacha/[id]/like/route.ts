@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { headers } from 'next/headers';
 import { auth } from '@/lib/auth';
-import { db } from '@/lib/db';
+import * as db from '@/lib/db';
 
 // GET: いいね状態と件数を取得
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

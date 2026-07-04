@@ -8,7 +8,7 @@ export async function GET() {
 
   // ① 今日〜1週間後
   const upcoming = await prisma.gacha.findMany({
-    where: { releaseDate: { gte: now, lte: nextWeek } },
+    where: { isOnSale: true, releaseDate: { gte: now, lte: nextWeek } },
     orderBy: { gachaLikes: { _count: 'desc' } },
     take: 10,
     select: {
@@ -26,6 +26,7 @@ export async function GET() {
     const existingIds = new Set(gachas.map(g => g.id));
     const recent = await prisma.gacha.findMany({
       where: {
+        isOnSale: true,
         releaseDate: { gte: lastWeek, lt: now },
         id: { notIn: [...existingIds] },
       },
@@ -46,6 +47,7 @@ export async function GET() {
     const existingIds = new Set(gachas.map(g => g.id));
     const comingSoon = await prisma.gacha.findMany({
       where: {
+        isOnSale: true,
         status: 'coming_soon',
         id: { notIn: [...existingIds] },
       },
@@ -66,6 +68,7 @@ export async function GET() {
     const existingIds = new Set(gachas.map(g => g.id));
     const onSale = await prisma.gacha.findMany({
       where: {
+        isOnSale: true,
         status: 'on_sale',
         id: { notIn: [...existingIds] },
       },

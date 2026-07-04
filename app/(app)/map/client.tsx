@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { List, Navigation, SlidersHorizontal, MapPin } from 'lucide-react';
+import { List, Map as MapIcon, Navigation, SlidersHorizontal, MapPin } from 'lucide-react';
 import FilterDrawer, { loadStoredGachaIds } from '@/components/FilterDrawer';
 import SpotDetailSheet, { type SpotDetail, type GachaInfo } from '@/components/SpotDetailSheet';
 import SearchBar from '@/components/SearchBar';
@@ -15,6 +15,7 @@ import {
   loadSearchContentMarkers,
   type NearbySpot,
 } from '@/lib/map/markers';
+import SpotListPanel from '@/components/SpotListPanel';
 import { makeCircleGeoJSON } from '@/lib/map/geojson';
 import { reverseGeocode, resolveLocation, resolveContent, type ContentResult } from '@/lib/map/geo';
 
@@ -42,18 +43,27 @@ export default function MapPage() {
   const currentPosRef    = useRef<{ lat: number; lng: number } | null>(null);
   const tempSearchPosRef = useRef<{ lat: number; lng: number } | null>(null);
   const currentPinRef    = useRef<mapboxgl.Marker | null>(null);
-  const filterRef        = useRef<string[]>([]);
-  const gachaMapRef      = useRef<Map<string, GachaInfo>>(new Map());
+  const filterRef           = useRef<string[]>([]);
+  const gachaMapRef         = useRef<Map<string, GachaInfo>>(new Map());
+  const hasSearchResultRef  = useRef(false);  // コンテンツ検索中はスポットマーカー再ロードを抑制
 
   const [favoriteIps, setFavoriteIps]             = useState<string[]>([]);
   const [filterOpen, setFilterOpen]               = useState(false);
   const [filterGachaIds, setFilterGachaIds]       = useState<string[]>([]);
   const [selectedSpot, setSelectedSpot]           = useState<SpotDetail | null>(null);
   const [searchOverrideIds, setSearchOverrideIds] = useState<string[] | null>(null);
+  const [contentSearchLabel, setContentSearchLabel] = useState<string | null>(null);
   const [hasSearchResult, setHasSearchResult]     = useState(false);
+  const [showList, setShowList]                   = useState(() =>
+    typeof window !== 'undefined' && localStorage.getItem('mikke_map_show_list') === '1'
+  );
+  const [filterSpotList, setFilterSpotList]         = useState<NearbySpot[]>([]);
+  const [searchSpotList, setSearchSpotList]         = useState<NearbySpot[]>([]);
+  const [searchContentGachaIds, setSearchContentGachaIds] = useState<string[]>([]);
   const [currentAddress, setCurrentAddress]       = useState<string | null>(null);
 
-  filterRef.current = filterGachaIds;
+  filterRef.current          = filterGachaIds;
+  hasSearchResultRef.current = hasSearchResult;
 
   const [zoom, setZoom] = useState(14);
   const panTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -76,8 +86,17 @@ export default function MapPage() {
     searchPinRef.current?.remove();
     searchPinRef.current = null;
     setSearchOverrideIds(null);
+    setContentSearchLabel(null);
+    setSearchSpotList([]);
+    setSearchContentGachaIds([]);
+    hasSearchResultRef.current = false;  // 即時反映（GPSコールバック等の競合防止）
     setHasSearchResult(false);
   }, []);
+
+  // リスト/マップ表示モードを永続化
+  useEffect(() => {
+    try { localStorage.setItem('mikke_map_show_list', showList ? '1' : '0'); } catch {}
+  }, [showList]);
 
   // 赤ピン設置
   const placeSearchPin = useCallback((map: mapboxgl.Map, lat: number, lng: number) => {
@@ -94,6 +113,7 @@ export default function MapPage() {
     if (!mapRef.current) return;
 
     clearSearchResults();
+    hasSearchResultRef.current = true;  // 即時反映
     setHasSearchResult(true);
 
     const currentPos = currentPosRef.current;
@@ -109,6 +129,13 @@ export default function MapPage() {
 
     // ── コンテンツ解決 ──
     const contentResult: ContentResult | null = await resolveContent(contentQuery);
+    // コンテンツ検索ラベルをセット（店舗ページへの引き継ぎ用）
+    // contentResult.label はDBの最初のシリーズ名になることがあるため、
+    // ユーザーが実際に入力したクエリを使う（エイリアス展開はAPIが再実行する）
+    if (contentResult) {
+      setContentSearchLabel(contentQuery.trim());
+      setSearchContentGachaIds(contentResult.gachaIds);
+    }
 
     const map = mapRef.current;
 
@@ -153,25 +180,33 @@ export default function MapPage() {
       map.flyTo({ center: [resolvedPos.lng, resolvedPos.lat], zoom: isStation ? 14 : 13, duration: 1000 });
       loadNearbySpots(map, resolvedPos.lat, resolvedPos.lng, spotMarkersRef, filterRef.current, gachaMapRef.current, setSelectedSpot,
         isStation
-          ? { radius: STATION_RADIUS }
-          : { radius: 200000, addressFilter: addressFilterText ?? undefined }
+          ? { radius: STATION_RADIUS, onSpotsLoaded: setFilterSpotList }
+          : { radius: 200000, addressFilter: addressFilterText ?? undefined, onSpotsLoaded: setFilterSpotList }
       );
 
     } else if (!locationQuery.trim() && contentResult) {
       // ケース3・4: コンテンツのみ（現在地 or 仮位置）
+      // コンテンツマーカー（黄色）を配置し、ヒットしなかったフィルター店舗は通常マーカーで残す
       const pos = tempSearchPosRef.current ?? currentPosRef.current;
       if (pos) {
-        await loadSearchContentMarkers(map, pos.lat, pos.lng, contentResult.gachaIds, gachaMapRef.current, searchMarkersRef,
-          (spot, overrideIds) => { setSearchOverrideIds(overrideIds); setSelectedSpot(spot); }
+        const { spotIds } = await loadSearchContentMarkers(map, pos.lat, pos.lng, contentResult.gachaIds, gachaMapRef.current, searchMarkersRef,
+          (spot, overrideIds) => { setSearchOverrideIds(overrideIds); setSelectedSpot(spot); },
+          { onSpotsLoaded: setSearchSpotList }
         );
+        // フィルターがある場合: コンテンツヒット店舗を除外してフィルターマーカーを表示
+        if (filterRef.current.length > 0) {
+          loadNearbySpots(map, pos.lat, pos.lng, spotMarkersRef, filterRef.current, gachaMapRef.current, setSelectedSpot,
+            { excludeSpotIds: spotIds, onSpotsLoaded: setFilterSpotList }
+          );
+        } else {
+          spotMarkersRef.current.forEach(m => m.remove());
+          spotMarkersRef.current = [];
+        }
       }
 
     } else if (resolvedPos && contentResult) {
       // ケース7・8: 住所 + コンテンツ
       tempSearchPosRef.current = resolvedPos;
-      // 住所のみ検索で表示していた通常ピンを消す
-      spotMarkersRef.current.forEach(m => m.remove());
-      spotMarkersRef.current = [];
       const isStation78 = searchLocationType === 'station';
       if (isStation78) {
         if (currentPinRef.current) {
@@ -188,12 +223,22 @@ export default function MapPage() {
       }
       setCurrentAddress(resolvedGeoAddress);
       map.flyTo({ center: [resolvedPos.lng, resolvedPos.lat], zoom: isStation78 ? 14 : 13, duration: 1000 });
-      await loadSearchContentMarkers(map, resolvedPos.lat, resolvedPos.lng, contentResult.gachaIds, gachaMapRef.current, searchMarkersRef,
+      const contentOpts78 = isStation78
+        ? { radius: STATION_RADIUS }
+        : { radius: 200000, addressFilter: addressFilterText ?? undefined };
+      const { spotIds: contentSpotIds78 } = await loadSearchContentMarkers(map, resolvedPos.lat, resolvedPos.lng, contentResult.gachaIds, gachaMapRef.current, searchMarkersRef,
         (spot, overrideIds) => { setSearchOverrideIds(overrideIds); setSelectedSpot(spot); },
-        isStation78
-          ? { radius: STATION_RADIUS }
-          : { radius: 200000, addressFilter: addressFilterText ?? undefined }
+        { ...contentOpts78, onSpotsLoaded: setSearchSpotList }
       );
+      // フィルターがある場合: コンテンツヒット店舗を除外してフィルターマーカーを表示
+      if (filterRef.current.length > 0) {
+        loadNearbySpots(map, resolvedPos.lat, resolvedPos.lng, spotMarkersRef, filterRef.current, gachaMapRef.current, setSelectedSpot,
+          { ...contentOpts78, excludeSpotIds: contentSpotIds78, onSpotsLoaded: setFilterSpotList }
+        );
+      } else {
+        spotMarkersRef.current.forEach(m => m.remove());
+        spotMarkersRef.current = [];
+      }
     }
   }, [clearSearchResults, placeSearchPin]);
 
@@ -213,7 +258,8 @@ export default function MapPage() {
     if (tempSearchPosRef.current && currentPosRef.current && mapRef.current) {
       tempSearchPosRef.current = null;
       const { lat, lng } = currentPosRef.current;
-      loadNearbySpots(mapRef.current, lat, lng, spotMarkersRef, filterRef.current, gachaMapRef.current, setSelectedSpot);
+      loadNearbySpots(mapRef.current, lat, lng, spotMarkersRef, filterRef.current, gachaMapRef.current, setSelectedSpot,
+        { onSpotsLoaded: setFilterSpotList });
     }
   }, [clearSearchResults]);
 
@@ -242,7 +288,11 @@ export default function MapPage() {
   // 初期化
   useEffect(() => {
     const skipFilter = !!spotIdParam;
-    const stored = loadStoredGachaIds();
+    // rawFilter が null → 未設定（初回）→ お気に入り自動適用あり
+    // rawFilter が '[]' → ユーザーが意図的に解除 → お気に入り自動適用しない
+    const rawFilter = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
+    const stored = rawFilter ? (JSON.parse(rawFilter) as string[]) : [];
+    const isExplicitlyClear = rawFilter !== null && stored.length === 0;
     if (!skipFilter && stored.length > 0) { setFilterGachaIds(stored); filterRef.current = stored; }
     // Supabase コールドスタート対策: 失敗時は最大3回リトライ
     const loadFilters = async (retries = 3): Promise<void> => {
@@ -253,9 +303,10 @@ export default function MapPage() {
         const map = new Map<string, GachaInfo>();
         items.forEach(g => map.set(g.id, g));
         gachaMapRef.current = map;
-        if (currentPosRef.current && mapRef.current) {
+        if (currentPosRef.current && mapRef.current && !hasSearchResultRef.current) {
           const { lat, lng } = currentPosRef.current;
-          loadNearbySpots(mapRef.current, lat, lng, spotMarkersRef, filterRef.current, map, setSelectedSpot);
+          loadNearbySpots(mapRef.current, lat, lng, spotMarkersRef, filterRef.current, map, setSelectedSpot,
+            { onSpotsLoaded: setFilterSpotList });
         }
         fetch('/api/profile/me').then(r => r.json()).then(profile => {
           const favIps: string[] = Array.isArray(profile.favoriteIps) ? profile.favoriteIps : [];
@@ -270,7 +321,8 @@ export default function MapPage() {
             } else { setFilterGachaIds(stored); filterRef.current = stored; }
             return;
           }
-          if (favIps.length > 0) {
+          // 意図的に解除されていた場合はお気に入りを再適用しない
+          if (favIps.length > 0 && !isExplicitlyClear) {
             const favIds = items.filter(g => favIps.includes(g.ipName)).map(g => g.id);
             if (favIds.length > 0) {
               try { localStorage.setItem(STORAGE_KEY, JSON.stringify(favIds)); } catch {}
@@ -316,7 +368,11 @@ export default function MapPage() {
       }
       (map.getSource('station-range') as mapboxgl.GeoJSONSource)?.setData({ type: 'FeatureCollection', features: [] });
       reverseGeocode(lat, lng, mapboxToken).then(addr => { if (addr) setCurrentAddress(addr); });
-      loadNearbySpots(map, lat, lng, spotMarkersRef, filterRef.current, gachaMapRef.current, setSelectedSpot);
+      // コンテンツ検索中はスポットマーカーを上書きしない
+      if (!hasSearchResultRef.current) {
+        loadNearbySpots(map, lat, lng, spotMarkersRef, filterRef.current, gachaMapRef.current, setSelectedSpot,
+          { onSpotsLoaded: setFilterSpotList });
+      }
     });
 
     // 駅アイコンクリックで現在地を移動＋「駅名（都道府県市区町村）」表示
@@ -339,7 +395,10 @@ export default function MapPage() {
       reverseGeocode(lat, lng, mapboxToken).then(addr => {
         setCurrentAddress(addr ? `${stationName}駅（${addr}）` : `${stationName}駅`);
       });
-      loadNearbySpots(map, lat, lng, spotMarkersRef, filterRef.current, gachaMapRef.current, setSelectedSpot, { radius: STATION_RADIUS });
+      if (!hasSearchResultRef.current) {
+        loadNearbySpots(map, lat, lng, spotMarkersRef, filterRef.current, gachaMapRef.current, setSelectedSpot,
+          { radius: STATION_RADIUS, onSpotsLoaded: setFilterSpotList });
+      }
     };
 
     // スタイル読み込み後にレイヤーへのクリック＋ホバー膨張を登録
@@ -424,7 +483,11 @@ export default function MapPage() {
         }
         reverseGeocode(latitude, longitude, mapboxToken).then(addr => { if (addr) setCurrentAddress(addr); });
         (mapRef.current.getSource('station-range') as mapboxgl.GeoJSONSource)?.setData({ type: 'FeatureCollection', features: [] });
-        loadNearbySpots(mapRef.current, latitude, longitude, spotMarkersRef, filterRef.current, gachaMapRef.current, setSelectedSpot);
+        // コンテンツ検索中はスポットマーカーを上書きしない（GPSが遅れた場合の上書き防止）
+        if (!hasSearchResultRef.current) {
+          loadNearbySpots(mapRef.current, latitude, longitude, spotMarkersRef, filterRef.current, gachaMapRef.current, setSelectedSpot,
+            { onSpotsLoaded: setFilterSpotList });
+        }
       },
       err => console.warn('位置情報取得失敗:', err),
       { enableHighAccuracy: true },
@@ -458,20 +521,30 @@ export default function MapPage() {
         }
         reverseGeocode(latitude, longitude, mapboxToken).then(addr => { if (addr) setCurrentAddress(addr); });
         (mapRef.current.getSource('station-range') as mapboxgl.GeoJSONSource)?.setData({ type: 'FeatureCollection', features: [] });
-        loadNearbySpots(mapRef.current, latitude, longitude, spotMarkersRef, filterRef.current, gachaMapRef.current, setSelectedSpot);
+        // 現在地ボタン押下: コンテンツ検索を終了してフィルターマーカーを表示
+        clearSearchResults();
+        loadNearbySpots(mapRef.current, latitude, longitude, spotMarkersRef, filterRef.current, gachaMapRef.current, setSelectedSpot,
+          { onSpotsLoaded: setFilterSpotList });
       },
       err => console.warn('位置情報取得失敗:', err),
       { enableHighAccuracy: true },
     );
-  }, []);
+  }, [clearSearchResults]);
 
   const handleFilterApply = useCallback((ids: string[]) => {
     setFilterGachaIds(ids); filterRef.current = ids;
+    // idsが空（解除）のときは '[]' をセット（nullとの区別でお気に入り再適用を防ぐ）
+    if (ids.length === 0) {
+      try { localStorage.setItem(STORAGE_KEY, '[]'); } catch {}
+    }
+    // フィルター変更時はコンテンツ検索を終了してフィルターマーカーで置き換える
+    clearSearchResults();
     const pos = tempSearchPosRef.current ?? currentPosRef.current;
     if (mapRef.current && pos) {
-      loadNearbySpots(mapRef.current, pos.lat, pos.lng, spotMarkersRef, ids, gachaMapRef.current, setSelectedSpot);
+      loadNearbySpots(mapRef.current, pos.lat, pos.lng, spotMarkersRef, ids, gachaMapRef.current, setSelectedSpot,
+        { onSpotsLoaded: setFilterSpotList });
     }
-  }, []);
+  }, [clearSearchResults]);
 
   const isFiltered = filterGachaIds.length > 0;
 
@@ -485,9 +558,13 @@ export default function MapPage() {
           <div className="flex items-center justify-between px-4">
             <h1 className="text-[22px] font-black" style={{ color: '#F2B800' }}>マップ</h1>
             <div className="flex items-center gap-2">
-              <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-bold"
-                style={{ background: '#F5F3ED', color: '#555' }}>
-                <List size={14} />リスト
+              <button onClick={() => setShowList(v => {
+                if (!v) { setSelectedSpot(null); setSearchOverrideIds(null); }
+                return !v;
+              })}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-bold"
+                style={{ background: showList ? '#F2B800' : '#F5F3ED', color: showList ? 'white' : '#555' }}>
+                {showList ? <><MapIcon size={14} />マップ</> : <><List size={14} />リスト</>}
               </button>
               <button onClick={goToCurrentLocation}
                 className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90 transition-transform"
@@ -537,58 +614,76 @@ export default function MapPage() {
       <div className="flex-1 min-h-0 relative">
         <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
 
-        {/* ズームスライダー */}
-        <div className="absolute right-3 flex flex-col items-center gap-1"
-          style={{ top: '50%', transform: 'translateY(-50%)', zIndex: 10 }}>
-          <button onClick={() => mapRef.current?.zoomIn({ duration: 200 })}
-            className="w-9 h-9 rounded-full flex items-center justify-center text-lg font-bold shadow-md active:scale-90 transition-transform"
-            style={{ background: 'white', color: '#555', boxShadow: '0 2px 8px rgba(0,0,0,0.18)' }}>+</button>
-          <input type="range" min={8} max={20} step={0.5} value={zoom}
-            onChange={e => { const z = parseFloat(e.target.value); setZoom(z); mapRef.current?.setZoom(z, { duration: 100 }); }}
-            className="zoom-slider appearance-none rounded-full cursor-pointer"
-            style={{ writingMode: 'vertical-lr', direction: 'rtl', width: 6, height: 120 }} />
-          <button onClick={() => mapRef.current?.zoomOut({ duration: 200 })}
-            className="w-9 h-9 rounded-full flex items-center justify-center text-lg font-bold shadow-md active:scale-90 transition-transform"
-            style={{ background: 'white', color: '#555', boxShadow: '0 2px 8px rgba(0,0,0,0.18)' }}>-</button>
-        </div>
+        {/* リストパネル（マップの上にオーバーレイ） */}
+        {showList && (
+          <SpotListPanel
+            searchSpots={searchSpotList}
+            filterSpots={filterSpotList}
+            hasSearchResult={hasSearchResult}
+            isFiltered={isFiltered}
+            contentSearchLabel={contentSearchLabel}
+            searchGachaIds={searchContentGachaIds}
+            filterGachaIds={filterGachaIds}
+            currentPos={currentPosRef.current}
+          />
+        )}
 
-        {/* 十字キー */}
-        <div className="absolute bottom-5 right-3 grid gap-1"
-          style={{ gridTemplateColumns: 'repeat(3, 36px)', gridTemplateRows: 'repeat(3, 36px)', zIndex: 10 }}>
-          <div />
-          <button onMouseDown={() => startPan(0, -PAN_STEP)} onMouseUp={stopPan} onMouseLeave={stopPan}
-            onTouchStart={() => startPan(0, -PAN_STEP)} onTouchEnd={stopPan}
-            className="flex items-center justify-center rounded-xl shadow active:scale-90 transition-transform select-none"
-            style={{ background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.18)' }}>
-            <svg viewBox="0 0 24 24" width={18} height={18}><path d="M12 5l7 7H5z" fill="#555"/></svg>
-          </button>
-          <div />
-          <button onMouseDown={() => startPan(-PAN_STEP, 0)} onMouseUp={stopPan} onMouseLeave={stopPan}
-            onTouchStart={() => startPan(-PAN_STEP, 0)} onTouchEnd={stopPan}
-            className="flex items-center justify-center rounded-xl shadow active:scale-90 transition-transform select-none"
-            style={{ background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.18)' }}>
-            <svg viewBox="0 0 24 24" width={18} height={18}><path d="M5 12l7-7v14z" fill="#555"/></svg>
-          </button>
-          <button onClick={goToCurrentLocation}
-            className="flex items-center justify-center rounded-xl shadow active:scale-90 transition-transform"
-            style={{ background: '#F2B800', boxShadow: '0 2px 8px rgba(0,0,0,0.18)' }}>
-            <svg viewBox="0 0 24 24" width={14} height={14}><circle cx="12" cy="12" r="4" fill="white"/><circle cx="12" cy="12" r="8" fill="none" stroke="white" strokeWidth="2"/></svg>
-          </button>
-          <button onMouseDown={() => startPan(PAN_STEP, 0)} onMouseUp={stopPan} onMouseLeave={stopPan}
-            onTouchStart={() => startPan(PAN_STEP, 0)} onTouchEnd={stopPan}
-            className="flex items-center justify-center rounded-xl shadow active:scale-90 transition-transform select-none"
-            style={{ background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.18)' }}>
-            <svg viewBox="0 0 24 24" width={18} height={18}><path d="M19 12l-7-7v14z" fill="#555"/></svg>
-          </button>
-          <div />
-          <button onMouseDown={() => startPan(0, PAN_STEP)} onMouseUp={stopPan} onMouseLeave={stopPan}
-            onTouchStart={() => startPan(0, PAN_STEP)} onTouchEnd={stopPan}
-            className="flex items-center justify-center rounded-xl shadow active:scale-90 transition-transform select-none"
-            style={{ background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.18)' }}>
-            <svg viewBox="0 0 24 24" width={18} height={18}><path d="M12 19l7-7H5z" fill="#555"/></svg>
-          </button>
-          <div />
-        </div>
+        {!showList && (
+          <>
+            {/* ズームスライダー */}
+            <div className="absolute right-3 flex flex-col items-center gap-1"
+              style={{ top: '50%', transform: 'translateY(-50%)', zIndex: 10 }}>
+              <button onClick={() => mapRef.current?.zoomIn({ duration: 200 })}
+                className="w-9 h-9 rounded-full flex items-center justify-center text-lg font-bold shadow-md active:scale-90 transition-transform"
+                style={{ background: 'white', color: '#555', boxShadow: '0 2px 8px rgba(0,0,0,0.18)' }}>+</button>
+              <input type="range" min={8} max={20} step={0.5} value={zoom}
+                onChange={e => { const z = parseFloat(e.target.value); setZoom(z); mapRef.current?.setZoom(z, { duration: 100 }); }}
+                className="zoom-slider appearance-none rounded-full cursor-pointer"
+                style={{ writingMode: 'vertical-lr', direction: 'rtl', width: 6, height: 120 }} />
+              <button onClick={() => mapRef.current?.zoomOut({ duration: 200 })}
+                className="w-9 h-9 rounded-full flex items-center justify-center text-lg font-bold shadow-md active:scale-90 transition-transform"
+                style={{ background: 'white', color: '#555', boxShadow: '0 2px 8px rgba(0,0,0,0.18)' }}>-</button>
+            </div>
+
+            {/* 十字キー */}
+            <div className="absolute bottom-5 right-3 grid gap-1"
+              style={{ gridTemplateColumns: 'repeat(3, 36px)', gridTemplateRows: 'repeat(3, 36px)', zIndex: 10 }}>
+              <div />
+              <button onMouseDown={() => startPan(0, -PAN_STEP)} onMouseUp={stopPan} onMouseLeave={stopPan}
+                onTouchStart={() => startPan(0, -PAN_STEP)} onTouchEnd={stopPan}
+                className="flex items-center justify-center rounded-xl shadow active:scale-90 transition-transform select-none"
+                style={{ background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.18)' }}>
+                <svg viewBox="0 0 24 24" width={18} height={18}><path d="M12 5l7 7H5z" fill="#555"/></svg>
+              </button>
+              <div />
+              <button onMouseDown={() => startPan(-PAN_STEP, 0)} onMouseUp={stopPan} onMouseLeave={stopPan}
+                onTouchStart={() => startPan(-PAN_STEP, 0)} onTouchEnd={stopPan}
+                className="flex items-center justify-center rounded-xl shadow active:scale-90 transition-transform select-none"
+                style={{ background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.18)' }}>
+                <svg viewBox="0 0 24 24" width={18} height={18}><path d="M5 12l7-7v14z" fill="#555"/></svg>
+              </button>
+              <button onClick={goToCurrentLocation}
+                className="flex items-center justify-center rounded-xl shadow active:scale-90 transition-transform"
+                style={{ background: '#F2B800', boxShadow: '0 2px 8px rgba(0,0,0,0.18)' }}>
+                <svg viewBox="0 0 24 24" width={14} height={14}><circle cx="12" cy="12" r="4" fill="white"/><circle cx="12" cy="12" r="8" fill="none" stroke="white" strokeWidth="2"/></svg>
+              </button>
+              <button onMouseDown={() => startPan(PAN_STEP, 0)} onMouseUp={stopPan} onMouseLeave={stopPan}
+                onTouchStart={() => startPan(PAN_STEP, 0)} onTouchEnd={stopPan}
+                className="flex items-center justify-center rounded-xl shadow active:scale-90 transition-transform select-none"
+                style={{ background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.18)' }}>
+                <svg viewBox="0 0 24 24" width={18} height={18}><path d="M19 12l-7-7v14z" fill="#555"/></svg>
+              </button>
+              <div />
+              <button onMouseDown={() => startPan(0, PAN_STEP)} onMouseUp={stopPan} onMouseLeave={stopPan}
+                onTouchStart={() => startPan(0, PAN_STEP)} onTouchEnd={stopPan}
+                className="flex items-center justify-center rounded-xl shadow active:scale-90 transition-transform select-none"
+                style={{ background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.18)' }}>
+                <svg viewBox="0 0 24 24" width={18} height={18}><path d="M12 19l7-7H5z" fill="#555"/></svg>
+              </button>
+              <div />
+            </div>
+          </>
+        )}
       </div>
 
       <FilterDrawer
@@ -604,12 +699,13 @@ export default function MapPage() {
           gachaMap={gachaMapRef.current}
           filterGachaIds={filterGachaIds}
           searchOverrideIds={searchOverrideIds}
+          searchLabel={contentSearchLabel}
           highlightGachaId={highlightGachaId}
           currentPos={currentPosRef.current}
           onClose={() => { setSelectedSpot(null); setSearchOverrideIds(null); }}
+          onClearFilter={() => handleFilterApply([])}
         />
       )}
     </div>
   );
 }
-

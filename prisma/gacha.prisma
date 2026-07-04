@@ -25,6 +25,7 @@ model Gacha {
   maker          String?
   sourceUrl      String?
   wpPostId       Int?     @unique
+  isOnSale       Boolean  @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

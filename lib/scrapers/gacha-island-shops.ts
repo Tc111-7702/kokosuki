@@ -1,4 +1,4 @@
-import { db } from '@/lib/db';
+import * as db from '@/lib/db';
 
 // 関西の都道府県スラッグ
 const KANSAI_PREFS = ['osaka', 'hyogo', 'kyoto', 'nara', 'shiga', 'wakayama'] as const;

@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Heart } from 'lucide-react';
+import { Heart, ChevronLeft, ChevronRight } from 'lucide-react';
 
 type Gacha = {
   id: string; seriesName: string; ipName: string;
@@ -45,7 +45,6 @@ export function OshiNewSection() {
 
   const [isMobile, setIsMobile] = useState(false);
   const [mobileCardW, setMobileCardW] = useState(300);
-  const [imgRatios, setImgRatios] = useState<Record<string, number>>({});
   const startXRef    = useRef<number | null>(null);
   const isDragging   = useRef(false);
   const autoTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -77,6 +76,19 @@ export function OshiNewSection() {
   }, [gachas.length, stopAuto]);
 
   useEffect(() => { startAuto(); return stopAuto; }, [startAuto, stopAuto]);
+
+  // タブ非表示・別アプリ切替時にスライドを停止、復帰時に再開
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        stopAuto();
+      } else {
+        startAuto();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [startAuto, stopAuto]);
 
   useEffect(() => {
     const update = () => {
@@ -136,9 +148,8 @@ export function OshiNewSection() {
   const n = gachas.length;
   const cardActive   = isMobile ? mobileCardW : CARD_ACTIVE;
   const cardInactive = isMobile ? Math.round(mobileCardW * 0.78) : CARD_INACTIVE;
-  const activeUrl = gachas[index]?.imageUrl ?? '';
-  const activeRatio = isMobile && imgRatios[activeUrl] ? imgRatios[activeUrl] : 1;
-  const wrapH = Math.round(cardActive * activeRatio) + 8;
+  // モバイルは正方形（デバイス幅基準）、デスクトップは固定高さ
+  const wrapH = cardActive + 8;
 
   return (
     <div style={{
@@ -176,89 +187,123 @@ export function OshiNewSection() {
           letterSpacing: '0.05em' }}>{index + 1}<span style={{ color: '#DDD', margin: '0 3px' }}>/</span>{n}</span>}
       </div>
 
-      {/* カルーセル: overflow:hidden はここだけ */}
-      <div
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={() => { startXRef.current = null; }}
-        style={{ position: 'relative', width: '100%', height: wrapH, overflow: 'hidden', cursor: 'grab' }}
-      >
+      {/* カルーセル + 矢印オーバーレイ（モバイル） */}
+      <div style={{ position: 'relative' }}>
+        <div
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={() => { startXRef.current = null; }}
+          style={{ position: 'relative', width: '100%', height: wrapH, overflow: 'hidden', cursor: 'grab' }}
+        >
+          {gachas.map((item, i) => {
+            const pos = wrappedPos(i, index, n);
+            const isActive = pos === 0;
+            const isVisible = Math.abs(pos) <= VISIBLE;
+            const w = isActive ? cardActive : cardInactive;
+            const cardH = w;
+            const offset = centerOffset(pos, cardActive, cardInactive);
+            const st = STATUS_STYLE[item.status] ?? STATUS_STYLE.ended;
 
-        {gachas.map((item, i) => {
-          const pos = wrappedPos(i, index, n);
-          const isActive = pos === 0;
-          const isVisible = Math.abs(pos) <= VISIBLE;
-          const w = isActive ? cardActive : cardInactive;
-          const ratio = isMobile && item.imageUrl && imgRatios[item.imageUrl] ? imgRatios[item.imageUrl] : 1;
-          const cardH = Math.round(w * ratio);
-          const offset = centerOffset(pos, cardActive, cardInactive);
-          const st = STATUS_STYLE[item.status] ?? STATUS_STYLE.ended;
-
-          return (
-            <div
-              key={item.id}
-              onClick={() => {
-                if (isDragging.current) return;
-                if (isActive) router.push(`/gacha/${item.id}`);
-                else go(i);
-              }}
-              style={{
-                position: 'absolute',
-                left: `calc(50% + ${offset - w / 2}px)`,
-                top: '50%',
-                transform: 'translateY(-50%)',
-                width: w,
-                height: cardH,
-                borderRadius: 16,
-                overflow: 'hidden',
-                opacity: isVisible ? 1 : 0,
-                pointerEvents: isVisible ? 'auto' : 'none',
-                // left・widthのtransitionで循環アニメーション
-                transition: 'left 550ms cubic-bezier(0.4,0,0.2,1), width 550ms, height 550ms, opacity 400ms',
-                cursor: 'pointer',
-              }}
-            >
-              <div style={{ position: 'absolute', inset: 0,
-                background: `linear-gradient(150deg, ${item.gradientFrom}, ${item.gradientTo})` }} />
-              {item.imageUrl && (
-                <img src={item.imageUrl} alt={item.seriesName} draggable={false}
-                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%',
-                    objectFit: 'cover', objectPosition: 'center' }}
-                  onLoad={(e) => {
-                    const img = e.currentTarget;
-                    if (isMobile && item.imageUrl && img.naturalWidth > 0) {
-                      setImgRatios(prev => ({ ...prev, [item.imageUrl!]: img.naturalHeight / img.naturalWidth }));
-                    }
-                  }}
-                />
-              )}
-
-              <div style={{ position: 'absolute', top: 12, left: 12 }}>
-                <span style={{ padding: '4px 10px', borderRadius: 99, fontSize: 11, fontWeight: 900,
-                  background: st.bg, color: st.text }}>
-                  {STATUS_LABEL[item.status] ?? item.status}
-                </span>
+            return (
+              <div
+                key={item.id}
+                onClick={() => {
+                  if (isDragging.current) return;
+                  if (isActive) router.push(`/gacha/${item.id}`);
+                  else go(i);
+                }}
+                style={{
+                  position: 'absolute',
+                  left: `calc(50% + ${offset - w / 2}px)`,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: w,
+                  height: cardH,
+                  opacity: isVisible ? 1 : 0,
+                  pointerEvents: isVisible ? 'auto' : 'none',
+                  transition: 'left 550ms cubic-bezier(0.4,0,0.2,1), width 550ms, height 550ms, opacity 400ms',
+                  cursor: 'pointer',
+                }}
+              >
+                <div style={{
+                  position: 'absolute', inset: 0,
+                  borderRadius: 56,
+                  overflow: 'hidden',
+                  WebkitMaskImage: '-webkit-radial-gradient(white, black)',
+                }}>
+                  <div style={{ position: 'absolute', inset: 0,
+                    background: `linear-gradient(150deg, ${item.gradientFrom}, ${item.gradientTo})` }} />
+                  {item.imageUrl && (
+                    <img src={item.imageUrl} alt={item.seriesName} draggable={false}
+                      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%',
+                        objectFit: 'cover', objectPosition: 'center' }}
+                    />
+                  )}
+                  <div style={{ position: 'absolute', top: 14, left: 20 }}>
+                    <span style={{ padding: '4px 10px', borderRadius: 99, fontSize: 11, fontWeight: 900,
+                      background: st.bg, color: st.text }}>
+                      {STATUS_LABEL[item.status] ?? item.status}
+                    </span>
+                  </div>
+                </div>
               </div>
+            );
+          })}
+        </div>
 
-            </div>
-          );
-        })}
       </div>
 
-      {/* ドット */}
-      {n > 1 && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, paddingTop: 12, paddingBottom: 32 }}>
+      {/* 矢印ナビ（モバイルのみ・カルーセル下） */}
+      {isMobile && n > 1 && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 24, paddingTop: 16 }}>
+          <button
+            onClick={() => go(index - 1)}
+            style={{
+              width: 48, height: 48, borderRadius: '50%', border: 'none',
+              background: 'rgba(255,255,255,0.9)',
+              boxShadow: '0 2px 12px rgba(0,0,0,0.12)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+            }}
+          >
+            <ChevronLeft size={26} color="#555" strokeWidth={2.5} />
+          </button>
+          <span style={{ fontSize: 13, fontWeight: 700, color: '#888' }}>{index + 1}/{n}</span>
+          <button
+            onClick={() => go(index + 1)}
+            style={{
+              width: 48, height: 48, borderRadius: '50%', border: 'none',
+              background: 'rgba(255,255,255,0.9)',
+              boxShadow: '0 2px 12px rgba(0,0,0,0.12)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+            }}
+          >
+            <ChevronRight size={26} color="#555" strokeWidth={2.5} />
+          </button>
+        </div>
+      )}
+
+      {/* デスクトップドット */}
+      {!isMobile && n > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 7, paddingTop: 24, paddingBottom: 36 }}>
           {gachas.map((_, i) => (
-            <button key={i} onClick={() => go(i)} style={{
-              width: i === index ? 24 : 9, height: 9, borderRadius: 5,
-              background: i === index ? '#F2B800' : '#D9D4C4',
-              transition: 'width 250ms, background 250ms',
-              border: 'none', padding: 0, cursor: 'pointer', flexShrink: 0,
-            }} />
+            <button
+              key={i}
+              onClick={() => go(i)}
+              style={{
+                height: 12, width: i === index ? 30 : 12,
+                borderRadius: 99, border: 'none', cursor: 'pointer', padding: 0,
+                background: i === index
+                  ? (gachas[index]?.gradientFrom ?? '#F2B800')
+                  : 'rgba(0,0,0,0.15)',
+                transition: 'width 300ms, background 300ms',
+              }}
+            />
           ))}
         </div>
       )}
+
+      {isMobile && <div style={{ height: 24 }} />}
     </div>
   );
 }
