@@ -1,12 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { Welcome }         from './steps/Welcome';
-import { CharacterChoose } from './steps/CharacterChoose';
-import { GachaHeart }      from './steps/GachaHeart';
-import { Location }        from './steps/Location';
-import { Notification }    from './steps/Notification';
-import { Register }        from './steps/Register';
+import { Welcome }         from '@/components/Welcome';
+import { CharacterChoose } from '@/components/CharacterChoose';
+import { GachaHeart }      from '@/components/GachaHeart';
+import { Location }        from '@/components/Location';
+import { Notification }    from '@/components/Notification';
+import { Register }        from '@/components/Register';
 
 type Step = 'welcome' | 'character' | 'gacha' | 'location' | 'notification' | 'register';
 
