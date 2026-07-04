@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { GachaCard, type GachaItem as Gacha } from '@/components/GachaCard';
+import { GachaCard, type GachaItem as Gacha } from '@/components/ui/GachaCard';
 
 interface Props {
   title: string;

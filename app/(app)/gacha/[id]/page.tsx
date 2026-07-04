@@ -6,7 +6,7 @@ import { ArrowLeft, Heart } from 'lucide-react';
 import type { GachaDetail, NearbySpot } from '@/components/gacha-types';
 import { NearbyButton } from '@/components/NearbyButton';
 import { LineupSection } from '@/components/LineupSection';
-import { StatCard } from '@/components/StatCard';
+import { StatCard } from '@/components/ui/StatCard';
 
 const STATUS_LABEL: Record<string, string> = {
   on_sale: '発売中', coming_soon: '発売予定', ended: '終了',
