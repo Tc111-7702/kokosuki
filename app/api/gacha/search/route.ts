@@ -45,7 +45,25 @@ export async function GET(request: Request) {
     });
   }
 
-  // シリーズ名で先に検索
+  // 1. ipName 完全一致 → ジャンル（最優先）
+  const exactIpMatch = await prisma.gacha.findFirst({
+    where: { isOnSale: true, ipName: { equals: q.trim(), mode: 'insensitive' } },
+    select: { ipName: true },
+  });
+  if (exactIpMatch) {
+    const ipMatches = await prisma.gacha.findMany({
+      where: { isOnSale: true, ipName: { equals: exactIpMatch.ipName, mode: 'insensitive' } },
+      select: { id: true, ipName: true },
+    });
+    return NextResponse.json({
+      type: 'genre',
+      label: exactIpMatch.ipName,
+      ipName: exactIpMatch.ipName,
+      gachaIds: ipMatches.map(g => g.id),
+    });
+  }
+
+  // 2. シリーズ名で検索
   const seriesMatches = await prisma.gacha.findMany({
     where: { isOnSale: true, ...seriesWhere },
     select: { id: true, seriesName: true },

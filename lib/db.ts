@@ -295,6 +295,21 @@ export async function getRecommendedGachas(favoriteIps: string[], limit = 20) {
   return rows.map(({ _count, ...g }) => ({ ...g, likeCount: _count.gachaLikes }));
 }
 
+export async function getGachasByIpName(ipName: string, limit = 100) {
+  const rows = await prisma.gacha.findMany({
+    where: { isOnSale: true, ipName },
+    orderBy: { gachaLikes: { _count: 'desc' } },
+    take: limit,
+    select: {
+      id: true, seriesName: true, ipName: true,
+      imageUrl: true, gradientFrom: true, gradientTo: true,
+      status: true, releaseDate: true,
+      _count: { select: { gachaLikes: true } },
+    },
+  });
+  return rows.map(({ _count, ...g }) => ({ ...g, likeCount: _count.gachaLikes }));
+}
+
 // ─── Machine ──────────────────────────────────────────────────────────────────
 
 export const upsertMachine = (spotId: string, gachaId: string) =>

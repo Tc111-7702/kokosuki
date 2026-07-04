@@ -163,7 +163,7 @@ export function OshiNewSection() {
     }}>
       {/* ヘッダー */}
       <div style={{
-        paddingTop: isMobile ? 20 : 40,
+        paddingTop: isMobile ? 4 : 8,
         paddingLeft: isMobile ? 12 : 36,
         paddingRight: isMobile ? 0 : 24,
         paddingBottom: isMobile ? 24 : 32,
