@@ -310,6 +310,56 @@ export async function getGachasByIpName(ipName: string, limit = 100) {
   return rows.map(({ _count, ...g }) => ({ ...g, likeCount: _count.gachaLikes }));
 }
 
+// ─── PostReply ────────────────────────────────────────────────────────────────
+
+/** 投稿の直接返信一覧（children は別途取得） */
+export async function getRepliesByPostId(postId: string) {
+  return prisma.postReply.findMany({
+    where: { postId, parentId: null },
+    orderBy: { createdAt: 'asc' },
+    include: {
+      user: { select: { id: true, name: true, image: true } },
+      _count: { select: { likes: true, children: true } },
+      children: {
+        orderBy: { createdAt: 'asc' },
+        include: {
+          user: { select: { id: true, name: true, image: true } },
+          _count: { select: { likes: true, children: true } },
+        },
+      },
+    },
+  });
+}
+
+/** 返信を作成 */
+export const createPostReply = (postId: string, userId: string, text: string, parentId?: string) =>
+  prisma.postReply.create({
+    data: { postId, userId, text, ...(parentId ? { parentId } : {}) },
+  });
+
+/** 返信いいねをトグル */
+export async function togglePostReplyLike(userId: string, replyId: string) {
+  const existing = await prisma.postReplyLike.findUnique({
+    where: { userId_replyId: { userId, replyId } },
+  });
+  if (existing) {
+    await prisma.postReplyLike.delete({ where: { userId_replyId: { userId, replyId } } });
+    return { liked: false };
+  } else {
+    await prisma.postReplyLike.create({ data: { userId, replyId } });
+    return { liked: true };
+  }
+}
+
+/** ユーザーがいいねした返信IDセット */
+export async function getPostReplyLikedIds(userId: string, replyIds: string[]) {
+  const rows = await prisma.postReplyLike.findMany({
+    where: { userId, replyId: { in: replyIds } },
+    select: { replyId: true },
+  });
+  return new Set(rows.map(r => r.replyId));
+}
+
 // ─── Machine ──────────────────────────────────────────────────────────────────
 
 export const upsertMachine = (spotId: string, gachaId: string) =>
@@ -318,3 +368,50 @@ export const upsertMachine = (spotId: string, gachaId: string) =>
     update: { updatedAt: new Date() },
     create: { spotId, gachaId },
   });
+
+// ─── Follow ───────────────────────────────────────────────────────────────────
+
+/** フォロー／アンフォローをトグル */
+export async function toggleFollow(followerId: string, followingId: string) {
+  const existing = await prisma.follow.findUnique({
+    where: { followerId_followingId: { followerId, followingId } },
+  });
+  if (existing) {
+    await prisma.follow.delete({ where: { followerId_followingId: { followerId, followingId } } });
+    return { following: false };
+  } else {
+    await prisma.follow.create({ data: { followerId, followingId } });
+    return { following: true };
+  }
+}
+
+/** フォロー中かどうか確認 */
+export const isFollowing = (followerId: string, followingId: string) =>
+  prisma.follow.findUnique({
+    where: { followerId_followingId: { followerId, followingId } },
+  }).then(Boolean);
+
+/** フォロワー一覧（このユーザーをフォローしている人） */
+export const getFollowers = (userId: string) =>
+  prisma.follow.findMany({
+    where: { followingId: userId },
+    include: { follower: { select: { id: true, name: true, image: true } } },
+    orderBy: { createdAt: 'desc' },
+  });
+
+/** フォロー中一覧（このユーザーがフォローしている人） */
+export const getFollowing = (userId: string) =>
+  prisma.follow.findMany({
+    where: { followerId: userId },
+    include: { following: { select: { id: true, name: true, image: true } } },
+    orderBy: { createdAt: 'desc' },
+  });
+
+/** フォロワー数・フォロー中数をまとめて取得 */
+export async function getFollowCounts(userId: string) {
+  const [followers, following] = await Promise.all([
+    prisma.follow.count({ where: { followingId: userId } }),
+    prisma.follow.count({ where: { followerId: userId } }),
+  ]);
+  return { followers, following };
+}

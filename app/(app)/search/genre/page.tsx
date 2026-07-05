@@ -96,7 +96,7 @@ function GenrePageInner() {
   }, [ipName]);
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#FFFEEF]">
+    <div className="flex flex-col h-full bg-[#FFFEEF]">
       {/* ヘッダー */}
       <div
         className="flex-shrink-0 bg-white"
@@ -116,7 +116,7 @@ function GenrePageInner() {
       </div>
 
       {/* コンテンツ */}
-      <div className="flex-1 px-4 py-4">
+      <div className="flex-1 overflow-y-auto px-4 py-4">
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <div style={{ width: 32, height: 32, border: '3px solid #F2B800', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />

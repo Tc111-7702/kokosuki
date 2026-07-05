@@ -35,7 +35,10 @@ function MikkeIcon({ size = 46 }: { size?: number }) {
 }
 
 export function HomeTabs() {
-  const [tab, setTab] = useState<HomeTab>('new');
+  const [tab, setTab] = useState<HomeTab>(() => {
+    if (typeof window === 'undefined') return 'new';
+    return (sessionStorage.getItem('homeTab') as HomeTab) ?? 'new';
+  });
   const [isMobile, setIsMobile] = useState(true);
 
   useEffect(() => {
@@ -44,6 +47,11 @@ export function HomeTabs() {
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
   }, []);
+
+  const switchTab = (key: HomeTab) => {
+    setTab(key);
+    sessionStorage.setItem('homeTab', key);
+  };
 
   const showSearchBar = tab === 'new' || tab === 'community';
 
@@ -68,7 +76,7 @@ export function HomeTabs() {
           {TAB_LABELS.map(({ key, label }) => (
             <button
               key={key}
-              onClick={() => setTab(key)}
+              onClick={() => switchTab(key)}
               className="flex-1 py-3 text-[13px] font-bold relative"
               style={{ color: tab === key ? '#F2B800' : '#AAA' }}
             >

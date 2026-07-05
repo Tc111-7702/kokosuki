@@ -2,6 +2,12 @@ import type { NextConfig } from "next";
 import path from "path";
 
 const nextConfig: NextConfig = {
+  images: {
+    remotePatterns: [
+      { protocol: 'https', hostname: 'picsum.photos' },
+      { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
+    ],
+  },
   // ワークスペースのルートをこのプロジェクト自身に固定（親ディレクトリを参照させない）
   outputFileTracingRoot: path.join(__dirname),
   // @better-auth/kysely-adapter が kysely の削除済みエクスポートを参照するため

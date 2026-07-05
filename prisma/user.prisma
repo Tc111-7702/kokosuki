@@ -13,12 +13,16 @@ model User {
   accounts      Account[]
 
   profile    UserProfile?
-  posts      Post[]
-  likes         Like[]
-  gachaLikes    GachaLike[]
-  qaItems       QA[]
-  qaAnswers     QAAnswer[]
-  notifications Notification[]
+  posts          Post[]
+  likes          Like[]
+  gachaLikes     GachaLike[]
+  postReplies    PostReply[]
+  postReplyLikes PostReplyLike[]
+  followers      Follow[] @relation("Following") // このユーザーをフォローしている人
+  following      Follow[] @relation("Follower")  // このユーザーがフォローしている人
+  qaItems        QA[]
+  qaAnswers      QAAnswer[]
+  notifications  Notification[]
 }
 
 model Session {

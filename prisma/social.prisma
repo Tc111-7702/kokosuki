@@ -1,3 +1,17 @@
+// ─── フォロー ─────────────────────────────────────────────────────────────────
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String                         // フォローする側
+  followingId String                         // フォローされる側
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("Follower",  fields: [followerId],  references: [id], onDelete: Cascade)
+  following User @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+}
+
 // ─── 投稿・いいね・Q&A ────────────────────────────────────────────────────────
 
 model Post {
@@ -18,6 +32,7 @@ model Post {
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   gacha   Gacha   @relation(fields: [gachaId], references: [id], onDelete: Cascade)
   likes   Like[]
+  replies PostReply[]
 }
 
 model Like {
@@ -30,6 +45,35 @@ model Like {
   post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@unique([userId, postId])
+}
+
+// ─── 返信（ネスト型）・返信いいね ─────────────────────────────────────────────
+
+model PostReply {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  parentId  String?                      // null = 投稿への直接返信
+  text      String
+  createdAt DateTime @default(now())
+
+  post     Post            @relation(fields: [postId],   references: [id], onDelete: Cascade)
+  user     User            @relation(fields: [userId],   references: [id], onDelete: Cascade)
+  parent   PostReply?      @relation("ReplyTree", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children PostReply[]     @relation("ReplyTree")
+  likes    PostReplyLike[]
+}
+
+model PostReplyLike {
+  id        String   @id @default(cuid())
+  userId    String
+  replyId   String
+  createdAt DateTime @default(now())
+
+  user  User      @relation(fields: [userId],  references: [id], onDelete: Cascade)
+  reply PostReply @relation(fields: [replyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, replyId])
 }
 
 model QA {
