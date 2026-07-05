@@ -35,11 +35,13 @@ function MikkeIcon({ size = 46 }: { size?: number }) {
 }
 
 export function HomeTabs() {
-  const [tab, setTab] = useState<HomeTab>(() => {
-    if (typeof window === 'undefined') return 'new';
-    return (sessionStorage.getItem('homeTab') as HomeTab) ?? 'new';
-  });
+  const [tab, setTab] = useState<HomeTab>('new');
   const [isMobile, setIsMobile] = useState(true);
+
+  useEffect(() => {
+    const saved = sessionStorage.getItem('homeTab') as HomeTab | null;
+    if (saved) setTab(saved);
+  }, []);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 640);
