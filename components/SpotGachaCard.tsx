@@ -56,9 +56,10 @@ interface SpotGachaCardProps {
   isMobile?: boolean;
   mode?: 'scroll' | 'grid';
   highlight?: boolean; // 検索ヒット時に黄色ボーダー表示
+  compact?: boolean;   // 底面シート用コンパクトサイズ
 }
 
-export function SpotGachaCard({ gacha, stockStatus, isMobile = false, mode = 'scroll', highlight = false }: SpotGachaCardProps) {
+export function SpotGachaCard({ gacha, stockStatus, isMobile = false, mode = 'scroll', highlight = false, compact = false }: SpotGachaCardProps) {
   const router = useRouter();
   const [from, to] = ipGradient(gacha.ipName);
 
@@ -121,20 +122,22 @@ export function SpotGachaCard({ gacha, stockStatus, isMobile = false, mode = 'sc
         </div>
       )}
 
-      {/* テキストエリア */}
-      <div style={{ padding: textPad }}>
-        <p style={{ fontSize: ipSize, color: '#AAA', margin: '0 0 3px', fontWeight: 600 }}>
-          {gacha.ipName}
-        </p>
-        <p style={{
-          fontSize: nameSize, fontWeight: 800, color: '#1a1a1a',
-          margin: 0, lineHeight: 1.3,
-          display: '-webkit-box', WebkitLineClamp: 3,
-          WebkitBoxOrient: 'vertical', overflow: 'hidden',
-        }}>
-          {gacha.seriesName}
-        </p>
-      </div>
+      {/* テキストエリア（compactモードでは非表示） */}
+      {!compact && (
+        <div style={{ padding: textPad }}>
+          <p style={{ fontSize: ipSize, color: '#AAA', margin: '0 0 3px', fontWeight: 600 }}>
+            {gacha.ipName}
+          </p>
+          <p style={{
+            fontSize: nameSize, fontWeight: 800, color: '#1a1a1a',
+            margin: 0, lineHeight: 1.3,
+            display: '-webkit-box', WebkitLineClamp: 3,
+            WebkitBoxOrient: 'vertical', overflow: 'hidden',
+          }}>
+            {gacha.seriesName}
+          </p>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { Phone, MapPin } from 'lucide-react';
+import { Phone } from 'lucide-react';
 import type { GachaDetail, NearbySpot } from '@/components/gacha-types';
 
 export function NearbyButton({ gacha, alwaysOpen, nearbyOpen, nearbyLoading, nearbyError, nearbySpots, onToggle, onSpotClick, isMobile }: {
@@ -48,33 +48,17 @@ export function NearbyButton({ gacha, alwaysOpen, nearbyOpen, nearbyLoading, nea
           {nearbySpots.slice(0, 7).map((spot, i) => (
             <div
               key={spot.id}
-              onClick={isMobile ? () => onSpotClick(spot.id) : undefined}
+              onClick={() => onSpotClick(spot.id)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px',
                 borderTop: i > 0 ? '1px solid #F0F0F0' : 'none',
-                cursor: isMobile ? 'pointer' : 'default',
+                cursor: 'pointer',
               }}
             >
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <p style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1A', margin: '0 0 2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {spot.name}
-                  </p>
-                  {!isMobile && (
-                    <button
-                      onClick={() => onSpotClick(spot.id)}
-                      style={{
-                        flexShrink: 0, width: 32, height: 32, borderRadius: 16,
-                        background: gacha.gradientFrom + '22', border: 'none',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        cursor: 'pointer', padding: 0,
-                      }}
-                      title="地図で見る"
-                    >
-                      <MapPin size={17} color={gacha.gradientFrom} />
-                    </button>
-                  )}
-                </div>
+                <p style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1A', margin: '0 0 2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {spot.name}
+                </p>
                 <p style={{ fontSize: 11, color: '#999', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {spot.address}
                   {spot.distance != null && (

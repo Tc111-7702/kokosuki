@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { favoriteIps = [], likedGachaIds = [], handle } = await req.json();
+  const { likedGachaIds = [], handle } = await req.json();
 
   let resolvedHandle = handle?.trim() || null;
 
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     } while (true);
   }
 
-  await db.upsertProfile(session.user.id, resolvedHandle, favoriteIps);
+  await db.upsertProfile(session.user.id, resolvedHandle);
 
   if (likedGachaIds.length > 0) {
     await db.createGachaLikes(session.user.id, likedGachaIds);

@@ -30,8 +30,8 @@ interface GachaCardProps {
 
 export function GachaCard({ gacha, rank, showRank, isMobile }: GachaCardProps) {
   const router = useRouter();
-  const cardW  = isMobile ? 160 : 320;
-  const imgH   = isMobile ? 180 : 320;
+  const cardW  = isMobile ? 140 : 320;
+  const imgH   = isMobile ? 158 : 320;
   const radius = isMobile ? 16 : 10;
   const st = STATUS_STYLE[gacha.status] ?? STATUS_STYLE.ended;
 

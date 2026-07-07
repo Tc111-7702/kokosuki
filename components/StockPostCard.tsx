@@ -1,0 +1,171 @@
+'use client';
+
+import { useState } from 'react';
+import { MapPin, Heart, MessageCircle } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+export interface StockFeedPost {
+  postType: 'stock';
+  id: string;
+  stockStatus: string;
+  createdAt: string;
+  likedByMe: boolean;
+  user: { id: string; name: string; image: string | null };
+  spot: { id: string; name: string; address?: string | null };
+  gacha: { id: string; ipName: string; seriesName: string; gradientFrom: string; gradientTo: string; imageUrl: string | null };
+  _count: { likes: number; replies: number };
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function timeAgo(iso: string): string {
+  const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (diff < 60)   return diff.toFixed(0) + '秒前';
+  if (diff < 3600) return Math.floor(diff / 60) + '分前';
+  if (diff < 86400)return Math.floor(diff / 3600) + '時間前';
+  return Math.floor(diff / 86400) + '日前';
+}
+
+function Avatar({ user, size }: { user: { name: string; image: string | null }; size: number }) {
+  if (user.image) {
+    return <img src={user.image} alt={user.name} width={size} height={size} style={{ borderRadius: '50%', objectFit: 'cover', width: size, height: size, flexShrink: 0 }} />;
+  }
+  const colors = ['#F59E0B','#10B981','#3B82F6','#8B5CF6','#EC4899','#EF4444'];
+  const bg = colors[user.name.charCodeAt(0) % colors.length];
+  return (
+    <div style={{ width: size, height: size, borderRadius: '50%', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: size * 0.42, flexShrink: 0 }}>
+      {user.name[0]}
+    </div>
+  );
+}
+
+
+function extractCity(address: string | undefined | null): string {
+  if (!address) return '';
+  const m = address.match(/^(.{2,4}[都道府県])(.{2,6}[市区町村])/);
+  return m ? m[1] + m[2] : address.slice(0, 8);
+}
+
+const STATUS_CONFIG: Record<string, { label: string; bg: string; color: string }> = {
+  in_stock:    { label: '在庫あり', bg: '#DCFCE7', color: '#16A34A' },
+  low_stock:   { label: 'あと少し', bg: '#FEF9C3', color: '#CA8A04' },
+  out_of_stock:{ label: '売り切れ', bg: '#FEE2E2', color: '#DC2626' },
+};
+
+// ─── StockPostCard ────────────────────────────────────────────────────────────
+
+export function StockPostCard({
+  post,
+  interactive = true,
+  onSelect,
+}: {
+  post: StockFeedPost;
+  interactive?: boolean;
+  onSelect?: (p: StockFeedPost) => void;
+}) {
+  const router = useRouter();
+  const [liked, setLiked]       = useState(post.likedByMe);
+  const [likeCount, setLikeCount] = useState(post._count.likes);
+  const [pending, setPending]   = useState(false);
+
+  const status = STATUS_CONFIG[post.stockStatus] ?? STATUS_CONFIG.in_stock;
+  const gradient = 'linear-gradient(135deg, ' + post.gacha.gradientFrom + ', ' + post.gacha.gradientTo + ')';
+
+  async function handleLike(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (pending) return;
+    setPending(true);
+    const next = !liked;
+    setLiked(next);
+    setLikeCount(c => c + (next ? 1 : -1));
+    try {
+      await fetch('/api/stock-posts/' + post.id + '/like', { method: 'POST' });
+    } catch {
+      setLiked(!next);
+      setLikeCount(c => c + (next ? -1 : 1));
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <article
+      className={"mx-3 my-2.5 px-4 py-3 bg-white rounded-2xl shadow-sm transition-shadow " + (interactive && onSelect ? "hover:shadow-md cursor-pointer" : "")}
+      onClick={() => interactive && onSelect?.(post)}
+    >
+      {/* 上段: 画像 + メイン情報 */}
+      <div className="flex gap-3 items-start">
+        {/* ガチャ画像（小） */}
+        <div
+          className="flex-shrink-0 rounded-xl overflow-hidden"
+          style={{ width: 64, height: 64, background: gradient }}
+        >
+          {post.gacha.imageUrl && (
+            <img src={post.gacha.imageUrl} alt={post.gacha.seriesName} className="w-full h-full object-cover" />
+          )}
+        </div>
+
+        {/* テキスト情報 */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap mb-0.5">
+            <span
+              className="text-xs px-2 py-0.5 rounded-full font-semibold"
+              style={{ background: status.bg, color: status.color }}
+            >
+              {status.label}
+            </span>
+            <button
+              onClick={e => { e.stopPropagation(); router.push('/search/genre?ipName=' + encodeURIComponent(post.gacha.ipName) + '&label=' + encodeURIComponent(post.gacha.ipName)); }}
+              className="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 font-medium hover:bg-yellow-200 transition-colors"
+            >
+              {post.gacha.ipName}
+            </button>
+          </div>
+          <button
+            onClick={e => { e.stopPropagation(); router.push('/gacha/' + post.gacha.id); }}
+            className="text-sm font-bold text-gray-900 hover:text-blue-600 transition-colors text-left leading-tight line-clamp-2"
+          >
+            {post.gacha.seriesName}
+          </button>
+          <div className="mt-1.5">
+            <div className="flex items-center gap-1 text-sm font-bold text-gray-800">
+              <MapPin size={13} className="text-gray-500 flex-shrink-0" />
+              <button
+                onClick={e => { e.stopPropagation(); router.push('/map?spotId=' + post.spot.id); }}
+                className="hover:text-yellow-600 hover:underline transition-colors text-left font-bold"
+              >
+                {post.spot.name}
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 ml-[18px] mt-0.5">{extractCity(post.spot.address)}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* 下段: ユーザー + いいね・返信 */}
+      <div className="flex items-center justify-between mt-2.5">
+        <div className="flex items-center gap-2">
+          <Avatar user={post.user} size={22} />
+          <span className="text-xs text-gray-500 font-medium">{post.user.name}</span>
+          <span className="text-xs text-gray-400">{timeAgo(post.createdAt)}</span>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1.5 text-gray-400">
+            <MessageCircle size={18} />
+            <span className="text-sm font-medium">{post._count.replies}</span>
+          </div>
+          <button
+            onClick={handleLike}
+            disabled={pending}
+            className={'flex items-center gap-1.5 px-2 py-1 rounded-full transition-colors ' + (liked ? 'text-red-500' : 'text-gray-400 hover:text-red-400')}
+          >
+            <Heart size={20} fill={liked ? 'currentColor' : 'none'} />
+            <span className="text-sm font-bold">{likeCount}</span>
+          </button>
+        </div>
+      </div>
+    </article>
+  );
+}

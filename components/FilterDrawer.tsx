@@ -218,7 +218,7 @@ export default function FilterDrawer({
     .filter((g) => g.items.length > 0);
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col" style={{ background: 'white' }}>
+    <div className="fixed inset-0 z-[60] flex flex-col" style={{ background: 'white' }}>
       {screen === 'genres' ? (
         <>
           {/* ヘッダー */}

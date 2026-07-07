@@ -38,6 +38,7 @@ interface SpotDetailSheetProps {
   currentPos?: { lat: number; lng: number } | null;
   onClose: () => void;
   onClearFilter?: () => void;
+  onOpenFilter?: () => void;
 }
 
 function haversineM(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -58,17 +59,24 @@ function fmtDistance(m: number): string {
 
 // ─── メインコンポーネント ─────────────────────────────────────────────────────
 
-export default function SpotDetailSheet({ spot, gachaMap, filterGachaIds, searchOverrideIds, searchLabel, highlightGachaId, currentPos, onClose, onClearFilter }: SpotDetailSheetProps) {
+export default function SpotDetailSheet({ spot, gachaMap, filterGachaIds, searchOverrideIds, searchLabel, highlightGachaId, currentPos, onClose, onClearFilter, onOpenFilter }: SpotDetailSheetProps) {
   const router = useRouter();
   const sheetRef = useRef<HTMLDivElement>(null);
   const [navOpen, setNavOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const dragStartY = useRef<number | null>(null);
+
   useEffect(() => {
     const update = () => setIsMobile(window.innerWidth < 640);
     update();
     window.addEventListener('resize', update);
     return () => window.removeEventListener('resize', update);
   }, []);
+
+  // 店舗が切り替わったら折りたたみ状態にリセット
+  useEffect(() => { setExpanded(false); }, [spot?.id]);
+
   if (!spot) return null;
 
   // searchOverrideIds がある場合: 検索ヒット → フィルター → その他 の順で表示
@@ -107,13 +115,62 @@ export default function SpotDetailSheet({ spot, gachaMap, filterGachaIds, search
     <>
       <div className="fixed inset-0 z-40" style={{ background: 'rgba(0,0,0,0.25)' }} onClick={onClose} />
       <div ref={sheetRef} className="fixed bottom-0 left-0 right-0 z-50 flex flex-col"
-        style={{ background: 'white', borderRadius: '20px 20px 0 0', maxHeight: '82vh', boxShadow: '0 -4px 24px rgba(0,0,0,0.15)' }}>
+        style={{
+          background: 'white', borderRadius: '20px 20px 0 0',
+          maxHeight: expanded ? '90vh' : '46vh',
+          boxShadow: '0 -4px 24px rgba(0,0,0,0.15)',
+          transition: 'max-height 0.3s cubic-bezier(0.4,0,0.2,1)',
+        }}>
 
-        <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
-          <div style={{ width: 40, height: 4, borderRadius: 2, background: '#E0E0E0' }} />
+        {/* ドラッグハンドル: 下にドラッグで折りたたみ、タップでトグル */}
+        <div
+          className="flex justify-center pt-3 pb-1 flex-shrink-0 cursor-pointer select-none"
+          onWheel={e => {
+            if (e.deltaY < 0 && expanded) setExpanded(false);
+            if (e.deltaY > 0 && !expanded) setExpanded(true);
+          }}
+          onPointerDown={e => {
+            dragStartY.current = e.clientY;
+            (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+          }}
+          onPointerMove={e => {
+            if (dragStartY.current === null) return;
+            const dy = e.clientY - dragStartY.current;
+            if (dy > 40 && expanded) { setExpanded(false); dragStartY.current = null; }
+            if (dy < -40 && !expanded) { setExpanded(true); dragStartY.current = null; }
+          }}
+          onPointerUp={e => {
+            if (dragStartY.current !== null) {
+              const dy = e.clientY - dragStartY.current;
+              if (Math.abs(dy) < 8) setExpanded(v => !v);
+              dragStartY.current = null;
+            }
+          }}
+        >
+          <div style={{ width: 40, height: 4, borderRadius: 2, background: expanded ? '#C8C8C8' : '#F2B800' }} />
         </div>
 
-        <div className="flex items-start justify-between px-4 pt-2 pb-3 flex-shrink-0">
+        {/* 店舗名・住所ヘッダー（固定） */}
+        <div
+          className="flex items-start justify-between px-4 pt-2 pb-3 flex-shrink-0"
+          style={{ cursor: expanded ? 'default' : 'pointer' }}
+          onWheel={e => {
+            if (e.deltaY < 0 && expanded) setExpanded(false);
+            if (e.deltaY > 0 && !expanded) setExpanded(true);
+          }}
+          onPointerDown={e => {
+            if ((e.target as HTMLElement).closest('button')) return; // ボタンへのクリックは除外
+            dragStartY.current = e.clientY;
+            (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+          }}
+          onPointerMove={e => {
+            if (dragStartY.current === null) return;
+            const dy = e.clientY - dragStartY.current;
+            if (dy > 40 && expanded) { setExpanded(false); dragStartY.current = null; }
+            if (dy < -40 && !expanded) { setExpanded(true); dragStartY.current = null; }
+          }}
+          onPointerUp={e => { dragStartY.current = null; }}
+        >
           <div className="flex-1 min-w-0 pr-2">
             <h2 className="text-[18px] font-black leading-tight" style={{ color: '#1a1a1a' }}>{spot.name}</h2>
             <div className="flex items-center gap-1 mt-1">
@@ -129,7 +186,20 @@ export default function SpotDetailSheet({ spot, gachaMap, filterGachaIds, search
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto" style={{ minHeight: 0 }}>
+        <div
+          className="flex-1 overflow-y-auto"
+          style={{ minHeight: 0 }}
+          onScroll={e => {
+            const top = (e.currentTarget as HTMLDivElement).scrollTop;
+            if (top > 0 && !expanded) setExpanded(true);
+          }}
+          onWheel={e => {
+            const el = e.currentTarget as HTMLDivElement;
+            if (el.scrollTop === 0 && e.deltaY < 0 && expanded) {
+              setExpanded(false);
+            }
+          }}
+        >
           <div className="px-4 py-2 text-[13px] font-bold flex items-center justify-between"
             style={{ color: '#888', background: '#FAFAFA', borderBottom: '1px solid #F0F0F0' }}>
             <span>{isSearchMode ? '検索結果' : '取扱商品'} {isEmpty ? 0 : matchedGacha.length}件</span>
@@ -139,17 +209,30 @@ export default function SpotDetailSheet({ spot, gachaMap, filterGachaIds, search
                   在庫情報あり {knownCount}件
                 </span>
               )}
-              {!isSearchMode && filterGachaIds.length > 0 && onClearFilter && (
-                <button
-                  onClick={onClearFilter}
-                  style={{
-                    fontSize: 10, fontWeight: 700, color: '#F2B800',
-                    background: '#FFF8E1', border: '1px solid #F2B800',
-                    borderRadius: 99, padding: '2px 8px', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', gap: 3,
-                  }}>
-                  フィルター解除
-                </button>
+              {!isSearchMode && (
+                filterGachaIds.length > 0 && onClearFilter ? (
+                  <button
+                    onClick={onClearFilter}
+                    style={{
+                      fontSize: 10, fontWeight: 700, color: '#F2B800',
+                      background: '#FFF8E1', border: '1px solid #F2B800',
+                      borderRadius: 99, padding: '2px 8px', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', gap: 3,
+                    }}>
+                    フィルター解除
+                  </button>
+                ) : onOpenFilter ? (
+                  <button
+                    onClick={onOpenFilter}
+                    style={{
+                      fontSize: 10, fontWeight: 700, color: '#888',
+                      background: '#F5F3ED', border: '1px solid #E0E0E0',
+                      borderRadius: 99, padding: '2px 8px', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', gap: 3,
+                    }}>
+                    フィルター
+                  </button>
+                ) : null
               )}
             </div>
           </div>
@@ -162,7 +245,7 @@ export default function SpotDetailSheet({ spot, gachaMap, filterGachaIds, search
             </div>
           ) : (
             <>
-              {isMobile && (
+              {isMobile && matchedGacha.length > 2 && (
                 <style>{`
                   .spot-gacha-scroll::-webkit-scrollbar { height: 4px; }
                   .spot-gacha-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.07); border-radius: 2px; }
@@ -170,12 +253,12 @@ export default function SpotDetailSheet({ spot, gachaMap, filterGachaIds, search
                 `}</style>
               )}
               <div
-                className={isMobile ? 'spot-gacha-scroll' : ''}
+                className={isMobile && matchedGacha.length > 2 ? 'spot-gacha-scroll' : ''}
                 style={{
                   display: 'flex', gap: 12, padding: '12px 16px',
                   overflowX: 'auto',
-                  scrollbarWidth: isMobile ? 'thin' : 'none',
-                  scrollbarColor: isMobile ? '#F2B800 rgba(0,0,0,0.07)' : undefined,
+                  scrollbarWidth: isMobile && matchedGacha.length > 2 ? 'thin' : 'none',
+                  scrollbarColor: isMobile && matchedGacha.length > 2 ? '#F2B800 rgba(0,0,0,0.07)' : undefined,
                 }}
               >
                 {matchedGacha.map(g => (

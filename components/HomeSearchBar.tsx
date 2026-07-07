@@ -13,7 +13,7 @@ interface HomeSearchBarProps {
   placeholder?: string;
 }
 
-export function HomeSearchBar({ placeholder = 'ガチャ名・ジャンルを検索…' }: HomeSearchBarProps) {
+export function HomeSearchBar({ placeholder = 'IP・ガチャを検索' }: HomeSearchBarProps) {
   const router = useRouter();
   const [value, setValue] = useState('');
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);

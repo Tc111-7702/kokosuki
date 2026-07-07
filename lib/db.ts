@@ -76,11 +76,11 @@ export const findProfileByHandle = (handle: string) =>
 export const findProfileByUserId = (userId: string) =>
   prisma.userProfile.findUnique({ where: { userId } });
 
-export const upsertProfile = (userId: string, handle: string, favoriteIps: string[]) =>
+export const upsertProfile = (userId: string, handle: string) =>
   prisma.userProfile.upsert({
     where:  { userId },
-    update: { handle, favoriteIps },
-    create: { userId, handle, favoriteIps },
+    update: { handle },
+    create: { userId, handle },
   });
 
 // ─── GachaLike ───────────────────────────────────────────────────────────────
@@ -111,6 +111,11 @@ export async function toggleGachaLike(userId: string, gachaId: string) {
 
 export const getGachaLikeCount = (gachaId: string) =>
   prisma.gachaLike.count({ where: { gachaId } });
+
+export const getLikedGachaIds = (userId: string) =>
+  prisma.gachaLike
+    .findMany({ where: { userId }, select: { gachaId: true } })
+    .then((rows) => rows.map((r) => r.gachaId));
 
 // ─── Spot ─────────────────────────────────────────────────────────────────────
 
@@ -279,20 +284,59 @@ export async function getPopularGachas(limit = 20) {
   return rows.map(({ _count, ...g }) => ({ ...g, likeCount: _count.gachaLikes }));
 }
 
-export async function getRecommendedGachas(favoriteIps: string[], limit = 20) {
-  if (favoriteIps.length === 0) return [];
-  const rows = await prisma.gacha.findMany({
-    where: { isOnSale: true, ipName: { in: favoriteIps } },
-    orderBy: { gachaLikes: { _count: 'desc' } },
-    take: limit,
-    select: {
-      id: true, seriesName: true, ipName: true,
-      imageUrl: true, gradientFrom: true, gradientTo: true,
-      status: true,
-      _count: { select: { gachaLikes: true } },
-    },
+export async function getRecommendedByLikedGachas(userId: string, perIp = 10) {
+  // ユーザーのハート済みガチャとそのipNameを取得
+  const likes = await prisma.gachaLike.findMany({
+    where: { userId },
+    select: { gachaId: true, gacha: { select: { ipName: true } } },
   });
-  return rows.map(({ _count, ...g }) => ({ ...g, likeCount: _count.gachaLikes }));
+  if (likes.length === 0) return [];
+
+  const likedIds = likes.map((l) => l.gachaId);
+  const ipNames = [...new Set(likes.map((l) => l.gacha.ipName))];
+
+  // IP別に並列取得（ハート済みを除く・ハート数降順）
+  const results = await Promise.all(
+    ipNames.map((ipName) =>
+      prisma.gacha.findMany({
+        where: { isOnSale: true, ipName, id: { notIn: likedIds } },
+        orderBy: { gachaLikes: { _count: 'desc' } },
+        take: perIp,
+        select: {
+          id: true, seriesName: true, ipName: true,
+          imageUrl: true, gradientFrom: true, gradientTo: true,
+          status: true,
+          _count: { select: { gachaLikes: true } },
+        },
+      })
+    )
+  );
+
+  return ipNames
+    .map((ipName, i) => ({
+      ipName,
+      gachas: results[i].map(({ _count, ...g }) => ({ ...g, likeCount: _count.gachaLikes })),
+    }))
+    .filter((g) => g.gachas.length > 0);
+}
+
+export async function getGachasByIpNamesForSignup(ipNames: string[], perIp = 20) {
+  const results = await Promise.all(
+    ipNames.map((ipName) =>
+      prisma.gacha.findMany({
+        where: { isOnSale: true, ipName },
+        orderBy: { machines: { _count: 'desc' } },
+        take: perIp,
+        select: {
+          id: true, seriesName: true, ipName: true,
+          gradientFrom: true, gradientTo: true, imageUrl: true,
+        },
+      })
+    )
+  );
+  // IP順を維持しつつフラット化（重複除去）
+  const seen = new Set<string>();
+  return results.flat().filter((g) => { if (seen.has(g.id)) return false; seen.add(g.id); return true; });
 }
 
 export async function getGachasByIpName(ipName: string, limit = 100) {

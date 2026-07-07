@@ -5,7 +5,7 @@ import { HorizontalGachaSection } from '@/components/HorizontalGachaSection';
 
 export function NewTab() {
   return (
-    <div className="flex-1 overflow-y-auto py-4 space-y-6">
+    <div className="flex-1 overflow-y-auto pb-4 space-y-6">
       <OshiNewSection />
       <HorizontalGachaSection
         title="話題のガチャ"

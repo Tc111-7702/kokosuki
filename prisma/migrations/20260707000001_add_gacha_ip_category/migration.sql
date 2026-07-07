@@ -1,0 +1,1 @@
+ALTER TABLE "Gacha" ADD COLUMN "ipCategory" TEXT NOT NULL DEFAULT 'other';

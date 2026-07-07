@@ -9,20 +9,23 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  sessions      Session[]
-  accounts      Account[]
-
-  profile    UserProfile?
-  posts          Post[]
-  likes          Like[]
-  gachaLikes     GachaLike[]
-  postReplies    PostReply[]
-  postReplyLikes PostReplyLike[]
-  followers      Follow[] @relation("Following") // このユーザーをフォローしている人
-  following      Follow[] @relation("Follower")  // このユーザーがフォローしている人
-  qaItems        QA[]
-  qaAnswers      QAAnswer[]
-  notifications  Notification[]
+  sessions         Session[]
+  accounts         Account[]
+  profile          UserProfile?
+  posts            Post[]
+  likes            Like[]
+  gachaLikes       GachaLike[]
+  postReplies      PostReply[]
+  postReplyLikes   PostReplyLike[]
+  stockPosts       StockPost[]
+  stockPostLikes   StockPostLike[]
+  stockPostReplies StockPostReply[]
+  followers        Follow[] @relation("Following")
+  following        Follow[] @relation("Follower")
+  qaItems          QA[]
+  qaAnswers        QAAnswer[]
+  notifications    Notification[]
+  favoriteGachas   UserFavoriteGacha[]
 }
 
 model Session {
@@ -70,14 +73,27 @@ model Verification {
 // ─── ユーザープロフィール ──────────────────────────────────────────────────────
 
 model UserProfile {
-  id          String   @id @default(cuid())
-  userId      String   @unique
-  handle      String?  @unique   // @xxx 形式のアカウントID
-  avatarUrl   String?
-  bio         String?
-  favoriteIps String[] @default([])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  handle    String?  @unique
+  avatarUrl String?
+  bio       String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── お気に入りガチャ ──────────────────────────────────────────────────────────
+
+model UserFavoriteGacha {
+  id        String   @id @default(cuid())
+  userId    String
+  gachaId   String
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gacha Gacha @relation(fields: [gachaId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, gachaId])
 }

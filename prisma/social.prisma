@@ -1,9 +1,9 @@
-// ─── フォロー ─────────────────────────────────────────────────────────────────
+// ─── フォロー ────────────────────────────────────────────────────────────────────────────────
 
 model Follow {
   id          String   @id @default(cuid())
-  followerId  String                         // フォローする側
-  followingId String                         // フォローされる側
+  followerId  String
+  followingId String
   createdAt   DateTime @default(now())
 
   follower  User @relation("Follower",  fields: [followerId],  references: [id], onDelete: Cascade)
@@ -12,7 +12,7 @@ model Follow {
   @@unique([followerId, followingId])
 }
 
-// ─── 投稿・いいね・Q&A ────────────────────────────────────────────────────────
+// ─── 投稿・いいね・Q&A ──────────────────────────────────────────────────────────────────────
 
 model Post {
   id        String   @id @default(cuid())
@@ -20,17 +20,17 @@ model Post {
   spotId    String
   userId    String
   gachaId   String
-  result    String   // hit / miss / duplicate
+  result    String
   itemName  String?
   imageUrl  String?
   memo      String?
   isPublic  Boolean  @default(true)
   createdAt DateTime @default(now())
 
-  machine Machine @relation(fields: [machineId], references: [id], onDelete: Cascade)
-  spot    Spot    @relation(fields: [spotId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  gacha   Gacha   @relation(fields: [gachaId], references: [id], onDelete: Cascade)
+  machine Machine    @relation(fields: [machineId], references: [id], onDelete: Cascade)
+  spot    Spot       @relation(fields: [spotId],    references: [id], onDelete: Cascade)
+  user    User       @relation(fields: [userId],    references: [id], onDelete: Cascade)
+  gacha   Gacha      @relation(fields: [gachaId],   references: [id], onDelete: Cascade)
   likes   Like[]
   replies PostReply[]
 }
@@ -47,13 +47,13 @@ model Like {
   @@unique([userId, postId])
 }
 
-// ─── 返信（ネスト型）・返信いいね ─────────────────────────────────────────────
+// ─── 返信・返信いいね ─────────────────────────────────────────────────────────────────────────────────────
 
 model PostReply {
   id        String   @id @default(cuid())
   postId    String
   userId    String
-  parentId  String?                      // null = 投稿への直接返信
+  parentId  String?
   text      String
   createdAt DateTime @default(now())
 
@@ -95,6 +95,49 @@ model QAAnswer {
   text      String
   createdAt DateTime @default(now())
 
-  qa   QA   @relation(fields: [qaId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  qa   QA   @relation(fields: [qaId],    references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId],  references: [id], onDelete: Cascade)
+}
+
+// ─── 在庫ポスト ───────────────────────────────────────────────────────────────────────────────────
+
+model StockPost {
+  id          String   @id @default(cuid())
+  machineId   String
+  spotId      String
+  gachaId     String
+  userId      String
+  stockStatus String
+  isPublic    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  machine Machine          @relation(fields: [machineId], references: [id], onDelete: Cascade)
+  spot    Spot             @relation(fields: [spotId],    references: [id], onDelete: Cascade)
+  gacha   Gacha            @relation(fields: [gachaId],   references: [id], onDelete: Cascade)
+  user    User             @relation(fields: [userId],    references: [id], onDelete: Cascade)
+  likes   StockPostLike[]
+  replies StockPostReply[]
+}
+
+model StockPostLike {
+  id          String   @id @default(cuid())
+  userId      String
+  stockPostId String
+  createdAt   DateTime @default(now())
+
+  user      User      @relation(fields: [userId],      references: [id], onDelete: Cascade)
+  stockPost StockPost @relation(fields: [stockPostId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, stockPostId])
+}
+
+model StockPostReply {
+  id          String   @id @default(cuid())
+  stockPostId String
+  userId      String
+  text        String
+  createdAt   DateTime @default(now())
+
+  stockPost StockPost @relation(fields: [stockPostId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId],      references: [id], onDelete: Cascade)
 }

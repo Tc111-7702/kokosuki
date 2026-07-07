@@ -15,7 +15,7 @@ export function Location({ onAllow, onSkip, onBack }: Props) {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#FFFEEF] px-6 pt-12 pb-8">
-      <button onClick={onBack} className="self-start mb-6 w-9 h-9 rounded-full flex items-center justify-center" style={{ background: '#F0ECD8' }}>
+      <button onClick={onBack} className="self-start mb-6 w-9 h-9 rounded-full flex items-center justify-center sm:hidden" style={{ background: '#F0ECD8' }}>
         <ArrowLeft size={18} color="#555" />
       </button>
       <div className="flex-1 flex flex-col items-center justify-center text-center">
@@ -33,6 +33,9 @@ export function Location({ onAllow, onSkip, onBack }: Props) {
         </button>
         <button onClick={onSkip} className="text-[13px] text-[#AAA] font-bold py-2">
           あとで設定する
+        </button>
+        <button onClick={onBack} className="hidden sm:block mt-3 text-[13px] text-[#999] underline underline-offset-2">
+          戻る
         </button>
       </div>
     </div>

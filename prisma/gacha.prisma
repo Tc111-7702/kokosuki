@@ -4,6 +4,7 @@ model Gacha {
   id             String   @id @default(cuid())
   seriesName     String
   ipName         String
+  ipCategory     String   @default("other")
   kind           String   @default("gacha")
   category       String
   status         String   @default("on_sale")
@@ -29,9 +30,11 @@ model Gacha {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  machines   Machine[]
-  posts      Post[]
-  gachaLikes GachaLike[]
+  machines        Machine[]
+  posts           Post[]
+  stockPosts      StockPost[]
+  gachaLikes      GachaLike[]
+  favoriteByUsers UserFavoriteGacha[]
 }
 
 model GachaLike {

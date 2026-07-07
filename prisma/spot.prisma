@@ -13,8 +13,9 @@ model Spot {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  machines Machine[]
-  posts    Post[]
+  machines    Machine[]
+  posts       Post[]
+  stockPosts  StockPost[]
   qaItems  QA[]
 }
 
@@ -29,7 +30,8 @@ model Machine {
 
   spot  Spot  @relation(fields: [spotId], references: [id], onDelete: Cascade)
   gacha Gacha @relation(fields: [gachaId], references: [id], onDelete: Cascade)
-  posts Post[]
+  posts       Post[]
+  stockPosts  StockPost[]
 
   @@unique([spotId, gachaId])
 }

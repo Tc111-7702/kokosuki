@@ -6,12 +6,11 @@ import { authClient } from '@/lib/auth-client';
 import { useRouter } from 'next/navigation';
 
 interface Props {
-  favoriteIps: string[];
   likedGachaIds: string[];
   onBack: () => void;
 }
 
-export function Register({ favoriteIps, likedGachaIds, onBack }: Props) {
+export function Register({ likedGachaIds, onBack }: Props) {
   const router = useRouter();
   const [name, setName]         = useState('');
   const [handle, setHandle]     = useState('');
@@ -38,7 +37,7 @@ export function Register({ favoriteIps, likedGachaIds, onBack }: Props) {
     const res = await fetch('/api/profile/init', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ favoriteIps, likedGachaIds, handle: handle || null }),
+      body: JSON.stringify({ likedGachaIds, handle: handle || null }),
     });
 
     if (res.status === 409) {

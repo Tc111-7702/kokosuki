@@ -7,19 +7,11 @@ export async function GET() {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session?.user?.id) {
-      return NextResponse.json({ favoriteIps: [], gachas: [] });
+      return NextResponse.json({ groups: [] });
     }
-
-    const profile = await db.findProfileByUserId(session.user.id);
-    const favoriteIps: string[] = profile?.favoriteIps ?? [];
-
-    if (favoriteIps.length === 0) {
-      return NextResponse.json({ favoriteIps: [], gachas: [] });
-    }
-
-    const gachas = await db.getRecommendedGachas(favoriteIps, 20);
-    return NextResponse.json({ favoriteIps, gachas });
+    const groups = await db.getRecommendedByLikedGachas(session.user.id);
+    return NextResponse.json({ groups });
   } catch {
-    return NextResponse.json({ favoriteIps: [], gachas: [] });
+    return NextResponse.json({ groups: [] });
   }
 }

@@ -22,8 +22,18 @@ import { reverseGeocode, resolveLocation, resolveContent, type ContentResult } f
 // accessToken は page.tsx から props 経由で受け取る（下記 MapClient を参照）
 
 
-const STATION_RADIUS = 1000;
-const STORAGE_KEY   = 'mikke_filter_gacha_ids';
+const STATION_RADIUS  = 1000;
+const STORAGE_KEY     = 'mikke_filter_gacha_ids';
+const LIKED_SEED_KEY  = 'mikke_filter_liked_seed_v1';
+const MIGRATION_KEY   = 'mikke_filter_migrated_v2';
+
+// v2移行: favoriteIps単位のキャッシュをクリア
+if (typeof window !== 'undefined' && !localStorage.getItem(MIGRATION_KEY)) {
+  localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem('mikke_filter_gacha_ids_seed');
+  localStorage.removeItem(LIKED_SEED_KEY);
+  localStorage.setItem(MIGRATION_KEY, '1');
+}
 
 
 // ─── MapClient ───────────────────────────────────────────────────────────────
@@ -46,6 +56,7 @@ export default function MapPage() {
   const filterRef           = useRef<string[]>([]);
   const gachaMapRef         = useRef<Map<string, GachaInfo>>(new Map());
   const hasSearchResultRef  = useRef(false);  // コンテンツ検索中はスポットマーカー再ロードを抑制
+  const spotIdModeRef       = useRef(!!spotIdParam); // spotIdParam 到着時は GPS 自動ロードを抑制
 
   const [favoriteIps, setFavoriteIps]             = useState<string[]>([]);
   const [filterOpen, setFilterOpen]               = useState(false);
@@ -239,6 +250,30 @@ export default function MapPage() {
         spotMarkersRef.current.forEach(m => m.remove());
         spotMarkersRef.current = [];
       }
+
+    } else if (locationQuery.trim() && !resolvedSpot && !resolvedPos) {
+      // フォールバック: 位置情報として解決できない場合はコンテンツ検索を試みる
+      const fb = await resolveContent(locationQuery);
+      if (fb) {
+        setContentSearchLabel(locationQuery.trim());
+        setSearchContentGachaIds(fb.gachaIds);
+        const pos = tempSearchPosRef.current ?? currentPosRef.current;
+        if (pos) {
+          const { spotIds: fbSpotIds } = await loadSearchContentMarkers(
+            map, pos.lat, pos.lng, fb.gachaIds, gachaMapRef.current, searchMarkersRef,
+            (spot, overrideIds) => { setSearchOverrideIds(overrideIds); setSelectedSpot(spot); },
+            { onSpotsLoaded: setSearchSpotList }
+          );
+          if (filterRef.current.length > 0) {
+            loadNearbySpots(map, pos.lat, pos.lng, spotMarkersRef, filterRef.current, gachaMapRef.current, setSelectedSpot,
+              { excludeSpotIds: fbSpotIds, onSpotsLoaded: setFilterSpotList }
+            );
+          } else {
+            spotMarkersRef.current.forEach(m => m.remove());
+            spotMarkersRef.current = [];
+          }
+        }
+      }
     }
   }, [clearSearchResults, placeSearchPin]);
 
@@ -272,18 +307,49 @@ export default function MapPage() {
       .then(r => r.json())
       .then(d => {
         if (!d.spot) return;
-        setSelectedSpot(d.spot);
-        const flyToSpot = (retries = 20) => {
+        const spot = d.spot;
+        const flyAndOpen = (retries = 20) => {
           if (mapRef.current) {
-            mapRef.current.flyTo({ center: [d.spot.lng, d.spot.lat], zoom: 17, duration: 1200 });
+            const map = mapRef.current;
+            // 行き先の近くのスポットを読み込む（現在地が遠くてもピンが表示されるよう）
+            loadNearbySpots(map, spot.lat, spot.lng, spotMarkersRef, filterRef.current, gachaMapRef.current, setSelectedSpot,
+              { onSpotsLoaded: setFilterSpotList });
+            // flyTo してから選択（moveend 後に applyPan が正しく動くよう）
+            map.flyTo({ center: [spot.lng, spot.lat], zoom: 17, duration: 1200 });
+            map.once('moveend', () => setSelectedSpot(spot));
           } else if (retries > 0) {
-            setTimeout(() => flyToSpot(retries - 1), 200);
+            setTimeout(() => flyAndOpen(retries - 1), 200);
           }
         };
-        flyToSpot();
+        flyAndOpen();
       })
       .catch(() => {});
   }, [spotIdParam]);
+
+  // スポット選択時: ピンをシートの直上に表示
+  useEffect(() => {
+    if (!selectedSpot || !mapRef.current || !containerRef.current) return;
+    const map = mapRef.current;
+    const containerEl = containerRef.current;
+    const applyPan = () => {
+      const rect = containerEl.getBoundingClientRect();
+      // ピンのキャンバス上の現在位置
+      const point = map.project([selectedSpot.lng, selectedSpot.lat]);
+      // シート上端の100px上を目標Y（ビューポート基準 → キャンバス基準に変換）
+      const targetCanvasY = (window.innerHeight * 0.54 - 100) - rect.top;
+      const delta = point.y - targetCanvasY;
+      if (Math.abs(delta) > 5) {
+        map.panBy([0, delta], { duration: 400 });
+      }
+    };
+    if (map.isMoving()) {
+      map.once('moveend', applyPan);
+      return () => { map.off('moveend', applyPan); };
+    } else {
+      const t = setTimeout(applyPan, 80);
+      return () => clearTimeout(t);
+    }
+  }, [selectedSpot?.id]);
 
   // 初期化
   useEffect(() => {
@@ -303,30 +369,51 @@ export default function MapPage() {
         const map = new Map<string, GachaInfo>();
         items.forEach(g => map.set(g.id, g));
         gachaMapRef.current = map;
-        if (currentPosRef.current && mapRef.current && !hasSearchResultRef.current) {
+        if (currentPosRef.current && mapRef.current && !hasSearchResultRef.current && !spotIdModeRef.current) {
           const { lat, lng } = currentPosRef.current;
           loadNearbySpots(mapRef.current, lat, lng, spotMarkersRef, filterRef.current, map, setSelectedSpot,
             { onSpotsLoaded: setFilterSpotList });
         }
         fetch('/api/profile/me').then(r => r.json()).then(profile => {
           const favIps: string[] = Array.isArray(profile.favoriteIps) ? profile.favoriteIps : [];
+          const likedIds: string[] = Array.isArray(profile.likedGachaIds) ? profile.likedGachaIds : [];
           setFavoriteIps(favIps);
           if (skipFilter) return;
+
+          // いいねシード: 前回マップを開いた時点のlikedIds
+          const seed: string[] = (() => {
+            try { return JSON.parse(localStorage.getItem(LIKED_SEED_KEY) || '[]') as string[]; } catch { return []; }
+          })();
+          // シードを最新のlikedIdsで更新
+          try { localStorage.setItem(LIKED_SEED_KEY, JSON.stringify(likedIds)); } catch {}
+
           if (stored.length > 0) {
-            const favIds = items.filter(g => favIps.includes(g.ipName)).map(g => g.id);
-            const merged = Array.from(new Set([...stored, ...favIds]));
-            if (merged.length !== stored.length) {
+            // 前回以降に新しくいいねしたIDをフィルターにマージ
+            const newLikes = likedIds.filter(id => !seed.includes(id) && items.some(g => g.id === id));
+            if (newLikes.length > 0) {
+              const merged = [...new Set([...stored, ...newLikes])];
               try { localStorage.setItem(STORAGE_KEY, JSON.stringify(merged)); } catch {}
               setFilterGachaIds(merged); filterRef.current = merged;
-            } else { setFilterGachaIds(stored); filterRef.current = stored; }
+              if (currentPosRef.current && mapRef.current && !hasSearchResultRef.current && !spotIdModeRef.current) {
+                const { lat, lng } = currentPosRef.current;
+                loadNearbySpots(mapRef.current, lat, lng, spotMarkersRef, merged, gachaMapRef.current, setSelectedSpot,
+                  { onSpotsLoaded: setFilterSpotList });
+              }
+            }
             return;
           }
           // 意図的に解除されていた場合はお気に入りを再適用しない
-          if (favIps.length > 0 && !isExplicitlyClear) {
-            const favIds = items.filter(g => favIps.includes(g.ipName)).map(g => g.id);
-            if (favIds.length > 0) {
-              try { localStorage.setItem(STORAGE_KEY, JSON.stringify(favIds)); } catch {}
-              setFilterGachaIds(favIds); filterRef.current = favIds;
+          if (likedIds.length > 0 && !isExplicitlyClear) {
+            // filtersに存在するIDのみに絞る
+            const validIds = likedIds.filter(id => items.some(g => g.id === id));
+            if (validIds.length > 0) {
+              try { localStorage.setItem(STORAGE_KEY, JSON.stringify(validIds)); } catch {}
+              setFilterGachaIds(validIds); filterRef.current = validIds;
+              if (currentPosRef.current && mapRef.current && !hasSearchResultRef.current && !spotIdModeRef.current) {
+                const { lat, lng } = currentPosRef.current;
+                loadNearbySpots(mapRef.current, lat, lng, spotMarkersRef, validIds, gachaMapRef.current, setSelectedSpot,
+                  { onSpotsLoaded: setFilterSpotList });
+              }
             }
           }
         });
@@ -483,8 +570,8 @@ export default function MapPage() {
         }
         reverseGeocode(latitude, longitude, mapboxToken).then(addr => { if (addr) setCurrentAddress(addr); });
         (mapRef.current.getSource('station-range') as mapboxgl.GeoJSONSource)?.setData({ type: 'FeatureCollection', features: [] });
-        // コンテンツ検索中はスポットマーカーを上書きしない（GPSが遅れた場合の上書き防止）
-        if (!hasSearchResultRef.current) {
+        // コンテンツ検索中・spotIdモード中はスポットマーカーを上書きしない
+        if (!hasSearchResultRef.current && !spotIdModeRef.current) {
           loadNearbySpots(mapRef.current, latitude, longitude, spotMarkersRef, filterRef.current, gachaMapRef.current, setSelectedSpot,
             { onSpotsLoaded: setFilterSpotList });
         }
@@ -592,7 +679,7 @@ export default function MapPage() {
               </button>
               {isFiltered && (
                 <button onClick={() => handleFilterApply([])}
-                  className="text-[12px] px-3 py-1.5 rounded-full"
+                  className="text-[12px] px-3 py-1.5 rounded-full font-bold"
                   style={{ background: '#FFF0C0', color: '#B8860B' }}>
                   解除
                 </button>
@@ -646,7 +733,7 @@ export default function MapPage() {
             </div>
 
             {/* 十字キー */}
-            <div className="absolute bottom-5 right-3 grid gap-1"
+            <div className="absolute bottom-10 left-4 lg:left-8 grid gap-1"
               style={{ gridTemplateColumns: 'repeat(3, 36px)', gridTemplateRows: 'repeat(3, 36px)', zIndex: 10 }}>
               <div />
               <button onMouseDown={() => startPan(0, -PAN_STEP)} onMouseUp={stopPan} onMouseLeave={stopPan}
@@ -704,6 +791,7 @@ export default function MapPage() {
           currentPos={currentPosRef.current}
           onClose={() => { setSelectedSpot(null); setSearchOverrideIds(null); }}
           onClearFilter={() => handleFilterApply([])}
+          onOpenFilter={() => setFilterOpen(true)}
         />
       )}
     </div>

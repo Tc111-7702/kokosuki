@@ -10,15 +10,19 @@ export async function GET() {
   }
 
   const user = session.user;
-  const profile = await db.findProfileByUserId(user.id);
+  const [profile, likedGachaIds] = await Promise.all([
+    db.findProfileByUserId(user.id),
+    db.getLikedGachaIds(user.id),
+  ]);
 
   return NextResponse.json({
-    id:          user.id,
-    name:        user.name,
-    email:       user.email,
-    handle:      profile?.handle ?? null,
-    avatarUrl:   profile?.avatarUrl ?? null,
-    bio:         profile?.bio ?? null,
-    favoriteIps: profile?.favoriteIps ?? [],
+    id:            user.id,
+    name:          user.name,
+    email:         user.email,
+    handle:        profile?.handle ?? null,
+    avatarUrl:     profile?.avatarUrl ?? null,
+    bio:           profile?.bio ?? null,
+    favoriteIps:   profile?.favoriteIps ?? [],
+    likedGachaIds,
   });
 }
