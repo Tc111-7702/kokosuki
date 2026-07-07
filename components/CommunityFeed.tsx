@@ -55,7 +55,16 @@ export function Feed({
         if (res.status === 401) { setHasMore(false); return; }
         if (!res.ok) { setHasMore(false); return; }
         const data: { items: FeedItem[]; nextPage: number | null } = await res.json();
-        setPosts((prev) => currentPage === 0 ? data.items : [...prev, ...data.items]);
+        setPosts((prev) => {
+          const merged = currentPage === 0 ? data.items : [...prev, ...data.items];
+          const seen = new Set<string>();
+          return merged.filter(item => {
+            const key = `${item.postType}-${item.id}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+        });
         if (data.nextPage !== null) {
           setPage(data.nextPage);
         } else {
