@@ -266,23 +266,6 @@ export default function SpotDetailSheet({
             </>
           )}
 
-          <div className="px-4 pb-2 pt-1">
-            <button
-              onClick={() => {
-                const base = '/store/' + spot.id;
-                const params = new URLSearchParams();
-                if (searchLabel) params.set('contentSearch', searchLabel);
-                // マップ側でフィルターが無効の場合（skipFilter状態含む）、store側のlocalStorageフィルターを無視させる
-                if (filterGachaIds.length === 0) params.set('noFilter', '1');
-                const qs = params.toString();
-                router.push(qs ? `${base}?${qs}` : base);
-              }}
-              className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-2xl text-[13px] font-bold"
-              style={{ background: '#F5F3ED', color: '#555', border: 'none', cursor: 'pointer' }}>
-              全商品を確認する（{allMatchedGacha.length}件）<ChevronRight size={15} />
-            </button>
-          </div>
-
           <div className="px-4 py-2 text-[13px] font-bold mt-2"
             style={{ color: '#888', background: '#FAFAFA', borderBottom: '1px solid #F0F0F0' }}>
             口コミ
@@ -328,6 +311,22 @@ export default function SpotDetailSheet({
               ))}
             </div>
           )}
+          <div className="px-4 pb-2 pt-3">
+            <button
+              onClick={() => {
+                const base = '/store/' + spot.id;
+                const params = new URLSearchParams();
+                if (searchLabel) params.set('contentSearch', searchLabel);
+                if (filterGachaIds.length === 0) params.set('noFilter', '1');
+                const qs = params.toString();
+                router.push(qs ? `${base}?${qs}` : base);
+              }}
+              className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-2xl text-[13px] font-bold"
+              style={{ background: '#F5F3ED', color: '#555', border: 'none', cursor: 'pointer' }}>
+              店舗の詳細を確認する<ChevronRight size={15} />
+            </button>
+          </div>
+
           <div className="flex gap-2 px-4 pb-6 pt-3" style={{ borderTop: '1px solid #F0F0F0' }}>
             <button onClick={() => setNavOpen(true)}
               className="flex items-center justify-center gap-1.5 py-3 rounded-2xl text-[14px] font-bold"

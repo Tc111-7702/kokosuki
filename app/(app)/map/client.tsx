@@ -25,13 +25,14 @@ import { reverseGeocode, resolveLocation, resolveContent, type ContentResult } f
 const STATION_RADIUS  = 1000;
 const STORAGE_KEY     = 'mikke_filter_gacha_ids';
 const LIKED_SEED_KEY  = 'mikke_filter_liked_seed_v1';
-const MIGRATION_KEY   = 'mikke_filter_migrated_v2';
+const MIGRATION_KEY   = 'mikke_filter_migrated_v3';
 
-// v2移行: favoriteIps単位のキャッシュをクリア
+// v3移行: ユーザーリセット後のキャッシュクリア
 if (typeof window !== 'undefined' && !localStorage.getItem(MIGRATION_KEY)) {
   localStorage.removeItem(STORAGE_KEY);
   localStorage.removeItem('mikke_filter_gacha_ids_seed');
   localStorage.removeItem(LIKED_SEED_KEY);
+  localStorage.removeItem('mikke_filter_migrated_v2');
   localStorage.setItem(MIGRATION_KEY, '1');
 }
 
@@ -408,6 +409,7 @@ export default function MapPage() {
             const validIds = likedIds.filter(id => items.some(g => g.id === id));
             if (validIds.length > 0) {
               try { localStorage.setItem(STORAGE_KEY, JSON.stringify(validIds)); } catch {}
+              try { localStorage.setItem('mikke_filter_gacha_ids_seed', JSON.stringify(validIds)); } catch {}
               setFilterGachaIds(validIds); filterRef.current = validIds;
               if (currentPosRef.current && mapRef.current && !hasSearchResultRef.current && !spotIdModeRef.current) {
                 const { lat, lng } = currentPosRef.current;

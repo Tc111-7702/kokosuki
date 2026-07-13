@@ -178,16 +178,12 @@ async function main() {
   });
   console.log('Profiles upserted');
 
-  // ─── 投稿・フォロー・GachaLike（再実行時に重複しないよう先に削除） ──────────
+  // ─── 投稿・GachaLike（再実行時に重複しないよう先に削除） ──────────
   const seedUserIds = [yamamoto.id, fukuda.id, iida.id, yuna.id, kenta.id];
   await prisma.stockPostLike.deleteMany({ where: { userId: { in: seedUserIds } } });
   await prisma.stockPost.deleteMany(    { where: { userId: { in: seedUserIds } } });
   await prisma.like.deleteMany(         { where: { userId: { in: seedUserIds } } });
   await prisma.post.deleteMany(         { where: { userId: { in: seedUserIds } } });
-  await prisma.follow.deleteMany({
-    where: { OR: [{ followerId: { in: seedUserIds } }, { followingId: { in: seedUserIds } }] },
-  });
-
   // 実在スポット（川西市・宝塚市）
   const SPOTS = {
     kappa:       'cmr63juft00anc0ujnxh6mfac',
@@ -270,16 +266,16 @@ async function main() {
     // ── yamamoto（ポケモン・ONE PIECE中心）──────────────
     { userId: yamamoto.id, machineId: M.pokemon_kappa.id,      spotId: M.pokemon_kappa.spotId,      gachaId: M.pokemon_kappa.gachaId,      stockStatus: 'in_stock' },
     { userId: yamamoto.id, machineId: M.op_bunkyodo.id,        spotId: M.op_bunkyodo.spotId,        gachaId: M.op_bunkyodo.gachaId,        stockStatus: 'in_stock' },
-    { userId: yamamoto.id, machineId: M.haikyu_tada.id,        spotId: M.haikyu_tada.spotId,        gachaId: M.haikyu_tada.gachaId,        stockStatus: 'low_stock' },
+    { userId: yamamoto.id, machineId: M.haikyu_tada.id,        spotId: M.haikyu_tada.spotId,        gachaId: M.haikyu_tada.gachaId,        stockStatus: 'in_stock' },
     { userId: yamamoto.id, machineId: M.minecraft_bunkyodo.id, spotId: M.minecraft_bunkyodo.spotId, gachaId: M.minecraft_bunkyodo.gachaId, stockStatus: 'in_stock' },
     { userId: yamamoto.id, machineId: M.kirby_rasora.id,       spotId: M.kirby_rasora.spotId,       gachaId: M.kirby_rasora.gachaId,       stockStatus: 'out_of_stock' },
     { userId: yamamoto.id, machineId: M.disney_rasora.id,      spotId: M.disney_rasora.spotId,      gachaId: M.disney_rasora.gachaId,      stockStatus: 'in_stock' },
-    { userId: yamamoto.id, machineId: M.hxh_aste.id,           spotId: M.hxh_aste.spotId,           gachaId: M.hxh_aste.gachaId,           stockStatus: 'low_stock' },
+    { userId: yamamoto.id, machineId: M.hxh_aste.id,           spotId: M.hxh_aste.spotId,           gachaId: M.hxh_aste.gachaId,           stockStatus: 'in_stock' },
 
     // ── fukuda（ポケモン・ハイキュー・チェンソー中心）──
     { userId: fukuda.id, machineId: M.pokemon_tada.id,      spotId: M.pokemon_tada.spotId,      gachaId: M.pokemon_tada.gachaId,      stockStatus: 'in_stock' },
     { userId: fukuda.id, machineId: M.haikyu_tada.id,       spotId: M.haikyu_tada.spotId,       gachaId: M.haikyu_tada.gachaId,       stockStatus: 'in_stock' },
-    { userId: fukuda.id, machineId: M.csm_kobayashi.id,     spotId: M.csm_kobayashi.spotId,     gachaId: M.csm_kobayashi.gachaId,     stockStatus: 'low_stock' },
+    { userId: fukuda.id, machineId: M.csm_kobayashi.id,     spotId: M.csm_kobayashi.spotId,     gachaId: M.csm_kobayashi.gachaId,     stockStatus: 'in_stock' },
     { userId: fukuda.id, machineId: M.minecraft_aste.id,    spotId: M.minecraft_aste.spotId,    gachaId: M.minecraft_aste.gachaId,    stockStatus: 'out_of_stock' },
     { userId: fukuda.id, machineId: M.op_aste.id,           spotId: M.op_aste.spotId,           gachaId: M.op_aste.gachaId,           stockStatus: 'in_stock' },
     { userId: fukuda.id, machineId: M.natsume_kobayashi.id, spotId: M.natsume_kobayashi.spotId, gachaId: M.natsume_kobayashi.gachaId, stockStatus: 'in_stock' },
@@ -287,10 +283,10 @@ async function main() {
     // ── iida（HxH・チェンソー・ONE PIECE中心）──────────
     { userId: iida.id, machineId: M.hxh_aste.id,          spotId: M.hxh_aste.spotId,          gachaId: M.hxh_aste.gachaId,          stockStatus: 'in_stock' },
     { userId: iida.id, machineId: M.csm_kobayashi.id,     spotId: M.csm_kobayashi.spotId,     gachaId: M.csm_kobayashi.gachaId,     stockStatus: 'in_stock' },
-    { userId: iida.id, machineId: M.op_bunkyodo.id,       spotId: M.op_bunkyodo.spotId,       gachaId: M.op_bunkyodo.gachaId,       stockStatus: 'low_stock' },
+    { userId: iida.id, machineId: M.op_bunkyodo.id,       spotId: M.op_bunkyodo.spotId,       gachaId: M.op_bunkyodo.gachaId,       stockStatus: 'in_stock' },
     { userId: iida.id, machineId: M.natsume_kobayashi.id, spotId: M.natsume_kobayashi.spotId, gachaId: M.natsume_kobayashi.gachaId, stockStatus: 'out_of_stock' },
     { userId: iida.id, machineId: M.minecraft_aste.id,   spotId: M.minecraft_aste.spotId,    gachaId: M.minecraft_aste.gachaId,    stockStatus: 'in_stock' },
-    { userId: iida.id, machineId: M.pokemon_kappa.id,    spotId: M.pokemon_kappa.spotId,     gachaId: M.pokemon_kappa.gachaId,     stockStatus: 'low_stock' },
+    { userId: iida.id, machineId: M.pokemon_kappa.id,    spotId: M.pokemon_kappa.spotId,     gachaId: M.pokemon_kappa.gachaId,     stockStatus: 'in_stock' },
     { userId: iida.id, machineId: M.miku_bunkyodo.id,    spotId: M.miku_bunkyodo.spotId,     gachaId: M.miku_bunkyodo.gachaId,     stockStatus: 'in_stock' },
 
     // ── yuna（ポケモン・ディズニー・ミク中心）──────────
@@ -298,14 +294,14 @@ async function main() {
     { userId: yuna.id, machineId: M.op_aste.id,           spotId: M.op_aste.spotId,           gachaId: M.op_aste.gachaId,           stockStatus: 'in_stock' },
     { userId: yuna.id, machineId: M.disney_rasora.id,     spotId: M.disney_rasora.spotId,     gachaId: M.disney_rasora.gachaId,     stockStatus: 'out_of_stock' },
     { userId: yuna.id, machineId: M.miku_bunkyodo.id,     spotId: M.miku_bunkyodo.spotId,     gachaId: M.miku_bunkyodo.gachaId,     stockStatus: 'in_stock' },
-    { userId: yuna.id, machineId: M.kirby_rasora.id,      spotId: M.kirby_rasora.spotId,      gachaId: M.kirby_rasora.gachaId,      stockStatus: 'low_stock' },
+    { userId: yuna.id, machineId: M.kirby_rasora.id,      spotId: M.kirby_rasora.spotId,      gachaId: M.kirby_rasora.gachaId,      stockStatus: 'in_stock' },
     { userId: yuna.id, machineId: M.doraemon_kobayashi.id,spotId: M.doraemon_kobayashi.spotId,gachaId: M.doraemon_kobayashi.gachaId,stockStatus: 'in_stock' },
     { userId: yuna.id, machineId: M.haikyu_tada.id,       spotId: M.haikyu_tada.spotId,       gachaId: M.haikyu_tada.gachaId,       stockStatus: 'in_stock' },
 
     // ── kenta（ONE PIECE・カービィ・ポケモン中心）──────
     { userId: kenta.id, machineId: M.op_bunkyodo.id,      spotId: M.op_bunkyodo.spotId,      gachaId: M.op_bunkyodo.gachaId,      stockStatus: 'in_stock' },
     { userId: kenta.id, machineId: M.op_aste.id,          spotId: M.op_aste.spotId,          gachaId: M.op_aste.gachaId,          stockStatus: 'in_stock' },
-    { userId: kenta.id, machineId: M.pokemon_kappa.id,    spotId: M.pokemon_kappa.spotId,    gachaId: M.pokemon_kappa.gachaId,    stockStatus: 'low_stock' },
+    { userId: kenta.id, machineId: M.pokemon_kappa.id,    spotId: M.pokemon_kappa.spotId,    gachaId: M.pokemon_kappa.gachaId,    stockStatus: 'in_stock' },
     { userId: kenta.id, machineId: M.kirby_rasora.id,     spotId: M.kirby_rasora.spotId,     gachaId: M.kirby_rasora.gachaId,     stockStatus: 'in_stock' },
     { userId: kenta.id, machineId: M.hxh_aste.id,         spotId: M.hxh_aste.spotId,         gachaId: M.hxh_aste.gachaId,         stockStatus: 'in_stock' },
     { userId: kenta.id, machineId: M.csm_kobayashi.id,    spotId: M.csm_kobayashi.spotId,    gachaId: M.csm_kobayashi.gachaId,    stockStatus: 'out_of_stock' },
@@ -329,21 +325,29 @@ async function main() {
   ]});
   console.log('Posts created');
 
-  // ─── フォロー ──────────────────────────────────────────────────────────────
-  await prisma.follow.createMany({
-    skipDuplicates: true,
-    data: [
-      { followerId: yamamoto.id, followingId: fukuda.id },
-      { followerId: fukuda.id,   followingId: yamamoto.id },
-      { followerId: yamamoto.id, followingId: iida.id },
-      { followerId: iida.id,     followingId: yamamoto.id },
-      { followerId: yamamoto.id, followingId: yuna.id },
-      { followerId: yuna.id,     followingId: yamamoto.id },
-      { followerId: yamamoto.id, followingId: kenta.id },
-      { followerId: kenta.id,    followingId: yamamoto.id },
-    ],
-  });
-  console.log('Follows created');
+  // ─── マシン在庫ステータス（宝塚市・川西市）────────────────────────────────
+  const machineStockUpdates: { id: string; stockStatus: string }[] = [
+    { id: M.pokemon_kappa.id,      stockStatus: 'in_stock'     },
+    { id: M.csm_kobayashi.id,      stockStatus: 'in_stock'     },
+    { id: M.doraemon_kobayashi.id, stockStatus: 'out_of_stock' },
+    { id: M.natsume_kobayashi.id,  stockStatus: 'in_stock'     },
+    { id: M.op_bunkyodo.id,        stockStatus: 'in_stock'     },
+    { id: M.minecraft_bunkyodo.id, stockStatus: 'in_stock'     },
+    { id: M.miku_bunkyodo.id,      stockStatus: 'out_of_stock' },
+    { id: M.pokemon_tada.id,       stockStatus: 'in_stock'     },
+    { id: M.haikyu_tada.id,        stockStatus: 'in_stock'     },
+    { id: M.disney_rasora.id,      stockStatus: 'out_of_stock' },
+    { id: M.kirby_rasora.id,       stockStatus: 'in_stock'     },
+    { id: M.hxh_aste.id,           stockStatus: 'in_stock'     },
+    { id: M.op_aste.id,            stockStatus: 'in_stock'     },
+    { id: M.minecraft_aste.id,     stockStatus: 'out_of_stock' },
+  ];
+  await Promise.all(
+    machineStockUpdates.map(({ id, stockStatus }) =>
+      prisma.machine.update({ where: { id }, data: { stockStatus, stockSyncedAt: new Date() } })
+    )
+  );
+  console.log('Machine stock updated');
 
   console.log('Seed complete!');
 }

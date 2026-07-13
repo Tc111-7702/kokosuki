@@ -24,8 +24,7 @@ DELETE FROM "Post";
 DELETE FROM "QAAnswer";
 DELETE FROM "QA";
 
--- フォロー・お気に入りガチャ
-DELETE FROM "Follow";
+-- お気に入りガチャ
 DELETE FROM "GachaLike";
 
 -- ユーザープロフィールのリセット（ユーザー自体は残す）

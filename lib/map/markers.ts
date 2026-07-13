@@ -14,6 +14,10 @@ export interface NearbySpot {
   stockMap: Record<string, string>;
 }
 
+// 在庫ステータス判定（後方互換）
+function isInStock(s: string | undefined)   { return s === 'in_stock'  || s === 'available' || s === 'low' || s === 'low_stock'; }
+function isOutOfStock(s: string | undefined){ return s === 'out_of_stock' || s === 'empty'; }
+
 // ─── マーカー要素生成 ────────────────────────────────────────────────────────
 
 export function createSpotMarkerEl(): HTMLElement {
@@ -45,12 +49,38 @@ export function createRedPinEl(): HTMLElement {
   return el;
 }
 
-export function createMarkerEl(imageUrl: string | null, ipName: string, borderColor = 'white', size = 44): HTMLElement {
+export function createMarkerEl(
+  imageUrl: string | null,
+  ipName: string,
+  borderColor = 'white',
+  size = 44,
+  inStockCount?: number,
+): HTMLElement {
+  // el はヒット領域のみ（transform なし）
   const el = document.createElement('div');
   el.style.cssText = `width:${size}px;height:${size}px;cursor:pointer;`;
+
   let h = 0;
   for (let i = 0; i < ipName.length; i++) { h = ipName.charCodeAt(i) + ((h << 5) - h); }
   const hue = Math.abs(h) % 360;
+
+  // container: inner + badge をまとめてスケール
+  const container = document.createElement('div');
+  container.style.cssText =
+    `width:${size}px;height:${size}px;` +
+    'position:relative;' +
+    'transition:transform 0.15s ease;' +
+    'transform-origin:center center;';
+
+  el.addEventListener('mouseenter', () => {
+    container.style.transform = 'scale(1.45)';
+    inner.style.boxShadow = '0 6px 18px rgba(0,0,0,0.35)';
+  });
+  el.addEventListener('mouseleave', () => {
+    container.style.transform = 'scale(1)';
+    inner.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
+  });
+
   const inner = document.createElement('div');
   inner.style.cssText = `
     width:${size}px;height:${size}px;border-radius:50%;
@@ -58,17 +88,7 @@ export function createMarkerEl(imageUrl: string | null, ipName: string, borderCo
     box-shadow:0 2px 8px rgba(0,0,0,0.3);
     overflow:hidden;
     background:linear-gradient(135deg,hsl(${hue},70%,60%),hsl(${(hue + 40) % 360},65%,45%));
-    transition:transform 0.15s ease, box-shadow 0.15s ease;
-    transform-origin:center center;
   `;
-  el.addEventListener('mouseenter', () => {
-    inner.style.transform = 'scale(1.45)';
-    inner.style.boxShadow = '0 6px 18px rgba(0,0,0,0.35)';
-  });
-  el.addEventListener('mouseleave', () => {
-    inner.style.transform = 'scale(1)';
-    inner.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
-  });
   if (imageUrl) {
     const img = document.createElement('img');
     img.src = imageUrl;
@@ -76,7 +96,24 @@ export function createMarkerEl(imageUrl: string | null, ipName: string, borderCo
     img.onerror = () => { img.style.display = 'none'; };
     inner.appendChild(img);
   }
-  el.appendChild(inner);
+  container.appendChild(inner);
+
+  // 在庫数バッジ（フィルター時・在庫あり1件以上の場合のみ）
+  if (inStockCount !== undefined && inStockCount > 0) {
+    const badge = document.createElement('div');
+    badge.style.cssText =
+      'position:absolute;top:1px;right:1px;' +
+      'min-width:16px;height:16px;' +
+      'background:#22C55E;color:white;' +
+      'border-radius:8px;border:1.5px solid white;' +
+      'font-size:10px;font-weight:700;line-height:1;' +
+      'display:flex;align-items:center;justify-content:center;' +
+      'padding:0 3px;pointer-events:none;z-index:10;';
+    badge.textContent = String(inStockCount);
+    container.appendChild(badge);
+  }
+
+  el.appendChild(container);
   return el;
 }
 
@@ -94,7 +131,7 @@ export async function loadNearbySpots(
     addressFilter?: string;
     ignoreFilter?: boolean;
     excludeSpotIds?: Set<string>;
-    onSpotsLoaded?: (spots: NearbySpot[]) => void; // フィルター後・excludeSpotIds前の全スポット（リスト用）
+    onSpotsLoaded?: (spots: NearbySpot[]) => void;
   },
 ) {
   try {
@@ -106,19 +143,28 @@ export async function loadNearbySpots(
     if (!res.ok) return;
     const { spots }: { spots: NearbySpot[] } = await res.json();
 
-    // fetch完了後にマップが破棄されている場合はスキップ
     if (!map.getContainer().isConnected) return;
 
     markersRef.current.forEach(m => m.remove());
     markersRef.current = [];
 
     const ignoreFilter = options?.ignoreFilter === true;
+    const isFiltered = !ignoreFilter && filterGachaIds.length > 0;
     const excludeSpotIds = options?.excludeSpotIds;
-    const visible = (ignoreFilter || filterGachaIds.length === 0)
+
+    // filterGachaIds に一致するマシンを持つスポットに絞る
+    let visible = (!isFiltered)
       ? spots
       : spots.filter(s => s.gachaIds.some(id => filterGachaIds.includes(id)));
 
-    // リスト用: excludeSpotIds 適用前の全マッチスポットを通知
+    // フィルター時: マッチする全マシンが out_of_stock のスポットを除外
+    if (isFiltered) {
+      visible = visible.filter(spot => {
+        const matched = spot.gachaIds.filter(id => filterGachaIds.includes(id));
+        return !matched.every(id => isOutOfStock(spot.stockMap[id]));
+      });
+    }
+
     options?.onSpotsLoaded?.(visible);
 
     const visibleFiltered = excludeSpotIds
@@ -126,12 +172,24 @@ export async function loadNearbySpots(
       : visible;
 
     for (const spot of visibleFiltered) {
-      const isUnfiltered = ignoreFilter || filterGachaIds.length === 0;
-      const firstMatchId = isUnfiltered ? undefined : spot.gachaIds.find(id => filterGachaIds.includes(id));
+      let el: HTMLElement;
+      const firstMatchId = isFiltered ? spot.gachaIds.find(id => filterGachaIds.includes(id)) : undefined;
       const firstGacha   = firstMatchId ? gachaMap.get(firstMatchId) : undefined;
-      const el = isUnfiltered
-        ? createSpotMarkerEl()
-        : createMarkerEl(firstGacha?.imageUrl ?? null, firstGacha?.ipName ?? '');
+
+      if (!isFiltered) {
+        el = createSpotMarkerEl();
+      } else {
+        const matched = spot.gachaIds.filter(id => filterGachaIds.includes(id));
+        const inStockCount = matched.filter(id => isInStock(spot.stockMap[id])).length;
+        const borderColor = inStockCount > 0 ? '#22C55E' : '#9CA3AF';
+        el = createMarkerEl(
+          firstGacha?.imageUrl ?? null,
+          firstGacha?.ipName ?? '',
+          borderColor,
+          44,
+          inStockCount > 0 ? inStockCount : undefined,
+        );
+      }
 
       const popup = new mapboxgl.Popup({ offset: 28, closeButton: false, closeOnClick: false, maxWidth: '200px' })
         .setHTML(
@@ -169,7 +227,7 @@ export async function loadSearchContentMarkers(
   options?: {
     radius?: number;
     addressFilter?: string;
-    onSpotsLoaded?: (spots: NearbySpot[]) => void; // コンテンツマッチスポット（リスト用）
+    onSpotsLoaded?: (spots: NearbySpot[]) => void;
   },
 ): Promise<{ count: number; spotIds: Set<string> }> {
   const radius = options?.radius ?? NEARBY_RADIUS;
@@ -186,7 +244,6 @@ export async function loadSearchContentMarkers(
   const contentSet = new Set(contentGachaIds);
   const matched = spots.filter(s => s.gachaIds.some(id => contentSet.has(id)));
 
-  // リスト用: コンテンツマッチスポットを通知
   options?.onSpotsLoaded?.(matched);
 
   for (const spot of matched) {
@@ -203,7 +260,7 @@ export async function loadSearchContentMarkers(
       onSpotClick(
         {
           id: spot.id, name: spot.name, address: spot.address,
-          lat: spot.lat, lng: spot.lng,
+          lat: spot.lat, lng: spot.lng, distance: spot.distance ?? 0,
           phone: spot.phone ?? null, googleMapsUrl: spot.googleMapsUrl,
           gachaIds: spot.gachaIds, stockMap: spot.stockMap,
         },

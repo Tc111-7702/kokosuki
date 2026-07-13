@@ -141,8 +141,17 @@ export default function FilterDrawer({
           // アクティブフィルターが解除されていても前回の選択を復元
           setSelectedGachaIds(new Set(seed));
         } else {
-          const favIds = items.filter((g) => favoriteIps.includes(g.ipName)).map((g) => g.id);
-          setSelectedGachaIds(new Set(favIds));
+          // LIKED_SEED_KEY: マップロード時に profile/me から書き込まれるお気に入りID
+          const likedSeed: string[] = (() => {
+            try { return JSON.parse(localStorage.getItem('mikke_filter_liked_seed_v1') || '[]') as string[]; } catch { return []; }
+          })();
+          const validLiked = likedSeed.filter(id => items.some(g => g.id === id));
+          if (validLiked.length > 0) {
+            setSelectedGachaIds(new Set(validLiked));
+          } else {
+            const favIds = items.filter((g) => favoriteIps.includes(g.ipName)).map((g) => g.id);
+            setSelectedGachaIds(new Set(favIds));
+          }
         }
       })
       .catch(() => {})
