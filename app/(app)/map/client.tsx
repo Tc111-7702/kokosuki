@@ -402,8 +402,8 @@ export default function MapPage() {
             }
             return;
           }
-          // 意図的に解除されていた場合はお気に入りを再適用しない
-          if (likedIds.length > 0 && !isExplicitlyClear) {
+          // リロード時は常にお気に入りをフィルターに復元（意図的解除後も含む）
+          if (likedIds.length > 0) {
             // filtersに存在するIDのみに絞る
             const validIds = likedIds.filter(id => items.some(g => g.id === id));
             if (validIds.length > 0) {

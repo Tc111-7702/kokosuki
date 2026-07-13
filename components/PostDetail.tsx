@@ -7,7 +7,7 @@ import { ReplyCard } from '@/components/ReplyCard';
 import { PostCard } from '@/components/PostCard';
 import { type FeedPost, type Reply } from '@/components/community-types';
 
-export function PostDetail({ post, onBack }: { post: FeedPost; onBack: () => void }) {
+export function PostDetail({ post, onBack, onReplied }: { post: FeedPost; onBack: () => void; onReplied?: () => void }) {
   const [replies,          setReplies]          = useState<Reply[]>([]);
   const [loadingR,         setLoadingR]         = useState(true);
   const [text,             setText]             = useState('');
@@ -146,6 +146,7 @@ export function PostDetail({ post, onBack }: { post: FeedPost; onBack: () => voi
       if (res.ok) {
         const data: { reply: Reply } = await res.json();
         setReplies((prev) => [...prev, data.reply]);
+        onReplied?.();
         setText('');
         setInsertedMentions([]);
         mentionStartRef.current = null;

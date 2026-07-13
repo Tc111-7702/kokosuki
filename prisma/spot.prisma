@@ -17,6 +17,7 @@ model Spot {
   posts       Post[]
   stockPosts  StockPost[]
   qaItems  QA[]
+  reviews     SpotReview[]
 }
 
 model Machine {
@@ -34,4 +35,49 @@ model Machine {
   stockPosts  StockPost[]
 
   @@unique([spotId, gachaId])
+}
+
+// ─── 口コミ ───────────────────────────────────────────────────────────────────
+
+model SpotReview {
+  id        String   @id @default(cuid())
+  spotId    String
+  userId    String
+  text      String
+  isPublic  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  spot    Spot              @relation(fields: [spotId], references: [id], onDelete: Cascade)
+  user    User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replies SpotReviewReply[]
+  likes   SpotReviewLike[]
+
+  @@index([spotId])
+  @@index([userId])
+}
+
+model SpotReviewReply {
+  id        String   @id @default(cuid())
+  reviewId  String
+  userId    String
+  text      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  review SpotReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([reviewId])
+}
+
+model SpotReviewLike {
+  id       String @id @default(cuid())
+  userId   String
+  reviewId String
+
+  user   User       @relation(fields: [userId],   references: [id], onDelete: Cascade)
+  review SpotReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, reviewId])
 }

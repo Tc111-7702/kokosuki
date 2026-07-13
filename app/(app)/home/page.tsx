@@ -57,7 +57,7 @@ function HomePageInner() {
     router.replace(`/home?tab=${key}`);
   };
 
-  const showSearchBar = tab === 'new' || tab === 'community';
+  const showSearchBar = tab === 'new' || tab === 'community' || tab === 'favorites';
 
   return (
     <div className="flex flex-col h-full bg-[#FFFEEF]">

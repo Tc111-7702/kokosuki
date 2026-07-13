@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { MapPin, Gamepad2, Search, X, Store, TrainFront } from 'lucide-react';
+import { MapPin, Search, X, Store, TrainFront } from 'lucide-react';
 
 interface Suggestion {
   label: string;
@@ -9,6 +9,7 @@ interface Suggestion {
   type?: 'gacha' | 'genre' | 'spot' | 'area' | 'station';
   lat?: number;
   lng?: number;
+  imageUrl?: string | null;
 }
 
 interface SearchBarProps {
@@ -61,15 +62,14 @@ export default function SearchBar({ onSearch, onClear, hasSearchResult }: Search
           ...stations.filter(s => !usedLabels.has(s.label)),
         ];
 
-        // 位置情報最大4件 + コンテンツ最大4件
-        setSuggestions([...locSugg.slice(0, 4), ...contents.slice(0, 4)]);
+        // 位置情報最大4件 + コンテンツ全件（IPのシリーズをすべて表示するため）
+        setSuggestions([...locSugg.slice(0, 4), ...contents]);
       } catch {}
     }, 150);
   };
 
   const isContentType = (type?: string) => type === 'gacha' || type === 'genre';
 
-  // サジェスト選択時は即座に検索実行
   const selectSugg = (s: Suggestion) => {
     setValue(s.label);
     setSuggestions([]);
@@ -81,7 +81,6 @@ export default function SearchBar({ onSearch, onClear, hasSearchResult }: Search
     }
   };
 
-  // 手入力submit: まず位置情報として試み、解決できなければclient側でコンテンツにフォールバック
   const submit = () => {
     if (!value.trim()) return;
     setSuggestions([]);
@@ -100,18 +99,19 @@ export default function SearchBar({ onSearch, onClear, hasSearchResult }: Search
   const showDrop = focused && suggestions.length > 0;
 
   return (
-    <div className="relative px-4 pb-1">
-      <div className="flex gap-1.5 items-center">
-        <div className="relative flex-1">
+    // outer: no horizontal padding so dropdown can be full-width
+    <div className="relative pb-1">
+      <div className="flex gap-1.5 items-center px-4">
+        <div className="flex-1">
           <div
-            className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-2xl"
             style={{
               background: '#F5F3ED',
               border: focused ? '1.5px solid #F2B800' : '1.5px solid transparent',
               transition: 'border-color 0.15s',
             }}
           >
-            <Search size={11} color="#aaa" className="flex-shrink-0" />
+            <Search size={13} color="#aaa" className="flex-shrink-0" />
             <input
               type="text"
               value={value}
@@ -124,52 +124,17 @@ export default function SearchBar({ onSearch, onClear, hasSearchResult }: Search
               onBlur={() => setTimeout(() => setFocused(false), 200)}
               onKeyDown={e => e.key === 'Enter' && submit()}
               placeholder="駅・都道府県・市区町村 / IP・ガチャ"
-              style={{ background: 'transparent', border: 'none', outline: 'none', fontSize: 12, width: '100%', color: '#333' }}
+              style={{ background: 'transparent', border: 'none', outline: 'none', fontSize: 13, width: '100%', color: '#333', textAlign: 'left' }}
             />
             {value && (
               <button
                 onMouseDown={() => { setValue(''); setSuggestions([]); selectedCoordsRef.current = undefined; }}
                 style={{ padding: 0, background: 'none', border: 'none', cursor: 'pointer', lineHeight: 0 }}
               >
-                <X size={11} color="#bbb" />
+                <X size={13} color="#bbb" />
               </button>
             )}
           </div>
-
-          {showDrop && (
-            <div className="absolute left-0 right-0 mt-1 rounded-xl overflow-y-auto z-50"
-              style={{ top: '100%', background: 'white', boxShadow: '0 6px 24px rgba(0,0,0,0.14)', maxHeight: 320, border: '1px solid #f0f0f0' }}>
-              {suggestions.map((s, i) => (
-                <button key={i} className="w-full text-left px-3 py-2.5 active:bg-amber-50"
-                  style={{ borderBottom: i < suggestions.length - 1 ? '1px solid #f5f5f5' : 'none' }}
-                  onMouseDown={() => selectSugg(s)}
-                >
-                  <div className="flex items-start gap-1.5">
-                    {s.type === 'spot'
-                      ? <Store size={11} color="#F2B800" className="flex-shrink-0 mt-0.5" />
-                      : s.type === 'station'
-                      ? <TrainFront size={11} color="#3b82f6" className="flex-shrink-0 mt-0.5" />
-                      : isContentType(s.type)
-                      ? <Gamepad2 size={11} color="#a855f7" className="flex-shrink-0 mt-0.5" />
-                      : <MapPin size={11} color="#aaa" className="flex-shrink-0 mt-0.5" />
-                    }
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <span style={{ fontSize: 12, fontWeight: 600, color: '#222', lineHeight: 1.4 }} className="truncate">{s.label}</span>
-                        {s.type === 'spot'    && <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 8, flexShrink: 0, background: '#fef9c3', color: '#854d0e' }}>店舗</span>}
-                        {s.type === 'station' && <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 8, flexShrink: 0, background: '#dbeafe', color: '#1d4ed8' }}>駅</span>}
-                        {s.type === 'genre'   && <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 8, flexShrink: 0, background: '#e0f2fe', color: '#0369a1' }}>ジャンル</span>}
-                        {s.type === 'gacha'   && <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 8, flexShrink: 0, background: '#fef9c3', color: '#854d0e' }}>ガチャ</span>}
-                      </div>
-                      {s.sublabel && (s.type === 'station' || s.type === 'spot') && (
-                        <div style={{ fontSize: 10, color: '#999', lineHeight: 1.3, marginTop: 1 }}>{s.sublabel}</div>
-                      )}
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
         </div>
 
         {hasInput && (
@@ -185,6 +150,60 @@ export default function SearchBar({ onSearch, onClear, hasSearchResult }: Search
           <Search size={14} color="white" />
         </button>
       </div>
+
+      {/* dropdown: left-0 right-0 relative to outer → full component width */}
+      {showDrop && (
+        <div
+          className="absolute left-0 right-0 z-50 mt-1 rounded-xl overflow-hidden"
+          style={{ top: '100%', background: 'white', boxShadow: '0 6px 24px rgba(0,0,0,0.14)', maxHeight: 320, overflowY: 'auto', border: '1px solid #f0f0f0' }}
+        >
+          {suggestions.map((s, i) => (
+            <button
+              key={i}
+              className="w-full text-left px-3 py-2.5 active:bg-amber-50"
+              style={{ display: 'block', borderBottom: i < suggestions.length - 1 ? '1px solid #f5f5f5' : 'none' }}
+              onMouseDown={() => selectSugg(s)}
+            >
+              {isContentType(s.type) ? (
+                /* ガチャ・ジャンル: 画像左端 */
+                <div className="flex items-center gap-2">
+                  {s.type === 'gacha' && s.imageUrl ? (
+                    <img src={s.imageUrl} alt={s.label}
+                      style={{ width: 28, height: 28, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }}
+                      onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                  ) : (
+                    <div style={{ width: 28, height: 28, flexShrink: 0 }} />
+                  )}
+                  <span style={{ fontSize: 13, fontWeight: 600, color: '#222', flex: 1 }}>{s.label}</span>
+                  {s.type === 'genre' && (
+                    <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 8, flexShrink: 0, background: '#e0f2fe', color: '#0369a1' }}>ジャンル</span>
+                  )}
+                </div>
+              ) : (
+                /* 店舗・駅・エリア: 既存スタイル維持 */
+                <div className="flex items-start gap-1.5">
+                  {s.type === 'spot'
+                    ? <Store size={11} color="#F2B800" className="flex-shrink-0 mt-0.5" />
+                    : s.type === 'station'
+                    ? <TrainFront size={11} color="#3b82f6" className="flex-shrink-0 mt-0.5" />
+                    : <MapPin size={11} color="#aaa" className="flex-shrink-0 mt-0.5" />
+                  }
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <span style={{ fontSize: 13, fontWeight: 600, color: '#222', lineHeight: 1.4 }} className="truncate">{s.label}</span>
+                      {s.type === 'spot'    && <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 8, flexShrink: 0, background: '#fef9c3', color: '#854d0e' }}>店舗</span>}
+                      {s.type === 'station' && <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 8, flexShrink: 0, background: '#dbeafe', color: '#1d4ed8' }}>駅</span>}
+                    </div>
+                    {s.sublabel && (s.type === 'station' || s.type === 'spot') && (
+                      <div style={{ fontSize: 10, color: '#999', lineHeight: 1.3, marginTop: 1 }}>{s.sublabel}</div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

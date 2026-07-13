@@ -20,12 +20,13 @@ model User {
   stockPosts       StockPost[]
   stockPostLikes   StockPostLike[]
   stockPostReplies StockPostReply[]
-  followers        Follow[] @relation("Following")
-  following        Follow[] @relation("Follower")
   qaItems          QA[]
   qaAnswers        QAAnswer[]
   notifications    Notification[]
   favoriteGachas   UserFavoriteGacha[]
+  spotReviews        SpotReview[]
+  spotReviewReplies  SpotReviewReply[]
+  spotReviewLikes    SpotReviewLike[]
 }
 
 model Session {

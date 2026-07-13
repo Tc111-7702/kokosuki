@@ -7,6 +7,7 @@ import { Search, X, Gamepad2 } from 'lucide-react';
 interface Suggestion {
   label: string;
   type: 'gacha' | 'genre';
+  imageUrl?: string | null;
 }
 
 interface HomeSearchBarProps {
@@ -116,15 +117,21 @@ export function HomeSearchBar({ placeholder = 'IP・ガチャを検索' }: HomeS
               style={{ display: 'block', borderBottom: i < suggestions.length - 1 ? '1px solid #f5f5f5' : 'none' }}
               onMouseDown={e => { e.preventDefault(); navigateByType(s.label, s.type); }}
             >
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                {s.type === 'gacha' && s.imageUrl ? (
+                  <img src={s.imageUrl} alt={s.label}
+                    style={{ width: 28, height: 28, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }}
+                    onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                ) : (
+                  <div style={{ width: 28, height: 28, flexShrink: 0 }} />
+                )}
                 <span style={{ fontSize: 13, fontWeight: 600, color: '#222', flex: 1, textAlign: 'left' }}>{s.label}</span>
-                <span style={{
-                  fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 10, flexShrink: 0,
-                  background: s.type === 'genre' ? '#e0f2fe' : '#fef9c3',
-                  color: s.type === 'genre' ? '#0369a1' : '#854d0e',
-                }}>
-                  {s.type === 'genre' ? 'ジャンル' : 'ガチャ'}
-                </span>
+                {s.type === 'genre' && (
+                  <span style={{
+                    fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 10, flexShrink: 0,
+                    background: '#e0f2fe', color: '#0369a1',
+                  }}>ジャンル</span>
+                )}
               </div>
             </button>
           ))}

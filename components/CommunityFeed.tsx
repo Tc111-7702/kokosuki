@@ -11,7 +11,7 @@ export function Feed({
   onSelectStock,
   searchGachaIds,
 }: {
-  feedType: 'recommended' | 'following' | 'search';
+  feedType: 'recommended' | 'search';
   onSelect: (post: FeedPost) => void;
   onSelectStock: (post: StockFeedPost) => void;
   searchGachaIds?: string[];

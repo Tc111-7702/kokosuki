@@ -6,6 +6,12 @@ import { ArrowLeft, MapPin, Navigation, Phone, SlidersHorizontal, Search, X, Gam
 import FilterDrawer, { loadStoredGachaIds } from '@/components/FilterDrawer';
 import { SpotGachaCard, type SpotGachaInfo } from '@/components/SpotGachaCard';
 import NavPickerModal from '@/components/NavPickerModal';
+import { StockPostCard, type StockFeedPost } from '@/components/StockPostCard';
+import { PostCard } from '@/components/PostCard';
+import { PostDetail } from '@/components/PostDetail';
+import { StockPostDetail } from '@/components/StockPostDetail';
+import { type FeedPost, type FeedItem } from '@/components/community-types';
+import { StoreReviews } from '@/components/StoreReviews';
 
 // ─── 型定義 ──────────────────────────────────────────────────
 
@@ -39,6 +45,87 @@ function fmtDistance(m: number): string {
   return m < 1000 ? `${m}m` : `${(m / 1000).toFixed(1)}km`;
 }
 
+// ─── StorePosts コンポーネント ─────────────────────────────────
+
+function StorePosts({
+  spotId,
+  filterGachaIds,
+  onSelect,
+  onSelectStock,
+}: {
+  spotId: string;
+  filterGachaIds: string[];
+  onSelect: (post: FeedPost) => void;
+  onSelectStock: (post: StockFeedPost) => void;
+}) {
+  const [posts, setPosts] = useState<FeedItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const nextPageRef = useRef<number | null>(null);
+  const filterRef   = useRef(filterGachaIds);
+  filterRef.current = filterGachaIds;
+  const loadingRef  = useRef(false);
+
+  const load = useCallback(async (page: number, filter: string[]) => {
+    if (loadingRef.current) return;
+    loadingRef.current = true;
+    try {
+      const p = new URLSearchParams({ type: 'recommended', spotId, page: String(page) });
+      if (filter.length > 0) p.set('filterGachaIds', filter.join(','));
+      const res = await fetch('/api/posts/feed?' + p.toString());
+      if (!res.ok) return;
+      const data: { items: FeedItem[]; nextPage: number | null } = await res.json();
+      setPosts(prev => page === 0 ? (data.items ?? []) : [...prev, ...(data.items ?? [])]);
+      nextPageRef.current = data.nextPage;
+    } catch {}
+    loadingRef.current = false;
+    if (page === 0) setLoading(false);
+  }, [spotId]);
+
+  // フィルター変更 → 先頭から再フェッチ
+  useEffect(() => {
+    setLoading(true);
+    setPosts([]);
+    nextPageRef.current = null;
+    load(0, filterGachaIds);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterGachaIds.join(','), load]);
+
+  // 無限スクロール
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && nextPageRef.current !== null) {
+        load(nextPageRef.current, filterRef.current);
+      }
+    }, { threshold: 0.5 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [load]);
+
+  if (loading) return (
+    <div style={{ textAlign: 'center', padding: '40px 0', color: '#BBB', fontSize: 14, fontWeight: 600 }}>読み込み中…</div>
+  );
+  if (posts.length === 0) return (
+    <div style={{ textAlign: 'center', padding: '40px 0' }}>
+      <Gamepad2 size={36} color="#DDD" style={{ margin: '0 auto 8px', display: 'block' }} />
+      <p style={{ color: '#BBB', fontSize: 13, margin: 0 }}>この店舗の投稿はまだありません</p>
+    </div>
+  );
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {posts.map(p =>
+        p.postType === 'stock'
+          ? <StockPostCard key={`s-${p.id}`} post={p as StockFeedPost} interactive onSelect={() => onSelectStock(p as StockFeedPost)} />
+          : <PostCard      key={`p-${p.id}`} post={p as FeedPost}      interactive onSelect={() => onSelect(p as FeedPost)} />
+      )}
+      <div ref={sentinelRef} style={{ height: 1 }} />
+    </div>
+  );
+}
+
 // ─── メインページ ───────────────────────────────────────────────────
 
 export default function StorePage() {
@@ -47,22 +134,28 @@ export default function StorePage() {
   const searchParams = useSearchParams();
   const spotId = params.id as string;
   const contentSearchParam = searchParams.get('contentSearch') ?? '';
+  const noFilterParam = searchParams.get('noFilter') === '1';
 
-  const [spot, setSpot] = useState<SpotData | null>(null);
-  const [gachaMap, setGachaMap] = useState<Map<string, SpotGachaInfo>>(new Map());
-  const [filterGachaIds, setFilterGachaIds] = useState<string[]>([]);
-  const [filterOpen, setFilterOpen] = useState(false);
-  const [navOpen, setNavOpen] = useState(false);
-  const [currentPos, setCurrentPos] = useState<{ lat: number; lng: number } | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isMobile, setIsMobile] = useState(false);
+  const [spot,          setSpot]          = useState<SpotData | null>(null);
+  const [gachaMap,      setGachaMap]      = useState<Map<string, SpotGachaInfo>>(new Map());
+  const [filterGachaIds,setFilterGachaIds]= useState<string[]>([]);
+  const [filterOpen,    setFilterOpen]    = useState(false);
+  const [navOpen,       setNavOpen]       = useState(false);
+  const [currentPos,    setCurrentPos]    = useState<{ lat: number; lng: number } | null>(null);
+  const [loading,       setLoading]       = useState(true);
+  const [isMobile,      setIsMobile]      = useState(false);
+  const [activeTab,     setActiveTab]     = useState<'products' | 'posts'>('products');
+
+  // 投稿詳細
+  const [selectedPost,  setSelectedPost]  = useState<FeedPost | null>(null);
+  const [selectedStock, setSelectedStock] = useState<StockFeedPost | null>(null);
 
   // コンテンツ検索
-  const [contentQuery, setContentQuery] = useState('');          // 入力値
-  const [searchGachaIds, setSearchGachaIds] = useState<string[]>([]); // 検索ヒットID
-  const [activeSearchLabel, setActiveSearchLabel] = useState(''); // アクティブ検索ラベル
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
-  const [inputFocused, setInputFocused] = useState(false);
+  const [contentQuery,     setContentQuery]     = useState('');
+  const [searchGachaIds,   setSearchGachaIds]   = useState<string[]>([]);
+  const [activeSearchLabel,setActiveSearchLabel]= useState('');
+  const [suggestions,      setSuggestions]      = useState<Suggestion[]>([]);
+  const [inputFocused,     setInputFocused]     = useState(false);
   const suggTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -74,20 +167,34 @@ export default function StorePage() {
 
   // データ取得
   useEffect(() => {
-    const stored = loadStoredGachaIds();
-    setFilterGachaIds(stored);
-
     Promise.all([
       fetch(`/api/spots/${spotId}`).then(r => r.json()),
       fetch('/api/gacha/filters').then(r => r.json()),
-    ]).then(([spotRes, filterRes]) => {
+      fetch('/api/profile/me').then(r => r.json()),
+    ]).then(([spotRes, filterRes, profile]) => {
       if (spotRes.spot) setSpot(spotRes.spot);
       const map = new Map<string, SpotGachaInfo>();
       (filterRes.items ?? []).forEach((g: SpotGachaInfo) => map.set(g.id, g));
       setGachaMap(map);
+
+      const likedIds: string[] = Array.isArray(profile.likedGachaIds) ? profile.likedGachaIds : [];
+      const validLikedIds = likedIds.filter(id => map.has(id));
+
+      if (noFilterParam) {
+        setFilterGachaIds([]);
+        try {
+          localStorage.setItem(STORAGE_KEY, validLikedIds.length > 0 ? JSON.stringify(validLikedIds) : '[]');
+        } catch {}
+      } else {
+        const initialStored = loadStoredGachaIds();
+        const merged = [...new Set([...initialStored, ...validLikedIds])];
+        setFilterGachaIds(merged);
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(merged)); } catch {}
+      }
+
       setLoading(false);
     }).catch(() => setLoading(false));
-  }, [spotId]);
+  }, [spotId, noFilterParam]);
 
   // GPS
   useEffect(() => {
@@ -107,15 +214,12 @@ export default function StorePage() {
       .then(data => {
         if (Array.isArray(data.gachaIds) && data.gachaIds.length > 0) {
           setSearchGachaIds(data.gachaIds);
-          // data.label はDBの最初のシリーズ名になることがあるので、
-          // URLパラメータ（ユーザーの元クエリ）をそのままラベルに使う
           setActiveSearchLabel(contentSearchParam);
         }
       })
       .catch(() => {});
   }, [contentSearchParam]);
 
-  // サジェスト取得
   const fetchSuggestions = (v: string) => {
     if (suggTimer.current) clearTimeout(suggTimer.current);
     if (!v.trim()) { setSuggestions([]); return; }
@@ -127,7 +231,6 @@ export default function StorePage() {
     }, 150);
   };
 
-  // 検索実行
   const runSearch = useCallback(async (q: string) => {
     if (!q.trim()) return;
     setSuggestions([]);
@@ -135,15 +238,12 @@ export default function StorePage() {
       const data = await fetch(`/api/gacha/search?q=${encodeURIComponent(q)}`).then(r => r.json());
       if (Array.isArray(data.gachaIds) && data.gachaIds.length > 0) {
         setSearchGachaIds(data.gachaIds);
-        // data.label はDBの最初のシリーズ名になることがあるので、
-        // ユーザーが入力・選択したクエリをそのままラベルに使う
         setActiveSearchLabel(q.trim());
         setContentQuery('');
       }
     } catch {}
   }, []);
 
-  // 検索クリア
   const clearSearch = useCallback(() => {
     setSearchGachaIds([]);
     setActiveSearchLabel('');
@@ -172,23 +272,19 @@ export default function StorePage() {
     </div>
   );
 
-  // ─── 表示商品の計算（検索優先、次いでフィルター）──────────────────────────
-  const searchSet = searchGachaIds.length > 0 ? new Set(searchGachaIds) : null;
+  // ─── 表示商品の計算 ──────────────────────────────────────────────────
+  const searchSet      = searchGachaIds.length > 0 ? new Set(searchGachaIds) : null;
   const isSearchActive = searchSet != null;
-  const isFiltered = filterGachaIds.length > 0;
+  const isFiltered     = filterGachaIds.length > 0;
 
   const visibleGachas = spot.gachaIds
     .filter(id => {
-      if (searchSet != null) {
-        // 検索ヒット OR フィルター通過（フィルター未設定なら全件）
-        return searchSet.has(id) || filterGachaIds.length === 0 || filterGachaIds.includes(id);
-      }
+      if (searchSet != null) return searchSet.has(id) || filterGachaIds.length === 0 || filterGachaIds.includes(id);
       return filterGachaIds.length === 0 || filterGachaIds.includes(id);
     })
     .map(id => gachaMap.get(id))
     .filter((g): g is SpotGachaInfo => g !== undefined)
     .sort((a, b) => {
-      // 検索ヒットを先頭に
       if (searchSet != null) {
         const aS = searchSet.has(a.id), bS = searchSet.has(b.id);
         if (aS && !bS) return -1;
@@ -197,165 +293,210 @@ export default function StorePage() {
       return 0;
     });
 
-  const distance = currentPos
-    ? haversineM(currentPos.lat, currentPos.lng, spot.lat, spot.lng)
-    : null;
-
-  const gridCols = isMobile
-    ? 'repeat(auto-fill, minmax(150px, 1fr))'
-    : 'repeat(auto-fill, minmax(280px, 1fr))';
-
+  const distance = currentPos ? haversineM(currentPos.lat, currentPos.lng, spot.lat, spot.lng) : null;
   const showSuggestions = inputFocused && suggestions.length > 0;
 
-  // 件数ラベル
-  const countLabel = isSearchActive
-    ? `検索結果 ${visibleGachas.length}件${isFiltered ? '（フィルター含む）' : ''}`
+  // 検索ヒット件数（フィルターオフ時は visibleGachas = 全件なので別途カウント）
+  const searchMatchCount = searchSet != null
+    ? visibleGachas.filter(g => searchSet.has(g.id)).length
+    : 0;
+
+  const productCountLabel = isSearchActive && !isFiltered
+    ? `取扱商品 ${visibleGachas.length}件 うち検索結果 ${searchMatchCount}件`
+    : isSearchActive && isFiltered
+    ? `フィルター結果 ${visibleGachas.length}件 うち検索結果 ${searchMatchCount}件`
     : isFiltered
     ? `フィルター結果 ${visibleGachas.length}件`
     : `取扱商品 ${visibleGachas.length}件`;
 
+  // ─── 商品一覧エリア ────────────────────────────────────────────────────
+  const ProductsArea = (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {/* 商品検索バー */}
+      <div style={{ padding: '10px 16px 6px', position: 'relative', flexShrink: 0 }}>
+        {isSearchActive ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 99, background: '#E8F0FE', flex: 1, minWidth: 0 }}>
+              <Gamepad2 size={14} color="#0891b2" />
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#0891b2', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{activeSearchLabel}</span>
+            </div>
+            <button onClick={clearSearch} style={{ padding: 4, background: 'none', border: 'none', cursor: 'pointer' }}>
+              <X size={18} color="#888" />
+            </button>
+          </div>
+        ) : (
+          <div style={{ position: 'relative' }}>
+            <Search size={15} color="#aaa" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+            <input
+              type="text"
+              placeholder="コンテンツ検索..."
+              value={contentQuery}
+              onChange={e => { setContentQuery(e.target.value); fetchSuggestions(e.target.value); }}
+              onFocus={() => setInputFocused(true)}
+              onBlur={() => setTimeout(() => setInputFocused(false), 150)}
+              onKeyDown={e => { if (e.key === 'Enter') runSearch(contentQuery); }}
+              style={{ width: '100%', paddingLeft: 36, paddingRight: contentQuery ? 36 : 12, paddingTop: 8, paddingBottom: 8, borderRadius: 20, border: '1px solid #E8E8E8', background: '#F5F5F5', outline: 'none', fontSize: 13, boxSizing: 'border-box' }}
+            />
+            {contentQuery && (
+              <button onClick={() => { setContentQuery(''); setSuggestions([]); }} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
+                <X size={14} color="#aaa" />
+              </button>
+            )}
+          </div>
+        )}
+        {showSuggestions && (
+          <div style={{ position: 'absolute', left: 16, right: 16, top: '100%', zIndex: 10, borderRadius: 12, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', overflow: 'hidden', background: 'white', border: '1px solid #F0F0F0' }}>
+            {suggestions.map((s, i) => (
+              <button key={i} onMouseDown={() => runSearch(s.label)}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', padding: '10px 16px', fontSize: 13, border: 'none', background: 'none', cursor: 'pointer' }}>
+                <Gamepad2 size={13} color="#aaa" />{s.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      <div style={{ padding: '0 16px 8px', flexShrink: 0 }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: '#888' }}>{productCountLabel}</span>
+      </div>
+      {/* ガチャグリッド */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '4px 16px 32px' }}>
+        {visibleGachas.length === 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 60, color: '#BBB' }}>
+            <Gamepad2 size={40} color="#DDD" />
+            <p style={{ fontSize: 14, marginTop: 12 }}>該当するガチャがありません</p>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(auto-fill, minmax(150px, 1fr))' : 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
+            {visibleGachas.map(g => (
+              <SpotGachaCard key={g.id} gacha={g} stockStatus={spot.stockMap[g.id]} highlight={searchSet != null && searchSet.has(g.id)} mode="grid" isMobile={isMobile} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  // ─── 投稿エリア（詳細も内包） ────────────────────────────────────────────
+  const PostsArea = (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {selectedStock ? (
+        <StockPostDetail post={selectedStock} onBack={() => setSelectedStock(null)} onReplied={() => setSelectedStock(prev => prev ? { ...prev, _count: { ...prev._count, replies: prev._count.replies + 1 } } : prev)} />
+      ) : selectedPost ? (
+        <PostDetail post={selectedPost} onBack={() => setSelectedPost(null)} onReplied={() => setSelectedPost(prev => prev ? { ...prev, _count: { ...prev._count, replies: prev._count.replies + 1 } } : prev)} />
+      ) : (
+        <div style={{ flex: 1, overflowY: 'auto', padding: '0 16px 32px' }}>
+          {/* 口コミ */}
+          <StoreReviews spotId={spotId} />
+
+          {/* 仕切り */}
+          <div style={{ borderTop: '1px solid #F0F0F0', margin: '12px 0' }} />
+
+          {/* みんなの投稿 */}
+          <div style={{ padding: '4px 0 8px' }}>
+            <span style={{ fontSize: 13, fontWeight: 800, color: '#1A1A1A' }}>
+              みんなの投稿
+            </span>
+            {isFiltered && (
+              <span style={{ fontSize: 11, color: '#AAA', marginLeft: 6 }}>フィルター中 {filterGachaIds.length}件</span>
+            )}
+          </div>
+          <StorePosts
+            spotId={spotId}
+            filterGachaIds={filterGachaIds}
+            onSelect={setSelectedPost}
+            onSelectStock={setSelectedStock}
+          />
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div style={{ height: '100dvh', background: '#FAFAFA', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
-      {/* ヘッダー */}
+      {/* ─── ヘッダー ─── */}
       <div style={{ background: 'white', borderBottom: '1px solid #F0F0F0', flexShrink: 0 }}>
-        <div className="flex items-center justify-between px-4 pt-4 pb-2">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '26px 16px 14px' }}>
           <button onClick={() => router.back()}
-            className="flex items-center gap-1.5"
-            style={{ color: '#0891b2', fontSize: 14, fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+            style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#0891b2', fontSize: 14, fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
             <ArrowLeft size={18} />戻る
           </button>
-          <div className="flex items-center gap-2">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {isFiltered && (
-              <button
-                onClick={() => handleClearFilter()}
+              <button onClick={handleClearFilter}
                 style={{ fontSize: 12, padding: '6px 12px', borderRadius: 20, border: 'none', cursor: 'pointer', background: '#FFF0C0', color: '#B8860B', fontWeight: 700 }}>
                 解除
               </button>
             )}
-            <button
-              onClick={() => setFilterOpen(true)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '6px 14px', borderRadius: 20, border: 'none', cursor: 'pointer',
-                background: isFiltered ? '#F2B800' : '#F5F3ED',
-                color: isFiltered ? 'white' : '#555',
-                fontSize: 13, fontWeight: 700,
-              }}>
+            <button onClick={() => setFilterOpen(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 20, border: 'none', cursor: 'pointer', background: isFiltered ? '#F2B800' : '#F5F3ED', color: isFiltered ? 'white' : '#555', fontSize: 13, fontWeight: 700 }}>
               <SlidersHorizontal size={14} />
               フィルター{isFiltered ? ` (${filterGachaIds.length})` : ''}
             </button>
           </div>
         </div>
 
-        <div className="flex items-start justify-between px-4 pb-3" style={{ gap: 12 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <h1 className="text-[18px] font-black leading-tight" style={{ color: '#1a1a1a', margin: '0 0 4px' }}>
-              {spot.name}
-            </h1>
-            <div className="flex items-center gap-1">
-              <MapPin size={12} color="#aaa" />
-              <p className="text-[12px] truncate" style={{ color: '#888', margin: 0 }}>{spot.address}</p>
-            </div>
-            {distance !== null && (
-              <p className="text-[12px] font-semibold mt-1" style={{ color: '#0891b2', margin: 0 }}>
-                現在地から {fmtDistance(distance)}
-              </p>
-            )}
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {spot.phone && (
-              <a href={`tel:${spot.phone.replace(/[^\d+]/g, '')}`}
-                className="flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-2xl text-[14px] font-bold"
-                style={{ background: '#E8F5E9', color: '#16a34a', textDecoration: 'none' }}>
-                <Phone size={15} />電話
-              </a>
-            )}
-            <button
-              onClick={() => setNavOpen(true)}
-              className="flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-2xl text-[14px] font-bold"
-              style={{ background: '#E8F4FD', color: '#0891b2', border: 'none', cursor: 'pointer' }}>
-              <Navigation size={15} />経路
-            </button>
-          </div>
-        </div>
-
-        {/* コンテンツ検索バー */}
-        <div className="px-4 pb-3 relative">
-          {isSearchActive ? (
-            /* アクティブ検索チップ */
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full" style={{ background: '#E8F0FE', flex: 1, minWidth: 0 }}>
-                <Gamepad2 size={14} color="#0891b2" />
-                <span className="text-[13px] font-semibold truncate" style={{ color: '#0891b2' }}>{activeSearchLabel}</span>
+        <div style={{ padding: '0 16px 20px' }}>
+          {/* 店舗名: 全幅 */}
+          <h1 style={{ fontSize: 18, fontWeight: 900, color: '#1a1a1a', margin: '0 0 10px', lineHeight: 1.2 }}>{spot.name}</h1>
+          {/* 住所 + 電話・経路ボタン */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <MapPin size={12} color="#aaa" />
+                <p style={{ fontSize: 12, color: '#888', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{spot.address}</p>
               </div>
-              <button onClick={clearSearch} style={{ padding: 4, background: 'none', border: 'none', cursor: 'pointer' }}>
-                <X size={18} color="#888" />
-              </button>
-            </div>
-          ) : (
-            <div className="relative">
-              <Search size={15} color="#aaa" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-              <input
-                type="text"
-                placeholder="コンテンツ検索..."
-                value={contentQuery}
-                onChange={e => { setContentQuery(e.target.value); fetchSuggestions(e.target.value); }}
-                onFocus={() => setInputFocused(true)}
-                onBlur={() => setTimeout(() => setInputFocused(false), 150)}
-                onKeyDown={e => { if (e.key === 'Enter') runSearch(contentQuery); }}
-                className="w-full text-[13px]"
-                style={{ paddingLeft: 36, paddingRight: contentQuery ? 36 : 12, paddingTop: 8, paddingBottom: 8, borderRadius: 20, border: '1px solid #E8E8E8', background: '#F5F5F5', outline: 'none' }}
-              />
-              {contentQuery && (
-                <button onClick={() => { setContentQuery(''); setSuggestions([]); }} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
-                  <X size={14} color="#aaa" />
-                </button>
+              {distance !== null && (
+                <p style={{ fontSize: 12, fontWeight: 600, color: '#0891b2', margin: '2px 0 0' }}>現在地から {fmtDistance(distance)}</p>
               )}
             </div>
-          )}
-
-          {showSuggestions && (
-            <div className="absolute left-4 right-4 z-10 rounded-xl shadow-lg overflow-hidden" style={{ top: '100%', background: 'white', border: '1px solid #F0F0F0' }}>
-              {suggestions.map((s, i) => (
-                <button key={i} onMouseDown={() => runSearch(s.label)}
-                  className="w-full text-left px-4 py-2.5 text-[13px] hover:bg-gray-50"
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, border: 'none', background: 'none', cursor: 'pointer' }}>
-                  <Gamepad2 size={13} color="#aaa" />
-                  {s.label}
-                </button>
-              ))}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+              {spot.phone && (
+                <a href={`tel:${spot.phone.replace(/[^\d+]/g, '')}`}
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '7px 12px', borderRadius: 12, background: '#E8F5E9', color: '#16a34a', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+                  <Phone size={14} />電話
+                </a>
+              )}
+              <button onClick={() => setNavOpen(true)}
+                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '7px 12px', borderRadius: 12, background: '#E8F4FD', color: '#0891b2', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>
+                <Navigation size={14} />経路
+              </button>
             </div>
-          )}
-        </div>
-
-        <div className="px-4 pb-2">
-          <span className="text-[12px] font-semibold" style={{ color: '#888' }}>{countLabel}</span>
-        </div>
-      </div>
-
-      {/* ガチャカードグリッド */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 32px' }}>
-        {visibleGachas.length === 0 ? (
-          <div className="flex flex-col items-center justify-center" style={{ paddingTop: 60, color: '#BBB' }}>
-            <Gamepad2 size={40} color="#DDD" />
-            <p className="text-[14px] mt-3">該当するガチャがありません</p>
           </div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: gridCols, gap: 12 }}>
-            {visibleGachas.map(g => (
-              <SpotGachaCard
-                key={g.id}
-                gacha={g}
-                stockStatus={spot.stockMap[g.id]}
-                highlight={searchSet != null && searchSet.has(g.id)}
-                mode="grid"
-                isMobile={isMobile}
-              />
+        </div>
+
+        {/* モバイル: タブ切り替え */}
+        {isMobile && (
+          <div style={{ display: 'flex', borderTop: '1px solid #F0F0F0' }}>
+            {(['products', 'posts'] as const).map(tab => (
+              <button key={tab} onClick={() => setActiveTab(tab)}
+                style={{ flex: 1, padding: '10px 0', fontSize: 13, fontWeight: 700, border: 'none', cursor: 'pointer', background: 'none', borderBottom: activeTab === tab ? '2px solid #F2B800' : '2px solid transparent', color: activeTab === tab ? '#F2B800' : '#888' }}>
+                {tab === 'products' ? '商品一覧' : '口コミ / 投稿'}
+              </button>
             ))}
           </div>
         )}
       </div>
+
+      {/* ─── コンテンツ ─── */}
+      {isMobile ? (
+        // モバイル: アクティブタブのみ表示
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          {activeTab === 'products' ? ProductsArea : PostsArea}
+        </div>
+      ) : (
+        // デスクトップ: 左右2列
+        <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+          {/* 左: 商品一覧 */}
+          <div style={{ flex: '0 0 55%', borderRight: '1px solid #F0F0F0', overflow: 'hidden' }}>
+            {ProductsArea}
+          </div>
+          {/* 右: みんなの投稿 */}
+          <div style={{ flex: '0 0 45%', overflow: 'hidden' }}>
+            {PostsArea}
+          </div>
+        </div>
+      )}
 
       {filterOpen && (
         <FilterDrawer
@@ -365,16 +506,8 @@ export default function StorePage() {
           favoriteIps={[]}
           currentGachaIds={filterGachaIds}
         />
-      )}
-
-      {navOpen && (
-        <NavPickerModal
-          lat={spot.lat}
-          lng={spot.lng}
-          name={spot.name}
-          currentPos={currentPos}
-          onClose={() => setNavOpen(false)}
-        />
+      )}{navOpen && (
+        <NavPickerModal lat={spot.lat} lng={spot.lng} name={spot.name} currentPos={currentPos} onClose={() => setNavOpen(false)} />
       )}
     </div>
   );

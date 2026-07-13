@@ -4,7 +4,7 @@ import type { SpotDetail, GachaInfo } from '@/components/SpotDetailSheet';
 // マーカークリック後の dblclick 誤発火を防ぐフラグ
 export let suppressDblclick = false;
 
-const NEARBY_RADIUS = 20_000;
+const NEARBY_RADIUS = 5_000;
 
 export interface NearbySpot {
   id: string; name: string; address: string;

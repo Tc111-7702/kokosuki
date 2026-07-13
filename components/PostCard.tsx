@@ -8,9 +8,9 @@ import { Avatar, timeAgo } from '@/components/ui/Avatar';
 import { type FeedPost } from '@/components/community-types';
 
 export const RESULT_BADGE: Record<string, { label: string; cls: string }> = {
-  '神引き': { label: '神引き', cls: 'border border-yellow-400 text-yellow-600 bg-yellow-50' },
-  '爆死':       { label: '爆死',       cls: 'border border-red-300   text-red-500   bg-red-50'    },
-  'ダブり': { label: 'ダブり', cls: 'border border-gray-300  text-gray-500  bg-gray-50'   },
+  '神引き': { label: '● 神引き', cls: 'border border-yellow-400 text-yellow-600 bg-yellow-50'   },
+  '爆死':   { label: '● 爆死',   cls: 'border border-red-300   text-red-500   bg-red-100'       },
+  'ダブり': { label: '● ダブり', cls: 'border border-blue-200  text-blue-400  bg-blue-50'       },
 };
 
 export function renderWithMentions(text: string) {
@@ -74,12 +74,14 @@ export function PostCard({
           <span className="text-xs text-gray-400 ml-2">{timeAgo(post.createdAt)}</span>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
+          {/* ipName: デスクトップのみヘッダーに表示 */}
           <button
             onClick={e => { e.stopPropagation(); router.push('/search/genre?ipName=' + encodeURIComponent(post.gacha.ipName) + '&label=' + encodeURIComponent(post.gacha.ipName)); }}
-            className="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 font-medium hover:bg-yellow-200 transition-colors"
+            className="hidden sm:inline-flex text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 font-medium hover:bg-yellow-200 transition-colors"
           >
             {post.gacha.ipName}
           </button>
+          {/* 結果バッジ: 常時表示 */}
           {badge && (
             <span className={'text-xs px-2 py-1 rounded-full font-semibold ' + badge.cls}>
               {badge.label}
@@ -88,8 +90,8 @@ export function PostCard({
         </div>
       </div>
 
-      <div className="relative w-full aspect-[4/3] sm:aspect-[2/1] rounded-2xl overflow-hidden mb-3" style={{ background: gradient }}>
-        {post.imageUrl && (
+      {post.imageUrl && (
+        <div className="relative w-full aspect-[4/3] sm:aspect-[2/1] rounded-2xl overflow-hidden mb-3" style={{ background: gradient }}>
           <Image
             src={post.imageUrl}
             alt={post.gacha.seriesName}
@@ -97,13 +99,13 @@ export function PostCard({
             className="object-cover"
             sizes="(max-width: 640px) 100vw, 560px"
           />
-        )}
-        <div className="absolute bottom-0 left-0 right-0 px-3 py-2 bg-gradient-to-t from-black/40 to-transparent">
-          <span className="text-white text-sm font-semibold drop-shadow">
-            {post.gacha.seriesName}
-          </span>
+          <div className="absolute bottom-0 left-0 right-0 px-3 py-2 bg-gradient-to-t from-black/40 to-transparent">
+            <span className="text-white text-sm font-semibold drop-shadow">
+              {post.gacha.seriesName}
+            </span>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="mb-1">
         <button
@@ -129,7 +131,30 @@ export function PostCard({
             {post.spot.name}
           </button>
         </div>
-        <div className="flex items-center gap-3 self-end sm:self-auto">
+        <div className="hidden sm:flex items-center gap-3 self-end sm:self-auto">
+          <div className="flex items-center gap-1 text-sm text-gray-400">
+            <MessageCircle size={20} />
+            <span className="font-medium">{post._count.replies}</span>
+          </div>
+          <button
+            onClick={handleLike}
+            disabled={pending}
+            className={'flex items-center gap-1.5 text-sm px-2 py-1 -mr-2 rounded-full transition-colors ' + (liked ? 'text-red-500 hover:text-red-400' : 'text-gray-400 hover:text-red-400')}
+          >
+            <Heart size={24} fill={liked ? 'currentColor' : 'none'} />
+            <span className="font-medium">{likeCount}</span>
+          </button>
+        </div>
+      </div>
+      {/* モバイルのみ: ipName左端・返信数いいね右端を同じ行に */}
+      <div className="sm:hidden flex items-center justify-between mt-1.5">
+        <button
+          onClick={e => { e.stopPropagation(); router.push('/search/genre?ipName=' + encodeURIComponent(post.gacha.ipName) + '&label=' + encodeURIComponent(post.gacha.ipName)); }}
+          className="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 font-medium hover:bg-yellow-200 transition-colors"
+        >
+          {post.gacha.ipName}
+        </button>
+        <div className="flex items-center gap-3">
           <div className="flex items-center gap-1 text-sm text-gray-400">
             <MessageCircle size={20} />
             <span className="font-medium">{post._count.replies}</span>

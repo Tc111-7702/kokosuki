@@ -23,14 +23,16 @@ function ipGradient(ipName: string): [string, string] {
 // ─── 在庫バッジ ───────────────────────────────────────────────────────────────
 
 export function SpotStockBadge({ status }: { status: string | null }) {
-  if (status === 'in_stock') return (
+  const isAvailable = status === 'in_stock' || status === 'available' || status === 'low' || status === 'low_stock';
+  const isEmpty     = status === 'out_of_stock' || status === 'empty';
+  if (isAvailable) return (
     <div style={{ position: 'absolute', bottom: 6, left: 6, background: 'rgba(22,163,74,0.92)', borderRadius: 20, padding: '2px 8px' }}>
       <span style={{ fontSize: 10, color: 'white', fontWeight: 700 }}>〇 在庫あり</span>
     </div>
   );
-  if (status === 'low_stock') return (
-    <div style={{ position: 'absolute', bottom: 6, left: 6, background: 'rgba(234,88,12,0.92)', borderRadius: 20, padding: '2px 8px' }}>
-      <span style={{ fontSize: 10, color: 'white', fontWeight: 700 }}>△ 残りわずか</span>
+  if (isEmpty) return (
+    <div style={{ position: 'absolute', bottom: 6, left: 6, background: 'rgba(220,38,38,0.92)', borderRadius: 20, padding: '2px 8px' }}>
+      <span style={{ fontSize: 10, color: 'white', fontWeight: 700 }}>✕ 在庫なし</span>
     </div>
   );
   return (

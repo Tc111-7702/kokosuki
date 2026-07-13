@@ -23,10 +23,23 @@ export async function GET(request: Request) {
     : { OR: terms.map(t => ({ ipName: { contains: t, mode: 'insensitive' as const } })) };
 
   if (suggest) {
+    // IPチップ名と完全一致するipNameがあれば、配下のseriesNameをgachaとして返す
+    const exactIpSeries = await prisma.gacha.findMany({
+      where: { isOnSale: true, ipName: { equals: q.trim(), mode: 'insensitive' } },
+      select: { seriesName: true, imageUrl: true },
+      distinct: ['seriesName'],
+      orderBy: { seriesName: 'asc' },
+    });
+    if (exactIpSeries.length > 0) {
+      return NextResponse.json({
+        suggestions: exactIpSeries.map(g => ({ label: g.seriesName, type: 'gacha' as const, imageUrl: g.imageUrl })),
+      });
+    }
+
     const [series, ips] = await Promise.all([
       prisma.gacha.findMany({
         where: { isOnSale: true, ...seriesWhere },
-        select: { seriesName: true },
+        select: { seriesName: true, imageUrl: true },
         distinct: ['seriesName'],
         orderBy: { seriesName: 'asc' },
       }),
@@ -39,8 +52,8 @@ export async function GET(request: Request) {
     ]);
     return NextResponse.json({
       suggestions: [
-        ...ips.map(g => ({ label: g.ipName, type: 'genre' as const })),
-        ...series.map(g => ({ label: g.seriesName, type: 'gacha' as const })),
+        ...ips.map(g => ({ label: g.ipName, type: 'genre' as const, imageUrl: null })),
+        ...series.map(g => ({ label: g.seriesName, type: 'gacha' as const, imageUrl: g.imageUrl })),
       ]
     });
   }

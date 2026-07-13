@@ -50,8 +50,12 @@ function extractCity(address: string | undefined | null): string {
 
 const STATUS_CONFIG: Record<string, { label: string; bg: string; color: string }> = {
   in_stock:    { label: '在庫あり', bg: '#DCFCE7', color: '#16A34A' },
-  low_stock:   { label: 'あと少し', bg: '#FEF9C3', color: '#CA8A04' },
-  out_of_stock:{ label: '売り切れ', bg: '#FEE2E2', color: '#DC2626' },
+  out_of_stock:{ label: '在庫なし', bg: '#FEE2E2', color: '#DC2626' },
+  // 旧値の後方互換
+  available:   { label: '在庫あり', bg: '#DCFCE7', color: '#16A34A' },
+  low:         { label: '在庫あり', bg: '#DCFCE7', color: '#16A34A' },
+  low_stock:   { label: '在庫あり', bg: '#DCFCE7', color: '#16A34A' },
+  empty:       { label: '在庫なし', bg: '#FEE2E2', color: '#DC2626' },
 };
 
 // ─── StockPostCard ────────────────────────────────────────────────────────────

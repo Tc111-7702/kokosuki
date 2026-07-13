@@ -26,7 +26,7 @@ export function CommunitySearchBar({
   searchActive: boolean;
 }) {
   const [value,    setValue]    = useState('');
-  const [gachaSug, setGachaSug] = useState<{ label: string; type: 'gacha' | 'genre' }[]>([]);
+  const [gachaSug, setGachaSug] = useState<{ label: string; type: 'gacha' | 'genre'; imageUrl?: string | null }[]>([]);
   const [userSug,  setUserSug]  = useState<UserResult[]>([]);
   const [focused,  setFocused]  = useState(false);
   const [busy,     setBusy]     = useState(false);
@@ -99,7 +99,7 @@ export function CommunitySearchBar({
           onKeyDown={e => e.key === 'Enter' && doSearch(value)}
           placeholder="アカウント / IP・ガチャの投稿を検索"
           className="flex-1 bg-transparent text-sm outline-none"
-          style={{ color: '#111', fontSize: 13 }}
+          style={{ color: '#111', fontSize: 13, textAlign: 'left' }}
         />
         {(value || searchActive) && (
           <button onMouseDown={e => { e.preventDefault(); handleClear(); }} style={{ lineHeight: 0 }}>
@@ -129,13 +129,17 @@ export function CommunitySearchBar({
           {gachaSug.length > 0 && (
             <>
               <div className="px-3 py-1.5 text-xs font-bold text-gray-400 bg-gray-50 border-b border-gray-100">{'ガチャ・IP'}</div>
-              {gachaSug.slice(0, 5).map((s, i) => (
-                <button key={i} className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-gray-50 border-b border-gray-50 last:border-0"
+              {gachaSug.map((s, i) => (
+                <button key={i} className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-gray-50 border-b border-gray-50 last:border-0 text-left"
                   onMouseDown={e => { e.preventDefault(); selectGacha(s.label); }}>
                   <span className="text-sm font-medium text-gray-800">{s.label}</span>
-                  <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: s.type === 'genre' ? '#DBEAFE' : '#FEF9C3', color: s.type === 'genre' ? '#1D4ED8' : '#854D0E' }}>
-                    {s.type === 'genre' ? 'IP' : 'ガチャ'}
-                  </span>
+                  {s.type === 'genre' ? (
+                    <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: '#DBEAFE', color: '#1D4ED8' }}>IP</span>
+                  ) : s.imageUrl ? (
+                    <img src={s.imageUrl} alt={s.label}
+                      style={{ width: 28, height: 28, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }}
+                      onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                  ) : null}
                 </button>
               ))}
             </>

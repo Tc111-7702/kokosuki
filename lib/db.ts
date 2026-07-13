@@ -212,7 +212,14 @@ export async function getGachaFilters() {
     select: { id: true, seriesName: true, ipName: true, imageUrl: true },
     orderBy: [{ ipName: 'asc' }, { seriesName: 'asc' }],
   });
-  const ipNames = [...new Set(items.map((g) => g.ipName))].sort();
+  // ガチャ数が多い順にIPを並べる
+  const countMap = new Map<string, number>();
+  for (const g of items) {
+    countMap.set(g.ipName, (countMap.get(g.ipName) ?? 0) + 1);
+  }
+  const ipNames = [...countMap.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([ip]) => ip);
   return { ipNames, items };
 }
 

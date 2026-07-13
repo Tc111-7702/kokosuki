@@ -16,6 +16,7 @@ export async function GET(request: Request) {
   const suggest = searchParams.get('suggest') === '1';
   const lat     = Number(searchParams.get('lat') ?? 0);
   const lng     = Number(searchParams.get('lng') ?? 0);
+  const gachaId = searchParams.get('gachaId') ?? undefined;
 
   if (!name.trim()) return NextResponse.json({ spot: null, suggestions: [] });
 
@@ -26,12 +27,20 @@ export async function GET(request: Request) {
           { name:    { contains: name, mode: 'insensitive' } },
           { address: { contains: name, mode: 'insensitive' } },
         ],
+        ...(gachaId ? { machines: { some: { gachaId } } } : {}),
       },
-      select: { id: true, name: true, address: true },
-      orderBy: { name: 'asc' },
-      take: 50,
+      select: { id: true, name: true, address: true, lat: true, lng: true },
+      take: 100,
     });
-    return NextResponse.json({ suggestions: spots });
+
+    type SpotRow = { id: string; name: string; address: string; lat: number; lng: number; distance?: number };
+    let results: SpotRow[] = spots;
+    if (lat && lng) {
+      results = spots
+        .map(s => ({ ...s, distance: Math.round(haversine(lat, lng, s.lat, s.lng)) }))
+        .sort((a, b) => a.distance - b.distance);
+    }
+    return NextResponse.json({ suggestions: results.slice(0, 50) });
   }
 
   const spots = await prisma.spot.findMany({
@@ -42,7 +51,11 @@ export async function GET(request: Request) {
   if (spots.length === 0) return NextResponse.json({ spot: null });
 
   const best = (lat && lng)
-    ? spots.reduce((a, b) => haversine(lat, lng, a.lat, a.lng) <= haversine(lat, lng, b.lat, b.lng) ? a : b)
+    ? spots.reduce((a, b) => {
+        const da = haversine(lat, lng, a.lat, a.lng);
+        const db = haversine(lat, lng, b.lat, b.lng);
+        return da <= db ? a : b;
+      })
     : spots[0];
 
   const { machines, ...rest } = best;

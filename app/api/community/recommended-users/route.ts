@@ -10,11 +10,11 @@ export async function GET() {
     const userId = session.user.id;
 
     // 自分のお気に入りガチャの ipName 一覧
-    const myFavs = await prisma.userFavoriteGacha.findMany({
+    const myLikes = await prisma.gachaLike.findMany({
       where: { userId },
       select: { gacha: { select: { ipName: true } } },
     });
-    const myIpNames = [...new Set(myFavs.map((f) => f.gacha.ipName))];
+    const myIpNames = [...new Set(myLikes.map((f) => f.gacha.ipName))];
 
     // 同じ ipName を持つガチャの ID
     const matchingGachaIds = myIpNames.length > 0
@@ -24,19 +24,12 @@ export async function GET() {
         })).map((g) => g.id)
       : [];
 
-    // 自分がフォロー済みのユーザー ID
-    const following = await prisma.follow.findMany({
-      where: { followerId: userId },
-      select: { followingId: true },
-    });
-    const excludeIds = [userId, ...following.map((f) => f.followingId)];
-
-    // 同じ IP をお気に入りにしているユーザー（distinct）
+    // 同じ IP をお気に入りにしているユーザー（自分以外）
     const sharedRows = matchingGachaIds.length > 0
-      ? await prisma.userFavoriteGacha.findMany({
+      ? await prisma.gachaLike.findMany({
           where: {
             gachaId: { in: matchingGachaIds },
-            userId: { notIn: excludeIds },
+            userId: { not: userId },
           },
           select: { userId: true },
           distinct: ['userId'],
@@ -44,10 +37,8 @@ export async function GET() {
       : [];
 
     const candidateIds = sharedRows.map((r) => r.userId);
-
     if (candidateIds.length === 0) return NextResponse.json({ users: [] });
 
-    // フォロワー数降順で top 5
     const users = await prisma.user.findMany({
       where: { id: { in: candidateIds } },
       select: {
@@ -55,9 +46,7 @@ export async function GET() {
         name: true,
         image: true,
         profile: { select: { handle: true, avatarUrl: true, bio: true } },
-        _count: { select: { followers: true } },
       },
-      orderBy: { followers: { _count: 'desc' } },
       take: 5,
     });
 
@@ -68,7 +57,6 @@ export async function GET() {
         handle: u.profile?.handle ?? null,
         image: u.profile?.avatarUrl ?? u.image ?? null,
         bio: u.profile?.bio ?? null,
-        followerCount: u._count.followers,
       })),
     });
   } catch (e) {

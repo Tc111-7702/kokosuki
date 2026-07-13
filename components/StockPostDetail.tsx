@@ -7,7 +7,7 @@ import { StockPostCard, type StockFeedPost } from '@/components/StockPostCard';
 import { ReplyCard } from '@/components/ReplyCard';
 import { type Reply } from '@/components/community-types';
 
-export function StockPostDetail({ post, onBack }: { post: StockFeedPost; onBack: () => void }) {
+export function StockPostDetail({ post, onBack, onReplied }: { post: StockFeedPost; onBack: () => void; onReplied?: () => void }) {
   const [replies,    setReplies]    = useState<Reply[]>([]);
   const [loadingR,   setLoadingR]   = useState(true);
   const [text,       setText]       = useState('');
@@ -102,6 +102,7 @@ export function StockPostDetail({ post, onBack }: { post: StockFeedPost; onBack:
       if (res.ok) {
         const data: { reply: Reply } = await res.json();
         setReplies(prev => [...prev, data.reply]);
+        onReplied?.();
         setText(''); setInsertedMentions([]); mentionStartRef.current = null; setMentionQuery(null);
         textareaRef.current?.focus();
       }

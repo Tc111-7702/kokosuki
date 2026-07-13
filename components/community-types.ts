@@ -58,5 +58,4 @@ export interface RecommendedUser {
   handle: string | null;
   image: string | null;
   bio: string | null;
-  followerCount: number;
 }

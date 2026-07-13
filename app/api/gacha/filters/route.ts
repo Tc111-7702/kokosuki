@@ -6,7 +6,7 @@ export async function GET() {
   try {
     const data = await db.getGachaFilters();
     return NextResponse.json(data, {
-      headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' },
+      headers: { 'Cache-Control': 'no-store' },
     });
   } catch (e) {
     console.error('[/api/gacha/filters]', e);

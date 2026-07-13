@@ -1,12 +1,13 @@
 'use client';
 
-import { Home, Map, User } from 'lucide-react';
+import { Home, Map, User, PlusSquare } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 
 const NAV_ITEMS = [
-  { path: '/home',   label: 'ホーム',     icon: <Home size={20} /> },
-  { path: '/map',    label: 'マップ',     icon: <Map  size={20} /> },
-  { path: '/mypage', label: 'マイページ', icon: <User size={20} /> },
+  { path: '/home',   label: 'ホーム',     icon: <Home       size={20} /> },
+  { path: '/map',    label: 'マップ',     icon: <Map        size={20} /> },
+  { path: '/post',   label: '＋投稿',     icon: <PlusSquare size={20} /> },
+  { path: '/mypage', label: 'マイページ', icon: <User       size={20} /> },
 ];
 
 const ACTIVE_COLOR = '#F2B800';

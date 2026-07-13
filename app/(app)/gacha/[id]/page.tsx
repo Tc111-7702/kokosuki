@@ -2,11 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Heart } from 'lucide-react';
+import { ArrowLeft, Heart, ChevronRight } from 'lucide-react';
 import type { GachaDetail, NearbySpot } from '@/components/gacha-types';
 import { NearbyButton } from '@/components/NearbyButton';
 import { LineupSection } from '@/components/LineupSection';
 import { StatCard } from '@/components/ui/StatCard';
+import { PostCard } from '@/components/PostCard';
+import { StockPostCard, type StockFeedPost } from '@/components/StockPostCard';
+import { PostDetail } from '@/components/PostDetail';
+import { StockPostDetail } from '@/components/StockPostDetail';
+import type { FeedPost } from '@/components/community-types';
 
 const STATUS_LABEL: Record<string, string> = {
   on_sale: '発売中', coming_soon: '発売予定', ended: '終了',
@@ -14,6 +19,125 @@ const STATUS_LABEL: Record<string, string> = {
 const KIND_LABEL: Record<string, string> = {
   gacha: 'ガチャ', kuji: 'くじ', capsule: 'カプセル', other: 'その他',
 };
+
+// ─── 投稿セクション ────────────────────────────────────────────────────────
+
+function GachaPostsSection({ gachaId, isMobile }: { gachaId: string; isMobile: boolean }) {
+  const router = useRouter();
+  const [posts, setPosts] = useState<(FeedPost | StockFeedPost)[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedPost,  setSelectedPost]  = useState<FeedPost | null>(null);
+  const [selectedStock, setSelectedStock] = useState<StockFeedPost | null>(null);
+
+  useEffect(() => {
+    fetch(`/api/posts/feed?type=search&gachaIds=${gachaId}`)
+      .then(r => r.json())
+      .then(d => {
+        const all: (FeedPost | StockFeedPost)[] = d.items ?? [];
+        all.sort((a, b) =>
+          (a.postType === 'stock' ? 0 : 1) - (b.postType === 'stock' ? 0 : 1) ||
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+        setPosts(all);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [gachaId]);
+
+  if (loading) return (
+    <div style={{ textAlign: 'center', padding: '16px 0', color: '#CCC', fontSize: 13 }}>読み込み中…</div>
+  );
+  if (posts.length === 0) return (
+    <div style={{ textAlign: 'center', padding: '16px 0', color: '#CCC', fontSize: 13 }}>まだ投稿がありません</div>
+  );
+
+  // ── モバイル: 在庫優先の縦並び ─────────────────────────────────────────
+  if (isMobile) {
+    const preview = posts.slice(0, 10);
+    return (
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: '#1A1A1A' }}>このシリーズのみんなの投稿</p>
+          {posts.length > 10 && (
+            <button onClick={() => router.push('/home?tab=community')}
+              style={{ display: 'flex', alignItems: 'center', gap: 2, background: 'none', border: 'none',
+                cursor: 'pointer', fontSize: 12, color: '#999', fontWeight: 600 }}>
+              みんなで見る <ChevronRight size={14} color="#999" />
+            </button>
+          )}
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {preview.map(p =>
+            p.postType === 'post'
+              ? <PostCard key={p.id} post={p as FeedPost} interactive={false} />
+              : <StockPostCard key={p.id} post={p as StockFeedPost} />
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ── デスクトップ: 左=在庫、右=通常、別々スクロール ──────────────────────
+  const stockPosts  = posts.filter(p => p.postType === 'stock') as StockFeedPost[];
+  const normalPosts = posts.filter(p => p.postType === 'post')  as FeedPost[];
+  const COL_H = 480;
+
+  const colHeader = (title: string, count: number, showMore: boolean) => (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      marginBottom: 10, padding: '0 2px' }}>
+      <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#1A1A1A' }}>
+        {title}{' '}
+        <span style={{ fontSize: 11, color: '#999', fontWeight: 600 }}>({count})</span>
+      </p>
+      {showMore && (
+        <button onClick={() => router.push('/home?tab=community')}
+          style={{ display: 'flex', alignItems: 'center', gap: 2, background: 'none', border: 'none',
+            cursor: 'pointer', fontSize: 11, color: '#AAA', fontWeight: 600 }}>
+          もっと見る <ChevronRight size={12} color="#AAA" />
+        </button>
+      )}
+    </div>
+  );
+
+  return (
+    <div style={{ display: 'flex', gap: 12 }}>
+      {/* 左列: 在庫情報 */}
+      <div style={{ flex: 1, minWidth: 0, background: '#F3F4F6', borderRadius: 16, padding: '14px 12px', display: 'flex', flexDirection: 'column' }}>
+        {!selectedStock && colHeader('在庫情報', stockPosts.length, false)}
+        <div style={{ height: COL_H, overflow: 'hidden', borderRadius: selectedStock ? 12 : 0 }}>
+          {selectedStock ? (
+            <StockPostDetail post={selectedStock} onBack={() => setSelectedStock(null)} onReplied={() => setPosts(prev => prev.map(p => p.id === selectedStock!.id ? { ...p, _count: { ...p._count, replies: p._count.replies + 1 } } : p))} />
+          ) : (
+            <div style={{ overflowY: 'auto', height: '100%', display: 'flex', flexDirection: 'column', gap: 8, paddingRight: 4 }}>
+              {stockPosts.length === 0
+                ? <p style={{ fontSize: 12, color: '#CCC', textAlign: 'center', marginTop: 24 }}>まだ在庫情報がありません</p>
+                : stockPosts.map(p => <StockPostCard key={p.id} post={p} interactive onSelect={() => setSelectedStock(p)} />)
+              }
+            </div>
+          )}
+        </div>
+      </div>
+      {/* 右列: 引いた！ */}
+      <div style={{ flex: 1, minWidth: 0, background: '#FFF7ED', borderRadius: 16, padding: '14px 12px', display: 'flex', flexDirection: 'column' }}>
+        {!selectedPost && colHeader('引いた！', normalPosts.length, posts.length > 20)}
+        <div style={{ height: COL_H, overflow: 'hidden', borderRadius: selectedPost ? 12 : 0 }}>
+          {selectedPost ? (
+            <PostDetail post={selectedPost} onBack={() => setSelectedPost(null)} onReplied={() => setPosts(prev => prev.map(p => p.id === selectedPost!.id ? { ...p, _count: { ...p._count, replies: p._count.replies + 1 } } : p))} />
+          ) : (
+            <div style={{ overflowY: 'auto', height: '100%', display: 'flex', flexDirection: 'column', gap: 8, paddingRight: 4 }}>
+              {normalPosts.length === 0
+                ? <p style={{ fontSize: 12, color: '#CCC', textAlign: 'center', marginTop: 24 }}>まだ投稿がありません</p>
+                : normalPosts.map(p => <PostCard key={p.id} post={p as FeedPost} interactive onSelect={() => setSelectedPost(p as FeedPost)} />)
+              }
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── メインページ ──────────────────────────────────────────────────────────
 
 export default function GachaDetailPage() {
   const { id }   = useParams<{ id: string }>();
@@ -60,7 +184,11 @@ export default function GachaDetailPage() {
     navigator.geolocation.getCurrentPosition(
       async ({ coords }) => {
         try {
-          const r = await fetch('/api/spots/nearby?lat=' + coords.latitude + '&lng=' + coords.longitude + '&radius=20000&gachaId=' + id);
+          const r = await fetch(
+            '/api/spots/nearby?lat=' + coords.latitude +
+            '&lng=' + coords.longitude +
+            '&radius=20000&gachaId=' + id
+          );
           const d = await r.json();
           setNearbySpots(d.spots ?? []);
         } catch {
@@ -92,27 +220,32 @@ export default function GachaDetailPage() {
   };
 
   if (loading) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: '#FFFEEF' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center',
+      height: '100%', background: '#FFFEEF' }}>
       <p style={{ color: '#C8780A', fontWeight: 700, fontSize: 14 }}>読み込み中...</p>
     </div>
   );
 
   if (!gacha) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: '#FFFEEF' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center',
+      height: '100%', background: '#FFFEEF' }}>
       <p style={{ color: '#999', fontSize: 14 }}>ガチャが見つかりません</p>
     </div>
   );
 
   const cardW       = 540;
   const imgH        = Math.round(cardW * imgRatio);
-  const statusColor = gacha.status === 'on_sale' ? '#22C55E' : gacha.status === 'coming_soon' ? '#F59E0B' : '#9CA3AF';
+  const statusColor = gacha.status === 'on_sale' ? '#22C55E'
+    : gacha.status === 'coming_soon' ? '#F59E0B' : '#9CA3AF';
 
   const tags = (
     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-      <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: statusColor, color: '#fff' }}>
+      <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20,
+        background: statusColor, color: '#fff' }}>
         {STATUS_LABEL[gacha.status] ?? gacha.status}
       </span>
-      <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: 'rgba(0,0,0,0.07)', color: '#555' }}>
+      <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20,
+        background: 'rgba(0,0,0,0.07)', color: '#555' }}>
         {KIND_LABEL[gacha.kind] ?? gacha.kind}
       </span>
       {gacha.isCollab       && <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: '#EDE9FE', color: '#7C3AED' }}>コラボ</span>}
@@ -124,7 +257,17 @@ export default function GachaDetailPage() {
   const titleBlock = (size: number) => (
     <div>
       <p style={{ fontSize: 12, color: '#999', fontWeight: 600, margin: '0 0 4px' }}>{gacha.ipName}</p>
-      <h1 style={{ fontSize: size, fontWeight: 900, color: '#1A1A1A', margin: 0, lineHeight: 1.3 }}>{gacha.seriesName}</h1>
+      <h1 style={{ fontSize: size, fontWeight: 900, color: '#1A1A1A', margin: 0, lineHeight: 1.3 }}>
+        {gacha.seriesName}
+      </h1>
+    </div>
+  );
+
+  const statsBlock = (cols: number) => (
+    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: cols === 3 ? 10 : 12 }}>
+      <StatCard label="1回の価格"    value={'¥' + gacha.price}          accent="#F2B800" />
+      <StatCard label="みんなの投稿" value={String(gacha.postCount)}    />
+      <StatCard label="今週引いた"   value={String(gacha.weeklyPulls)}  />
     </div>
   );
 
@@ -150,50 +293,66 @@ export default function GachaDetailPage() {
           cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5,
         }}>
           <Heart size={18} fill={liked ? '#FF4D4D' : 'none'} color={liked ? '#FF4D4D' : '#555'} />
-          {likeCount > 0 && <span style={{ fontSize: 13, fontWeight: 700, color: liked ? '#FF4D4D' : '#555' }}>{likeCount}</span>}
+          {likeCount > 0 && (
+            <span style={{ fontSize: 13, fontWeight: 700, color: liked ? '#FF4D4D' : '#555' }}>
+              {likeCount}
+            </span>
+          )}
         </button>
       </div>
 
       {isMobile ? (
+        /* ── モバイルレイアウト ── */
         <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ borderRadius: 20, overflow: 'hidden', boxShadow: '0 4px 24px rgba(0,0,0,0.10)', background: 'linear-gradient(135deg, ' + gacha.gradientFrom + ', ' + gacha.gradientTo + ')' }}>
+          <div style={{ borderRadius: 20, overflow: 'hidden', boxShadow: '0 4px 24px rgba(0,0,0,0.10)',
+            background: 'linear-gradient(135deg, ' + gacha.gradientFrom + ', ' + gacha.gradientTo + ')' }}>
             {gacha.imageUrl
-              ? <img src={gacha.imageUrl} alt={gacha.seriesName} onLoad={(e) => { const img = e.currentTarget; if (img.naturalWidth > 0) setImgRatio(img.naturalHeight / img.naturalWidth); }} style={{ width: '100%', objectFit: 'cover', display: 'block' }} />
-              : <div style={{ height: 320, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span style={{ fontSize: 48 }}>&#127920;</span></div>
+              ? <img src={gacha.imageUrl} alt={gacha.seriesName}
+                  onLoad={(e) => { const img = e.currentTarget; if (img.naturalWidth > 0) setImgRatio(img.naturalHeight / img.naturalWidth); }}
+                  style={{ width: '100%', objectFit: 'cover', display: 'block' }} />
+              : <div style={{ height: 320, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ fontSize: 48 }}>&#127920;</span>
+                </div>
             }
           </div>
           {tags}
           {titleBlock(22)}
-          <NearbyButton gacha={gacha} nearbyOpen={nearbyOpen} nearbyLoading={nearbyLoading} nearbyError={nearbyError} nearbySpots={nearbySpots} onToggle={handleNearby} onSpotClick={handleSpotClick} isMobile={true} />
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-            <StatCard label="1回の価格" value={'¥' + gacha.price} accent="#F2B800" />
-            <StatCard label="みんなの投稿" value={String(gacha.postCount)} />
-            <StatCard label="今週引いた" value={String(gacha.weeklyPulls)} />
-          </div>
+          <NearbyButton gacha={gacha} nearbyOpen={nearbyOpen} nearbyLoading={nearbyLoading}
+            nearbyError={nearbyError} nearbySpots={nearbySpots}
+            onToggle={handleNearby} onSpotClick={handleSpotClick} isMobile={true} />
+          {statsBlock(3)}
           <LineupSection gacha={gacha} />
+          <GachaPostsSection gachaId={id} isMobile={true} />
         </div>
       ) : (
+        /* ── デスクトップレイアウト ── */
         <div style={{ padding: '0 24px 40px', display: 'flex', flexDirection: 'column', gap: 24 }}>
           <div style={{ display: 'flex', gap: 28, alignItems: 'flex-start' }}>
-            <div style={{ width: cardW, flexShrink: 0, borderRadius: 20, overflow: 'hidden', boxShadow: '0 4px 24px rgba(0,0,0,0.10)', background: 'linear-gradient(135deg, ' + gacha.gradientFrom + ', ' + gacha.gradientTo + ')', minHeight: 320 }}>
+            <div style={{ width: cardW, flexShrink: 0, borderRadius: 20, overflow: 'hidden',
+              boxShadow: '0 4px 24px rgba(0,0,0,0.10)',
+              background: 'linear-gradient(135deg, ' + gacha.gradientFrom + ', ' + gacha.gradientTo + ')',
+              minHeight: 320 }}>
               {gacha.imageUrl
-                ? <img src={gacha.imageUrl} alt={gacha.seriesName} onLoad={(e) => { const img = e.currentTarget; if (img.naturalWidth > 0) setImgRatio(img.naturalHeight / img.naturalWidth); }} style={{ width: '100%', height: imgH || 'auto', objectFit: 'cover', display: 'block' }} />
-                : <div style={{ height: 480, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span style={{ fontSize: 48 }}>&#127920;</span></div>
+                ? <img src={gacha.imageUrl} alt={gacha.seriesName}
+                    onLoad={(e) => { const img = e.currentTarget; if (img.naturalWidth > 0) setImgRatio(img.naturalHeight / img.naturalWidth); }}
+                    style={{ width: '100%', height: imgH || 'auto', objectFit: 'cover', display: 'block' }} />
+                : <div style={{ height: 480, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ fontSize: 48 }}>&#127920;</span>
+                  </div>
               }
             </div>
             <div style={{ flex: 1, minWidth: 240, paddingTop: 4, display: 'flex', flexDirection: 'column', gap: 12 }}>
               {tags}
               {titleBlock(24)}
-              <NearbyButton gacha={gacha} alwaysOpen nearbyOpen={nearbyOpen} nearbyLoading={nearbyLoading} nearbyError={nearbyError} nearbySpots={nearbySpots} onToggle={handleNearby} onSpotClick={handleSpotClick} isMobile={false} />
+              <NearbyButton gacha={gacha} alwaysOpen nearbyOpen={nearbyOpen} nearbyLoading={nearbyLoading}
+                nearbyError={nearbyError} nearbySpots={nearbySpots}
+                onToggle={handleNearby} onSpotClick={handleSpotClick} isMobile={false} />
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-              <StatCard label="1回の価格" value={'¥' + gacha.price} accent="#F2B800" />
-              <StatCard label="みんなの投稿" value={String(gacha.postCount)} />
-              <StatCard label="今週引いた" value={String(gacha.weeklyPulls)} />
-            </div>
+            {statsBlock(3)}
             <LineupSection gacha={gacha} />
+            <GachaPostsSection gachaId={id} isMobile={false} />
           </div>
         </div>
       )}
