@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
+import { notifyLike } from '@/lib/notifications';
 
 // POST /api/spots/[id]/reviews/[reviewId]/like
 export async function POST(
@@ -21,6 +22,7 @@ export async function POST(
       await prisma.spotReviewLike.delete({ where: { userId_reviewId: { userId, reviewId } } });
     } else {
       await prisma.spotReviewLike.create({ data: { userId, reviewId } });
+      await notifyLike('spotReview', reviewId, userId);
     }
     const count = await prisma.spotReviewLike.count({ where: { reviewId } });
     return NextResponse.json({ liked: !existing, count });

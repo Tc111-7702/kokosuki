@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
+import { notifyLike } from '@/lib/notifications';
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -16,6 +17,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     return NextResponse.json({ liked: false });
   } else {
     await prisma.stockPostLike.create({ data: { userId, stockPostId } });
+    await notifyLike('stockPost', stockPostId, userId);
     return NextResponse.json({ liked: true });
   }
 }

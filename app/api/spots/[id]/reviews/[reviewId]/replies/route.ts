@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
+import { notifyReply } from '@/lib/notifications';
 
 const USER_SEL = { select: { id: true, name: true, image: true } } as const;
 
@@ -24,6 +25,9 @@ export async function POST(
       data: { reviewId, userId, text },
       include: { user: USER_SEL },
     });
+
+    await notifyReply('spotReview', reviewId, userId, text);
+
     return NextResponse.json({ reply }, { status: 201 });
   } catch (e) {
     console.error('[review reply POST]', e);
