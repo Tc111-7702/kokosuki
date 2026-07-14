@@ -17,6 +17,9 @@ const TARGET_LABEL = {
 
 export type NotifyTargetKind = keyof typeof TARGET_LABEL;
 
+// ファンアウトの1バッチあたりの宛先数上限（パラメータ数・リクエストサイズの抑制）
+const FANOUT_BATCH_SIZE = 500;
+
 /** 在庫投稿 → そのガチャをお気に入り登録している全ユーザー（投稿者本人を除く）へ */
 export async function notifyFavoriteStock(stockPost: {
   id: string;
@@ -24,60 +27,86 @@ export async function notifyFavoriteStock(stockPost: {
   gachaId: string;
   spotId: string;
   stockStatus: string;
+  isPublic?: boolean;
 }) {
   try {
+    // 非公開投稿は通知しない
+    if (stockPost.isPublic === false) return;
+
     // お気に入り＝GachaLike（オンボの❤️・ガチャ詳細のいいねと同一。UserFavoriteGachaは未使用の休眠テーブル）
-    const [favorites, gacha, spot] = await Promise.all([
-      prisma.gachaLike.findMany({
-        where: { gachaId: stockPost.gachaId, NOT: { userId: stockPost.userId } },
-        select: { userId: true },
-      }),
+    const [gacha, spot] = await Promise.all([
       prisma.gacha.findUnique({ where: { id: stockPost.gachaId }, select: { seriesName: true } }),
       prisma.spot.findUnique({ where: { id: stockPost.spotId }, select: { name: true } }),
     ]);
-    if (favorites.length === 0 || !gacha || !spot) return;
+    if (!gacha || !spot) return;
 
     const label = STOCK_LABEL[stockPost.stockStatus] ?? stockPost.stockStatus;
-    await prisma.notification.createMany({
-      data: favorites.map(({ userId }) => ({
-        userId,
-        type: 'favorite_stock',
-        title: 'お気に入りの在庫情報',
-        body: `${gacha.seriesName}（${spot.name}）: ${label}`,
-        gachaId: stockPost.gachaId,
-        spotId: stockPost.spotId,
-        stockPostId: stockPost.id,
-        actorId: stockPost.userId,
-      })),
-    });
+    const body = `${gacha.seriesName}（${spot.name}）: ${label}`;
+
+    // 宛先が多くてもメモリ・1クエリのサイズが膨らまないよう、カーソルでバッチ処理
+    let cursor: string | undefined;
+    for (;;) {
+      const favorites = await prisma.gachaLike.findMany({
+        where: { gachaId: stockPost.gachaId, NOT: { userId: stockPost.userId } },
+        select: { id: true, userId: true },
+        orderBy: { id: 'asc' },
+        take: FANOUT_BATCH_SIZE,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      });
+      if (favorites.length === 0) break;
+
+      await prisma.notification.createMany({
+        data: favorites.map(({ userId }) => ({
+          userId,
+          type: 'favorite_stock',
+          title: 'お気に入りの在庫情報',
+          body,
+          gachaId: stockPost.gachaId,
+          spotId: stockPost.spotId,
+          stockPostId: stockPost.id,
+          actorId: stockPost.userId,
+        })),
+      });
+
+      if (favorites.length < FANOUT_BATCH_SIZE) break;
+      cursor = favorites[favorites.length - 1].id;
+    }
   } catch (e) {
     console.error('[notifyFavoriteStock]', e);
   }
 }
 
-/** 対象投稿の投稿主と所属スポットを解決 */
+/** 対象投稿の投稿主と所属スポットを解決（非公開投稿はnull=通知対象外） */
 async function resolveTarget(
   kind: NotifyTargetKind,
   targetId: string,
 ): Promise<{ ownerId: string; spotId: string | null } | null> {
   if (kind === 'post') {
-    const p = await prisma.post.findUnique({ where: { id: targetId }, select: { userId: true, spotId: true } });
+    const p = await prisma.post.findFirst({
+      where: { id: targetId, isPublic: true },
+      select: { userId: true, spotId: true },
+    });
     return p ? { ownerId: p.userId, spotId: p.spotId } : null;
   }
   if (kind === 'stockPost') {
-    const p = await prisma.stockPost.findUnique({ where: { id: targetId }, select: { userId: true, spotId: true } });
+    const p = await prisma.stockPost.findFirst({
+      where: { id: targetId, isPublic: true },
+      select: { userId: true, spotId: true },
+    });
     return p ? { ownerId: p.userId, spotId: p.spotId } : null;
   }
-  const r = await prisma.spotReview.findUnique({ where: { id: targetId }, select: { userId: true, spotId: true } });
+  const r = await prisma.spotReview.findFirst({
+    where: { id: targetId, isPublic: true },
+    select: { userId: true, spotId: true },
+  });
   return r ? { ownerId: r.userId, spotId: r.spotId } : null;
 }
 
-function targetIdFields(kind: NotifyTargetKind, targetId: string) {
-  return {
-    postId: kind === 'post' ? targetId : undefined,
-    stockPostId: kind === 'stockPost' ? targetId : undefined,
-    spotReviewId: kind === 'spotReview' ? targetId : undefined,
-  };
+/** 通知行の対象ID条件（対象種別に応じた1列だけを指す） */
+function targetIdWhere(kind: NotifyTargetKind, targetId: string) {
+  if (kind === 'post') return { postId: targetId };
+  if (kind === 'stockPost') return { stockPostId: targetId };
+  return { spotReviewId: targetId };
 }
 
 /** いいね → 投稿主へ（自分の投稿への自分のいいねは通知しない） */
@@ -85,6 +114,14 @@ export async function notifyLike(kind: NotifyTargetKind, targetId: string, actor
   try {
     const target = await resolveTarget(kind, targetId);
     if (!target || target.ownerId === actorId) return;
+
+    // unlike→like の繰り返しによる重複通知を抑止（同一actor×同一対象のいいね通知は1件まで）
+    const existing = await prisma.notification.findFirst({
+      where: { userId: target.ownerId, type: 'like', actorId, ...targetIdWhere(kind, targetId) },
+      select: { id: true },
+    });
+    if (existing) return;
+
     const actor = await prisma.user.findUnique({ where: { id: actorId }, select: { name: true } });
     await prisma.notification.create({
       data: {
@@ -94,7 +131,7 @@ export async function notifyLike(kind: NotifyTargetKind, targetId: string, actor
         body: `${actor?.name ?? 'だれか'}さんがあなたの${TARGET_LABEL[kind]}にいいねしました`,
         actorId,
         spotId: target.spotId ?? undefined,
-        ...targetIdFields(kind, targetId),
+        ...targetIdWhere(kind, targetId),
       },
     });
   } catch (e) {
@@ -117,7 +154,7 @@ export async function notifyReply(kind: NotifyTargetKind, targetId: string, acto
         body: `${actor?.name ?? 'だれか'}さんがあなたの${TARGET_LABEL[kind]}に返信しました：${excerpt}`,
         actorId,
         spotId: target.spotId ?? undefined,
-        ...targetIdFields(kind, targetId),
+        ...targetIdWhere(kind, targetId),
       },
     });
   } catch (e) {
