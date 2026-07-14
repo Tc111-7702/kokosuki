@@ -58,9 +58,9 @@ export function HorizontalGachaSection({ title, subtitle, color, colorDark, colo
   const cls = scrollClass;
 
   return (
-    <div style={{ margin: '0 16px' }}>
+    <div style={{ marginLeft: 16, marginRight: 16 }}>
       {/* ヘッダー */}
-      <div style={{ paddingTop: isMobile ? 28 : 48, paddingBottom: isMobile ? 20 : 32, paddingLeft: isMobile ? 4 : 8 }}>
+      <div style={{ paddingTop: isMobile ? 24 : 34, paddingBottom: isMobile ? 16 : 24, paddingLeft: isMobile ? 4 : 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
           <span style={{ display: 'block', width: 20, height: 3, borderRadius: 2, background: color }} />
           <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.22em', textTransform: 'uppercase',
