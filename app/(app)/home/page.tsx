@@ -7,6 +7,7 @@ import { CommunityTab }  from '@/components/CommunityTab';
 import { FavoritesTab }  from '@/components/FavoritesTab';
 import { HomeSearchBar } from '@/components/HomeSearchBar';
 import { MikkeIcon }     from '@/components/ui/MikkeIcon';
+import { NotificationBell } from '@/components/NotificationBell';
 
 type HomeTab = 'new' | 'community' | 'favorites';
 
@@ -72,6 +73,9 @@ function HomePageInner() {
             )}
             <div className="flex-1">
               <HomeSearchBar />
+            </div>
+            <div style={{ paddingRight: 8 }}>
+              <NotificationBell />
             </div>
           </div>
         )}
