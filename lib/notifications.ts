@@ -55,8 +55,16 @@ export async function notifyFavoriteStock(stockPost: {
       });
       if (favorites.length === 0) break;
 
+      // 通知設定でOFFにしているユーザーを除外（プロフィール未作成はデフォルトON扱い）
+      const disabled = await prisma.userProfile.findMany({
+        where: { userId: { in: favorites.map((f) => f.userId) }, notifyFavoriteStock: false },
+        select: { userId: true },
+      });
+      const disabledSet = new Set(disabled.map((d) => d.userId));
+      const recipients = favorites.filter((f) => !disabledSet.has(f.userId));
+
       await prisma.notification.createMany({
-        data: favorites.map(({ userId }) => ({
+        data: recipients.map(({ userId }) => ({
           userId,
           type: 'favorite_stock',
           title: 'お気に入りの在庫情報',
@@ -102,6 +110,15 @@ async function resolveTarget(
   return r ? { ownerId: r.userId, spotId: r.spotId } : null;
 }
 
+/** 反応通知（いいね・返信）をOFFにしているか（プロフィール未作成はデフォルトON扱い） */
+async function isReactionNotifyDisabled(userId: string): Promise<boolean> {
+  const profile = await prisma.userProfile.findUnique({
+    where: { userId },
+    select: { notifyReaction: true },
+  });
+  return profile?.notifyReaction === false;
+}
+
 /** 通知行の対象ID条件（対象種別に応じた1列だけを指す） */
 function targetIdWhere(kind: NotifyTargetKind, targetId: string) {
   if (kind === 'post') return { postId: targetId };
@@ -114,6 +131,7 @@ export async function notifyLike(kind: NotifyTargetKind, targetId: string, actor
   try {
     const target = await resolveTarget(kind, targetId);
     if (!target || target.ownerId === actorId) return;
+    if (await isReactionNotifyDisabled(target.ownerId)) return;
 
     // unlike→like の繰り返しによる重複通知を抑止（同一actor×同一対象のいいね通知は1件まで）
     const existing = await prisma.notification.findFirst({
@@ -144,6 +162,7 @@ export async function notifyReply(kind: NotifyTargetKind, targetId: string, acto
   try {
     const target = await resolveTarget(kind, targetId);
     if (!target || target.ownerId === actorId) return;
+    if (await isReactionNotifyDisabled(target.ownerId)) return;
     const actor = await prisma.user.findUnique({ where: { id: actorId }, select: { name: true } });
     const excerpt = text.length > 30 ? `${text.slice(0, 30)}…` : text;
     await prisma.notification.create({
