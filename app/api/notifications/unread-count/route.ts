@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { getUnreadNotificationCount } from '@/lib/db';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 
@@ -11,9 +11,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const count = await prisma.notification.count({
-      where: { userId: session.user.id, read: false },
-    });
+    const count = await getUnreadNotificationCount(session.user.id);
     return NextResponse.json({ count });
   } catch (e) {
     console.error('[notifications unread-count]', e);

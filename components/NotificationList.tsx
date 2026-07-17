@@ -18,6 +18,10 @@ interface NotificationItem {
   createdAt: string;
 }
 
+interface Props {
+  onClose: () => void;
+}
+
 function timeAgo(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime();
   const min = Math.floor(diffMs / 60000);
@@ -37,19 +41,30 @@ function typeIcon(type: string) {
   return <Bell size={18} color="#888" />;
 }
 
-export default function NotificationsPage() {
+export function NotificationList({ onClose }: Props) {
   const router = useRouter();
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let alive = true;
+
     fetch('/api/notifications')
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => setItems(d?.notifications ?? []))
+      .then((d) => {
+        if (alive) setItems(d?.notifications ?? []);
+      })
       .catch(() => {})
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+
     // 一覧を開いた時点で全既読化（ベルのバッジを消す）
     fetch('/api/notifications/read', { method: 'PATCH' }).catch(() => {});
+
+    return () => {
+      alive = false;
+    };
   }, []);
 
   // 通知タップ時の遷移先（在庫・口コミ系は店舗ページ、投稿への反応はみんなタブ）
@@ -61,13 +76,20 @@ export default function NotificationsPage() {
     return null;
   };
 
+  const openNotification = (n: NotificationItem) => {
+    const dest = destination(n);
+    if (!dest) return;
+    onClose();
+    router.push(dest);
+  };
+
   return (
-    <div className="flex flex-col h-full bg-[#FFFEEF]">
+    <div className="absolute inset-0 z-20 flex flex-col bg-[#FFFEEF]">
       <div
         className="flex-shrink-0 bg-white flex items-center gap-2 px-3"
         style={{ height: 52, borderBottom: '1.5px solid #EDE9D8' }}
       >
-        <button onClick={() => router.back()} className="p-2 active:opacity-60" aria-label="戻る">
+        <button onClick={onClose} className="p-2 active:opacity-60" aria-label="戻る">
           <ArrowLeft size={20} color="#555" />
         </button>
         <h1 className="text-[16px] font-black" style={{ color: '#111' }}>通知</h1>
@@ -75,7 +97,7 @@ export default function NotificationsPage() {
 
       <div className="flex-1 overflow-y-auto">
         {loading ? (
-          <p className="py-16 text-center text-[13px]" style={{ color: '#AAA' }}>読み込み中…</p>
+          <p className="py-16 text-center text-[13px]" style={{ color: '#AAA' }}>読み込み中...</p>
         ) : items.length === 0 ? (
           <div className="flex flex-col items-center py-20 px-6 text-center">
             <Bell size={36} color="#DDD" />
@@ -90,7 +112,7 @@ export default function NotificationsPage() {
             return (
               <button
                 key={n.id}
-                onClick={() => dest && router.push(dest)}
+                onClick={() => openNotification(n)}
                 className="w-full flex items-start gap-3 px-4 py-3 text-left active:opacity-70"
                 style={{
                   background: n.read ? 'transparent' : '#FFF8D0',

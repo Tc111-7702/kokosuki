@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { Bell } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+
+interface Props {
+  onClick: () => void;
+}
 
 /** ホーム検索バー横の通知ベル（未読バッジ付き） */
-export function NotificationBell() {
-  const router = useRouter();
+export function NotificationBell({ onClick }: Props) {
   const [unread, setUnread] = useState(0);
 
   useEffect(() => {
@@ -28,7 +30,10 @@ export function NotificationBell() {
 
   return (
     <button
-      onClick={() => router.push('/notifications')}
+      onClick={() => {
+        setUnread(0);
+        onClick();
+      }}
       className="relative p-2 flex-shrink-0 active:opacity-60"
       aria-label="通知"
     >

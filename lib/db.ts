@@ -466,3 +466,23 @@ export async function getFollowCounts(userId: string) {
   ]);
   return { followers, following };
 }
+
+// ─── Notification ─────────────────────────────────────────────────────────────
+
+export const getNotificationsByUserId = (userId: string, take = 50) =>
+  prisma.notification.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+    take,
+  });
+
+export const getUnreadNotificationCount = (userId: string) =>
+  prisma.notification.count({
+    where: { userId, read: false },
+  });
+
+export const markNotificationsAsRead = (userId: string) =>
+  prisma.notification.updateMany({
+    where: { userId, read: false },
+    data: { read: true },
+  });
