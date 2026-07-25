@@ -34,7 +34,6 @@ model Gacha {
   posts           Post[]
   stockPosts      StockPost[]
   gachaLikes      GachaLike[]
-  favoriteByUsers UserFavoriteGacha[]
 }
 
 model GachaLike {
