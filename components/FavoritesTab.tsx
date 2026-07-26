@@ -120,7 +120,6 @@ export function FavoritesTab() {
   }, []);
 
   useEffect(() => {
-    setLoading(true);
     fetch('/api/gacha/favorites')
       .then(r => r.json())
       .then(d => setGachas(d.gachas ?? []))
