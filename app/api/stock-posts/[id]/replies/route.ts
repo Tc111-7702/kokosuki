@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
+import { notifyReply } from '@/lib/notifications';
 
 const USER_SELECT = { select: { id: true, name: true, image: true } };
 
@@ -27,5 +28,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     data: { stockPostId, userId: session.user.id, text: text.trim() },
     include: { user: USER_SELECT },
   });
+
+  await notifyReply('stockPost', stockPostId, session.user.id, text.trim());
+
   return NextResponse.json({ reply }, { status: 201 });
 }

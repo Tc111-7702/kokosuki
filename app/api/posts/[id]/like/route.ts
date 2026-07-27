@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
+import { notifyLike } from '@/lib/notifications';
 
 export async function POST(
   _request: Request,
@@ -23,6 +24,7 @@ export async function POST(
       await prisma.like.delete({ where: { userId_postId: { userId, postId } } });
     } else {
       await prisma.like.create({ data: { userId, postId } });
+      await notifyLike('post', postId, userId);
     }
 
     const likeCount = await prisma.like.count({ where: { postId } });

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { prisma } from '@/lib/db';
+import { notifyFavoriteStock } from '@/lib/notifications';
 
 // POST /api/stock-posts  — 在庫情報投稿を作成 & Machine.stockStatus を更新
 export async function POST(request: Request) {
@@ -35,6 +36,9 @@ export async function POST(request: Request) {
       stockStatus,
     },
   });
+
+  // このガチャをお気に入り登録しているユーザーへ通知（失敗しても投稿は成功扱い）
+  await notifyFavoriteStock(stockPost);
 
   return NextResponse.json({ stockPost }, { status: 201 });
 }

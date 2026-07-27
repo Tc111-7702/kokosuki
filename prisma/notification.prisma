@@ -1,14 +1,27 @@
 // ─── 通知 ──────────────────────────────────────────────────────────────────────
 
+// type:
+//   favorite_stock … お気に入りガチャの在庫情報が投稿された
+//   like           … 自分の投稿（引いた！/在庫報告/口コミ）にいいねされた
+//   reply          … 自分の投稿（引いた！/在庫報告/口コミ）に返信された
 model Notification {
   id        String   @id @default(cuid())
-  userId    String
-  type      String   // restock / release / upcoming / community
+  userId    String // 受信者
+  type      String
   title     String
   body      String
-  gachaId   String?
+  // 遷移先の解決用（idのスナップショットのみ・FKは張らない）
+  gachaId      String?
+  spotId       String?
+  postId       String?
+  stockPostId  String?
+  spotReviewId String?
+  actorId      String? // いいね/返信/投稿をした人
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
 }

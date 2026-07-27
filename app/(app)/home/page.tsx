@@ -7,6 +7,8 @@ import { CommunityTab }  from '@/components/CommunityTab';
 import { FavoritesTab }  from '@/components/FavoritesTab';
 import { HomeSearchBar } from '@/components/HomeSearchBar';
 import { MikkeIcon }     from '@/components/ui/MikkeIcon';
+import { NotificationBell } from '@/components/NotificationBell';
+import { NotificationList } from '@/components/NotificationList';
 
 type HomeTab = 'new' | 'community' | 'favorites';
 
@@ -22,6 +24,7 @@ function HomePageInner() {
   const router       = useRouter();
   const searchParams = useSearchParams();
   const [isMobile, setIsMobile] = useState(true);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   // URLの ?tab= からタブを決定、不正値は 'new' にフォールバック
   const rawTab = searchParams.get('tab');
@@ -60,7 +63,7 @@ function HomePageInner() {
   const showSearchBar = tab === 'new' || tab === 'community' || tab === 'favorites';
 
   return (
-    <div className="flex flex-col h-full bg-[#FFFEEF]">
+    <div className="relative flex flex-col h-full bg-[#FFFEEF]">
       {/* 検索バー + タブバー */}
       <div className="flex-shrink-0 bg-white" style={{ borderBottom: '1.5px solid #EDE9D8' }}>
         {showSearchBar && (
@@ -72,6 +75,9 @@ function HomePageInner() {
             )}
             <div className="flex-1">
               <HomeSearchBar />
+            </div>
+            <div style={{ paddingRight: 8 }}>
+              <NotificationBell onClick={() => setShowNotifications(true)} />
             </div>
           </div>
         )}
@@ -101,6 +107,10 @@ function HomePageInner() {
         {tab === 'community' && <CommunityTab />}
         {tab === 'favorites' && <FavoritesTab />}
       </div>
+
+      {showNotifications && (
+        <NotificationList onClose={() => setShowNotifications(false)} />
+      )}
     </div>
   );
 }
