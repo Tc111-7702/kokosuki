@@ -8,7 +8,6 @@ import { FavoritesTab }  from '@/components/FavoritesTab';
 import { HomeSearchBar } from '@/components/HomeSearchBar';
 import { MikkeIcon }     from '@/components/ui/MikkeIcon';
 import { NotificationBell } from '@/components/NotificationBell';
-import { NotificationList } from '@/components/NotificationList';
 
 type HomeTab = 'new' | 'community' | 'favorites';
 
@@ -24,7 +23,6 @@ function HomePageInner() {
   const router       = useRouter();
   const searchParams = useSearchParams();
   const [isMobile, setIsMobile] = useState(true);
-  const [showNotifications, setShowNotifications] = useState(false);
 
   // URLの ?tab= からタブを決定、不正値は 'new' にフォールバック
   const rawTab = searchParams.get('tab');
@@ -77,7 +75,7 @@ function HomePageInner() {
               <HomeSearchBar />
             </div>
             <div style={{ paddingRight: 8 }}>
-              <NotificationBell onClick={() => setShowNotifications(true)} />
+              <NotificationBell />
             </div>
           </div>
         )}
@@ -108,9 +106,7 @@ function HomePageInner() {
         {tab === 'favorites' && <FavoritesTab />}
       </div>
 
-      {showNotifications && (
-        <NotificationList onClose={() => setShowNotifications(false)} />
-      )}
+
     </div>
   );
 }

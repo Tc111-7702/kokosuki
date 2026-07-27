@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
 
@@ -439,3 +439,38 @@ export const markNotificationsAsRead = (userId: string) =>
     where: { userId, read: false },
     data: { read: true },
   });
+
+export const getUserById = (id: string) =>
+  prisma.user.findUnique({ where: { id }, select: { name: true } });
+
+export const findPublicPost = (id: string) =>
+  prisma.post.findFirst({ where: { id, isPublic: true }, select: { userId: true, spotId: true } });
+
+export const findPublicStockPost = (id: string) =>
+  prisma.stockPost.findFirst({ where: { id, isPublic: true }, select: { userId: true, spotId: true } });
+
+export const findPublicSpotReview = (id: string) =>
+  prisma.spotReview.findFirst({ where: { id, isPublic: true }, select: { userId: true, spotId: true } });
+
+export const getGachaLikesForFanout = (
+  gachaId: string,
+  excludeUserId: string,
+  cursor?: string,
+  take = 500,
+) =>
+  prisma.gachaLike.findMany({
+    where: { gachaId, NOT: { userId: excludeUserId } },
+    select: { id: true, userId: true },
+    orderBy: { id: 'asc' },
+    take,
+    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+  });
+
+export const createNotification = (data: Prisma.NotificationUncheckedCreateInput) =>
+  prisma.notification.create({ data });
+
+export const createNotificationMany = (data: Prisma.NotificationCreateManyInput[]) =>
+  prisma.notification.createMany({ data });
+
+export const findLikeNotification = (where: Prisma.NotificationWhereInput) =>
+  prisma.notification.findFirst({ where, select: { id: true } });
