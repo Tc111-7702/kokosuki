@@ -3,8 +3,21 @@ import { NextResponse } from 'next/server';
 const WP_API = 'https://gacha-island.jp/wp-json/wp/v2';
 const UA = { 'User-Agent': 'Mozilla/5.0' };
 
-async function fetchAllCategories() {
-  const all: any[] = [];
+interface WpCategory {
+  id: number;
+  name: string;
+  count: number;
+  parent: number;
+}
+
+interface CategorySummary {
+  id: number;
+  name: string;
+  count: number;
+}
+
+async function fetchAllCategories(): Promise<WpCategory[]> {
+  const all: WpCategory[] = [];
   let page = 1;
   while (true) {
     const res = await fetch(`${WP_API}/categories?per_page=100&page=${page}`, {
@@ -12,7 +25,7 @@ async function fetchAllCategories() {
       next: { revalidate: 3600 },
     });
     if (!res.ok) break;
-    const data = await res.json();
+    const data = (await res.json()) as WpCategory[];
     if (!data.length) break;
     all.push(...data);
     page++;
@@ -25,10 +38,10 @@ export async function GET() {
     const cats = await fetchAllCategories();
 
     const parents = cats
-      .filter((c: any) => c.parent === 0)
-      .sort((a: any, b: any) => b.count - a.count);
+      .filter((c) => c.parent === 0)
+      .sort((a, b) => b.count - a.count);
 
-    const childMap: Record<number, any[]> = {};
+    const childMap: Record<number, WpCategory[]> = {};
     for (const c of cats) {
       if (c.parent !== 0) {
         if (!childMap[c.parent]) childMap[c.parent] = [];
@@ -36,24 +49,24 @@ export async function GET() {
       }
     }
     for (const arr of Object.values(childMap)) {
-      arr.sort((a: any, b: any) => b.count - a.count);
+      arr.sort((a, b) => b.count - a.count);
     }
 
     // 上位4カテゴリはそのまま、5位以降はその他にまとめる
     const TOP_N = 4;
-    const topSections = parents.slice(0, TOP_N).map((p: any) => ({
+    const topSections = parents.slice(0, TOP_N).map((p) => ({
       id:       p.id,
       name:     p.name,
       count:    p.count,
-      children: (childMap[p.id] ?? []).map((c: any) => ({ id: c.id, name: c.name, count: c.count })),
+      children: (childMap[p.id] ?? []).map((c) => ({ id: c.id, name: c.name, count: c.count })),
     }));
 
     // その他: 5位以降の子カテゴリ＋子なし親を全部フラットに
-    const otherTags: any[] = [];
+    const otherTags: CategorySummary[] = [];
     for (const p of parents.slice(TOP_N)) {
       const kids = childMap[p.id] ?? [];
       if (kids.length > 0) {
-        otherTags.push(...kids.map((c: any) => ({ id: c.id, name: c.name, count: c.count })));
+        otherTags.push(...kids.map((c) => ({ id: c.id, name: c.name, count: c.count })));
       } else {
         otherTags.push({ id: p.id, name: p.name, count: p.count });
       }

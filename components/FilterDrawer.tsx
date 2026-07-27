@@ -115,11 +115,13 @@ export default function FilterDrawer({
 
   useEffect(() => {
     if (!isOpen) return;
-    setScreen('genres');
-    setActiveIp(null);
-    setExpandedIps(new Set());
-    setSearchQuery('');
-    setLoading(true);
+    queueMicrotask(() => {
+      setScreen('genres');
+      setActiveIp(null);
+      setExpandedIps(new Set());
+      setSearchQuery('');
+      setLoading(true);
+    });
     fetch('/api/gacha/filters')
       .then((r) => r.json())
       .then(({ ipNames, items }: { ipNames: string[]; items: GachaItem[] }) => {

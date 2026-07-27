@@ -27,7 +27,7 @@ export function GachaHeart({ liked, selectedIps, onToggle, onNext, onBack }: Pro
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (selectedIps.length === 0) { setLoading(false); return; }
+    if (selectedIps.length === 0) { queueMicrotask(() => setLoading(false)); return; }
     const params = encodeURIComponent(selectedIps.join(','));
     fetch(`/api/gacha/by-ips?ipNames=${params}`)
       .then(r => r.json())
