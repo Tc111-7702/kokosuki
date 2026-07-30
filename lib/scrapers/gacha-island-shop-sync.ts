@@ -45,6 +45,7 @@ export interface AreaSyncResult {
   machineSaved: number;
   skipped: number;
   errors: string[];
+  seenGachaIds: string[];  // このエリアで発見したガチャID（スイープ用）
 }
 
 export interface ShopSyncResult {
@@ -52,6 +53,7 @@ export interface ShopSyncResult {
   totalGachaSaved: number;
   totalMachineSaved: number;
   totalErrors: number;
+  ended: number;  // 今回スイープで終了扱いにしたガチャ数
 }
 
 // ─── HTML パーサー ─────────────────────────────────────────────────────────────
@@ -256,6 +258,7 @@ async function syncArea(pref: string, label: string): Promise<AreaSyncResult> {
   let machineSaved = 0;
   let skipped      = 0;
   const errors: string[] = [];
+  const seenGachaIds: string[] = [];  // このエリアで発見したガチャID
 
   const shopIds = await fetchShopIdsForPref(pref);
   console.log(`[shop-sync] ${label}: ${shopIds.length} 店舗`);
@@ -281,6 +284,11 @@ async function syncArea(pref: string, label: string): Promise<AreaSyncResult> {
           await new Promise((r) => setTimeout(r, 300)); // WP API 取得後の待機
         }
 
+        // 今回発見したガチャIDを記録（スイープ用）
+        if (gacha && !seenGachaIds.includes(gacha.id)) {
+          seenGachaIds.push(gacha.id);
+        }
+
         // Machine: Spot × Gacha のリンク（@@unique で自動重複排除）
         await db.upsertMachine(spot.id, gacha!.id);
         machineSaved++;
@@ -293,12 +301,16 @@ async function syncArea(pref: string, label: string): Promise<AreaSyncResult> {
     await new Promise((r) => setTimeout(r, 200)); // 店舗間の待機
   }
 
-  return { area: label, stores: shopIds.length, gachaSaved, machineSaved, skipped, errors };
+  return { area: label, stores: shopIds.length, gachaSaved, machineSaved, skipped, errors, seenGachaIds };
 }
 
 // ─── メインエントリ ───────────────────────────────────────────────────────────
 
 export async function syncShopGachas(): Promise<ShopSyncResult> {
+  // ── スイープ用: スクレイプ前に現在 isOnSale:true のガチャIDを全取得 ──
+  const prevOnSaleIds = await db.getOnSaleGachaIds();
+  console.log(`[shop-sync] スイープ対象: ${prevOnSaleIds.length} 件`);
+
   const areas: AreaSyncResult[] = [];
 
   for (const { pref, label } of TARGET_AREAS) {
@@ -311,10 +323,19 @@ export async function syncShopGachas(): Promise<ShopSyncResult> {
     await new Promise((r) => setTimeout(r, 500)); // エリア間の待機
   }
 
+  // ── スイープ: 今回全エリアで発見されなかったガチャを ended に更新 ──
+  const seenIdSet = new Set(areas.flatMap((a) => a.seenGachaIds));
+  const endedIds  = prevOnSaleIds.filter((id) => !seenIdSet.has(id));
+  if (endedIds.length > 0) {
+    await db.markGachasEnded(endedIds);
+    console.log(`[shop-sync] スイープ完了: ${endedIds.length} 件を ended に更新`);
+  }
+
   return {
     areas,
     totalGachaSaved:   areas.reduce((s, a) => s + a.gachaSaved, 0),
     totalMachineSaved: areas.reduce((s, a) => s + a.machineSaved, 0),
     totalErrors:       areas.reduce((s, a) => s + a.errors.length, 0),
+    ended: endedIds.length,
   };
 }

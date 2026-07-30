@@ -264,6 +264,22 @@ export const upsertGachaFromScraper = (data: GachaUpsertData) =>
     },
   });
 
+/** 店舗スクレイパーのスイープ処理: 今回見つからなかったガチャを終了扱いにする */
+export const markGachasEnded = (ids: string[]) =>
+  ids.length === 0
+    ? Promise.resolve({ count: 0 })
+    : prisma.gacha.updateMany({
+        where: { id: { in: ids } },
+        data:  { isOnSale: false, status: 'ended' },
+      });
+
+/** スイープ用: 現在 isOnSale:true の全ガチャIDを返す */
+export const getOnSaleGachaIds = () =>
+  prisma.gacha.findMany({
+    where:  { isOnSale: true },
+    select: { id: true },
+  }).then((rows) => rows.map((r) => r.id));
+
 export const getGachaById = (id: string) =>
   prisma.gacha.findUnique({
     where: { id },

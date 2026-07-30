@@ -48,6 +48,8 @@ export async function GET(request: Request) {
       return 2;
     };
 
+    // 発売終了ガチャの投稿はホーム・ガチャページ・店舗ページに表示しない
+    // （マイページは /api/mypage/posts で別途取得するためここでは除外）
     let extraFilter: Record<string, unknown> = {};
     if (type === 'search') {
       const gachaIdsParam = searchParams.get('gachaIds') ?? '';
@@ -58,7 +60,7 @@ export async function GET(request: Request) {
     // 店舗ページ用フィルター（spotId / filterGachaIds）
     const filterSpotId        = searchParams.get('spotId');
     const filterGachaIdsStore = searchParams.get('filterGachaIds');
-    let baseWhere: Record<string, unknown> = { isPublic: true, ...extraFilter };
+    let baseWhere: Record<string, unknown> = { isPublic: true, gacha: { isOnSale: true }, ...extraFilter };
     if (filterSpotId) baseWhere = { ...baseWhere, spotId: filterSpotId };
     if (filterGachaIdsStore && !(extraFilter as Record<string, unknown>).gachaId) {
       const gids = filterGachaIdsStore.split(',').filter(Boolean);
