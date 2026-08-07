@@ -7,7 +7,7 @@ import { StockPostCard, type StockFeedPost } from '@/components/StockPostCard';
 import { ReplyCard } from '@/components/ReplyCard';
 import { type Reply } from '@/components/community-types';
 
-export function StockPostDetail({ post, onBack, onReplied }: { post: StockFeedPost; onBack: () => void; onReplied?: () => void }) {
+export function StockPostDetail({ post, onBack, onReplied, onDeleted }: { post: StockFeedPost; onBack: () => void; onReplied?: () => void; onDeleted?: (id: string) => void }) {
   const [replies,    setReplies]    = useState<Reply[]>([]);
   const [loadingR,   setLoadingR]   = useState(true);
   const [text,       setText]       = useState('');
@@ -123,7 +123,12 @@ export function StockPostDetail({ post, onBack, onReplied }: { post: StockFeedPo
       </div>
 
       <div className="flex-1 overflow-y-auto pb-4">
-        <StockPostCard post={post} interactive={false} />
+        <StockPostCard
+          post={post}
+          interactive={false}
+          currentUserId={currentUid ?? undefined}
+          onDelete={(id) => { onDeleted?.(id); onBack(); }}
+        />
         <div className="mx-4 border-t border-gray-200 mt-1 mb-2" />
         <div className="bg-white mx-3 rounded-2xl overflow-hidden shadow-sm">
           {loadingR ? (

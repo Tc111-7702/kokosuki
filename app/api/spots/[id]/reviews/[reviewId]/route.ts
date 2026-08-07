@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import * as db from '@/lib/db';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 
@@ -14,7 +14,7 @@ export async function PUT(
     const userId = session.user.id;
     const { reviewId } = await params;
 
-    const review = await prisma.spotReview.findUnique({ where: { id: reviewId } });
+    const review = await db.getSpotReviewById(reviewId);
     if (!review) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     if (review.userId !== userId) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
@@ -22,11 +22,7 @@ export async function PUT(
     const text: string = (body.text ?? '').trim();
     if (!text) return NextResponse.json({ error: 'text is required' }, { status: 400 });
 
-    const updated = await prisma.spotReview.update({
-      where: { id: reviewId },
-      data: { text },
-      include: { user: { select: { id: true, name: true, image: true } }, _count: { select: { likes: true } } },
-    });
+    const updated = await db.updateSpotReview(reviewId, text);
     return NextResponse.json({ review: updated });
   } catch (e) {
     console.error('[review PUT]', e);
@@ -45,11 +41,11 @@ export async function DELETE(
     const userId = session.user.id;
     const { reviewId } = await params;
 
-    const review = await prisma.spotReview.findUnique({ where: { id: reviewId } });
+    const review = await db.getSpotReviewById(reviewId);
     if (!review) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     if (review.userId !== userId) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-    await prisma.spotReview.delete({ where: { id: reviewId } });
+    await db.deleteSpotReview(reviewId);
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error('[review DELETE]', e);

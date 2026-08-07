@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import * as db from '@/lib/db';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 
@@ -12,13 +12,13 @@ export async function DELETE(
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const userId = session.user.id;
-    const { reviewId, replyId } = await params;
+    const { replyId } = await params;
 
-    const reply = await prisma.spotReviewReply.findUnique({ where: { id: replyId } });
+    const reply = await db.getSpotReviewReplyById(replyId);
     if (!reply) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     if (reply.userId !== userId) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-    await prisma.spotReviewReply.delete({ where: { id: replyId } });
+    await db.deleteSpotReviewReply(replyId);
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error('[review reply DELETE]', e);

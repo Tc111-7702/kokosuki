@@ -1,10 +1,8 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import * as db from '@/lib/db';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { notifyReply } from '@/lib/notifications';
-
-const USER_SELECT = { select: { id: true, name: true, image: true } } as const;
 
 // GET /api/posts/[id]/replies
 export async function GET(
@@ -13,11 +11,7 @@ export async function GET(
 ) {
   try {
     const { id: postId } = await params;
-    const replies = await prisma.postReply.findMany({
-      where: { postId, parentId: null },
-      orderBy: { createdAt: 'asc' },
-      include: { user: USER_SELECT },
-    });
+    const replies = await db.listPostReplies(postId);
     return NextResponse.json({ replies });
   } catch (e) {
     console.error('[replies GET]', e);
@@ -44,10 +38,7 @@ export async function POST(
       return NextResponse.json({ error: 'text is required' }, { status: 400 });
     }
 
-    const reply = await prisma.postReply.create({
-      data: { postId, userId, text, parentId: null },
-      include: { user: USER_SELECT },
-    });
+    const reply = await db.createPostReplyWithUser(postId, userId, text);
 
     await notifyReply('post', postId, userId, text);
 

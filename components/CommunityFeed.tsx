@@ -10,22 +10,33 @@ export function Feed({
   onSelect,
   onSelectStock,
   searchGachaIds,
+  excludeIds,
 }: {
   feedType: 'recommended' | 'search';
   onSelect: (post: FeedPost) => void;
   onSelectStock: (post: StockFeedPost) => void;
   searchGachaIds?: string[];
+  excludeIds?: string[];
 }) {
   const [posts,         setPosts]         = useState<FeedItem[]>([]);
   const [page,          setPage]          = useState(0);
   const [loading,       setLoading]       = useState(false);
   const [initialLoaded, setInitialLoaded] = useState(false);
   const [hasMore,       setHasMore]       = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | undefined>(undefined);
   const sentinelRef    = useRef<HTMLDivElement>(null);
   const loadingRef     = useRef(false);
   const gachaIdsRef    = useRef<string[]>(searchGachaIds ?? []);
   const userPosRef     = useRef<{ lat: number; lng: number } | null>(null);
   gachaIdsRef.current = searchGachaIds ?? [];
+
+  // 現在ユーザーIDを取得（自分の投稿にゴミ箱を表示するため）
+  useEffect(() => {
+    fetch('/api/me')
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data?.user?.id) setCurrentUserId(data.user.id); })
+      .catch(() => {});
+  }, []);
 
   // 現在地を取得（近い順ソートに使用）
   useEffect(() => {
@@ -117,10 +128,22 @@ export function Feed({
 
   return (
     <div className="pb-4">
-      {posts.map((item) =>
+      {posts.filter((item) => !excludeIds?.includes(item.id)).map((item) =>
         item.postType === 'stock'
-          ? <StockPostCard key={`stock-${item.id}`} post={item} onSelect={onSelectStock} />
-          : <PostCard key={`post-${item.id}`} post={item as FeedPost} onSelect={onSelect} />
+          ? <StockPostCard
+              key={`stock-${item.id}`}
+              post={item}
+              onSelect={onSelectStock}
+              currentUserId={currentUserId}
+              onDelete={(id) => setPosts((prev) => prev.filter((p) => p.id !== id))}
+            />
+          : <PostCard
+              key={`post-${item.id}`}
+              post={item as FeedPost}
+              onSelect={onSelect}
+              currentUserId={currentUserId}
+              onDelete={(id) => setPosts((prev) => prev.filter((p) => p.id !== id))}
+            />
       )}
       <div ref={sentinelRef} className="h-1" />
       {loading && (

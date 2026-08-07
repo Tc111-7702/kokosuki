@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import * as db from '@/lib/db';
 
 function haversine(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6_371_000;
@@ -21,17 +21,7 @@ export async function GET(request: Request) {
   if (!name.trim()) return NextResponse.json({ spot: null, suggestions: [] });
 
   if (suggest) {
-    const spots = await prisma.spot.findMany({
-      where: {
-        OR: [
-          { name:    { contains: name, mode: 'insensitive' } },
-          { address: { contains: name, mode: 'insensitive' } },
-        ],
-        ...(gachaId ? { machines: { some: { gachaId } } } : {}),
-      },
-      select: { id: true, name: true, address: true, lat: true, lng: true },
-      take: 100,
-    });
+    const spots = await db.searchSpotsForSuggest(name, gachaId);
 
     type SpotRow = { id: string; name: string; address: string; lat: number; lng: number; distance?: number };
     let results: SpotRow[] = spots;
@@ -43,10 +33,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ suggestions: results.slice(0, 50) });
   }
 
-  const spots = await prisma.spot.findMany({
-    where: { name: { contains: name, mode: 'insensitive' } },
-    include: { machines: { select: { gachaId: true, stockStatus: true } } },
-  });
+  const spots = await db.searchSpotsByName(name);
 
   if (spots.length === 0) return NextResponse.json({ spot: null });
 

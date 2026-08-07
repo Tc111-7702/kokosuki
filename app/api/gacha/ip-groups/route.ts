@@ -1,15 +1,11 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import * as db from '@/lib/db';
 
 // GET /api/gacha/ip-groups
 // { anime: [{ipName, count}], character: [{ipName, count}], other: [{ipName, count}] }
 export async function GET() {
   try {
-    const rows = await prisma.gacha.groupBy({
-      by: ['ipName', 'ipCategory'],
-      _count: { id: true },
-      orderBy: { _count: { id: 'desc' } },
-    });
+    const rows = await db.groupGachaByIpAndCategory();
 
     const anime: { ipName: string; count: number }[] = [];
     const character: { ipName: string; count: number }[] = [];

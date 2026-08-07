@@ -102,6 +102,7 @@ export function CommunityTab() {
   const [searchGachaIds, setSearchGachaIds] = useState<string[]>([]);
   const [searchUsers,    setSearchUsers]    = useState<UserResult[]>([]);
   const [searchActive,   setSearchActive]   = useState(false);
+  const [deletedIds,     setDeletedIds]     = useState<string[]>([]);
 
   const handleSearch = (label: string, gachaIds: string[], users: UserResult[]) => {
     setSearchLabel(label);
@@ -117,48 +118,63 @@ export function CommunityTab() {
     setSearchUsers([]);
   };
 
+  const handleDeleted = (id: string) => {
+    setDeletedIds((prev) => [...prev, id]);
+    setSelectedPost(null);
+    setSelectedStock(null);
+  };
+
+  const detailOpen = !!(selectedPost || selectedStock);
+
   return (
     <div className="flex w-full h-full overflow-hidden">
-      <div className="flex-1 min-w-0 bg-[#F5F5F0] overflow-y-auto flex flex-col">
-        {selectedStock ? (
-          <StockPostDetail post={selectedStock} onBack={() => setSelectedStock(null)} />
-        ) : selectedPost ? (
-          <PostDetail post={selectedPost} onBack={() => setSelectedPost(null)} />
-        ) : (
-          <>
-            {/* モバイルのみ: 検索バー */}
-            <div className="lg:hidden sticky top-0 z-10 bg-white/90 backdrop-blur-sm border-b border-gray-100 px-3 py-2">
-              <CommunitySearchBar onSearch={handleSearch} onClear={handleClearSearch} searchActive={searchActive} />
-            </div>
+      <div className="flex-1 min-w-0 relative overflow-hidden bg-[#F5F5F0]">
 
-            {searchActive ? (
-              /* 検索結果 */
-              <div className="pb-4">
-                {searchLabel && (
-                  <div className="px-4 pt-3 pb-1">
-                    <span style={{ fontSize: 13, color: '#888' }}>
-                      「<span style={{ fontWeight: 700, color: '#222' }}>{searchLabel}</span>」の検索結果
-                    </span>
+        {/* フィード — 常時マウント、detail open 中は背面に隠す */}
+        <div className="absolute inset-0 overflow-y-auto flex flex-col" style={{ visibility: detailOpen ? 'hidden' : 'visible' }}>
+          {/* モバイルのみ: 検索バー */}
+          <div className="lg:hidden sticky top-0 z-10 bg-white/90 backdrop-blur-sm border-b border-gray-100 px-3 py-2">
+            <CommunitySearchBar onSearch={handleSearch} onClear={handleClearSearch} searchActive={searchActive} />
+          </div>
+
+          {searchActive ? (
+            <div className="pb-4">
+              {searchLabel && (
+                <div className="px-4 pt-3 pb-1">
+                  <span style={{ fontSize: 13, color: '#888' }}>
+                    「<span style={{ fontWeight: 700, color: '#222' }}>{searchLabel}</span>」の検索結果
+                  </span>
+                </div>
+              )}
+              <UserResultList users={searchUsers} />
+              {searchGachaIds.length > 0
+                ? <Feed key={`search-${searchLabel}`} feedType="search" searchGachaIds={searchGachaIds} onSelect={setSelectedPost} onSelectStock={setSelectedStock} excludeIds={deletedIds} />
+                : searchUsers.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+                    <span className="text-4xl mb-3">🔍</span>
+                    <p className="text-sm">検索結果が見つかりませんでした</p>
                   </div>
-                )}
-                <UserResultList users={searchUsers} />
-                {searchGachaIds.length > 0
-                  ? <Feed key={`search-${searchLabel}`} feedType="search" searchGachaIds={searchGachaIds} onSelect={setSelectedPost} onSelectStock={setSelectedStock} />
-                  : searchUsers.length === 0 && (
-                    <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-                      <span className="text-4xl mb-3">🔍</span>
-                      <p className="text-sm">検索結果が見つかりませんでした</p>
-                    </div>
-                  )
-                }
-              </div>
-            ) : (
-              /* 通常フィード */
-              <Feed feedType="recommended" onSelect={setSelectedPost} onSelectStock={setSelectedStock} />
-            )}
-          </>
+                )
+              }
+            </div>
+          ) : (
+            <Feed feedType="recommended" onSelect={setSelectedPost} onSelectStock={setSelectedStock} excludeIds={deletedIds} />
+          )}
+        </div>
+
+        {/* 詳細ビュー — absolute overlay でフィードの上に重ねる */}
+        {detailOpen && (
+          <div className="absolute inset-0 overflow-y-auto flex flex-col bg-[#F5F5F0] z-10">
+            {selectedStock
+              ? <StockPostDetail post={selectedStock} onBack={() => setSelectedStock(null)} onDeleted={handleDeleted} />
+              : selectedPost
+              ? <PostDetail post={selectedPost} onBack={() => setSelectedPost(null)} onDeleted={handleDeleted} />
+              : null
+            }
+          </div>
         )}
       </div>
+
       <RightSidebar onSearch={handleSearch} onClear={handleClearSearch} searchActive={searchActive} />
 
       {/* 投稿ボタン */}
