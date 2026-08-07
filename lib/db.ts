@@ -826,18 +826,18 @@ export const getGachasWithLikeCount = () =>
     orderBy: { gachaLikes: { _count: 'desc' } },
   });
 
-export const getUserLikedIpNames = async (userId: string) => {
+export const getUserLikedIpNames = async (userId: string): Promise<string[]> => {
   const rows = await prisma.gachaLike.findMany({ where: { userId }, select: { gacha: { select: { ipName: true } } } });
   return [...new Set(rows.map(r => r.gacha.ipName))];
 };
 
-export const getGachaIdsByIpNames = async (ipNames: string[]) => {
+export const getGachaIdsByIpNames = async (ipNames: string[]): Promise<string[]> => {
   if (ipNames.length === 0) return [];
   const rows = await prisma.gacha.findMany({ where: { ipName: { in: ipNames } }, select: { id: true } });
   return rows.map(g => g.id);
 };
 
-export const getUserIdsWhoLikedGachas = async (gachaIds: string[], excludeUserId: string) => {
+export const getUserIdsWhoLikedGachas = async (gachaIds: string[], excludeUserId: string): Promise<string[]> => {
   if (gachaIds.length === 0) return [];
   const rows = await prisma.gachaLike.findMany({
     where: { gachaId: { in: gachaIds }, userId: { not: excludeUserId } },
