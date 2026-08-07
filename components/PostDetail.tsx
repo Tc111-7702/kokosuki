@@ -7,7 +7,7 @@ import { ReplyCard } from '@/components/ReplyCard';
 import { PostCard } from '@/components/PostCard';
 import { type FeedPost, type Reply } from '@/components/community-types';
 
-export function PostDetail({ post, onBack, onReplied }: { post: FeedPost; onBack: () => void; onReplied?: () => void }) {
+export function PostDetail({ post, onBack, onReplied, onDeleted }: { post: FeedPost; onBack: () => void; onReplied?: () => void; onDeleted?: (id: string) => void }) {
   const [replies,          setReplies]          = useState<Reply[]>([]);
   const [loadingR,         setLoadingR]         = useState(true);
   const [text,             setText]             = useState('');
@@ -175,7 +175,12 @@ export function PostDetail({ post, onBack, onReplied }: { post: FeedPost; onBack
       </div>
 
       <div className="flex-1 overflow-y-auto pb-4">
-        <PostCard post={post} interactive={false} />
+        <PostCard
+          post={post}
+          interactive={false}
+          currentUserId={currentUid ?? undefined}
+          onDelete={(id) => { onDeleted?.(id); onBack(); }}
+        />
         <div className="mx-4 border-t border-gray-200 mt-1 mb-2" />
         <div className="bg-white mx-3 rounded-2xl overflow-hidden shadow-sm">
           {loadingR ? (

@@ -8,8 +8,7 @@ import { SpotGachaCard, type SpotGachaInfo } from '@/components/SpotGachaCard';
 import NavPickerModal from '@/components/NavPickerModal';
 import { StockPostCard, type StockFeedPost } from '@/components/StockPostCard';
 import { PostCard } from '@/components/PostCard';
-import { PostDetail } from '@/components/PostDetail';
-import { StockPostDetail } from '@/components/StockPostDetail';
+import { InlineReplies } from '@/components/InlineReplies';
 import { type FeedPost, type FeedItem } from '@/components/community-types';
 import { StoreReviews } from '@/components/StoreReviews';
 
@@ -47,24 +46,31 @@ function fmtDistance(m: number): string {
 
 // ─── StorePosts コンポーネント ─────────────────────────────────
 
+type OpenReply = { id: string; type: 'post' | 'stock' } | null;
+
 function StorePosts({
   spotId,
   filterGachaIds,
-  onSelect,
-  onSelectStock,
 }: {
   spotId: string;
   filterGachaIds: string[];
-  onSelect: (post: FeedPost) => void;
-  onSelectStock: (post: StockFeedPost) => void;
 }) {
-  const [posts, setPosts] = useState<FeedItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [posts,         setPosts]         = useState<FeedItem[]>([]);
+  const [loading,       setLoading]       = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | undefined>(undefined);
+  const [openReply,     setOpenReply]     = useState<OpenReply>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const nextPageRef = useRef<number | null>(null);
   const filterRef   = useRef(filterGachaIds);
   filterRef.current = filterGachaIds;
   const loadingRef  = useRef(false);
+
+  useEffect(() => {
+    fetch('/api/me')
+      .then(r => r.json())
+      .then((d: { user: { id: string } | null }) => { if (d.user?.id) setCurrentUserId(d.user.id); })
+      .catch(() => {});
+  }, []);
 
   const load = useCallback(async (page: number, filter: string[]) => {
     if (loadingRef.current) return;
@@ -114,13 +120,53 @@ function StorePosts({
     </div>
   );
 
+  const toggleReply = (id: string, type: 'post' | 'stock') =>
+    setOpenReply(prev => (prev?.id === id ? null : { id, type }));
+
+  const handleDelete = (id: string) =>
+    setPosts(prev => prev.filter(p => p.id !== id));
+
+  const updateReplyCount = (id: string, delta: number) =>
+    setPosts(prev => prev.map(p =>
+      p.id === id ? { ...p, _count: { ...p._count, replies: p._count.replies + delta } } : p
+    ));
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {posts.map(p =>
-        p.postType === 'stock'
-          ? <StockPostCard key={`s-${p.id}`} post={p as StockFeedPost} interactive onSelect={() => onSelectStock(p as StockFeedPost)} />
-          : <PostCard      key={`p-${p.id}`} post={p as FeedPost}      interactive onSelect={() => onSelect(p as FeedPost)} />
-      )}
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      {posts.map(p => {
+        const type = p.postType as 'post' | 'stock';
+        const isOpen = openReply?.id === p.id;
+        return (
+          <div key={p.id} style={{ marginBottom: isOpen ? 0 : 8 }}>
+            {type === 'stock'
+              ? <StockPostCard
+                  post={p as StockFeedPost}
+                  interactive={false}
+                  currentUserId={currentUserId}
+                  onDelete={handleDelete}
+                  onReplyClick={() => toggleReply(p.id, type)}
+                  replyOpen={isOpen}
+                />
+              : <PostCard
+                  post={p as FeedPost}
+                  interactive={false}
+                  currentUserId={currentUserId}
+                  onDelete={handleDelete}
+                  onReplyClick={() => toggleReply(p.id, type)}
+                  replyOpen={isOpen}
+                />
+            }
+            {isOpen && (
+              <InlineReplies
+                postId={p.id}
+                postType={type}
+                currentUserId={currentUserId}
+                onCountChange={(delta) => updateReplyCount(p.id, delta)}
+              />
+            )}
+          </div>
+        );
+      })}
       <div ref={sentinelRef} style={{ height: 1 }} />
     </div>
   );
@@ -145,10 +191,6 @@ export default function StorePage() {
   const [loading,       setLoading]       = useState(true);
   const [isMobile,      setIsMobile]      = useState(false);
   const [activeTab,     setActiveTab]     = useState<'products' | 'posts'>('products');
-
-  // 投稿詳細
-  const [selectedPost,  setSelectedPost]  = useState<FeedPost | null>(null);
-  const [selectedStock, setSelectedStock] = useState<StockFeedPost | null>(null);
 
   // コンテンツ検索
   const [contentQuery,     setContentQuery]     = useState('');
@@ -376,38 +418,25 @@ export default function StorePage() {
     </div>
   );
 
-  // ─── 投稿エリア（詳細も内包） ────────────────────────────────────────────
+  // ─── 投稿エリア ────────────────────────────────────────────────────────
   const PostsArea = (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {selectedStock ? (
-        <StockPostDetail post={selectedStock} onBack={() => setSelectedStock(null)} onReplied={() => setSelectedStock(prev => prev ? { ...prev, _count: { ...prev._count, replies: prev._count.replies + 1 } } : prev)} />
-      ) : selectedPost ? (
-        <PostDetail post={selectedPost} onBack={() => setSelectedPost(null)} onReplied={() => setSelectedPost(prev => prev ? { ...prev, _count: { ...prev._count, replies: prev._count.replies + 1 } } : prev)} />
-      ) : (
-        <div style={{ flex: 1, overflowY: 'auto', padding: '0 16px 32px' }}>
-          {/* 口コミ */}
-          <StoreReviews spotId={spotId} />
+    <div style={{ height: '100%', overflowY: 'scroll', padding: '0 16px 32px', boxSizing: 'border-box' }}>
+      {/* 口コミ */}
+      <StoreReviews spotId={spotId} />
 
-          {/* 仕切り */}
-          <div style={{ borderTop: '1px solid #F0F0F0', margin: '12px 0' }} />
+      {/* 仕切り */}
+      <div style={{ borderTop: '1px solid #F0F0F0', margin: '12px 0' }} />
 
-          {/* みんなの投稿 */}
-          <div style={{ padding: '4px 0 8px' }}>
-            <span style={{ fontSize: 13, fontWeight: 800, color: '#1A1A1A' }}>
-              みんなの投稿
-            </span>
-            {isFiltered && (
-              <span style={{ fontSize: 11, color: '#AAA', marginLeft: 6 }}>フィルター中 {filterGachaIds.length}件</span>
-            )}
-          </div>
-          <StorePosts
-            spotId={spotId}
-            filterGachaIds={filterGachaIds}
-            onSelect={setSelectedPost}
-            onSelectStock={setSelectedStock}
-          />
-        </div>
-      )}
+      {/* みんなの投稿 */}
+      <div style={{ padding: '4px 0 8px' }}>
+        <span style={{ fontSize: 13, fontWeight: 800, color: '#1A1A1A' }}>
+          みんなの投稿
+        </span>
+        {isFiltered && (
+          <span style={{ fontSize: 11, color: '#AAA', marginLeft: 6 }}>フィルター中 {filterGachaIds.length}件</span>
+        )}
+      </div>
+      <StorePosts spotId={spotId} filterGachaIds={filterGachaIds} />
     </div>
   );
 
@@ -416,7 +445,7 @@ export default function StorePage() {
 
       {/* ─── ヘッダー ─── */}
       <div style={{ background: 'white', borderBottom: '1px solid #F0F0F0', flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '26px 16px 14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isMobile ? '10px 16px 6px' : '14px 16px 8px' }}>
           <button onClick={() => router.back()}
             style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#0891b2', fontSize: 14, fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
             <ArrowLeft size={18} />戻る
@@ -436,32 +465,32 @@ export default function StorePage() {
           </div>
         </div>
 
-        <div style={{ padding: '0 16px 20px' }}>
-          {/* 店舗名: 全幅 */}
-          <h1 style={{ fontSize: 18, fontWeight: 900, color: '#1a1a1a', margin: '0 0 10px', lineHeight: 1.2 }}>{spot.name}</h1>
-          {/* 住所 + 電話・経路ボタン */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <MapPin size={12} color="#aaa" />
-                <p style={{ fontSize: 12, color: '#888', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{spot.address}</p>
-              </div>
+        {/* 店舗名 + 住所/距離 + 電話・経路ボタン
+            PC: 店名の横に住所・距離を小さく横並び / モバイル: 店名の下に住所・距離を縦積み */}
+        <div style={{ display: 'flex', alignItems: isMobile ? 'flex-start' : 'center', justifyContent: 'space-between', gap: 10, padding: isMobile ? '0 16px 8px' : '0 16px 12px' }}>
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'baseline', gap: isMobile ? 3 : 10 }}>
+            <h1 style={{ fontSize: 17, fontWeight: 900, color: '#1a1a1a', margin: 0, lineHeight: 1.2, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{spot.name}</h1>
+            <div style={{ minWidth: 0, display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', gap: isMobile ? 1 : 8 }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, color: '#888', minWidth: 0, maxWidth: '100%' }}>
+                <MapPin size={11} color="#aaa" style={{ flexShrink: 0 }} />
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{spot.address}</span>
+              </span>
               {distance !== null && (
-                <p style={{ fontSize: 12, fontWeight: 600, color: '#0891b2', margin: '2px 0 0' }}>現在地から {fmtDistance(distance)}</p>
+                <span style={{ fontSize: 11, fontWeight: 600, color: '#0891b2', whiteSpace: 'nowrap', flexShrink: 0 }}>現在地から {fmtDistance(distance)}</span>
               )}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-              {spot.phone && (
-                <a href={`tel:${spot.phone.replace(/[^\d+]/g, '')}`}
-                  style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '7px 12px', borderRadius: 12, background: '#E8F5E9', color: '#16a34a', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
-                  <Phone size={14} />電話
-                </a>
-              )}
-              <button onClick={() => setNavOpen(true)}
-                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '7px 12px', borderRadius: 12, background: '#E8F4FD', color: '#0891b2', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>
-                <Navigation size={14} />経路
-              </button>
-            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+            {spot.phone && (
+              <a href={`tel:${spot.phone.replace(/[^\d+]/g, '')}`}
+                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '7px 12px', borderRadius: 12, background: '#E8F5E9', color: '#16a34a', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+                <Phone size={14} />電話
+              </a>
+            )}
+            <button onClick={() => setNavOpen(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '7px 12px', borderRadius: 12, background: '#E8F4FD', color: '#0891b2', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>
+              <Navigation size={14} />経路
+            </button>
           </div>
         </div>
 

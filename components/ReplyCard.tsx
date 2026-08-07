@@ -9,11 +9,13 @@ import { type Reply } from '@/components/community-types';
 export function ReplyCard({
   reply,
   postId,
+  postType = 'post',
   isOwn,
   onDelete,
 }: {
   reply: Reply;
   postId: string;
+  postType?: 'post' | 'stock';
   isOwn: boolean;
   onDelete: (id: string) => void;
 }) {
@@ -37,7 +39,8 @@ export function ReplyCard({
     setShowMenu(false);
     setDeleting(true);
     try {
-      const res = await fetch('/api/posts/' + postId + '/replies/' + reply.id, { method: 'DELETE' });
+      const base = postType === 'stock' ? '/api/stock-posts/' : '/api/posts/';
+      const res = await fetch(base + postId + '/replies/' + reply.id, { method: 'DELETE' });
       if (res.ok) onDelete(reply.id);
     } finally {
       setDeleting(false);
