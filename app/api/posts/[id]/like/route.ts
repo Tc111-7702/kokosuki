@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import * as db from '@/lib/db';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { notifyLike } from '@/lib/notifications';
@@ -16,19 +16,12 @@ export async function POST(
     const userId = session.user.id;
     const { id: postId } = await params;
 
-    const existing = await prisma.like.findUnique({
-      where: { userId_postId: { userId, postId } },
-    });
-
-    if (existing) {
-      await prisma.like.delete({ where: { userId_postId: { userId, postId } } });
-    } else {
-      await prisma.like.create({ data: { userId, postId } });
+    const { liked, likeCount } = await db.togglePostLike(userId, postId);
+    if (liked) {
       await notifyLike('post', postId, userId);
     }
 
-    const likeCount = await prisma.like.count({ where: { postId } });
-    return NextResponse.json({ liked: !existing, likeCount });
+    return NextResponse.json({ liked, likeCount });
   } catch (e) {
     console.error('[like]', e);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

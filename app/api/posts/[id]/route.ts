@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import * as db from '@/lib/db';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 
@@ -15,7 +15,7 @@ export async function DELETE(
     }
 
     const { id } = await params;
-    const post = await prisma.post.findUnique({ where: { id }, select: { userId: true } });
+    const post = await db.getPostOwnerId(id);
 
     if (!post) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -24,7 +24,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    await prisma.post.delete({ where: { id } });
+    await db.deletePost(id);
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error('[posts DELETE]', e);

@@ -1,21 +1,10 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import * as db from '@/lib/db';
 
 export async function GET() {
   try {
     // ガチャ別いいね数（降順）
-    const gachas = await prisma.gacha.findMany({
-      select: {
-        id: true,
-        seriesName: true,
-        ipName: true,
-        imageUrl: true,
-        gradientFrom: true,
-        gradientTo: true,
-        _count: { select: { gachaLikes: true } },
-      },
-      orderBy: { gachaLikes: { _count: 'desc' } },
-    });
+    const gachas = await db.getGachasWithLikeCount();
 
     // 話題のガチャ top 3
     const trendingGachas = gachas.slice(0, 3).map((g) => ({

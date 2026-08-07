@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import * as db from '@/lib/db';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { notifyLike } from '@/lib/notifications';
@@ -11,13 +11,10 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   const { id: stockPostId } = await params;
   const userId = session.user.id;
 
-  const existing = await prisma.stockPostLike.findUnique({ where: { userId_stockPostId: { userId, stockPostId } } });
-  if (existing) {
-    await prisma.stockPostLike.delete({ where: { userId_stockPostId: { userId, stockPostId } } });
-    return NextResponse.json({ liked: false });
-  } else {
-    await prisma.stockPostLike.create({ data: { userId, stockPostId } });
+  const { liked } = await db.toggleStockPostLike(userId, stockPostId);
+  if (liked) {
     await notifyLike('stockPost', stockPostId, userId);
-    return NextResponse.json({ liked: true });
   }
+
+  return NextResponse.json({ liked });
 }

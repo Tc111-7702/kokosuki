@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { prisma } from '@/lib/db';
+import * as db from '@/lib/db';
 import { headers } from 'next/headers';
 
 export async function DELETE(
@@ -14,9 +14,7 @@ export async function DELETE(
 
   const { gachaId } = await params;
 
-  await prisma.gachaLike.deleteMany({
-    where: { userId: session.user.id, gachaId },
-  });
+  await db.deleteGachaLike(session.user.id, gachaId);
 
   return NextResponse.json({ ok: true });
 }
