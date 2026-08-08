@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { type StockFeedPost } from '@/components/StockPostCard';
 import { type FeedPost, type UserResult, type TrendingGacha, type TrendingIP } from '@/components/community-types';
-import { Feed } from '@/components/CommunityFeed';
+import { Feed, type FeedHandle } from '@/components/CommunityFeed';
 import { PostDetail } from '@/components/PostDetail';
 import { StockPostDetail } from '@/components/StockPostDetail';
 import { CommunitySearchBar, UserResultList } from '@/components/CommunitySearchBar';
@@ -103,6 +103,21 @@ export function CommunityTab() {
   const [searchUsers,    setSearchUsers]    = useState<UserResult[]>([]);
   const [searchActive,   setSearchActive]   = useState(false);
   const [deletedIds,     setDeletedIds]     = useState<string[]>([]);
+  const feedRef = useRef<FeedHandle>(null);
+
+  // 返信投稿時、詳細（オーバーレイ）の返信数とフィード一覧の該当カードを両方+1（リロードなし）
+  const bumpPostReplies = () => {
+    const id = selectedPost?.id;
+    if (!id) return;
+    setSelectedPost((prev) => prev ? { ...prev, _count: { ...prev._count, replies: prev._count.replies + 1 } } : prev);
+    feedRef.current?.bumpReplies(id, 'post');
+  };
+  const bumpStockReplies = () => {
+    const id = selectedStock?.id;
+    if (!id) return;
+    setSelectedStock((prev) => prev ? { ...prev, _count: { ...prev._count, replies: prev._count.replies + 1 } } : prev);
+    feedRef.current?.bumpReplies(id, 'stock');
+  };
 
   const handleSearch = (label: string, gachaIds: string[], users: UserResult[]) => {
     setSearchLabel(label);
@@ -148,7 +163,7 @@ export function CommunityTab() {
               )}
               <UserResultList users={searchUsers} />
               {searchGachaIds.length > 0
-                ? <Feed key={`search-${searchLabel}`} feedType="search" searchGachaIds={searchGachaIds} onSelect={setSelectedPost} onSelectStock={setSelectedStock} excludeIds={deletedIds} />
+                ? <Feed ref={feedRef} key={`search-${searchLabel}`} feedType="search" searchGachaIds={searchGachaIds} onSelect={setSelectedPost} onSelectStock={setSelectedStock} excludeIds={deletedIds} />
                 : searchUsers.length === 0 && (
                   <div className="flex flex-col items-center justify-center py-20 text-gray-400">
                     <span className="text-4xl mb-3">🔍</span>
@@ -158,7 +173,7 @@ export function CommunityTab() {
               }
             </div>
           ) : (
-            <Feed feedType="recommended" onSelect={setSelectedPost} onSelectStock={setSelectedStock} excludeIds={deletedIds} />
+            <Feed ref={feedRef} feedType="recommended" onSelect={setSelectedPost} onSelectStock={setSelectedStock} excludeIds={deletedIds} />
           )}
         </div>
 
@@ -166,9 +181,9 @@ export function CommunityTab() {
         {detailOpen && (
           <div className="absolute inset-0 overflow-y-auto flex flex-col bg-[#F5F5F0] z-10">
             {selectedStock
-              ? <StockPostDetail post={selectedStock} onBack={() => setSelectedStock(null)} onDeleted={handleDeleted} />
+              ? <StockPostDetail post={selectedStock} onBack={() => setSelectedStock(null)} onDeleted={handleDeleted} onReplied={bumpStockReplies} />
               : selectedPost
-              ? <PostDetail post={selectedPost} onBack={() => setSelectedPost(null)} onDeleted={handleDeleted} />
+              ? <PostDetail post={selectedPost} onBack={() => setSelectedPost(null)} onDeleted={handleDeleted} onReplied={bumpPostReplies} />
               : null
             }
           </div>
@@ -177,7 +192,8 @@ export function CommunityTab() {
 
       <RightSidebar onSearch={handleSearch} onClear={handleClearSearch} searchActive={searchActive} />
 
-      {/* 投稿ボタン */}
+      {/* 投稿ボタン（返信詳細を開いている間は非表示） */}
+      {!detailOpen && (
       <button
         className="fixed bottom-20 right-6 sm:bottom-8 sm:right-10 lg:right-[540px] xl:right-[620px] z-50 flex items-center justify-center rounded-full shadow-lg active:scale-95 transition-transform"
         style={{ width: 56, height: 56, background: '#F2B800' }}
@@ -189,6 +205,7 @@ export function CommunityTab() {
           <line x1="5" y1="12" x2="19" y2="12" />
         </svg>
       </button>
+      )}
     </div>
   );
 }

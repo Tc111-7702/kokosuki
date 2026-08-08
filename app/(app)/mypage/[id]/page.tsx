@@ -37,7 +37,7 @@ type Tab = 'posts' | 'reports' | 'favorites';
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { userId } = useParams<{ userId: string }>();
+  const { id: userId } = useParams<{ id: string }>();
   const isMobile = useIsMobile();
 
   const [isOwn, setIsOwn] = useState(false);
@@ -247,9 +247,19 @@ export default function ProfilePage() {
     </div>
   );
 
-  // 返信後に一覧の返信数を+1（詳細を開いたまま反映）
-  const bumpPostReplies  = () => setSelectedPost(prev => prev ? { ...prev, _count: { ...prev._count, replies: prev._count.replies + 1 } } : prev);
-  const bumpStockReplies = () => setSelectedStock(prev => prev ? { ...prev, _count: { ...prev._count, replies: prev._count.replies + 1 } } : prev);
+  // 返信後、詳細表示中の値と一覧カードの両方の返信数を+1（リロードせず即時反映）
+  const bumpPostReplies = () => {
+    const id = selectedPost?.id;
+    if (!id) return;
+    setSelectedPost(prev => prev ? { ...prev, _count: { ...prev._count, replies: prev._count.replies + 1 } } : prev);
+    setPosts(list => list ? list.map(p => p.id === id ? { ...p, _count: { ...p._count, replies: p._count.replies + 1 } } : p) : list);
+  };
+  const bumpStockReplies = () => {
+    const id = selectedStock?.id;
+    if (!id) return;
+    setSelectedStock(prev => prev ? { ...prev, _count: { ...prev._count, replies: prev._count.replies + 1 } } : prev);
+    setReports(list => list ? list.map(r => r.id === id ? { ...r, _count: { ...r._count, replies: r._count.replies + 1 } } : r) : list);
+  };
   const postDetailEl  = selectedPost  ? <PostDetail      post={selectedPost}  onBack={() => setSelectedPost(null)}  onReplied={bumpPostReplies} />  : null;
   const stockDetailEl = selectedStock ? <StockPostDetail post={selectedStock} onBack={() => setSelectedStock(null)} onReplied={bumpStockReplies} /> : null;
 

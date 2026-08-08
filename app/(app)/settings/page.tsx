@@ -4,9 +4,9 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, ChevronRight } from 'lucide-react';
 import { authClient } from '@/lib/auth-client';
-import { SettingsSheet } from '@/components/settings/SettingsSheet';
-import { ProfileSettingsSheet } from '@/components/settings/ProfileSettingsSheet';
-import { HelpContent, PrivacyContent, TermsContent } from '@/components/settings/StaticContents';
+import { SettingsSheet } from '@/components/SettingsSheet';
+import { ProfileSettingsSheet } from '@/components/ProfileSettingsSheet';
+import { HelpContent, PrivacyContent, TermsContent } from '@/components/StaticContents';
 
 const APP_VERSION = '1.0.0';
 

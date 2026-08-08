@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { User, Camera } from 'lucide-react';
-import { SettingsSheet } from '@/components/settings/SettingsSheet';
+import { SettingsSheet } from '@/components/SettingsSheet';
 
 interface FavoriteGacha {
   id: string;
