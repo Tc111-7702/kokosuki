@@ -61,7 +61,7 @@ function HomePageInner() {
   const showSearchBar = tab === 'new' || tab === 'community' || tab === 'favorites';
 
   return (
-    <div className="flex flex-col h-full bg-[#FFFEEF]">
+    <div className="relative flex flex-col h-full bg-[#FFFEEF]">
       {/* 検索バー + タブバー */}
       <div className="flex-shrink-0 bg-white" style={{ borderBottom: '1.5px solid #EDE9D8' }}>
         {showSearchBar && (
@@ -105,6 +105,8 @@ function HomePageInner() {
         {tab === 'community' && <CommunityTab />}
         {tab === 'favorites' && <FavoritesTab />}
       </div>
+
+
     </div>
   );
 }

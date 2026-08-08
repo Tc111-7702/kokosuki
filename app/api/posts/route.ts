@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
-import { prisma } from '@/lib/db';
+import * as db from '@/lib/db';
 
 // POST /api/posts  — 通常投稿を作成
 export async function POST(request: Request) {
@@ -23,23 +23,17 @@ export async function POST(request: Request) {
   }
 
   // Machine を取得または作成（spotId + gachaId で unique）
-  const machine = await prisma.machine.upsert({
-    where:  { spotId_gachaId: { spotId, gachaId } },
-    create: { spotId, gachaId },
-    update: {},
-  });
+  const machine = await db.upsertMachine(spotId, gachaId);
 
-  const post = await prisma.post.create({
-    data: {
-      userId:   session.user.id,
-      machineId: machine.id,
-      spotId,
-      gachaId,
-      result,
-      itemName: itemName ?? null,
-      imageUrl: imageUrl ?? null,
-      memo:     memo ?? null,
-    },
+  const post = await db.createPost({
+    userId:   session.user.id,
+    machineId: machine.id,
+    spotId,
+    gachaId,
+    result,
+    itemName: itemName ?? null,
+    imageUrl: imageUrl ?? null,
+    memo:     memo ?? null,
   });
 
   return NextResponse.json({ post }, { status: 201 });

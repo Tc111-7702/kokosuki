@@ -33,15 +33,19 @@ export function StockSpotPanel({
   const [message, setMessage] = useState<string | null>(null);
 
   const load = () => {
-    setState('locating');
-    setSpots([]);
-    setMessage(null);
-
     if (!navigator.geolocation) {
-      setState('geo-error');
-      setMessage('このブラウザは位置情報に対応していません');
+      queueMicrotask(() => {
+        setState('geo-error');
+        setMessage('このブラウザは位置情報に対応していません');
+      });
       return;
     }
+
+    queueMicrotask(() => {
+      setState('locating');
+      setSpots([]);
+      setMessage(null);
+    });
 
     navigator.geolocation.getCurrentPosition(
       async pos => {

@@ -3,30 +3,31 @@ import * as db from '@/lib/db';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 
+// DELETE /api/stock-posts/[id] — 自分の在庫報告を削除（onDelete Cascade で likes/replies も連鎖削除）
 export async function DELETE(
-  _request: Request,
-  { params }: { params: Promise<{ id: string; replyId: string }> }
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const userId = session.user.id;
-    const { replyId } = await params;
 
-    const reply = await db.getPostReplyById(replyId);
-    if (!reply) {
+    const { id } = await params;
+    const post = await db.getStockPostOwnerId(id);
+
+    if (!post) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
-    if (reply.userId !== userId) {
+    if (post.userId !== session.user.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    await db.deletePostReply(replyId);
+    await db.deleteStockPost(id);
     return NextResponse.json({ ok: true });
   } catch (e) {
-    console.error('[reply DELETE]', e);
+    console.error('[stock-posts DELETE]', e);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

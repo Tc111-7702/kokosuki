@@ -9,8 +9,7 @@ import { LineupSection } from '@/components/LineupSection';
 import { StatCard } from '@/components/ui/StatCard';
 import { PostCard } from '@/components/PostCard';
 import { StockPostCard, type StockFeedPost } from '@/components/StockPostCard';
-import { PostDetail } from '@/components/PostDetail';
-import { StockPostDetail } from '@/components/StockPostDetail';
+import { InlineReplies } from '@/components/InlineReplies';
 import type { FeedPost } from '@/components/community-types';
 
 const STATUS_LABEL: Record<string, string> = {
@@ -22,12 +21,21 @@ const KIND_LABEL: Record<string, string> = {
 
 // ─── 投稿セクション ────────────────────────────────────────────────────────
 
+type OpenReply = { id: string; type: 'post' | 'stock' } | null;
+
 function GachaPostsSection({ gachaId, isMobile }: { gachaId: string; isMobile: boolean }) {
   const router = useRouter();
-  const [posts, setPosts] = useState<(FeedPost | StockFeedPost)[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedPost,  setSelectedPost]  = useState<FeedPost | null>(null);
-  const [selectedStock, setSelectedStock] = useState<StockFeedPost | null>(null);
+  const [posts,         setPosts]         = useState<(FeedPost | StockFeedPost)[]>([]);
+  const [loading,       setLoading]       = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | undefined>(undefined);
+  const [openReply,     setOpenReply]     = useState<OpenReply>(null);
+
+  useEffect(() => {
+    fetch('/api/me')
+      .then(r => r.json())
+      .then((d: { user: { id: string } | null }) => { if (d.user?.id) setCurrentUserId(d.user.id); })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetch(`/api/posts/feed?type=search&gachaIds=${gachaId}`)
@@ -43,6 +51,17 @@ function GachaPostsSection({ gachaId, isMobile }: { gachaId: string; isMobile: b
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [gachaId]);
+
+  const toggleReply = (id: string, type: 'post' | 'stock') =>
+    setOpenReply(prev => (prev?.id === id ? null : { id, type }));
+
+  const handleDelete = (id: string) =>
+    setPosts(prev => prev.filter(p => p.id !== id));
+
+  const updateReplyCount = (id: string, delta: number) =>
+    setPosts(prev => prev.map(p =>
+      p.id === id ? { ...p, _count: { ...p._count, replies: p._count.replies + delta } } : p
+    ));
 
   if (loading) return (
     <div style={{ textAlign: 'center', padding: '16px 0', color: '#CCC', fontSize: 13 }}>読み込み中…</div>
@@ -66,12 +85,41 @@ function GachaPostsSection({ gachaId, isMobile }: { gachaId: string; isMobile: b
             </button>
           )}
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {preview.map(p =>
-            p.postType === 'post'
-              ? <PostCard key={p.id} post={p as FeedPost} interactive={false} />
-              : <StockPostCard key={p.id} post={p as StockFeedPost} />
-          )}
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {preview.map(p => {
+            const type = p.postType as 'post' | 'stock';
+            const isOpen = openReply?.id === p.id;
+            return (
+              <div key={p.id} style={{ marginBottom: isOpen ? 0 : 10 }}>
+                {type === 'post'
+                  ? <PostCard
+                      post={p as FeedPost}
+                      interactive={false}
+                      currentUserId={currentUserId}
+                      onDelete={handleDelete}
+                      onReplyClick={() => toggleReply(p.id, type)}
+                      replyOpen={isOpen}
+                    />
+                  : <StockPostCard
+                      post={p as StockFeedPost}
+                      interactive={false}
+                      currentUserId={currentUserId}
+                      onDelete={handleDelete}
+                      onReplyClick={() => toggleReply(p.id, type)}
+                      replyOpen={isOpen}
+                    />
+                }
+                {isOpen && (
+                  <InlineReplies
+                    postId={p.id}
+                    postType={type}
+                    currentUserId={currentUserId}
+                    onCountChange={(delta) => updateReplyCount(p.id, delta)}
+                  />
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
     );
@@ -80,7 +128,7 @@ function GachaPostsSection({ gachaId, isMobile }: { gachaId: string; isMobile: b
   // ── デスクトップ: 左=在庫、右=通常、別々スクロール ──────────────────────
   const stockPosts  = posts.filter(p => p.postType === 'stock') as StockFeedPost[];
   const normalPosts = posts.filter(p => p.postType === 'post')  as FeedPost[];
-  const COL_H = 480;
+  const COL_H = 520;
 
   const colHeader = (title: string, count: number, showMore: boolean) => (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -102,35 +150,67 @@ function GachaPostsSection({ gachaId, isMobile }: { gachaId: string; isMobile: b
   return (
     <div style={{ display: 'flex', gap: 12 }}>
       {/* 左列: 在庫情報 */}
-      <div style={{ flex: 1, minWidth: 0, background: '#F3F4F6', borderRadius: 16, padding: '14px 12px', display: 'flex', flexDirection: 'column' }}>
-        {!selectedStock && colHeader('在庫情報', stockPosts.length, false)}
-        <div style={{ height: COL_H, overflow: 'hidden', borderRadius: selectedStock ? 12 : 0 }}>
-          {selectedStock ? (
-            <StockPostDetail post={selectedStock} onBack={() => setSelectedStock(null)} onReplied={() => setPosts(prev => prev.map(p => p.id === selectedStock!.id ? { ...p, _count: { ...p._count, replies: p._count.replies + 1 } } : p))} />
-          ) : (
-            <div style={{ overflowY: 'auto', height: '100%', display: 'flex', flexDirection: 'column', gap: 8, paddingRight: 4 }}>
-              {stockPosts.length === 0
-                ? <p style={{ fontSize: 12, color: '#CCC', textAlign: 'center', marginTop: 24 }}>まだ在庫情報がありません</p>
-                : stockPosts.map(p => <StockPostCard key={p.id} post={p} interactive onSelect={() => setSelectedStock(p)} />)
-              }
-            </div>
-          )}
+      <div style={{ flex: 1, minWidth: 0, background: '#F3F4F6', borderRadius: 16, padding: '14px 12px' }}>
+        {colHeader('在庫情報', stockPosts.length, false)}
+        <div style={{ maxHeight: COL_H, overflowY: 'scroll', display: 'flex', flexDirection: 'column', paddingRight: 4 }}>
+          {stockPosts.length === 0
+            ? <p style={{ fontSize: 12, color: '#CCC', textAlign: 'center', marginTop: 24 }}>まだ在庫情報がありません</p>
+            : stockPosts.map(p => {
+                const isOpen = openReply?.id === p.id;
+                return (
+                  <div key={p.id} style={{ marginBottom: isOpen ? 0 : 8 }}>
+                    <StockPostCard
+                      post={p}
+                      interactive={false}
+                      currentUserId={currentUserId}
+                      onDelete={handleDelete}
+                      onReplyClick={() => toggleReply(p.id, 'stock')}
+                      replyOpen={isOpen}
+                    />
+                    {isOpen && (
+                      <InlineReplies
+                        postId={p.id}
+                        postType="stock"
+                        currentUserId={currentUserId}
+                        onCountChange={(delta) => updateReplyCount(p.id, delta)}
+                      />
+                    )}
+                  </div>
+                );
+              })
+          }
         </div>
       </div>
       {/* 右列: 引いた！ */}
-      <div style={{ flex: 1, minWidth: 0, background: '#FFF7ED', borderRadius: 16, padding: '14px 12px', display: 'flex', flexDirection: 'column' }}>
-        {!selectedPost && colHeader('引いた！', normalPosts.length, posts.length > 20)}
-        <div style={{ height: COL_H, overflow: 'hidden', borderRadius: selectedPost ? 12 : 0 }}>
-          {selectedPost ? (
-            <PostDetail post={selectedPost} onBack={() => setSelectedPost(null)} onReplied={() => setPosts(prev => prev.map(p => p.id === selectedPost!.id ? { ...p, _count: { ...p._count, replies: p._count.replies + 1 } } : p))} />
-          ) : (
-            <div style={{ overflowY: 'auto', height: '100%', display: 'flex', flexDirection: 'column', gap: 8, paddingRight: 4 }}>
-              {normalPosts.length === 0
-                ? <p style={{ fontSize: 12, color: '#CCC', textAlign: 'center', marginTop: 24 }}>まだ投稿がありません</p>
-                : normalPosts.map(p => <PostCard key={p.id} post={p as FeedPost} interactive onSelect={() => setSelectedPost(p as FeedPost)} />)
-              }
-            </div>
-          )}
+      <div style={{ flex: 1, minWidth: 0, background: '#FFF7ED', borderRadius: 16, padding: '14px 12px' }}>
+        {colHeader('引いた！', normalPosts.length, posts.length > 20)}
+        <div style={{ maxHeight: COL_H, overflowY: 'scroll', display: 'flex', flexDirection: 'column', paddingRight: 4 }}>
+          {normalPosts.length === 0
+            ? <p style={{ fontSize: 12, color: '#CCC', textAlign: 'center', marginTop: 24 }}>まだ投稿がありません</p>
+            : normalPosts.map(p => {
+                const isOpen = openReply?.id === p.id;
+                return (
+                  <div key={p.id} style={{ marginBottom: isOpen ? 0 : 8 }}>
+                    <PostCard
+                      post={p as FeedPost}
+                      interactive={false}
+                      currentUserId={currentUserId}
+                      onDelete={handleDelete}
+                      onReplyClick={() => toggleReply(p.id, 'post')}
+                      replyOpen={isOpen}
+                    />
+                    {isOpen && (
+                      <InlineReplies
+                        postId={p.id}
+                        postType="post"
+                        currentUserId={currentUserId}
+                        onCountChange={(delta) => updateReplyCount(p.id, delta)}
+                      />
+                    )}
+                  </div>
+                );
+              })
+          }
         </div>
       </div>
     </div>

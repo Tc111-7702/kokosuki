@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { MapPin, Heart, MessageCircle } from 'lucide-react';
+import { MapPin, Heart, MessageCircle, Trash2 } from 'lucide-react';
 import { Avatar, timeAgo } from '@/components/ui/Avatar';
 import { type FeedPost } from '@/components/community-types';
 
@@ -25,10 +25,18 @@ export function PostCard({
   post,
   onSelect,
   interactive = true,
+  currentUserId,
+  onDelete,
+  onReplyClick,
+  replyOpen,
 }: {
   post: FeedPost;
   onSelect?: (post: FeedPost) => void;
   interactive?: boolean;
+  currentUserId?: string;
+  onDelete?: (id: string) => void;
+  onReplyClick?: () => void;
+  replyOpen?: boolean;
 }) {
   const router = useRouter();
   const badge    = RESULT_BADGE[post.result];
@@ -37,6 +45,23 @@ export function PostCard({
   const [liked,     setLiked]     = useState(post.likedByMe);
   const [likeCount, setLikeCount] = useState(post._count.likes);
   const [pending,   setPending]   = useState(false);
+  const [deleting,  setDeleting]  = useState(false);
+
+  const isOwner = !!currentUserId && post.user.id === currentUserId;
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!window.confirm('この投稿を削除しますか？')) return;
+    setDeleting(true);
+    try {
+      const res = await fetch('/api/posts/' + post.id, { method: 'DELETE' });
+      if (res.ok) onDelete?.(post.id);
+    } catch {
+      // silent
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const handleLike = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -140,10 +165,23 @@ export function PostCard({
           </button>
         </div>
         <div className="hidden sm:flex items-center gap-3 self-end sm:self-auto">
-          <div className="flex items-center gap-1 text-sm text-gray-400">
+          {isOwner && (
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className="flex items-center p-1 rounded-full text-gray-400 hover:text-red-400 transition-colors"
+              aria-label="削除"
+            >
+              <Trash2 size={20} />
+            </button>
+          )}
+          <button
+            onClick={(e) => { if (onReplyClick) { e.stopPropagation(); onReplyClick(); } }}
+            className={"flex items-center gap-1 text-sm transition-colors " + (replyOpen ? "text-yellow-500" : "text-gray-400") + (onReplyClick ? " hover:text-yellow-500" : " cursor-default")}
+          >
             <MessageCircle size={20} />
             <span className="font-medium">{post._count.replies}</span>
-          </div>
+          </button>
           <button
             onClick={handleLike}
             disabled={pending}
@@ -163,10 +201,23 @@ export function PostCard({
           {post.gacha.ipName}
         </button>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 text-sm text-gray-400">
+          {isOwner && (
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className="flex items-center p-1 rounded-full text-gray-400 hover:text-red-400 transition-colors"
+              aria-label="削除"
+            >
+              <Trash2 size={20} />
+            </button>
+          )}
+          <button
+            onClick={(e) => { if (onReplyClick) { e.stopPropagation(); onReplyClick(); } }}
+            className={"flex items-center gap-1 text-sm transition-colors " + (replyOpen ? "text-yellow-500" : "text-gray-400") + (onReplyClick ? " hover:text-yellow-500" : " cursor-default")}
+          >
             <MessageCircle size={20} />
             <span className="font-medium">{post._count.replies}</span>
-          </div>
+          </button>
           <button
             onClick={handleLike}
             disabled={pending}

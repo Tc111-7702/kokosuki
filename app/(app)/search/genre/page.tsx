@@ -86,8 +86,8 @@ function GenrePageInner() {
   }, []);
 
   useEffect(() => {
-    if (!ipName) { setLoading(false); return; }
-    setLoading(true);
+    if (!ipName) { queueMicrotask(() => setLoading(false)); return; }
+    queueMicrotask(() => setLoading(true));
     fetch(`/api/gacha/genre?ipName=${encodeURIComponent(ipName)}`)
       .then(r => r.json())
       .then(data => { setGachas(data.gachas ?? []); })

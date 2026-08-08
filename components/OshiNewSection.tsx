@@ -39,11 +39,11 @@ export function OshiNewSection() {
   }, []);
 
   if (loading) return (
-    <div style={{ padding: '16px 20px', color: '#BBB', fontSize: 13, fontWeight: 700 }}>読み込み中…</div>
+    <div style={{ paddingTop: isMobile ? 24 : 34, paddingBottom: 16, paddingLeft: 20, paddingRight: 20, color: '#BBB', fontSize: 13, fontWeight: 700 }}>読み込み中…</div>
   );
 
   if (noFav || groups.length === 0) return (
-    <div style={{ margin: '0 16px' }}>
+    <div style={{ margin: '0 16px', paddingTop: isMobile ? 24 : 34 }}>
       <div style={{ borderRadius: 18, padding: '20px', display: 'flex', alignItems: 'center', gap: 16,
         background: 'white', border: '1.5px dashed #E5E0D0' }}>
         <div style={{ width: 40, height: 40, borderRadius: '50%', flexShrink: 0, display: 'flex',
@@ -66,7 +66,7 @@ export function OshiNewSection() {
       <div style={{
         position: 'sticky', top: 0, zIndex: 10,
         background: '#FFFEEF',
-        padding: `${isMobile ? 20 : 32}px 0 ${isMobile ? 20 : 32}px ${isMobile ? 16 : 24}px`,
+        padding: `${isMobile ? 24 : 34}px 0 ${isMobile ? 16 : 24}px ${isMobile ? 16 : 24}px`,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
           <span style={{ display: 'block', width: 20, height: 3, borderRadius: 2, background: '#F2B800' }} />

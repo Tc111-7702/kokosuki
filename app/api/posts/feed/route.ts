@@ -1,13 +1,9 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import * as db from '@/lib/db';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 
 const PER_PAGE = 20;
-
-const GACHA_SELECT = { id: true, ipName: true, seriesName: true, gradientFrom: true, gradientTo: true, imageUrl: true };
-const USER_SELECT  = { id: true, name: true, image: true };
-const SPOT_SELECT  = { id: true, name: true, address: true, lat: true, lng: true };
 
 function haversine(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371000;
@@ -35,10 +31,7 @@ export async function GET(request: Request) {
     const dist    = (spotLat: number, spotLng: number) =>
       hasPos ? haversine(userLat, userLng, spotLat, spotLng) : 0;
 
-    const likedGachas = await prisma.gachaLike.findMany({
-      where: { userId },
-      select: { gachaId: true, gacha: { select: { ipName: true } } },
-    });
+    const likedGachas = await db.getUserGachaLikesWithIp(userId);
     const likedIdSet = new Set(likedGachas.map((g) => g.gachaId));
     const likedIpSet = new Set(likedGachas.map((g) => g.gacha.ipName));
 
@@ -48,42 +41,23 @@ export async function GET(request: Request) {
       return 2;
     };
 
-    let extraFilter: Record<string, unknown> = {};
+    // 発売終了ガチャの投稿はホーム・ガチャページ・店舗ページに表示しない
+    // （発売中フィルターは db.getFeedPosts / getFeedStockPosts 内で適用）
+    // 検索: gachaIds / 店舗ページ: filterGachaIds、いずれも無ければ全件
+    let gachaIds: string[] = [];
     if (type === 'search') {
-      const gachaIdsParam = searchParams.get('gachaIds') ?? '';
-      const gids = gachaIdsParam ? gachaIdsParam.split(',').filter(Boolean) : [];
-      if (gids.length > 0) extraFilter = { gachaId: { in: gids } };
+      gachaIds = (searchParams.get('gachaIds') ?? '').split(',').filter(Boolean);
     }
-
-    // 店舗ページ用フィルター（spotId / filterGachaIds）
     const filterSpotId        = searchParams.get('spotId');
     const filterGachaIdsStore = searchParams.get('filterGachaIds');
-    let baseWhere: Record<string, unknown> = { isPublic: true, ...extraFilter };
-    if (filterSpotId) baseWhere = { ...baseWhere, spotId: filterSpotId };
-    if (filterGachaIdsStore && !(extraFilter as Record<string, unknown>).gachaId) {
-      const gids = filterGachaIdsStore.split(',').filter(Boolean);
-      if (gids.length > 0) baseWhere = { ...baseWhere, gachaId: { in: gids } };
+    if (gachaIds.length === 0 && filterGachaIdsStore) {
+      gachaIds = filterGachaIdsStore.split(',').filter(Boolean);
     }
+    const feedFilter = { spotId: filterSpotId, gachaIds };
 
     const [rawStock, rawPosts] = await Promise.all([
-      prisma.stockPost.findMany({
-        where: baseWhere,
-        include: {
-          user:   { select: USER_SELECT },
-          spot:   { select: SPOT_SELECT },
-          gacha:  { select: GACHA_SELECT },
-          _count: { select: { likes: true, replies: true } },
-        },
-      }),
-      prisma.post.findMany({
-        where: baseWhere,
-        include: {
-          user:   { select: USER_SELECT },
-          spot:   { select: SPOT_SELECT },
-          gacha:  { select: GACHA_SELECT },
-          _count: { select: { likes: true, replies: true } },
-        },
-      }),
+      db.getFeedStockPosts(feedFilter),
+      db.getFeedPosts(feedFilter),
     ]);
 
     // 同一マシンの在庫投稿は最新のみ残す（重複排除）
@@ -98,8 +72,8 @@ export async function GET(request: Request) {
     const postIds  = rawPosts.map((p) => p.id);
 
     const [myStockLikes, myPostLikes] = await Promise.all([
-      prisma.stockPostLike.findMany({ where: { userId, stockPostId: { in: stockIds } }, select: { stockPostId: true } }),
-      prisma.like.findMany({         where: { userId, postId:      { in: postIds }  }, select: { postId: true } }),
+      db.getStockPostLikedIds(userId, stockIds),
+      db.getPostLikedIds(userId, postIds),
     ]);
 
     const stockLikedSet = new Set(myStockLikes.map((l) => l.stockPostId));

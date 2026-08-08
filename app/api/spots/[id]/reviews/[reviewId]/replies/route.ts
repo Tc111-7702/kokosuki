@@ -1,10 +1,8 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import * as db from '@/lib/db';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { notifyReply } from '@/lib/notifications';
-
-const USER_SEL = { select: { id: true, name: true, image: true } } as const;
 
 // POST /api/spots/[id]/reviews/[reviewId]/replies
 export async function POST(
@@ -21,10 +19,7 @@ export async function POST(
     const text: string = (body.text ?? '').trim();
     if (!text) return NextResponse.json({ error: 'text is required' }, { status: 400 });
 
-    const reply = await prisma.spotReviewReply.create({
-      data: { reviewId, userId, text },
-      include: { user: USER_SEL },
-    });
+    const reply = await db.createSpotReviewReplyWithUser(reviewId, userId, text);
 
     await notifyReply('spotReview', reviewId, userId, text);
 

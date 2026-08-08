@@ -22,7 +22,6 @@ export async function GET() {
     handle:        profile?.handle ?? null,
     avatarUrl:     profile?.avatarUrl ?? null,
     bio:           profile?.bio ?? null,
-    favoriteIps:   profile?.favoriteIps ?? [],
     likedGachaIds,
   });
 }

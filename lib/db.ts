@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
 
@@ -75,6 +75,15 @@ export const findProfileByHandle = (handle: string) =>
 
 export const findProfileByUserId = (userId: string) =>
   prisma.userProfile.findUnique({ where: { userId } });
+
+/** 指定ユーザーのうち「お気に入り在庫通知」をOFFにしているユーザーID（未作成はON扱いで対象外） */
+export const getFavoriteStockDisabledUserIds = async (userIds: string[]): Promise<string[]> => {
+  const rows = await prisma.userProfile.findMany({
+    where: { userId: { in: userIds }, notifyFavoriteStock: false },
+    select: { userId: true },
+  });
+  return rows.map((r) => r.userId);
+};
 
 export const upsertProfile = (userId: string, handle: string) =>
   prisma.userProfile.upsert({
@@ -264,6 +273,22 @@ export const upsertGachaFromScraper = (data: GachaUpsertData) =>
     },
   });
 
+/** 店舗スクレイパーのスイープ処理: 今回見つからなかったガチャを終了扱いにする */
+export const markGachasEnded = (ids: string[]) =>
+  ids.length === 0
+    ? Promise.resolve({ count: 0 })
+    : prisma.gacha.updateMany({
+        where: { id: { in: ids } },
+        data:  { isOnSale: false, status: 'ended' },
+      });
+
+/** スイープ用: 現在 isOnSale:true の全ガチャIDを返す */
+export const getOnSaleGachaIds = () =>
+  prisma.gacha.findMany({
+    where:  { isOnSale: true },
+    select: { id: true },
+  }).then((rows) => rows.map((r) => r.id));
+
 export const getGachaById = (id: string) =>
   prisma.gacha.findUnique({
     where: { id },
@@ -420,51 +445,266 @@ export const upsertMachine = (spotId: string, gachaId: string) =>
     create: { spotId, gachaId },
   });
 
-// ─── Follow ───────────────────────────────────────────────────────────────────
+// ─── Notification ─────────────────────────────────────────────────────────────
 
-/** フォロー／アンフォローをトグル */
-export async function toggleFollow(followerId: string, followingId: string) {
-  const existing = await prisma.follow.findUnique({
-    where: { followerId_followingId: { followerId, followingId } },
+export const getNotificationsByUserId = (userId: string, take = 50) =>
+  prisma.notification.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+    take,
   });
+
+export const getUnreadNotificationCount = (userId: string) =>
+  prisma.notification.count({
+    where: { userId, read: false },
+  });
+
+export const markNotificationsAsRead = (userId: string) =>
+  prisma.notification.updateMany({
+    where: { userId, read: false },
+    data: { read: true },
+  });
+
+export const getUserById = (id: string) =>
+  prisma.user.findUnique({ where: { id }, select: { name: true } });
+
+export const findPublicPost = (id: string) =>
+  prisma.post.findFirst({ where: { id, isPublic: true }, select: { userId: true, spotId: true } });
+
+export const findPublicStockPost = (id: string) =>
+  prisma.stockPost.findFirst({ where: { id, isPublic: true }, select: { userId: true, spotId: true } });
+
+export const findPublicSpotReview = (id: string) =>
+  prisma.spotReview.findFirst({ where: { id, isPublic: true }, select: { userId: true, spotId: true } });
+
+export const getGachaLikesForFanout = (
+  gachaId: string,
+  excludeUserId: string,
+  cursor?: string,
+  take = 500,
+) =>
+  prisma.gachaLike.findMany({
+    where: { gachaId, NOT: { userId: excludeUserId } },
+    select: { id: true, userId: true },
+    orderBy: { id: 'asc' },
+    take,
+    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+  });
+
+export const createNotification = (data: Prisma.NotificationUncheckedCreateInput) =>
+  prisma.notification.create({ data });
+
+export const createNotificationMany = (data: Prisma.NotificationCreateManyInput[]) =>
+  prisma.notification.createMany({ data });
+
+export const findLikeNotification = (where: Prisma.NotificationWhereInput) =>
+  prisma.notification.findFirst({ where, select: { id: true } });
+
+// ─── Post（通常投稿） ───────────────────────────────────────────────────────────
+
+const FEED_USER_SELECT  = { id: true, name: true, image: true } as const;
+const FEED_SPOT_SELECT  = { id: true, name: true, address: true, lat: true, lng: true } as const;
+const FEED_GACHA_SELECT = { id: true, ipName: true, seriesName: true, gradientFrom: true, gradientTo: true, imageUrl: true } as const;
+const REPLY_USER_INCLUDE = { user: { select: FEED_USER_SELECT } } as const;
+
+export const createPost = (data: Prisma.PostUncheckedCreateInput) =>
+  prisma.post.create({ data });
+
+export const getPostOwnerId = (id: string) =>
+  prisma.post.findUnique({ where: { id }, select: { userId: true } });
+
+export const deletePost = (id: string) =>
+  prisma.post.delete({ where: { id } });
+
+export const countPostsByGacha = (gachaId: string) =>
+  prisma.post.count({ where: { gachaId } });
+
+export const countPostsByGachaSince = (gachaId: string, since: Date) =>
+  prisma.post.count({ where: { gachaId, createdAt: { gte: since } } });
+
+// ─── Like（投稿いいね） ─────────────────────────────────────────────────────────
+
+/** 投稿いいねをトグルし、最新いいね数を返す */
+export async function togglePostLike(userId: string, postId: string) {
+  const existing = await prisma.like.findUnique({ where: { userId_postId: { userId, postId } } });
   if (existing) {
-    await prisma.follow.delete({ where: { followerId_followingId: { followerId, followingId } } });
-    return { following: false };
+    await prisma.like.delete({ where: { userId_postId: { userId, postId } } });
   } else {
-    await prisma.follow.create({ data: { followerId, followingId } });
-    return { following: true };
+    await prisma.like.create({ data: { userId, postId } });
+  }
+  const likeCount = await prisma.like.count({ where: { postId } });
+  return { liked: !existing, likeCount };
+}
+
+// ─── PostReply（ルート用: user 付き） ───────────────────────────────────────────
+
+export const listPostReplies = (postId: string) =>
+  prisma.postReply.findMany({
+    where: { postId, parentId: null },
+    orderBy: { createdAt: 'asc' },
+    include: REPLY_USER_INCLUDE,
+  });
+
+export const createPostReplyWithUser = (postId: string, userId: string, text: string) =>
+  prisma.postReply.create({
+    data: { postId, userId, text, parentId: null },
+    include: REPLY_USER_INCLUDE,
+  });
+
+export const getPostReplyById = (id: string) =>
+  prisma.postReply.findUnique({ where: { id } });
+
+export const deletePostReply = (id: string) =>
+  prisma.postReply.delete({ where: { id } });
+
+// ─── Feed（ホーム/店舗フィード） ────────────────────────────────────────────────
+
+export const getUserGachaLikesWithIp = (userId: string) =>
+  prisma.gachaLike.findMany({
+    where: { userId },
+    select: { gachaId: true, gacha: { select: { ipName: true } } },
+  });
+
+export const getFeedStockPosts = (filter: { spotId?: string | null; gachaIds?: string[] | null }) =>
+  prisma.stockPost.findMany({
+    where: {
+      isPublic: true,
+      gacha: { isOnSale: true },
+      ...(filter.spotId ? { spotId: filter.spotId } : {}),
+      ...(filter.gachaIds && filter.gachaIds.length > 0 ? { gachaId: { in: filter.gachaIds } } : {}),
+    },
+    include: {
+      user:   { select: FEED_USER_SELECT },
+      spot:   { select: FEED_SPOT_SELECT },
+      gacha:  { select: FEED_GACHA_SELECT },
+      _count: { select: { likes: true, replies: true } },
+    },
+  });
+
+export const getFeedPosts = (filter: { spotId?: string | null; gachaIds?: string[] | null }) =>
+  prisma.post.findMany({
+    where: {
+      isPublic: true,
+      gacha: { isOnSale: true },
+      ...(filter.spotId ? { spotId: filter.spotId } : {}),
+      ...(filter.gachaIds && filter.gachaIds.length > 0 ? { gachaId: { in: filter.gachaIds } } : {}),
+    },
+    include: {
+      user:   { select: FEED_USER_SELECT },
+      spot:   { select: FEED_SPOT_SELECT },
+      gacha:  { select: FEED_GACHA_SELECT },
+      _count: { select: { likes: true, replies: true } },
+    },
+  });
+
+export const getStockPostLikedIds = (userId: string, stockPostIds: string[]) =>
+  prisma.stockPostLike.findMany({ where: { userId, stockPostId: { in: stockPostIds } }, select: { stockPostId: true } });
+
+export const getPostLikedIds = (userId: string, postIds: string[]) =>
+  prisma.like.findMany({ where: { userId, postId: { in: postIds } }, select: { postId: true } });
+
+// ─── StockPost（在庫報告） ──────────────────────────────────────────────────────
+
+/** Machine を upsert し stockStatus を最新化 */
+export const upsertMachineWithStock = (spotId: string, gachaId: string, stockStatus: string) =>
+  prisma.machine.upsert({
+    where:  { spotId_gachaId: { spotId, gachaId } },
+    create: { spotId, gachaId, stockStatus },
+    update: { stockStatus },
+  });
+
+export const createStockPost = (data: Prisma.StockPostUncheckedCreateInput) =>
+  prisma.stockPost.create({ data });
+
+export const getStockPostOwnerId = (id: string) =>
+  prisma.stockPost.findUnique({ where: { id }, select: { userId: true } });
+
+export const deleteStockPost = (id: string) =>
+  prisma.stockPost.delete({ where: { id } });
+
+/** 在庫報告いいねをトグル */
+export async function toggleStockPostLike(userId: string, stockPostId: string) {
+  const existing = await prisma.stockPostLike.findUnique({ where: { userId_stockPostId: { userId, stockPostId } } });
+  if (existing) {
+    await prisma.stockPostLike.delete({ where: { userId_stockPostId: { userId, stockPostId } } });
+    return { liked: false };
+  } else {
+    await prisma.stockPostLike.create({ data: { userId, stockPostId } });
+    return { liked: true };
   }
 }
 
-/** フォロー中かどうか確認 */
-export const isFollowing = (followerId: string, followingId: string) =>
-  prisma.follow.findUnique({
-    where: { followerId_followingId: { followerId, followingId } },
-  }).then(Boolean);
-
-/** フォロワー一覧（このユーザーをフォローしている人） */
-export const getFollowers = (userId: string) =>
-  prisma.follow.findMany({
-    where: { followingId: userId },
-    include: { follower: { select: { id: true, name: true, image: true } } },
-    orderBy: { createdAt: 'desc' },
+export const listStockPostReplies = (stockPostId: string) =>
+  prisma.stockPostReply.findMany({
+    where: { stockPostId },
+    orderBy: { createdAt: 'asc' },
+    include: REPLY_USER_INCLUDE,
   });
 
-/** フォロー中一覧（このユーザーがフォローしている人） */
-export const getFollowing = (userId: string) =>
-  prisma.follow.findMany({
-    where: { followerId: userId },
-    include: { following: { select: { id: true, name: true, image: true } } },
-    orderBy: { createdAt: 'desc' },
+export const createStockPostReplyWithUser = (stockPostId: string, userId: string, text: string) =>
+  prisma.stockPostReply.create({
+    data: { stockPostId, userId, text },
+    include: REPLY_USER_INCLUDE,
   });
 
-/** フォロワー数・フォロー中数をまとめて取得 */
-export async function getFollowCounts(userId: string) {
-  const [followers, following] = await Promise.all([
-    prisma.follow.count({ where: { followingId: userId } }),
-    prisma.follow.count({ where: { followerId: userId } }),
-  ]);
-  return { followers, following };
+export const getStockPostReplyById = (id: string) =>
+  prisma.stockPostReply.findUnique({ where: { id } });
+
+export const deleteStockPostReply = (id: string) =>
+  prisma.stockPostReply.delete({ where: { id } });
+
+// ─── SpotReview（店舗レビュー） ─────────────────────────────────────────────────
+
+export const countSpotReviews = (spotId: string) =>
+  prisma.spotReview.count({ where: { spotId, isPublic: true } });
+
+export const listSpotReviews = (spotId: string, skip: number, take: number) =>
+  prisma.spotReview.findMany({
+    where: { spotId, isPublic: true },
+    orderBy: { createdAt: 'desc' },
+    skip,
+    take,
+    include: {
+      user: { select: FEED_USER_SELECT },
+      replies: { include: REPLY_USER_INCLUDE, orderBy: { createdAt: 'asc' } },
+      _count: { select: { likes: true } },
+      likes: { select: { userId: true } },
+    },
+  });
+
+export const createSpotReview = (spotId: string, userId: string, text: string) =>
+  prisma.spotReview.create({
+    data: { spotId, userId, text },
+    include: {
+      user: { select: FEED_USER_SELECT },
+      replies: { include: REPLY_USER_INCLUDE },
+      _count: { select: { likes: true } },
+    },
+  });
+
+export const getSpotReviewById = (id: string) =>
+  prisma.spotReview.findUnique({ where: { id } });
+
+export const updateSpotReview = (id: string, text: string) =>
+  prisma.spotReview.update({
+    where: { id },
+    data: { text },
+    include: { user: { select: FEED_USER_SELECT }, _count: { select: { likes: true } } },
+  });
+
+export const deleteSpotReview = (id: string) =>
+  prisma.spotReview.delete({ where: { id } });
+
+/** レビューいいねをトグルし、最新いいね数を返す */
+export async function toggleSpotReviewLike(userId: string, reviewId: string) {
+  const existing = await prisma.spotReviewLike.findUnique({ where: { userId_reviewId: { userId, reviewId } } });
+  if (existing) {
+    await prisma.spotReviewLike.delete({ where: { userId_reviewId: { userId, reviewId } } });
+  } else {
+    await prisma.spotReviewLike.create({ data: { userId, reviewId } });
+  }
+  const count = await prisma.spotReviewLike.count({ where: { reviewId } });
+  return { liked: !existing, count };
 }
 
 // ─── マイページ / アカウント ────────────────────────────────────────────────────
@@ -520,14 +760,6 @@ export const getUserStockPosts = (userId: string) =>
     include: PROFILE_POST_INCLUDE,
   });
 
-/** 閲覧ユーザーが指定postIdsのうちいいね済みのもの */
-export const getPostLikedIds = (userId: string, postIds: string[]) =>
-  prisma.like.findMany({ where: { userId, postId: { in: postIds } }, select: { postId: true } });
-
-/** 閲覧ユーザーが指定stockPostIdsのうちいいね済みのもの */
-export const getStockPostLikedIds = (userId: string, stockPostIds: string[]) =>
-  prisma.stockPostLike.findMany({ where: { userId, stockPostId: { in: stockPostIds } }, select: { stockPostId: true } });
-
 /** 指定ユーザーのお気に入りガチャ一覧（公開） */
 export const getUserFavorites = (userId: string) =>
   prisma.gachaLike.findMany({
@@ -573,3 +805,191 @@ export async function getPublicUserSummary(userId: string) {
     },
   };
 }
+
+export const createSpotReviewReplyWithUser = (reviewId: string, userId: string, text: string) =>
+  prisma.spotReviewReply.create({
+    data: { reviewId, userId, text },
+    include: REPLY_USER_INCLUDE,
+  });
+
+export const getSpotReviewReplyById = (id: string) =>
+  prisma.spotReviewReply.findUnique({ where: { id } });
+
+export const deleteSpotReviewReply = (id: string) =>
+  prisma.spotReviewReply.delete({ where: { id } });
+
+// ─── Spot 検索 ──────────────────────────────────────────────────────────────────
+
+export const searchSpotsForSuggest = (name: string, gachaId?: string) =>
+  prisma.spot.findMany({
+    where: {
+      OR: [
+        { name:    { contains: name, mode: 'insensitive' } },
+        { address: { contains: name, mode: 'insensitive' } },
+      ],
+      ...(gachaId ? { machines: { some: { gachaId } } } : {}),
+    },
+    select: { id: true, name: true, address: true, lat: true, lng: true },
+    take: 100,
+  });
+
+export const searchSpotsByName = (name: string) =>
+  prisma.spot.findMany({
+    where: { name: { contains: name, mode: 'insensitive' } },
+    include: { machines: { select: { gachaId: true, stockStatus: true } } },
+  });
+
+// ─── Gacha 検索 / お気に入り / IP ────────────────────────────────────────────────
+
+export const getUserFavoriteGachas = (userId: string) =>
+  prisma.gachaLike.findMany({
+    where: { userId },
+    include: {
+      gacha: {
+        select: {
+          id: true, seriesName: true, ipName: true, imageUrl: true,
+          gradientFrom: true, gradientTo: true, status: true, releaseDate: true, isOnSale: true,
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+export const deleteGachaLike = (userId: string, gachaId: string) =>
+  prisma.gachaLike.deleteMany({ where: { userId, gachaId } });
+
+export const groupGachaByIpAndCategory = () =>
+  prisma.gacha.groupBy({
+    by: ['ipName', 'ipCategory'],
+    _count: { id: true },
+    orderBy: { _count: { id: 'desc' } },
+  });
+
+const seriesTermsWhere = (terms: string[]): Prisma.GachaWhereInput =>
+  terms.length === 1
+    ? { seriesName: { contains: terms[0], mode: 'insensitive' } }
+    : { OR: terms.map(t => ({ seriesName: { contains: t, mode: 'insensitive' as const } })) };
+
+const ipTermsWhere = (terms: string[]): Prisma.GachaWhereInput =>
+  terms.length === 1
+    ? { ipName: { contains: terms[0], mode: 'insensitive' } }
+    : { OR: terms.map(t => ({ ipName: { contains: t, mode: 'insensitive' as const } })) };
+
+export const findOnSaleSeriesByExactIp = (ipName: string) =>
+  prisma.gacha.findMany({
+    where: { isOnSale: true, ipName: { equals: ipName, mode: 'insensitive' } },
+    select: { seriesName: true, imageUrl: true },
+    distinct: ['seriesName'],
+    orderBy: { seriesName: 'asc' },
+  });
+
+export const suggestGachaSeries = (terms: string[]) =>
+  prisma.gacha.findMany({
+    where: { isOnSale: true, ...seriesTermsWhere(terms) },
+    select: { seriesName: true, imageUrl: true },
+    distinct: ['seriesName'],
+    orderBy: { seriesName: 'asc' },
+  });
+
+export const suggestGachaIps = (terms: string[]) =>
+  prisma.gacha.findMany({
+    where: { isOnSale: true, ...ipTermsWhere(terms) },
+    select: { ipName: true },
+    distinct: ['ipName'],
+    orderBy: { ipName: 'asc' },
+  });
+
+export const findOnSaleExactIp = (ipName: string) =>
+  prisma.gacha.findFirst({
+    where: { isOnSale: true, ipName: { equals: ipName, mode: 'insensitive' } },
+    select: { ipName: true },
+  });
+
+export const findGachaIdsByExactIp = (ipName: string) =>
+  prisma.gacha.findMany({
+    where: { isOnSale: true, ipName: { equals: ipName, mode: 'insensitive' } },
+    select: { id: true, ipName: true },
+  });
+
+export const findGachaIdsBySeriesTerms = (terms: string[]) =>
+  prisma.gacha.findMany({
+    where: { isOnSale: true, ...seriesTermsWhere(terms) },
+    select: { id: true, seriesName: true },
+  });
+
+export const findGachaIdsByIpTerms = (terms: string[]) =>
+  prisma.gacha.findMany({
+    where: { isOnSale: true, ...ipTermsWhere(terms) },
+    select: { id: true, ipName: true },
+  });
+
+// ─── Community / User 検索 ──────────────────────────────────────────────────────
+
+export const getGachasWithLikeCount = () =>
+  prisma.gacha.findMany({
+    select: {
+      id: true, seriesName: true, ipName: true, imageUrl: true, gradientFrom: true, gradientTo: true,
+      _count: { select: { gachaLikes: true } },
+    },
+    orderBy: { gachaLikes: { _count: 'desc' } },
+  });
+
+export const getUserLikedIpNames = async (userId: string): Promise<string[]> => {
+  const rows = await prisma.gachaLike.findMany({ where: { userId }, select: { gacha: { select: { ipName: true } } } });
+  return [...new Set(rows.map(r => r.gacha.ipName))];
+};
+
+export const getGachaIdsByIpNames = async (ipNames: string[]): Promise<string[]> => {
+  if (ipNames.length === 0) return [];
+  const rows = await prisma.gacha.findMany({ where: { ipName: { in: ipNames } }, select: { id: true } });
+  return rows.map(g => g.id);
+};
+
+export const getUserIdsWhoLikedGachas = async (gachaIds: string[], excludeUserId: string): Promise<string[]> => {
+  if (gachaIds.length === 0) return [];
+  const rows = await prisma.gachaLike.findMany({
+    where: { gachaId: { in: gachaIds }, userId: { not: excludeUserId } },
+    select: { userId: true },
+    distinct: ['userId'],
+  });
+  return rows.map(r => r.userId);
+};
+
+const USER_PROFILE_SELECT = {
+  id: true, name: true, image: true,
+  profile: { select: { handle: true, avatarUrl: true, bio: true } },
+} as const;
+
+export const getUsersByIds = (ids: string[], take: number) =>
+  prisma.user.findMany({ where: { id: { in: ids } }, select: USER_PROFILE_SELECT, take });
+
+export const searchUsers = (q: string, excludeUserId?: string) =>
+  prisma.user.findMany({
+    where: {
+      OR: [
+        { name: { contains: q, mode: 'insensitive' } },
+        { profile: { handle: { contains: q, mode: 'insensitive' } } },
+      ],
+      ...(excludeUserId ? { NOT: { id: excludeUserId } } : {}),
+    },
+    select: USER_PROFILE_SELECT,
+    take: 10,
+  });
+
+// ─── Coming Soon（近日発売の補完取得） ──────────────────────────────────────────
+
+const COMING_SOON_SELECT = {
+  id: true, seriesName: true, ipName: true,
+  imageUrl: true, gradientFrom: true, gradientTo: true,
+  status: true, releaseDate: true,
+  _count: { select: { gachaLikes: true } },
+} as const;
+
+/** 追加の where を受け取り、いいね数降順で take 件のガチャを返す（発売中のみ） */
+export const findComingSoonGachas = (where: Prisma.GachaWhereInput, take: number) =>
+  prisma.gacha.findMany({
+    where: { isOnSale: true, ...where },
+    orderBy: { gachaLikes: { _count: 'desc' } },
+    take,
+    select: COMING_SOON_SELECT,
+  });

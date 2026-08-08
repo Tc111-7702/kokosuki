@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import * as db from '@/lib/db';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
-
-const USER_SEL = { select: { id: true, name: true, image: true } } as const;
 
 // GET /api/spots/[id]/reviews?skip=0&take=3
 export async function GET(
@@ -19,19 +17,8 @@ export async function GET(
     const take = parseInt(searchParams.get('take') ?? '3', 10);
 
     const [total, reviews] = await Promise.all([
-      prisma.spotReview.count({ where: { spotId, isPublic: true } }),
-      prisma.spotReview.findMany({
-        where: { spotId, isPublic: true },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take,
-        include: {
-          user: USER_SEL,
-          replies: { include: { user: USER_SEL }, orderBy: { createdAt: 'asc' } },
-          _count: { select: { likes: true } },
-          likes: { select: { userId: true } },
-        },
-      }),
+      db.countSpotReviews(spotId),
+      db.listSpotReviews(spotId, skip, take),
     ]);
 
     const items = reviews.map(({ likes, ...r }) => ({
@@ -61,14 +48,7 @@ export async function POST(
     const text: string = (body.text ?? '').trim();
     if (!text) return NextResponse.json({ error: 'text is required' }, { status: 400 });
 
-    const review = await prisma.spotReview.create({
-      data: { spotId, userId, text },
-      include: {
-        user: USER_SEL,
-        replies: { include: { user: USER_SEL } },
-        _count: { select: { likes: true } },
-      },
-    });
+    const review = await db.createSpotReview(spotId, userId, text);
 
     return NextResponse.json({ review: { ...review, likedByMe: false } }, { status: 201 });
   } catch (e) {

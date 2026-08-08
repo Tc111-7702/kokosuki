@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
-import { prisma } from '@/lib/db';
+import * as db from '@/lib/db';
 import { notifyFavoriteStock } from '@/lib/notifications';
 
 // POST /api/stock-posts  — 在庫情報投稿を作成 & Machine.stockStatus を更新
@@ -21,20 +21,14 @@ export async function POST(request: Request) {
   }
 
   // Machine を取得または作成し、stockStatus を最新値に更新
-  const machine = await prisma.machine.upsert({
-    where:  { spotId_gachaId: { spotId, gachaId } },
-    create: { spotId, gachaId, stockStatus },
-    update: { stockStatus },
-  });
+  const machine = await db.upsertMachineWithStock(spotId, gachaId, stockStatus);
 
-  const stockPost = await prisma.stockPost.create({
-    data: {
-      userId:      session.user.id,
-      machineId:   machine.id,
-      spotId,
-      gachaId,
-      stockStatus,
-    },
+  const stockPost = await db.createStockPost({
+    userId:      session.user.id,
+    machineId:   machine.id,
+    spotId,
+    gachaId,
+    stockStatus,
   });
 
   // このガチャをお気に入り登録しているユーザーへ通知（失敗しても投稿は成功扱い）
