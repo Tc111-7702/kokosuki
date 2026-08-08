@@ -4,8 +4,13 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, ChevronRight } from 'lucide-react';
 import { authClient } from '@/lib/auth-client';
+import { SettingsSheet } from '@/components/settings/SettingsSheet';
+import { ProfileSettingsSheet } from '@/components/settings/ProfileSettingsSheet';
+import { HelpContent, PrivacyContent, TermsContent } from '@/components/settings/StaticContents';
 
 const APP_VERSION = '1.0.0';
+
+type Sheet = 'profile' | 'help' | 'terms' | 'privacy' | null;
 
 const RADIUS_OPTIONS = [
   { value: 5_000,  label: '5km' },
@@ -42,6 +47,8 @@ export default function SettingsPage() {
   const [email, setEmail] = useState('');
   const [settings, setSettings] = useState<Settings | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [sheet, setSheet] = useState<Sheet>(null);
+  const closeSheet = () => setSheet(null);
 
   useEffect(() => {
     fetch('/api/mypage/summary')
@@ -83,7 +90,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#FFFEEF]">
+    <div className="relative flex flex-col h-full bg-[#FFFEEF] overflow-hidden">
       <div className="flex-shrink-0 bg-white flex items-center gap-2 px-3" style={{ height: 52, borderBottom: '1.5px solid #EDE9D8' }}>
         <button onClick={() => router.back()} className="p-2 active:opacity-60" aria-label="戻る">
           <ArrowLeft size={20} color="#555" />
@@ -139,7 +146,7 @@ export default function SettingsPage() {
         {/* アカウント */}
         <SectionTitle>アカウント</SectionTitle>
         <div className="bg-white" style={{ borderTop: '1px solid #F0ECD8', borderBottom: '1px solid #F0ECD8' }}>
-          <RowLink label="プロフィール設定" onClick={() => router.push('/settings/profile')} />
+          <RowLink label="プロフィール設定" onClick={() => setSheet('profile')} />
           <div className="flex items-center justify-between px-4 py-3.5">
             <p className="text-[14px] font-bold" style={{ color: '#111' }}>メールアドレス</p>
             <p className="text-[12px]" style={{ color: '#AAA' }}>{email || '…'}</p>
@@ -149,9 +156,9 @@ export default function SettingsPage() {
         {/* その他 */}
         <SectionTitle>その他</SectionTitle>
         <div className="bg-white" style={{ borderTop: '1px solid #F0ECD8', borderBottom: '1px solid #F0ECD8' }}>
-          <RowLink label="ヘルプ・お知らせ" onClick={() => router.push('/settings/help')} />
-          <RowLink label="利用規約" onClick={() => router.push('/settings/terms')} />
-          <RowLink label="プライバシーポリシー" onClick={() => router.push('/settings/privacy')} />
+          <RowLink label="ヘルプ・お知らせ" onClick={() => setSheet('help')} />
+          <RowLink label="利用規約" onClick={() => setSheet('terms')} />
+          <RowLink label="プライバシーポリシー" onClick={() => setSheet('privacy')} />
           <div className="flex items-center justify-between px-4 py-3.5">
             <p className="text-[14px] font-bold" style={{ color: '#111' }}>バージョン</p>
             <p className="text-[12px]" style={{ color: '#AAA' }}>{APP_VERSION}</p>
@@ -168,6 +175,12 @@ export default function SettingsPage() {
           </button>
         </div>
       </div>
+
+      {/* サブ画面（ページ遷移なしのオーバーレイ） */}
+      <ProfileSettingsSheet open={sheet === 'profile'} onClose={closeSheet} />
+      <SettingsSheet open={sheet === 'help'} onClose={closeSheet} title="ヘルプ・お知らせ"><HelpContent /></SettingsSheet>
+      <SettingsSheet open={sheet === 'terms'} onClose={closeSheet} title="利用規約"><TermsContent /></SettingsSheet>
+      <SettingsSheet open={sheet === 'privacy'} onClose={closeSheet} title="プライバシーポリシー"><PrivacyContent /></SettingsSheet>
     </div>
   );
 }

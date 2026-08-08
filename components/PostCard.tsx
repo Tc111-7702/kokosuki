@@ -68,11 +68,16 @@ export function PostCard({
       onClick={() => interactive && onSelect?.(post)}
     >
       <div className="flex items-center gap-3 mb-3">
-        <Avatar user={post.user} size={40} />
-        <div className="flex-1 min-w-0">
-          <span className="font-semibold text-sm text-gray-900 truncate">{post.user.name}</span>
-          <span className="text-xs text-gray-400 ml-2">{timeAgo(post.createdAt)}</span>
-        </div>
+        <button
+          onClick={e => { e.stopPropagation(); router.push('/mypage/' + post.user.id); }}
+          className="flex items-center gap-3 flex-1 min-w-0 text-left active:opacity-70"
+        >
+          <Avatar user={post.user} size={40} />
+          <div className="min-w-0">
+            <span className="font-semibold text-sm text-gray-900 truncate hover:text-blue-600 transition-colors">{post.user.name}</span>
+            <span className="text-xs text-gray-400 ml-2">{timeAgo(post.createdAt)}</span>
+          </div>
+        </button>
         <div className="flex items-center gap-2 flex-shrink-0">
           {/* ipName: デスクトップのみヘッダーに表示 */}
           <button
@@ -114,6 +119,9 @@ export function PostCard({
         >
           {post.gacha.seriesName}
         </button>
+        {post.gacha.isOnSale === false && (
+          <span className="ml-1.5 text-xs px-2 py-0.5 rounded-full font-semibold border border-red-200 text-red-500 bg-red-50">発売中止</span>
+        )}
         {post.itemName && (
           <span className="ml-1.5 text-xs text-gray-500">{post.itemName}</span>
         )}

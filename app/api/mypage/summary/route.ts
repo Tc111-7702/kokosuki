@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import * as db from '@/lib/db';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 
@@ -13,11 +13,11 @@ export async function GET() {
     const userId = session.user.id;
 
     const [profile, postCount, kamibikiCount, postLikes, stockPostLikes] = await Promise.all([
-      prisma.userProfile.findUnique({ where: { userId } }),
-      prisma.post.count({ where: { userId } }),
-      prisma.post.count({ where: { userId, result: '神引き' } }),
-      prisma.like.count({ where: { post: { userId } } }),
-      prisma.stockPostLike.count({ where: { stockPost: { userId } } }),
+      db.findProfileByUserId(userId),
+      db.countUserPosts(userId),
+      db.countUserPostsByResult(userId, '神引き'),
+      db.countLikesOnUserPosts(userId),
+      db.countLikesOnUserStockPosts(userId),
     ]);
 
     return NextResponse.json({

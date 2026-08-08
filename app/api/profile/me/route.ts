@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import * as db from '@/lib/db';
-import { prisma } from '@/lib/db';
 import { headers } from 'next/headers';
 
 export async function GET() {
@@ -81,11 +80,11 @@ export async function PATCH(req: Request) {
 
   // 名前はUserテーブル
   if (name !== undefined) {
-    await prisma.user.update({ where: { id: userId }, data: { name: name.trim() } });
+    await db.updateUserName(userId, name.trim());
   }
 
   // それ以外はUserProfile
-  const profileData: Record<string, unknown> = {};
+  const profileData: db.ProfileUpsertData = {};
   if (handle !== undefined) profileData.handle = handle;
   if (bio !== undefined) profileData.bio = bio;
   if (avatarUrl !== undefined) profileData.avatarUrl = avatarUrl;
@@ -95,11 +94,7 @@ export async function PATCH(req: Request) {
   if (mapRadiusM !== undefined) profileData.mapRadiusM = mapRadiusM;
 
   if (Object.keys(profileData).length > 0) {
-    await prisma.userProfile.upsert({
-      where:  { userId },
-      update: profileData,
-      create: { userId, ...profileData },
-    });
+    await db.upsertUserProfile(userId, profileData);
   }
 
   return NextResponse.json({ ok: true });

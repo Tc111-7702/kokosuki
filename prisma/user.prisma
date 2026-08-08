@@ -27,6 +27,8 @@ model User {
   spotReviews        SpotReview[]
   spotReviewReplies  SpotReviewReply[]
   spotReviewLikes    SpotReviewLike[]
+  following          Follow[] @relation("Following")  // 自分がフォローしている
+  followers          Follow[] @relation("Followers")  // 自分をフォローしている
 }
 
 model Session {
@@ -104,4 +106,20 @@ model UserFavoriteGacha {
   gacha Gacha @relation(fields: [gachaId], references: [id], onDelete: Cascade)
 
   @@unique([userId, gachaId])
+}
+
+// ─── フォロー ──────────────────────────────────────────────────────────────────
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String   // フォローする側
+  followingId String   // フォローされる側
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("Following", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("Followers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
 }

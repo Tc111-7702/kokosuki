@@ -1,16 +1,15 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, User, Camera } from 'lucide-react';
+import { User, Camera } from 'lucide-react';
+import { SettingsSheet } from '@/components/settings/SettingsSheet';
 
 interface FavoriteGacha {
   id: string;
   ipName: string;
 }
 
-export default function ProfileSettingsPage() {
-  const router = useRouter();
+export function ProfileSettingsSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [name, setName] = useState('');
@@ -24,8 +23,10 @@ export default function ProfileSettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
 
+  // 開いたときに最新のプロフィールを取得
   useEffect(() => {
-    // 現在のプロフィール
+    if (!open) return;
+    setError(null);
     fetch('/api/mypage/summary')
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
@@ -38,7 +39,6 @@ export default function ProfileSettingsPage() {
       })
       .finally(() => setLoaded(true));
 
-    // 好きIPの候補 = お気に入りガチャのIP一覧
     fetch('/api/gacha/favorites')
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
@@ -46,7 +46,7 @@ export default function ProfileSettingsPage() {
         setIpCandidates([...new Set(gachas.map((g) => g.ipName).filter(Boolean))]);
       })
       .catch(() => {});
-  }, []);
+  }, [open]);
 
   const toggleIp = (ip: string) =>
     setFavoriteIps((prev) => (prev.includes(ip) ? prev.filter((i) => i !== ip) : prev.length < 10 ? [...prev, ip] : prev));
@@ -87,33 +87,33 @@ export default function ProfileSettingsPage() {
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.error ?? '保存に失敗しました');
-      router.back();
+      onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : '保存に失敗しました');
+    } finally {
       setSaving(false);
     }
   };
 
+  const saveDisabled = !loaded || saving || !name.trim();
+
   return (
-    <div className="flex flex-col h-full bg-[#FFFEEF]">
-      <div className="flex-shrink-0 bg-white flex items-center justify-between px-3" style={{ height: 52, borderBottom: '1.5px solid #EDE9D8' }}>
-        <div className="flex items-center gap-2">
-          <button onClick={() => router.back()} className="p-2 active:opacity-60" aria-label="戻る">
-            <ArrowLeft size={20} color="#555" />
-          </button>
-          <h1 className="text-[16px] font-black" style={{ color: '#111' }}>プロフィール設定</h1>
-        </div>
+    <SettingsSheet
+      open={open}
+      onClose={onClose}
+      title="プロフィール設定"
+      headerRight={
         <button
           onClick={handleSave}
-          disabled={!loaded || saving || !name.trim()}
+          disabled={saveDisabled}
           className="px-4 py-1.5 rounded-full text-[13px] font-bold"
-          style={{ background: !loaded || saving || !name.trim() ? '#F0F0F0' : '#F2B800', color: !loaded || saving || !name.trim() ? '#BBB' : 'white' }}
+          style={{ background: saveDisabled ? '#F0F0F0' : '#F2B800', color: saveDisabled ? '#BBB' : 'white' }}
         >
           {saving ? '保存中…' : '保存'}
         </button>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-5 py-6">
+      }
+    >
+      <div className="px-5 py-6">
         {/* アイコン */}
         <div className="flex flex-col items-center">
           <button onClick={() => fileRef.current?.click()} disabled={uploading} className="relative active:opacity-70">
@@ -182,7 +182,7 @@ export default function ProfileSettingsPage() {
 
         {error && <p className="mt-4 text-[12px] font-bold" style={{ color: '#DC2626' }}>{error}</p>}
       </div>
-    </div>
+    </SettingsSheet>
   );
 }
 

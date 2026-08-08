@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { prisma } from '@/lib/db';
+import * as db from '@/lib/db';
 import { headers } from 'next/headers';
 
 export async function GET() {
@@ -21,7 +21,7 @@ export async function DELETE() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    await prisma.user.delete({ where: { id: session.user.id } });
+    await db.deleteUser(session.user.id);
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error('[me DELETE]', e);
