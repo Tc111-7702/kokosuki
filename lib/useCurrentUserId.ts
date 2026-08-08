@@ -10,10 +10,8 @@ export function useCurrentUserId(): string | null | undefined {
   const [id, setId] = useState<string | null | undefined>(cachedId);
 
   useEffect(() => {
-    if (cachedId !== undefined) {
-      setId(cachedId);
-      return;
-    }
+    // キャッシュ済みなら初期stateで反映済み（同期setStateは不要）
+    if (cachedId !== undefined) return;
     fetch('/api/me')
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
