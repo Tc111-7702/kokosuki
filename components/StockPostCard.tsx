@@ -14,7 +14,7 @@ export interface StockFeedPost {
   likedByMe: boolean;
   user: { id: string; name: string; image: string | null };
   spot: { id: string; name: string; address?: string | null };
-  gacha: { id: string; ipName: string; seriesName: string; gradientFrom: string; gradientTo: string; imageUrl: string | null };
+  gacha: { id: string; ipName: string; seriesName: string; gradientFrom: string; gradientTo: string; imageUrl: string | null; isOnSale?: boolean };
   _count: { likes: number; replies: number };
 }
 
@@ -151,6 +151,9 @@ export function StockPostCard({
             >
               {post.gacha.ipName}
             </button>
+            {post.gacha.isOnSale === false && (
+              <span className="text-xs px-2 py-0.5 rounded-full font-semibold border border-red-200 text-red-500 bg-red-50">発売中止</span>
+            )}
           </div>
           <button
             onClick={e => { e.stopPropagation(); router.push('/gacha/' + post.gacha.id); }}
@@ -175,11 +178,14 @@ export function StockPostCard({
 
       {/* 下段: ユーザー + いいね・返信 */}
       <div className="flex items-center justify-between mt-2.5">
-        <div className="flex items-center gap-2">
+        <button
+          onClick={e => { e.stopPropagation(); router.push('/mypage/' + post.user.id); }}
+          className="flex items-center gap-2 min-w-0 active:opacity-70"
+        >
           <Avatar user={post.user} size={22} />
-          <span className="text-xs text-gray-500 font-medium">{post.user.name}</span>
-          <span className="text-xs text-gray-400">{timeAgo(post.createdAt)}</span>
-        </div>
+          <span className="text-xs text-gray-500 font-medium hover:text-blue-600 transition-colors truncate">{post.user.name}</span>
+          <span className="text-xs text-gray-400 flex-shrink-0">{timeAgo(post.createdAt)}</span>
+        </button>
         <div className="flex items-center gap-4">
           {isOwner && (
             <button

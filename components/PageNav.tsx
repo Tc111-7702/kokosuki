@@ -2,6 +2,7 @@
 
 import { Home, Map, User, PlusSquare } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useCurrentUserId } from '@/lib/useCurrentUserId';
 
 const NAV_ITEMS = [
   { path: '/home',   label: 'ホーム',     icon: <Home       size={20} /> },
@@ -15,6 +16,13 @@ const ACTIVE_COLOR = '#F2B800';
 export function PageNav() {
   const router   = useRouter();
   const pathname = usePathname();
+  const myId     = useCurrentUserId();
+
+  // マイページは「自分のページ」のときだけアクティブ（他人のプロフィール表示中は非アクティブ）
+  const isNavActive = (path: string) =>
+    path === '/mypage'
+      ? pathname === '/mypage' || (myId != null && pathname === `/mypage/${myId}`)
+      : pathname.startsWith(path);
 
   return (
     <nav
@@ -34,7 +42,7 @@ export function PageNav() {
       {/* ナビアイテム */}
       <div className="flex flex-col items-center gap-1 px-2">
         {NAV_ITEMS.map((item) => {
-          const isActive = pathname.startsWith(item.path);
+          const isActive = isNavActive(item.path);
           return (
             <button
               key={item.path}

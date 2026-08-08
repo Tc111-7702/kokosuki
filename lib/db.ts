@@ -76,6 +76,15 @@ export const findProfileByHandle = (handle: string) =>
 export const findProfileByUserId = (userId: string) =>
   prisma.userProfile.findUnique({ where: { userId } });
 
+/** 指定ユーザーのうち「お気に入り在庫通知」をOFFにしているユーザーID（未作成はON扱いで対象外） */
+export const getFavoriteStockDisabledUserIds = async (userIds: string[]): Promise<string[]> => {
+  const rows = await prisma.userProfile.findMany({
+    where: { userId: { in: userIds }, notifyFavoriteStock: false },
+    select: { userId: true },
+  });
+  return rows.map((r) => r.userId);
+};
+
 export const upsertProfile = (userId: string, handle: string) =>
   prisma.userProfile.upsert({
     where:  { userId },
@@ -696,6 +705,105 @@ export async function toggleSpotReviewLike(userId: string, reviewId: string) {
   }
   const count = await prisma.spotReviewLike.count({ where: { reviewId } });
   return { liked: !existing, count };
+}
+
+// ─── マイページ / アカウント ────────────────────────────────────────────────────
+
+/** 退会（関連データは onDelete: Cascade で連鎖削除） */
+export const deleteUser = (id: string) =>
+  prisma.user.delete({ where: { id } });
+
+/** ユーザー名を更新 */
+export const updateUserName = (id: string, name: string) =>
+  prisma.user.update({ where: { id }, data: { name } });
+
+export type ProfileUpsertData = {
+  handle?: string;
+  bio?: string;
+  avatarUrl?: string;
+  favoriteIps?: string[];
+  notifyFavoriteStock?: boolean;
+  notifyReaction?: boolean;
+  mapRadiusM?: number;
+};
+
+/** プロフィール設定を upsert（渡されたフィールドのみ更新） */
+export const upsertUserProfile = (userId: string, data: ProfileUpsertData) =>
+  prisma.userProfile.upsert({
+    where:  { userId },
+    update: data,
+    create: { userId, ...data },
+  });
+
+const PROFILE_POST_INCLUDE = {
+  user:  { select: { id: true, name: true, image: true } },
+  spot:  { select: { id: true, name: true, address: true } },
+  gacha: { select: { id: true, ipName: true, seriesName: true, gradientFrom: true, gradientTo: true, imageUrl: true, isOnSale: true } },
+  _count: { select: { likes: true, replies: true } },
+} as const;
+
+/** 指定ユーザーの「引いた！」投稿一覧（カード表示用のfull形状・新しい順・最大50件） */
+export const getUserPosts = (userId: string) =>
+  prisma.post.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+    take: 50,
+    include: PROFILE_POST_INCLUDE,
+  });
+
+/** 指定ユーザーの在庫報告一覧（カード表示用のfull形状・新しい順・最大50件） */
+export const getUserStockPosts = (userId: string) =>
+  prisma.stockPost.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+    take: 50,
+    include: PROFILE_POST_INCLUDE,
+  });
+
+/** 指定ユーザーのお気に入りガチャ一覧（公開） */
+export const getUserFavorites = (userId: string) =>
+  prisma.gachaLike.findMany({
+    where: { userId },
+    include: { gacha: { select: { id: true, seriesName: true, imageUrl: true, gradientFrom: true, gradientTo: true } } },
+    orderBy: { createdAt: 'desc' },
+  });
+
+export const countUserPosts = (userId: string): Promise<number> =>
+  prisma.post.count({ where: { userId } });
+
+export const countUserPostsByResult = (userId: string, result: string): Promise<number> =>
+  prisma.post.count({ where: { userId, result } });
+
+export const countLikesOnUserPosts = (userId: string): Promise<number> =>
+  prisma.like.count({ where: { post: { userId } } });
+
+export const countLikesOnUserStockPosts = (userId: string): Promise<number> =>
+  prisma.stockPostLike.count({ where: { stockPost: { userId } } });
+
+/** 公開プロフィール＋統計（他ユーザー閲覧用。email/設定などの非公開情報は含めない） */
+export async function getPublicUserSummary(userId: string) {
+  const [user, profile, postCount, kamibikiCount, postLikes, stockPostLikes] = await Promise.all([
+    prisma.user.findUnique({ where: { id: userId }, select: { name: true, image: true } }),
+    findProfileByUserId(userId),
+    countUserPosts(userId),
+    countUserPostsByResult(userId, '神引き'),
+    countLikesOnUserPosts(userId),
+    countLikesOnUserStockPosts(userId),
+  ]);
+  if (!user) return null;
+  return {
+    id:          userId,
+    name:        user.name,
+    handle:      profile?.handle ?? null,
+    avatarUrl:   profile?.avatarUrl ?? user.image ?? null,
+    bio:         profile?.bio ?? null,
+    favoriteIps: profile?.favoriteIps ?? [],
+    stats: {
+      postCount,
+      kamibikiCount,
+      likeCount: postLikes + stockPostLikes,
+    },
+  };
 }
 
 export const createSpotReviewReplyWithUser = (reviewId: string, userId: string, text: string) =>

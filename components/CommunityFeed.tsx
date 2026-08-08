@@ -1,23 +1,28 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { StockPostCard, type StockFeedPost } from '@/components/StockPostCard';
 import { PostCard } from '@/components/PostCard';
 import { type FeedPost, type FeedItem } from '@/components/community-types';
 
-export function Feed({
-  feedType,
-  onSelect,
-  onSelectStock,
-  searchGachaIds,
-  excludeIds,
-}: {
+// 親（CommunityTab）から返信数を一覧に反映するための命令的ハンドル
+export interface FeedHandle {
+  bumpReplies: (id: string, type: 'post' | 'stock') => void;
+}
+
+export const Feed = forwardRef<FeedHandle, {
   feedType: 'recommended' | 'search';
   onSelect: (post: FeedPost) => void;
   onSelectStock: (post: StockFeedPost) => void;
   searchGachaIds?: string[];
   excludeIds?: string[];
-}) {
+}>(function Feed({
+  feedType,
+  onSelect,
+  onSelectStock,
+  searchGachaIds,
+  excludeIds,
+}, ref) {
   const [posts,         setPosts]         = useState<FeedItem[]>([]);
   const [page,          setPage]          = useState(0);
   const [loading,       setLoading]       = useState(false);
@@ -29,6 +34,17 @@ export function Feed({
   const gachaIdsRef    = useRef<string[]>(searchGachaIds ?? []);
   const userPosRef     = useRef<{ lat: number; lng: number } | null>(null);
   gachaIdsRef.current = searchGachaIds ?? [];
+
+  // 返信投稿時、一覧の該当カードの返信数を+1（リロードせず即時反映）
+  useImperativeHandle(ref, () => ({
+    bumpReplies: (id, type) => {
+      setPosts((prev) => prev.map((item) =>
+        item.id === id && item.postType === type
+          ? { ...item, _count: { ...item._count, replies: item._count.replies + 1 } }
+          : item
+      ));
+    },
+  }), []);
 
   // 現在ユーザーIDを取得（自分の投稿にゴミ箱を表示するため）
   useEffect(() => {
@@ -156,4 +172,4 @@ export function Feed({
       )}
     </div>
   );
-}
+});
