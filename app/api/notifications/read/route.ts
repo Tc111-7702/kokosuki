@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { markNotificationsAsRead } from '@/lib/db';
+import * as db from '@/lib/db';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 
@@ -11,7 +11,7 @@ export async function PATCH() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    await markNotificationsAsRead(session.user.id);
+    await db.markNotificationsAsRead(session.user.id);
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error('[notifications read PATCH]', e);

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { deleteReadNotificationsBefore } from '@/lib/db';
+import * as db from '@/lib/db';
 
 function authorized(req: Request): boolean {
   const auth = req.headers.get('authorization') ?? '';
@@ -12,7 +12,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 // 既読かつ作成から24時間経過した通知を削除
 async function cleanup() {
   const cutoff = new Date(Date.now() - DAY_MS);
-  const { count } = await deleteReadNotificationsBefore(cutoff);
+  const { count } = await db.deleteReadNotificationsBefore(cutoff);
   return count;
 }
 
