@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { type StockFeedPost } from '@/components/StockPostCard';
 import { type FeedPost, type UserResult, type TrendingGacha, type TrendingIP } from '@/components/community-types';
 import { Feed, type FeedHandle } from '@/components/CommunityFeed';
@@ -104,6 +104,23 @@ export function CommunityTab() {
   const [searchActive,   setSearchActive]   = useState(false);
   const [deletedIds,     setDeletedIds]     = useState<string[]>([]);
   const feedRef = useRef<FeedHandle>(null);
+  const searchParams = useSearchParams();
+
+  // 通知から来たとき（?openPost=<id>&type=post|stock）: 該当投稿を取得して返信詳細を開く
+  useEffect(() => {
+    const openPost = searchParams.get('openPost');
+    const type = searchParams.get('type');
+    if (!openPost) return;
+    const url = type === 'stock' ? `/api/stock-posts/${openPost}` : `/api/posts/${openPost}`;
+    fetch(url)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!d?.post) return;
+        if (type === 'stock') setSelectedStock(d.post as StockFeedPost);
+        else setSelectedPost(d.post as FeedPost);
+      })
+      .catch(() => {});
+  }, [searchParams]);
 
   // 返信投稿時、詳細（オーバーレイ）の返信数とフィード一覧の該当カードを両方+1（リロードなし）
   const bumpPostReplies = () => {

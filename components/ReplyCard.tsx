@@ -12,12 +12,14 @@ export function ReplyCard({
   postType = 'post',
   isOwn,
   onDelete,
+  mentionNames,
 }: {
   reply: Reply;
   postId: string;
   postType?: 'post' | 'stock';
   isOwn: boolean;
   onDelete: (id: string) => void;
+  mentionNames?: string[];
 }) {
   const [deleting, setDeleting] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
@@ -78,7 +80,7 @@ export function ReplyCard({
           )}
         </div>
         <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
-          {renderWithMentions(reply.text)}
+          {renderWithMentions(reply.text, mentionNames)}
         </p>
       </div>
     </div>

@@ -2,9 +2,9 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, X, ChevronLeft, ChevronRight, SlidersHorizontal } from 'lucide-react';
+import { Search, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { StockSpotPanel } from '@/components/StockSpotPanel';
-import FilterDrawer from '@/components/FilterDrawer';
+import { SpotGachaPicker } from '@/components/SpotGachaPicker';
 
 // ─── 型 ────────────────────────────────────────────────────────────────
 
@@ -168,119 +168,16 @@ function GachaSearch({ onSelect, accentColor = ACCENT }: {
 }
 
 
-// ─── 店舗ガチャピッカー（店舗から投稿時に使用） ────────────────────────────
-
-type GachaItem = { id: string; seriesName: string; ipName: string; imageUrl: string | null };
-
-function SpotGachaPicker({ spotId, filterGachaIds, onSelect, selectedId }: {
-  spotId: string;
-  filterGachaIds: string[];
-  onSelect: (id: string, name: string, imageUrl: string | null) => void;
-  selectedId?: string;
-}) {
-  const [allGachas,       setAllGachas]       = useState<GachaItem[]>([]);
-  const [loading,         setLoading]         = useState(true);
-  const [activeFilterIds, setActiveFilterIds] = useState<string[]>(filterGachaIds);
-  const [filterOpen,      setFilterOpen]      = useState(false);
-
-  const isFiltered = activeFilterIds.length > 0;
-  const filterSet  = new Set(activeFilterIds);
-  const gachas     = isFiltered ? allGachas.filter(g => filterSet.has(g.id)) : allGachas;
-
-  useEffect(() => {
-    Promise.all([
-      fetch(`/api/spots/${spotId}`).then(r => r.json()),
-      fetch('/api/gacha/filters').then(r => r.json()),
-    ]).then(([spotRes, filterRes]) => {
-      const gachaIdSet = new Set<string>(spotRes.spot?.gachaIds ?? []);
-      setAllGachas(
-        (filterRes.items ?? []).filter((g: GachaItem) => gachaIdSet.has(g.id))
-      );
-    }).catch(() => {}).finally(() => setLoading(false));
-  }, [spotId]);
-
-  if (loading) return (
-    <div style={{ display: 'flex', justifyContent: 'center', padding: '24px 0' }}>
-      <div style={{ width: 20, height: 20, border: `2px solid ${ACCENT}`, borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
-    </div>
-  );
-
-  return (
-    <div>
-      {/* フィルターバー */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-        <button onClick={() => setFilterOpen(true)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            padding: '6px 16px', borderRadius: 9999, border: 'none', cursor: 'pointer',
-            background: isFiltered ? '#F2B800' : '#F5F3ED',
-            color: isFiltered ? 'white' : '#888',
-            fontSize: 13, fontWeight: 700,
-          }}>
-          <SlidersHorizontal size={13} />
-          {isFiltered ? `フィルター中 (${activeFilterIds.length})` : 'フィルター'}
-        </button>
-        {isFiltered && (
-          <button onClick={() => setActiveFilterIds([])}
-            style={{ fontSize: 12, padding: '5px 12px', borderRadius: 20, border: 'none', cursor: 'pointer', background: '#FFF0C0', color: '#B8860B', fontWeight: 700 }}>
-            解除
-          </button>
-        )}
-        <span style={{ fontSize: 11, color: '#aaa', marginLeft: 'auto' }}>{gachas.length}件</span>
-      </div>
-
-      {gachas.length === 0 ? (
-        <p style={{ color: '#aaa', fontSize: 13, textAlign: 'center', padding: '20px 0' }}>フィルター条件に合う商品がありません</p>
-      ) : (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-          {gachas.map(g => (
-            <button key={g.id} onClick={() => onSelect(g.id, g.seriesName, g.imageUrl)}
-              style={{
-                width: 100, borderRadius: 12, overflow: 'hidden',
-                border: selectedId === g.id ? `2px solid ${ACCENT}` : `2px solid ${ACCENT}33`,
-                background: selectedId === g.id ? `${ACCENT}18` : 'white',
-                cursor: 'pointer', padding: 0, textAlign: 'left',
-                transition: 'border-color 0.15s, background 0.15s',
-              }}>
-              <div style={{ width: '100%', height: 84, background: '#F5F5F5' }}>
-                {g.imageUrl
-                  ? <img src={g.imageUrl} alt={g.seriesName}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                      onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                  : <div style={{ width: '100%', height: '100%', background: `linear-gradient(135deg, ${ACCENT}22, ${ACCENT}66)` }} />}
-              </div>
-              <p style={{ margin: 0, padding: '6px 8px', fontSize: 10, fontWeight: 700, color: '#1A1A1A',
-                overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-                lineHeight: 1.35, minHeight: 28 }}>
-                {g.seriesName}
-              </p>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {filterOpen && (
-        <FilterDrawer
-          isOpen={filterOpen}
-          onClose={() => setFilterOpen(false)}
-          onApply={ids => { setActiveFilterIds(ids); setFilterOpen(false); }}
-          favoriteIps={[]}
-          currentGachaIds={activeFilterIds}
-        />
-      )}
-    </div>
-  );
-}
-
 // ─── デスクトップ1ページレイアウト ────────────────────────────────────
 
 type StockValidationErrors = { gacha?: string; spot?: string; stock?: string };
 
-export function DesktopStockForm({ onDone, initialSpotId = '', initialSpotName = '', initialFilterGachaIds = [] }: {
+export function DesktopStockForm({ onDone, initialSpotId = '', initialSpotName = '', initialFilterGachaIds = [], initialSearch = '' }: {
   onDone?: () => void;
   initialSpotId?: string;
   initialSpotName?: string;
   initialFilterGachaIds?: string[];
+  initialSearch?: string;
 }) {
   const router = useRouter();
 
@@ -355,7 +252,7 @@ export function DesktopStockForm({ onDone, initialSpotId = '', initialSpotName =
             </button>
           </div>
         ) : initialSpotId ? (
-          <SpotGachaPicker spotId={initialSpotId} filterGachaIds={initialFilterGachaIds}
+          <SpotGachaPicker spotId={initialSpotId} filterGachaIds={initialFilterGachaIds} initialQuery={initialSearch}
             onSelect={(id, name, imgUrl) => {
               setGachaId(id); setGachaName(name); setGachaImageUrl(imgUrl);
               setVErr(v => ({ ...v, gacha: undefined }));
@@ -437,11 +334,12 @@ const nextBtnStyle = (active: boolean): React.CSSProperties => ({
 
 // ─── モバイル ステップフォーム ─────────────────────────────────────────
 
-export function StockPostForm({ onDone, initialSpotId = '', initialSpotName = '', initialFilterGachaIds = [] }: {
+export function StockPostForm({ onDone, initialSpotId = '', initialSpotName = '', initialFilterGachaIds = [], initialSearch = '' }: {
   onDone?: () => void;
   initialSpotId?: string;
   initialSpotName?: string;
   initialFilterGachaIds?: string[];
+  initialSearch?: string;
 }) {
   const router = useRouter();
 
@@ -503,7 +401,7 @@ export function StockPostForm({ onDone, initialSpotId = '', initialSpotName = ''
           <StepHeader step="gacha" />
           {initialSpotId ? (
             <>
-              <SpotGachaPicker spotId={initialSpotId} filterGachaIds={initialFilterGachaIds}
+              <SpotGachaPicker spotId={initialSpotId} filterGachaIds={initialFilterGachaIds} initialQuery={initialSearch}
                 selectedId={gachaId}
                 onSelect={(id, name, imgUrl) => {
                   setGachaId(id); setGachaName(name); setGachaImageUrl(imgUrl);

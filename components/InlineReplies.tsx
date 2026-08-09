@@ -74,6 +74,7 @@ export function InlineReplies({
               postId={postId}
               postType={postType}
               isOwn={r.user.id === currentUserId}
+              mentionNames={[...new Set(replies.map(x => x.user.name))]}
               onDelete={(id) => {
                 setReplies(prev => prev.filter(x => x.id !== id));
                 onCountChange?.(-1);

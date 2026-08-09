@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Settings, User, ArrowLeft } from 'lucide-react';
+import { Settings, ArrowLeft } from 'lucide-react';
+import { Avatar } from '@/components/ui/Avatar';
 import { PostCard } from '@/components/PostCard';
 import { StockPostCard } from '@/components/StockPostCard';
 import { PostDetail } from '@/components/PostDetail';
 import { StockPostDetail } from '@/components/StockPostDetail';
+import { FavoritesTab } from '@/components/FavoritesTab';
 import { type FeedPost } from '@/components/community-types';
 import { type StockFeedPost } from '@/components/StockPostCard';
 import { useIsMobile } from '@/lib/useIsMobile';
@@ -23,14 +25,6 @@ interface Summary {
   stats: { postCount: number; kamibikiCount: number; likeCount: number };
 }
 
-interface FavoriteGacha {
-  id: string;
-  seriesName: string;
-  imageUrl: string | null;
-  gradientFrom: string;
-  gradientTo: string;
-}
-
 type Tab = 'posts' | 'reports' | 'favorites';
 
 // ─── メイン ──────────────────────────────────────────────────────────────────
@@ -40,23 +34,34 @@ export default function ProfilePage() {
   const { id: userId } = useParams<{ id: string }>();
   const isMobile = useIsMobile();
 
-  const [isOwn, setIsOwn] = useState(false);
+  // 自分自身のID（設定ギア/削除ボタン/お気に入り編集の判定に使用）。
+  // /api/me が一時的に null/失敗を返しても再試行し、必ず解決させる（設定ギアが出ない問題の恒久対策）
+  const [currentUserId, setCurrentUserId] = useState<string | null | undefined>(undefined);
+  useEffect(() => {
+    let alive = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const load = (attempt: number) => {
+      fetch('/api/me')
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => {
+          if (!alive) return;
+          const uid: string | null = d?.user?.id ?? null;
+          if (uid == null && attempt < 5) { timer = setTimeout(() => load(attempt + 1), 500); return; }
+          setCurrentUserId(uid);
+        })
+        .catch(() => { if (alive && attempt < 5) timer = setTimeout(() => load(attempt + 1), 500); });
+    };
+    load(0);
+    return () => { alive = false; if (timer) clearTimeout(timer); };
+  }, []);
+  const isOwn = currentUserId != null && currentUserId === userId;
   const [summary, setSummary] = useState<Summary | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [tab, setTab] = useState<Tab>('posts');
   const [posts, setPosts] = useState<FeedPost[] | null>(null);
   const [reports, setReports] = useState<StockFeedPost[] | null>(null);
-  const [favorites, setFavorites] = useState<FavoriteGacha[] | null>(null);
   const [selectedPost, setSelectedPost] = useState<FeedPost | null>(null);
   const [selectedStock, setSelectedStock] = useState<StockFeedPost | null>(null);
-
-  // ログインユーザーと一致するか（一致時のみヘッダー＋設定を表示）
-  useEffect(() => {
-    fetch('/api/me')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => setIsOwn(!!d?.user?.id && d.user.id === userId))
-      .catch(() => {});
-  }, [userId]);
 
   // プロフィール概要
   useEffect(() => {
@@ -73,7 +78,6 @@ export default function ProfilePage() {
     setTab('posts');
     setPosts(null);
     setReports(null);
-    setFavorites(null);
     setSelectedPost(null);
     setSelectedStock(null);
   }, [userId]);
@@ -89,9 +93,6 @@ export default function ProfilePage() {
     if (needReports && reports === null) {
       fetch(`/api/users/${userId}/stock-posts`).then((r) => (r.ok ? r.json() : null)).then((d) => setReports(d?.stockPosts ?? [])).catch(() => setReports([]));
     }
-    if (tab === 'favorites' && favorites === null) {
-      fetch(`/api/users/${userId}/favorites`).then((r) => (r.ok ? r.json() : null)).then((d) => setFavorites(d?.gachas ?? [])).catch(() => setFavorites([]));
-    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, isMobile, userId]);
 
@@ -103,55 +104,39 @@ export default function ProfilePage() {
     );
   }
 
+  // 削除（自分の投稿のみ削除ボタンが出る）: 一覧から除去し、開いていた詳細も閉じる
+  const handleDeletePost = (id: string) => {
+    setPosts((prev) => prev ? prev.filter((p) => p.id !== id) : prev);
+    setSelectedPost((prev) => prev?.id === id ? null : prev);
+  };
+  const handleDeleteStock = (id: string) => {
+    setReports((prev) => prev ? prev.filter((r) => r.id !== id) : prev);
+    setSelectedStock((prev) => prev?.id === id ? null : prev);
+  };
+
   // ── リスト描画 ──
   const PostsList = (
     posts === null ? <Loading /> : posts.length === 0 ? (
       <Empty text="まだ引いた！投稿がありません" sub={isOwn ? 'ガチャを引いたら、＋から投稿してみよう' : ''} />
     ) : (
-      <div className="py-2">{posts.map((p) => <PostCard key={p.id} post={p} onSelect={setSelectedPost} />)}</div>
+      <div className="py-2">{posts.map((p) => <PostCard key={p.id} post={p} onSelect={setSelectedPost} currentUserId={currentUserId ?? undefined} onDelete={handleDeletePost} />)}</div>
     )
   );
   const ReportsList = (
     reports === null ? <Loading /> : reports.length === 0 ? (
       <Empty text="まだ在庫報告がありません" sub={isOwn ? 'お店に着いたら、在庫を教えてあげよう' : ''} />
     ) : (
-      <div className="py-2">{reports.map((r) => <StockPostCard key={r.id} post={r} onSelect={setSelectedStock} />)}</div>
+      <div className="py-2">{reports.map((r) => <StockPostCard key={r.id} post={r} onSelect={setSelectedStock} currentUserId={currentUserId ?? undefined} onDelete={handleDeleteStock} />)}</div>
     )
   );
-  const FavoritesGrid = (
-    favorites === null ? <Loading /> : favorites.length === 0 ? (
-      <Empty text="まだお気に入りがありません" sub={isOwn ? '気になるガチャを見つけたら、ハートで登録しよう' : ''} />
-    ) : (
-      <div className="grid grid-cols-3 gap-2 p-3">
-        {favorites.map((gacha) => (
-          <button key={gacha.id} onClick={() => router.push(`/gacha/${gacha.id}`)} className="text-left active:opacity-70">
-            <div className="w-full overflow-hidden" style={{ aspectRatio: '1', borderRadius: 12, background: `linear-gradient(135deg, ${gacha.gradientFrom}, ${gacha.gradientTo})` }}>
-              {gacha.imageUrl && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={gacha.imageUrl} alt={gacha.seriesName} className="w-full h-full object-cover" />
-              )}
-            </div>
-            <p className="text-[11px] font-bold mt-1 leading-tight" style={{ color: '#333', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-              {gacha.seriesName}
-            </p>
-          </button>
-        ))}
-      </div>
-    )
-  );
+  // お気に入りは FavoritesTab を再利用（自分＝編集可 / 他人＝読み取り専用）
+  const favoritesEl = <FavoritesTab userId={userId} editable={isOwn} />;
 
   // モバイル: 従来の大きめレイアウト（統計は下に3分割ブロック）
   const ProfileBlockMobile = (
     <div className="bg-white px-5 pt-5 pb-4 flex-shrink-0" style={{ borderBottom: '1.5px solid #EDE9D8' }}>
       <div className="flex items-center gap-4">
-        <div className="flex-shrink-0 flex items-center justify-center overflow-hidden" style={{ width: 64, height: 64, borderRadius: 32, background: '#F0ECD8' }}>
-          {summary?.avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={summary.avatarUrl} alt="" className="w-full h-full object-cover" />
-          ) : (
-            <User size={30} color="#B0AC98" />
-          )}
-        </div>
+        <Avatar user={{ name: summary?.name ?? '?', image: summary?.avatarUrl ?? null }} size={64} />
         <div className="flex-1 min-w-0">
           <p className="text-[17px] font-black truncate" style={{ color: '#111' }}>{summary?.name ?? '…'}</p>
           {summary?.handle && <p className="text-[12px]" style={{ color: '#AAA' }}>@{summary.handle}</p>}
@@ -183,14 +168,7 @@ export default function ProfilePage() {
   // デスクトップ: 高さを詰めたコンパクトレイアウト（名前の右に一言・お気に入りIP、統計は右端）
   const ProfileBlockDesktop = (
     <div className="bg-white px-5 pt-3 pb-3 flex-shrink-0 flex items-center gap-3" style={{ borderBottom: '1.5px solid #EDE9D8' }}>
-      <div className="flex-shrink-0 flex items-center justify-center overflow-hidden" style={{ width: 48, height: 48, borderRadius: 24, background: '#F0ECD8' }}>
-        {summary?.avatarUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={summary.avatarUrl} alt="" className="w-full h-full object-cover" />
-        ) : (
-          <User size={24} color="#B0AC98" />
-        )}
-      </div>
+      <Avatar user={{ name: summary?.name ?? '?', image: summary?.avatarUrl ?? null }} size={48} />
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-2 min-w-0">
           <p className="text-[15px] font-black truncate flex-shrink-0" style={{ color: '#111' }}>{summary?.name ?? '…'}</p>
@@ -286,7 +264,7 @@ export default function ProfilePage() {
         <div className="flex-1 overflow-y-auto min-h-0">
           {ProfileBlock}
           <div className="sticky top-0 z-10">{TabBar}</div>
-          {tab === 'posts' ? PostsList : tab === 'reports' ? ReportsList : FavoritesGrid}
+          {tab === 'posts' ? PostsList : tab === 'reports' ? ReportsList : favoritesEl}
         </div>
       ) : (
         // デスクトップ: プロフィール＋タブ固定、下を左右2カラム独立スクロール
@@ -294,7 +272,7 @@ export default function ProfilePage() {
           {ProfileBlock}
           {TabBar}
           {tab === 'favorites' ? (
-            <div className="flex-1 overflow-y-auto min-h-0">{FavoritesGrid}</div>
+            favoritesEl
           ) : (
             <div className="flex-1 flex min-h-0">
               {/* 投稿カラム（返信詳細もこのカラム内で開く） */}
