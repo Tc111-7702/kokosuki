@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { likedGachaIds = [], handle } = await req.json();
+  const { likedGachaIds = [], handle, avatarUrl } = await req.json();
 
   let resolvedHandle = handle?.trim() || null;
 
@@ -34,6 +34,12 @@ export async function POST(req: NextRequest) {
   }
 
   await db.upsertProfile(session.user.id, resolvedHandle);
+
+  // アイコン（任意）: プロフィール編集と同様に avatarUrl と User.image を同期
+  if (typeof avatarUrl === 'string' && avatarUrl) {
+    await db.upsertUserProfile(session.user.id, { avatarUrl });
+    await db.updateUserImage(session.user.id, avatarUrl);
+  }
 
   if (likedGachaIds.length > 0) {
     await db.createGachaLikes(session.user.id, likedGachaIds);

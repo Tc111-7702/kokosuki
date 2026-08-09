@@ -11,6 +11,9 @@
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
+    "worker": "tsx scripts/scrape-worker.ts",
+    "scrape:gacha": "tsx scripts/scrape-gacha.ts",
+    "scrape:phone": "tsx scripts/scrape-phone.ts",
     "postinstall": "node scripts/patch-kysely.mjs"
   },
   "prisma": {
