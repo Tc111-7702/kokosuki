@@ -51,14 +51,17 @@ type OpenReply = { id: string; type: 'post' | 'stock' } | null;
 function StorePosts({
   spotId,
   filterGachaIds,
+  autoOpen,
 }: {
   spotId: string;
   filterGachaIds: string[];
+  autoOpen?: { id: string; type: 'post' | 'stock' } | null;
 }) {
   const [posts,         setPosts]         = useState<FeedItem[]>([]);
   const [loading,       setLoading]       = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | undefined>(undefined);
   const [openReply,     setOpenReply]     = useState<OpenReply>(null);
+  const [autoOpenDone,  setAutoOpenDone]  = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const nextPageRef = useRef<number | null>(null);
   const filterRef   = useRef(filterGachaIds);
@@ -110,6 +113,25 @@ function StorePosts({
     return () => obs.disconnect();
   }, [load]);
 
+  // 通知から来たとき: 対象投稿を見つけるまでページを読み込み、見つかったら返信欄を開いてスクロール
+  useEffect(() => {
+    if (!autoOpen || autoOpenDone || loading) return;
+    if (posts.some(p => p.id === autoOpen.id)) {
+      const t = setTimeout(() => {
+        setOpenReply({ id: autoOpen.id, type: autoOpen.type });
+        setAutoOpenDone(true);
+        document.getElementById(`post-${autoOpen.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+      return () => clearTimeout(t);
+    }
+    if (nextPageRef.current !== null) {
+      load(nextPageRef.current, filterRef.current);
+    } else {
+      const t = setTimeout(() => setAutoOpenDone(true), 0);
+      return () => clearTimeout(t);
+    }
+  }, [autoOpen, autoOpenDone, loading, posts, load]);
+
   if (loading) return (
     <div style={{ textAlign: 'center', padding: '40px 0', color: '#BBB', fontSize: 14, fontWeight: 600 }}>読み込み中…</div>
   );
@@ -137,7 +159,7 @@ function StorePosts({
         const type = p.postType as 'post' | 'stock';
         const isOpen = openReply?.id === p.id;
         return (
-          <div key={p.id} style={{ marginBottom: isOpen ? 0 : 8 }}>
+          <div key={p.id} id={`post-${p.id}`} style={{ marginBottom: isOpen ? 0 : 8 }}>
             {type === 'stock'
               ? <StockPostCard
                   post={p as StockFeedPost}
@@ -181,6 +203,11 @@ export default function StorePage() {
   const spotId = params.id as string;
   const contentSearchParam = searchParams.get('contentSearch') ?? '';
   const noFilterParam = searchParams.get('noFilter') === '1';
+  // 通知から来たとき: 開く対象（投稿の返信欄 or 口コミの返信欄）
+  const openReplyId  = searchParams.get('openReply');
+  const openReplyType = searchParams.get('type') === 'stock' ? 'stock' : 'post';
+  const openReviewId = searchParams.get('openReview');
+  const autoOpenPost = openReplyId ? { id: openReplyId, type: openReplyType as 'post' | 'stock' } : null;
 
   const [spot,          setSpot]          = useState<SpotData | null>(null);
   const [gachaMap,      setGachaMap]      = useState<Map<string, SpotGachaInfo>>(new Map());
@@ -190,7 +217,8 @@ export default function StorePage() {
   const [currentPos,    setCurrentPos]    = useState<{ lat: number; lng: number } | null>(null);
   const [loading,       setLoading]       = useState(true);
   const [isMobile,      setIsMobile]      = useState(false);
-  const [activeTab,     setActiveTab]     = useState<'products' | 'posts'>('products');
+  // 通知から来たとき（返信欄を開く指定あり）は「口コミ・投稿」タブを初期表示に
+  const [activeTab,     setActiveTab]     = useState<'products' | 'posts'>(openReplyId || openReviewId ? 'posts' : 'products');
 
   // コンテンツ検索
   const [contentQuery,     setContentQuery]     = useState('');
@@ -304,12 +332,12 @@ export default function StorePage() {
   }, []);
 
   if (loading) return (
-    <div className="flex items-center justify-center" style={{ height: '100dvh', color: '#BBB', fontSize: 14, fontWeight: 700 }}>
+    <div className="flex items-center justify-center" style={{ height: '100%', color: '#BBB', fontSize: 14, fontWeight: 700 }}>
       読み込み中…
     </div>
   );
   if (!spot) return (
-    <div className="flex items-center justify-center" style={{ height: '100dvh', color: '#BBB', fontSize: 14 }}>
+    <div className="flex items-center justify-center" style={{ height: '100%', color: '#BBB', fontSize: 14 }}>
       店舗が見つかりません
     </div>
   );
@@ -422,7 +450,7 @@ export default function StorePage() {
   const PostsArea = (
     <div style={{ height: '100%', overflowY: 'scroll', padding: '0 16px 32px', boxSizing: 'border-box' }}>
       {/* 口コミ */}
-      <StoreReviews spotId={spotId} />
+      <StoreReviews spotId={spotId} autoOpenReviewId={openReviewId} />
 
       {/* 仕切り */}
       <div style={{ borderTop: '1px solid #F0F0F0', margin: '12px 0' }} />
@@ -436,12 +464,12 @@ export default function StorePage() {
           <span style={{ fontSize: 11, color: '#AAA', marginLeft: 6 }}>フィルター中 {filterGachaIds.length}件</span>
         )}
       </div>
-      <StorePosts spotId={spotId} filterGachaIds={filterGachaIds} />
+      <StorePosts spotId={spotId} filterGachaIds={filterGachaIds} autoOpen={autoOpenPost} />
     </div>
   );
 
   return (
-    <div style={{ height: '100dvh', background: '#FAFAFA', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div style={{ height: '100%', background: '#FAFAFA', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
       {/* ─── ヘッダー ─── */}
       <div style={{ background: 'white', borderBottom: '1px solid #F0F0F0', flexShrink: 0 }}>

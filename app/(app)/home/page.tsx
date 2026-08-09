@@ -7,7 +7,6 @@ import { CommunityTab }  from '@/components/CommunityTab';
 import { FavoritesTab }  from '@/components/FavoritesTab';
 import { HomeSearchBar } from '@/components/HomeSearchBar';
 import { MikkeIcon }     from '@/components/ui/MikkeIcon';
-import { NotificationBell } from '@/components/NotificationBell';
 
 type HomeTab = 'new' | 'community' | 'favorites';
 
@@ -16,7 +15,7 @@ const VALID_TABS = new Set<HomeTab>(['new', 'community', 'favorites']);
 const TAB_LABELS: { key: HomeTab; label: string }[] = [
   { key: 'new',       label: '新着' },
   { key: 'community', label: 'みんな' },
-  { key: 'favorites', label: 'お気に入り' },
+  { key: 'favorites', label: 'おきにいり' },
 ];
 
 function HomePageInner() {
@@ -73,9 +72,6 @@ function HomePageInner() {
             )}
             <div className="flex-1">
               <HomeSearchBar />
-            </div>
-            <div style={{ paddingRight: 8 }}>
-              <NotificationBell />
             </div>
           </div>
         )}

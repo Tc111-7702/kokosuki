@@ -13,8 +13,17 @@ export const RESULT_BADGE: Record<string, { label: string; cls: string }> = {
   'ダブり': { label: '● ダブり', cls: 'border border-blue-200  text-blue-400  bg-blue-50'       },
 };
 
-export function renderWithMentions(text: string) {
-  return text.split(/(@\S+)/g).map((part, i) =>
+export function renderWithMentions(text: string, names: string[] = []) {
+  // 参加者名（スペースを含む場合あり）を長い順に「@名前」として優先マッチ。
+  // 未知のメンションは従来どおり @非空白 にフォールバック。
+  const escaped = [...new Set(names)]
+    .filter(Boolean)
+    .sort((a, b) => b.length - a.length)
+    .map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const pattern = escaped.length
+    ? new RegExp('(@(?:' + escaped.join('|') + ')|@\\S+)', 'g')
+    : /(@\S+)/g;
+  return text.split(pattern).map((part, i) =>
     part.startsWith('@')
       ? <span key={i} className="text-blue-500 font-medium">{part}</span>
       : <span key={i}>{part}</span>
@@ -148,7 +157,7 @@ export function PostCard({
           <span className="ml-1.5 text-xs px-2 py-0.5 rounded-full font-semibold border border-red-200 text-red-500 bg-red-50">発売中止</span>
         )}
         {post.itemName && (
-          <span className="ml-1.5 text-xs text-gray-500">{post.itemName}</span>
+          <span className="block sm:inline mt-0.5 sm:mt-0 sm:ml-1.5 text-xs text-gray-500">{post.itemName}</span>
         )}
       </div>
 

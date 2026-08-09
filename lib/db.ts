@@ -447,12 +447,34 @@ export const upsertMachine = (spotId: string, gachaId: string) =>
 
 // ─── Notification ─────────────────────────────────────────────────────────────
 
-export const getNotificationsByUserId = (userId: string, take = 50) =>
-  prisma.notification.findMany({
+export const getNotificationsByUserId = async (userId: string, take = 50) => {
+  const rows = await prisma.notification.findMany({
     where: { userId },
     orderBy: { createdAt: 'desc' },
     take,
   });
+
+  // 参照先（投稿/在庫報告/口コミ）が削除済みの通知は一覧に出さない
+  const postIds   = [...new Set(rows.map(r => r.postId).filter((v): v is string => !!v))];
+  const stockIds  = [...new Set(rows.map(r => r.stockPostId).filter((v): v is string => !!v))];
+  const reviewIds = [...new Set(rows.map(r => r.spotReviewId).filter((v): v is string => !!v))];
+
+  const [posts, stocks, reviews] = await Promise.all([
+    postIds.length   ? prisma.post.findMany({      where: { id: { in: postIds } },   select: { id: true } }) : [],
+    stockIds.length  ? prisma.stockPost.findMany({ where: { id: { in: stockIds } },  select: { id: true } }) : [],
+    reviewIds.length ? prisma.spotReview.findMany({where: { id: { in: reviewIds } }, select: { id: true } }) : [],
+  ]);
+  const postSet   = new Set(posts.map(p => p.id));
+  const stockSet  = new Set(stocks.map(s => s.id));
+  const reviewSet = new Set(reviews.map(r => r.id));
+
+  return rows.filter(n => {
+    if (n.postId       && !postSet.has(n.postId))       return false;
+    if (n.stockPostId  && !stockSet.has(n.stockPostId)) return false;
+    if (n.spotReviewId && !reviewSet.has(n.spotReviewId)) return false;
+    return true;
+  });
+};
 
 export const getUnreadNotificationCount = (userId: string) =>
   prisma.notification.count({
@@ -500,6 +522,10 @@ export const createNotificationMany = (data: Prisma.NotificationCreateManyInput[
 export const findLikeNotification = (where: Prisma.NotificationWhereInput) =>
   prisma.notification.findFirst({ where, select: { id: true } });
 
+/** 既読かつ cutoff より前に作成された通知を削除（自動クリーンアップ用） */
+export const deleteReadNotificationsBefore = (cutoff: Date) =>
+  prisma.notification.deleteMany({ where: { read: true, createdAt: { lt: cutoff } } });
+
 // ─── Post（通常投稿） ───────────────────────────────────────────────────────────
 
 const FEED_USER_SELECT  = { id: true, name: true, image: true } as const;
@@ -514,7 +540,11 @@ export const getPostOwnerId = (id: string) =>
   prisma.post.findUnique({ where: { id }, select: { userId: true } });
 
 export const deletePost = (id: string) =>
-  prisma.post.delete({ where: { id } });
+  // 投稿本体と、その投稿を参照する通知（いいね/返信）を同時に削除
+  prisma.$transaction([
+    prisma.notification.deleteMany({ where: { postId: id } }),
+    prisma.post.delete({ where: { id } }),
+  ]);
 
 export const countPostsByGacha = (gachaId: string) =>
   prisma.post.count({ where: { gachaId } });
@@ -554,8 +584,18 @@ export const createPostReplyWithUser = (postId: string, userId: string, text: st
 export const getPostReplyById = (id: string) =>
   prisma.postReply.findUnique({ where: { id } });
 
-export const deletePostReply = (id: string) =>
-  prisma.postReply.delete({ where: { id } });
+export const deletePostReply = async (id: string) => {
+  const reply = await prisma.postReply.findUnique({ where: { id }, select: { userId: true, postId: true } });
+  await prisma.postReply.delete({ where: { id } });
+  // この返信に対応する「返信がきました」通知を1件削除（返信IDは通知に保持していないため、投稿主×返信者で特定）
+  if (reply) {
+    const notif = await prisma.notification.findFirst({
+      where: { type: 'reply', actorId: reply.userId, postId: reply.postId },
+      orderBy: { createdAt: 'desc' }, select: { id: true },
+    });
+    if (notif) await prisma.notification.delete({ where: { id: notif.id } });
+  }
+};
 
 // ─── Feed（ホーム/店舗フィード） ────────────────────────────────────────────────
 
@@ -620,7 +660,11 @@ export const getStockPostOwnerId = (id: string) =>
   prisma.stockPost.findUnique({ where: { id }, select: { userId: true } });
 
 export const deleteStockPost = (id: string) =>
-  prisma.stockPost.delete({ where: { id } });
+  // 在庫報告本体と、それを参照する通知（お気に入り在庫/いいね/返信）を同時に削除
+  prisma.$transaction([
+    prisma.notification.deleteMany({ where: { stockPostId: id } }),
+    prisma.stockPost.delete({ where: { id } }),
+  ]);
 
 /** 在庫報告いいねをトグル */
 export async function toggleStockPostLike(userId: string, stockPostId: string) {
@@ -650,8 +694,17 @@ export const createStockPostReplyWithUser = (stockPostId: string, userId: string
 export const getStockPostReplyById = (id: string) =>
   prisma.stockPostReply.findUnique({ where: { id } });
 
-export const deleteStockPostReply = (id: string) =>
-  prisma.stockPostReply.delete({ where: { id } });
+export const deleteStockPostReply = async (id: string) => {
+  const reply = await prisma.stockPostReply.findUnique({ where: { id }, select: { userId: true, stockPostId: true } });
+  await prisma.stockPostReply.delete({ where: { id } });
+  if (reply) {
+    const notif = await prisma.notification.findFirst({
+      where: { type: 'reply', actorId: reply.userId, stockPostId: reply.stockPostId },
+      orderBy: { createdAt: 'desc' }, select: { id: true },
+    });
+    if (notif) await prisma.notification.delete({ where: { id: notif.id } });
+  }
+};
 
 // ─── SpotReview（店舗レビュー） ─────────────────────────────────────────────────
 
@@ -693,7 +746,11 @@ export const updateSpotReview = (id: string, text: string) =>
   });
 
 export const deleteSpotReview = (id: string) =>
-  prisma.spotReview.delete({ where: { id } });
+  // 口コミ本体と、それを参照する通知（いいね/返信）を同時に削除
+  prisma.$transaction([
+    prisma.notification.deleteMany({ where: { spotReviewId: id } }),
+    prisma.spotReview.delete({ where: { id } }),
+  ]);
 
 /** レビューいいねをトグルし、最新いいね数を返す */
 export async function toggleSpotReviewLike(userId: string, reviewId: string) {
@@ -717,10 +774,14 @@ export const deleteUser = (id: string) =>
 export const updateUserName = (id: string, name: string) =>
   prisma.user.update({ where: { id }, data: { name } });
 
+/** ユーザーの表示画像（User.image）を更新（プロフィールアイコンと同期・削除時はnull） */
+export const updateUserImage = (id: string, image: string | null) =>
+  prisma.user.update({ where: { id }, data: { image } });
+
 export type ProfileUpsertData = {
   handle?: string;
   bio?: string;
-  avatarUrl?: string;
+  avatarUrl?: string | null;
   favoriteIps?: string[];
   notifyFavoriteStock?: boolean;
   notifyReaction?: boolean;
@@ -760,11 +821,25 @@ export const getUserStockPosts = (userId: string) =>
     include: PROFILE_POST_INCLUDE,
   });
 
-/** 指定ユーザーのお気に入りガチャ一覧（公開） */
+/** 単体の投稿/在庫報告（カード表示用のfull形状。通知からの直接表示に使用） */
+export const getPostById = (id: string) =>
+  prisma.post.findUnique({ where: { id }, include: PROFILE_POST_INCLUDE });
+
+export const getStockPostById = (id: string) =>
+  prisma.stockPost.findUnique({ where: { id }, include: PROFILE_POST_INCLUDE });
+
+/** 指定ユーザーのお気に入りガチャ一覧（公開・カード表示用のfull形状） */
 export const getUserFavorites = (userId: string) =>
   prisma.gachaLike.findMany({
     where: { userId },
-    include: { gacha: { select: { id: true, seriesName: true, imageUrl: true, gradientFrom: true, gradientTo: true } } },
+    include: {
+      gacha: {
+        select: {
+          id: true, seriesName: true, ipName: true, imageUrl: true,
+          gradientFrom: true, gradientTo: true, status: true, releaseDate: true, isOnSale: true,
+        },
+      },
+    },
     orderBy: { createdAt: 'desc' },
   });
 
@@ -815,8 +890,17 @@ export const createSpotReviewReplyWithUser = (reviewId: string, userId: string, 
 export const getSpotReviewReplyById = (id: string) =>
   prisma.spotReviewReply.findUnique({ where: { id } });
 
-export const deleteSpotReviewReply = (id: string) =>
-  prisma.spotReviewReply.delete({ where: { id } });
+export const deleteSpotReviewReply = async (id: string) => {
+  const reply = await prisma.spotReviewReply.findUnique({ where: { id }, select: { userId: true, reviewId: true } });
+  await prisma.spotReviewReply.delete({ where: { id } });
+  if (reply) {
+    const notif = await prisma.notification.findFirst({
+      where: { type: 'reply', actorId: reply.userId, spotReviewId: reply.reviewId },
+      orderBy: { createdAt: 'desc' }, select: { id: true },
+    });
+    if (notif) await prisma.notification.delete({ where: { id: notif.id } });
+  }
+};
 
 // ─── Spot 検索 ──────────────────────────────────────────────────────────────────
 

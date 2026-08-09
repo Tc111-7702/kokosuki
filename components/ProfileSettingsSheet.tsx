@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { User, Camera } from 'lucide-react';
+import { Camera } from 'lucide-react';
 import { SettingsSheet } from '@/components/SettingsSheet';
+import { avatarColor } from '@/components/ui/Avatar';
 
 interface FavoriteGacha {
   id: string;
@@ -81,7 +82,7 @@ export function ProfileSettingsSheet({ open, onClose }: { open: boolean; onClose
           name: name.trim(),
           ...(handle.trim() ? { handle: handle.trim() } : {}),
           bio,
-          ...(avatarUrl ? { avatarUrl } : {}),
+          avatarUrl, // null のときは削除としてサーバーに反映
           favoriteIps,
         }),
       });
@@ -117,12 +118,15 @@ export function ProfileSettingsSheet({ open, onClose }: { open: boolean; onClose
         {/* アイコン */}
         <div className="flex flex-col items-center">
           <button onClick={() => fileRef.current?.click()} disabled={uploading} className="relative active:opacity-70">
-            <div className="flex items-center justify-center overflow-hidden" style={{ width: 88, height: 88, borderRadius: 44, background: '#F0ECD8' }}>
+            <div
+              className="flex items-center justify-center overflow-hidden text-white font-bold"
+              style={{ width: 88, height: 88, borderRadius: 44, background: avatarUrl ? '#F0ECD8' : avatarColor(name || '?'), fontSize: 36 }}
+            >
               {avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
               ) : (
-                <User size={40} color="#B0AC98" />
+                (name || '?').charAt(0)
               )}
             </div>
             <span className="absolute flex items-center justify-center" style={{ bottom: 0, right: 0, width: 28, height: 28, borderRadius: 14, background: '#F2B800', border: '2.5px solid #FFFEEF' }}>
@@ -130,6 +134,11 @@ export function ProfileSettingsSheet({ open, onClose }: { open: boolean; onClose
             </span>
           </button>
           {uploading && <p className="mt-2 text-[11px]" style={{ color: '#AAA' }}>アップロード中…</p>}
+          {avatarUrl && !uploading && (
+            <button onClick={() => setAvatarUrl(null)} className="mt-2 text-[12px] font-bold active:opacity-60" style={{ color: '#E5484D' }}>
+              画像を削除
+            </button>
+          )}
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
         </div>
 

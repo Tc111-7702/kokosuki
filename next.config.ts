@@ -6,6 +6,8 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: 'https', hostname: 'picsum.photos' },
       { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
+      // Supabase Storage（公開バケットの画像URL）
+      { protocol: 'https', hostname: '*.supabase.co' },
     ],
   },
   // ワークスペースのルートをこのプロジェクト自身に固定（親ディレクトリを参照させない）

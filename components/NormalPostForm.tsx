@@ -2,10 +2,9 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, X, ChevronLeft, ChevronRight, Camera, SlidersHorizontal } from 'lucide-react';
+import { Search, X, ChevronLeft, ChevronRight, Camera } from 'lucide-react';
 import { SpotSearchPanel } from '@/components/SpotSearchPanel';
-import { useIsMobile } from '@/lib/useIsMobile';
-import FilterDrawer from '@/components/FilterDrawer';
+import { SpotGachaPicker } from '@/components/SpotGachaPicker';
 
 // ─── 型 ─────────────────────────────────────────────────────────────────
 
@@ -159,121 +158,6 @@ function GachaSearch({ onSelect }: {
 }
 
 
-// ─── 店舗ガチャピッカー（店舗から投稿時に使用） ────────────────────────────
-
-type GachaItem = { id: string; seriesName: string; ipName: string; imageUrl: string | null };
-
-function SpotGachaPicker({ spotId, filterGachaIds, onSelect, selectedId }: {
-  spotId: string;
-  filterGachaIds: string[];
-  onSelect: (id: string, name: string, imageUrl: string | null, lineup: string[]) => void;
-  selectedId?: string;
-}) {
-  const isMobile = useIsMobile();
-  const [allGachas,       setAllGachas]       = useState<GachaItem[]>([]);
-  const [loading,         setLoading]         = useState(true);
-  const [resolving,       setResolving]       = useState<string | null>(null);
-  const [activeFilterIds, setActiveFilterIds] = useState<string[]>(filterGachaIds);
-  const [filterOpen,      setFilterOpen]      = useState(false);
-
-  const isFiltered = activeFilterIds.length > 0;
-  const filterSet  = new Set(activeFilterIds);
-  const gachas     = isFiltered ? allGachas.filter(g => filterSet.has(g.id)) : allGachas;
-
-  useEffect(() => {
-    Promise.all([
-      fetch(`/api/spots/${spotId}`).then(r => r.json()),
-      fetch('/api/gacha/filters').then(r => r.json()),
-    ]).then(([spotRes, filterRes]) => {
-      const gachaIdSet = new Set<string>(spotRes.spot?.gachaIds ?? []);
-      setAllGachas(
-        (filterRes.items ?? []).filter((g: GachaItem) => gachaIdSet.has(g.id))
-      );
-    }).catch(() => {}).finally(() => setLoading(false));
-  }, [spotId]);
-
-  const handleSelect = async (g: GachaItem) => {
-    setResolving(g.id);
-    try {
-      const d = await fetch(`/api/gacha/${g.id}`).then(r => r.json());
-      onSelect(g.id, g.seriesName, g.imageUrl, d.gacha?.lineup ?? []);
-    } catch {
-      onSelect(g.id, g.seriesName, g.imageUrl, []);
-    }
-    setResolving(null);
-  };
-
-  if (loading) return (
-    <div style={{ display: 'flex', justifyContent: 'center', padding: '24px 0' }}>
-      <div style={{ width: 20, height: 20, border: '2px solid #F2B800', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
-    </div>
-  );
-
-  return (
-    <div>
-      {/* フィルターバー */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-        <button onClick={() => setFilterOpen(true)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            padding: '6px 16px', borderRadius: 9999, border: 'none', cursor: 'pointer',
-            background: isFiltered ? '#F2B800' : '#F5F3ED',
-            color: isFiltered ? 'white' : '#888',
-            fontSize: 13, fontWeight: 700,
-          }}>
-          <SlidersHorizontal size={13} />
-          {isFiltered ? `フィルター中 (${activeFilterIds.length})` : 'フィルター'}
-        </button>
-        {isFiltered && (
-          <button onClick={() => setActiveFilterIds([])}
-            style={{ fontSize: 12, padding: '5px 12px', borderRadius: 20, border: 'none', cursor: 'pointer', background: '#FFF0C0', color: '#B8860B', fontWeight: 700 }}>
-            解除
-          </button>
-        )}
-        <span style={{ fontSize: 11, color: '#aaa', marginLeft: 'auto' }}>{gachas.length}件</span>
-      </div>
-
-      {/* ガチャリスト（ピルボタン） */}
-      {gachas.length === 0 ? (
-        <p style={{ color: '#aaa', fontSize: 13, textAlign: 'center', padding: '20px 0' }}>
-          フィルター条件に合う商品がありません
-        </p>
-      ) : (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, maxHeight: 240, overflowY: 'auto' }}>
-          {gachas.map(g => (
-            <button key={g.id} onClick={() => handleSelect(g)} disabled={!!resolving}
-              style={{
-                padding: isMobile ? '6px 8px' : '6px 13px', borderRadius: 99, fontSize: 12, fontWeight: 600,
-                border: (selectedId === g.id || resolving === g.id) ? '2px solid #F2B800' : '1.5px solid #EDE9D8',
-                background: (selectedId === g.id || resolving === g.id) ? '#FFF8D0' : 'white',
-                color: (selectedId === g.id || resolving === g.id) ? '#8A6800' : '#555',
-                cursor: resolving ? 'wait' : 'pointer', transition: 'all 0.12s',
-                opacity: resolving && resolving !== g.id ? 0.45 : 1,
-              }}>
-              {resolving === g.id
-                ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                    <span style={{ width: 10, height: 10, border: '2px solid #F2B800', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'inline-block' }} />
-                    {g.seriesName}
-                  </span>
-                : g.seriesName}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {filterOpen && (
-        <FilterDrawer
-          isOpen={filterOpen}
-          onClose={() => setFilterOpen(false)}
-          onApply={ids => { setActiveFilterIds(ids); setFilterOpen(false); }}
-          favoriteIps={[]}
-          currentGachaIds={activeFilterIds}
-        />
-      )}
-    </div>
-  );
-}
-
 // ─── 結果選択 ────────────────────────────────────────────────────────────
 
 function ResultSelector({ value, onChange }: { value: string; onChange: (v: string) => void }) {
@@ -353,11 +237,12 @@ function StepHeader({ step, onBack }: { step: Step; onBack?: () => void }) {
 
 // ─── モバイル：ステップ形式 ───────────────────────────────────────────────
 
-function MobileForm({ onDone, initialSpotId = '', initialSpotName = '', initialFilterGachaIds = [] }: {
+function MobileForm({ onDone, initialSpotId = '', initialSpotName = '', initialFilterGachaIds = [], initialSearch = '' }: {
   onDone?: () => void;
   initialSpotId?: string;
   initialSpotName?: string;
   initialFilterGachaIds?: string[];
+  initialSearch?: string;
 }) {
   const router = useRouter();
   const [step, setStep] = useState<Step>('gacha');
@@ -414,7 +299,7 @@ function MobileForm({ onDone, initialSpotId = '', initialSpotName = '', initialF
         <StepHeader step="gacha" />
         {initialSpotId ? (
           <>
-            <SpotGachaPicker spotId={initialSpotId} filterGachaIds={initialFilterGachaIds}
+            <SpotGachaPicker spotId={initialSpotId} filterGachaIds={initialFilterGachaIds} initialQuery={initialSearch}
               selectedId={form.gachaId}
               onSelect={(id, name, img, lineup) => {
                 set({ gachaId: id, gachaName: name, gachaImageUrl: img, gachaLineup: lineup });
@@ -588,11 +473,12 @@ function ImageUploader({ value, onChange, accentColor = '#F2B800' }: {
 
 type ValidationErrors = { gacha?: string; result?: string; item?: string; spot?: string };
 
-export function DesktopNormalForm({ onDone, initialSpotId = '', initialSpotName = '', initialFilterGachaIds = [] }: {
+export function DesktopNormalForm({ onDone, initialSpotId = '', initialSpotName = '', initialFilterGachaIds = [], initialSearch = '' }: {
   onDone?: () => void;
   initialSpotId?: string;
   initialSpotName?: string;
   initialFilterGachaIds?: string[];
+  initialSearch?: string;
 }) {
   const router = useRouter();
   const [form, setForm] = useState<FormState>(() => ({
@@ -660,7 +546,7 @@ export function DesktopNormalForm({ onDone, initialSpotId = '', initialSpotName 
             </button>
           </div>
         ) : initialSpotId ? (
-          <SpotGachaPicker spotId={initialSpotId} filterGachaIds={initialFilterGachaIds}
+          <SpotGachaPicker spotId={initialSpotId} filterGachaIds={initialFilterGachaIds} initialQuery={initialSearch}
             onSelect={(id, name, img, lineup) => {
               set({ gachaId: id, gachaName: name, gachaImageUrl: img, gachaLineup: lineup });
               setVErr(v => ({ ...v, gacha: undefined }));
@@ -745,7 +631,7 @@ const nextBtnStyle = (active: boolean): React.CSSProperties => ({
 });
 
 
-function NormalPostForm(props: { onDone?: () => void; initialSpotId?: string; initialSpotName?: string; initialFilterGachaIds?: string[] }) {
+function NormalPostForm(props: { onDone?: () => void; initialSpotId?: string; initialSpotName?: string; initialFilterGachaIds?: string[]; initialSearch?: string }) {
   return <MobileForm {...props} />;
 }
 export { NormalPostForm };

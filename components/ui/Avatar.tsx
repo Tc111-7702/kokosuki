@@ -1,6 +1,6 @@
 'use client';
 
-import Image from 'next/image';
+import { useState } from 'react';
 
 export function avatarColor(name: string): string {
   const colors = ['#F87171','#FB923C','#FBBF24','#34D399','#60A5FA','#818CF8','#E879F9','#F472B6'];
@@ -18,24 +18,32 @@ export function timeAgo(iso: string): string {
 }
 
 export function Avatar({ user, size = 40 }: { user: { name: string; image: string | null }; size?: number }) {
-  if (user.image) {
+  // 画像URLが壊れている（404等）場合はそのURLを記録し、頭文字アバターにフォールバック
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const name = user.name || '?';
+
+  if (user.image && user.image !== failedSrc) {
     return (
-      <Image
+      // 任意ホスト（dicebear/Google/Supabase等）に対応するため next/image ではなく img を使用
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
         src={user.image}
-        alt={user.name}
+        alt={name}
         width={size}
         height={size}
         className="rounded-full object-cover flex-shrink-0"
         style={{ width: size, height: size }}
+        onError={() => setFailedSrc(user.image)}
+        referrerPolicy="no-referrer"
       />
     );
   }
   return (
     <div
       className="flex-shrink-0 rounded-full flex items-center justify-center text-white font-bold"
-      style={{ width: size, height: size, backgroundColor: avatarColor(user.name), fontSize: size * 0.35 }}
+      style={{ width: size, height: size, backgroundColor: avatarColor(name), fontSize: size * 0.35 }}
     >
-      {user.name.charAt(0)}
+      {name.charAt(0)}
     </div>
   );
 }

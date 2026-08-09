@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Heart, MessageCircle, Pencil, Trash2, Send, X, ChevronDown } from 'lucide-react';
 import { Avatar, avatarColor, timeAgo } from '@/components/ui/Avatar';
+import { renderWithMentions } from '@/components/PostCard';
 
 interface ReviewReply {
   id: string;
@@ -24,8 +25,9 @@ interface Review {
   user: { id: string; name: string; image: string | null };
 }
 
-export function StoreReviews({ spotId }: { spotId: string }) {
+export function StoreReviews({ spotId, autoOpenReviewId }: { spotId: string; autoOpenReviewId?: string | null }) {
   const [reviews,      setReviews]      = useState<Review[]>([]);
+  const [autoOpenDone, setAutoOpenDone] = useState(false);
   const [total,        setTotal]        = useState(0);
   const [shown,        setShown]        = useState(0);
   const [loading,      setLoading]      = useState(true);
@@ -38,6 +40,7 @@ export function StoreReviews({ spotId }: { spotId: string }) {
   const [replyOpen,    setReplyOpen]    = useState<Record<string, boolean>>({});
   const [replyTexts,   setReplyTexts]   = useState<Record<string, string>>({});
   const [replySubmitting, setReplySubmitting] = useState<Record<string, boolean>>({});
+  const [mention, setMention] = useState<{ reviewId: string; query: string } | null>(null);
   const newTextRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -62,6 +65,26 @@ export function StoreReviews({ spotId }: { spotId: string }) {
     } catch {}
     setLoadingMore(false);
   };
+
+  // 通知から来たとき: 対象口コミを見つけるまで読み込み、見つかったら返信欄を開いてスクロール
+  useEffect(() => {
+    if (!autoOpenReviewId || autoOpenDone || loading) return;
+    if (reviews.some(r => r.id === autoOpenReviewId)) {
+      const t = setTimeout(() => {
+        setReplyOpen(prev => ({ ...prev, [autoOpenReviewId]: true }));
+        setAutoOpenDone(true);
+        document.getElementById(`review-${autoOpenReviewId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+      return () => clearTimeout(t);
+    }
+    if (shown < total) {
+      loadMore();
+    } else {
+      const t = setTimeout(() => setAutoOpenDone(true), 0);
+      return () => clearTimeout(t);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoOpenReviewId, autoOpenDone, loading, reviews, shown, total]);
 
   const submitReview = async () => {
     const text = newText.trim();
@@ -94,7 +117,9 @@ export function StoreReviews({ spotId }: { spotId: string }) {
 
   const deleteReview = async (reviewId: string) => {
     if (!confirm('この口コミを削除しますか？')) return;
-    await fetch(`/api/spots/${spotId}/reviews/${reviewId}`, { method: 'DELETE' });
+    // 成功を確認してからUIを更新（失敗を握りつぶすと「消えたように見えて実際は残る」ため）
+    const res = await fetch(`/api/spots/${spotId}/reviews/${reviewId}`, { method: 'DELETE' }).catch(() => null);
+    if (!res || !res.ok) { alert('削除に失敗しました。時間をおいて再度お試しください。'); return; }
     setReviews(prev => prev.filter(r => r.id !== reviewId));
     setTotal(t => t - 1);
     setShown(s => s - 1);
@@ -138,10 +163,35 @@ export function StoreReviews({ spotId }: { spotId: string }) {
   };
 
   const deleteReply = async (reviewId: string, replyId: string) => {
-    await fetch(`/api/spots/${spotId}/reviews/${reviewId}/replies/${replyId}`, { method: 'DELETE' });
+    const res = await fetch(`/api/spots/${spotId}/reviews/${reviewId}/replies/${replyId}`, { method: 'DELETE' }).catch(() => null);
+    if (!res || !res.ok) { alert('削除に失敗しました。時間をおいて再度お試しください。'); return; }
     setReviews(prev => prev.map(r =>
       r.id === reviewId ? { ...r, replies: r.replies.filter(rp => rp.id !== replyId) } : r
     ));
+  };
+
+  // メンション候補（その口コミの投稿者＋返信者。自分は除外・クエリで絞り込み）
+  const mentionCandidatesFor = (review: Review) => {
+    if (mention?.reviewId !== review.id) return [];
+    const q = mention.query.toLowerCase();
+    const seen = new Set<string>();
+    const out: ReviewReply['user'][] = [];
+    for (const u of [review.user, ...review.replies.map(rp => rp.user)]) {
+      if (u.id === currentUid || seen.has(u.id)) continue;
+      seen.add(u.id);
+      if (q === '' || u.name.toLowerCase().includes(q)) out.push(u);
+    }
+    return out.slice(0, 6);
+  };
+
+  // 入力欄の末尾の「@クエリ」を「@名前 」に置換して挿入
+  const insertReplyMention = (reviewId: string, name: string) => {
+    setReplyTexts(prev => {
+      const cur = prev[reviewId] ?? '';
+      const replaced = cur.replace(/(^|\s)@[^@\s]*$/, (m) => `${m.startsWith('@') ? '' : m[0]}@${name} `);
+      return { ...prev, [reviewId]: replaced };
+    });
+    setMention(null);
   };
 
   const remaining = total - shown;
@@ -202,7 +252,7 @@ export function StoreReviews({ spotId }: { spotId: string }) {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {reviews.map(review => (
-            <div key={review.id} style={{ background: 'white', borderRadius: 14, padding: '12px 14px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+            <div key={review.id} id={`review-${review.id}`} style={{ background: 'white', borderRadius: 14, padding: '12px 14px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
 
               {/* 投稿者行 */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
@@ -287,17 +337,43 @@ export function StoreReviews({ spotId }: { spotId: string }) {
                             </button>
                           )}
                         </div>
-                        <p style={{ margin: '2px 0 0', fontSize: 12, color: '#444', lineHeight: 1.5, wordBreak: 'break-word' }}>{rp.text}</p>
+                        <p style={{ margin: '2px 0 0', fontSize: 12, color: '#444', lineHeight: 1.5, wordBreak: 'break-word' }}>
+                          {renderWithMentions(rp.text, [review.user.name, ...review.replies.map(x => x.user.name)])}
+                        </p>
                       </div>
                     </div>
                   ))}
-                  <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', marginTop: 6 }}>
+                  <div style={{ position: 'relative', display: 'flex', gap: 6, alignItems: 'flex-end', marginTop: 6 }}>
+                    {(() => {
+                      const cands = mentionCandidatesFor(review);
+                      if (cands.length === 0) return null;
+                      return (
+                        <div style={{ position: 'absolute', bottom: '100%', left: 0, right: 40, marginBottom: 4, background: 'white', borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.14)', border: '1px solid #F0F0F0', overflow: 'hidden', zIndex: 20, maxHeight: 160, overflowY: 'auto' }}>
+                          {cands.map(u => (
+                            <button
+                              key={u.id}
+                              onMouseDown={e => { e.preventDefault(); insertReplyMention(review.id, u.name); }}
+                              style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', padding: '8px 12px', border: 'none', background: 'none', cursor: 'pointer' }}
+                            >
+                              <Avatar user={u} size={22} />
+                              <span style={{ fontSize: 12, fontWeight: 600, color: '#333' }}>{u.name}</span>
+                            </button>
+                          ))}
+                        </div>
+                      );
+                    })()}
                     <input
                       type="text"
                       value={replyTexts[review.id] ?? ''}
-                      onChange={e => setReplyTexts(prev => ({ ...prev, [review.id]: e.target.value }))}
+                      onChange={e => {
+                        const v = e.target.value;
+                        setReplyTexts(prev => ({ ...prev, [review.id]: v }));
+                        const m = /(^|\s)@([^@\s]*)$/.exec(v);
+                        setMention(m ? { reviewId: review.id, query: m[2] } : null);
+                      }}
+                      onBlur={() => setTimeout(() => setMention(null), 150)}
                       onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitReply(review.id); } }}
-                      placeholder="返信を入力…"
+                      placeholder="返信を入力…（@でメンション）"
                       style={{ flex: 1, border: '1px solid #E8E8E8', borderRadius: 20, padding: '6px 12px', fontSize: 12, outline: 'none' }}
                     />
                     <button

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Bell, Heart, MessageCircle, Package } from 'lucide-react';
+import { Bell, Heart, MessageCircle, Package } from 'lucide-react';
 
 interface NotificationItem {
   id: string;
@@ -16,10 +16,6 @@ interface NotificationItem {
   spotReviewId: string | null;
   read: boolean;
   createdAt: string;
-}
-
-interface Props {
-  onClose: () => void;
 }
 
 function timeAgo(iso: string): string {
@@ -41,7 +37,24 @@ function typeIcon(type: string) {
   return <Bell size={18} color="#888" />;
 }
 
-export function NotificationList({ onClose }: Props) {
+// 通知の遷移先URL
+// ・口コミへの通知 → 店舗詳細ページでその口コミの返信欄を開く
+// ・通常投稿/在庫報告への通知 → ホームの「みんな」でその投稿の返信詳細を開く
+function destinationUrl(n: NotificationItem): string | null {
+  if (n.spotReviewId && n.spotId) {
+    return `/store/${n.spotId}?openReview=${n.spotReviewId}&noFilter=1`;
+  }
+  if (n.postId) {
+    return `/home?tab=community&openPost=${n.postId}&type=post`;
+  }
+  if (n.stockPostId) {
+    return `/home?tab=community&openPost=${n.stockPostId}&type=stock`;
+  }
+  if (n.spotId) return `/store/${n.spotId}`;
+  return null;
+}
+
+export default function NotificationsPage() {
   const router = useRouter();
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,46 +66,51 @@ export function NotificationList({ onClose }: Props) {
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (alive) setItems(d?.notifications ?? []);
+        // 未読状態を取得・描画した後で既読化する。
+        // （GETとPATCHを同時に投げると、PATCHが先に走ってGETが全既読で返り、
+        //   未読のヒカル演出が出ないことがあるため順序を保証する）
+        fetch('/api/notifications/read', { method: 'PATCH' }).catch(() => {});
       })
       .catch(() => {})
       .finally(() => {
         if (alive) setLoading(false);
       });
 
-    // 一覧を開いた時点で全既読化（ベルのバッジを消す）
-    fetch('/api/notifications/read', { method: 'PATCH' }).catch(() => {});
-
     return () => {
       alive = false;
     };
   }, []);
 
-  // 通知タップ時の遷移先（在庫・口コミ系は店舗ページ、投稿への反応はみんなタブ）
-  const destination = (n: NotificationItem): string | null => {
-    if (n.type === 'favorite_stock' && n.spotId) return `/store/${n.spotId}`;
-    if (n.spotReviewId && n.spotId) return `/store/${n.spotId}`;
-    if (n.postId || n.stockPostId) return '/home?tab=community';
-    if (n.spotId) return `/store/${n.spotId}`;
-    return null;
-  };
-
-  const openNotification = (n: NotificationItem) => {
-    const dest = destination(n);
-    if (!dest) return;
-    onClose();
-    router.push(dest);
-  };
-
   return (
-    <div className="absolute inset-0 z-20 flex flex-col bg-[#FFFEEF]">
+    <div className="flex flex-col h-full bg-[#FFFEEF]">
+      {/* 未読通知に、表示時一度だけ光が走る演出 */}
+      <style>{`
+        .notif-shine { position: relative; overflow: hidden; animation: notifFlashBg 1.2s ease-out; }
+        @keyframes notifFlashBg {
+          0%   { background-color: #FFE066; }
+          60%  { background-color: #FFEC99; }
+          100% { background-color: #FFF8D0; }
+        }
+        .notif-shine::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(100deg, transparent 25%, rgba(255,255,255,0.95) 50%, transparent 75%);
+          transform: translateX(-130%);
+          animation: notifShine 1s ease-out;
+          pointer-events: none;
+        }
+        @keyframes notifShine { to { transform: translateX(130%); } }
+        @media (prefers-reduced-motion: reduce) {
+          .notif-shine { animation: none; }
+          .notif-shine::after { animation: none; }
+        }
+      `}</style>
       <div
         className="flex-shrink-0 bg-white flex items-center gap-2 px-3"
         style={{ height: 52, borderBottom: '1.5px solid #EDE9D8' }}
       >
-        <button onClick={onClose} className="p-2 active:opacity-60" aria-label="戻る">
-          <ArrowLeft size={20} color="#555" />
-        </button>
-        <h1 className="text-[16px] font-black" style={{ color: '#111' }}>通知</h1>
+        <h1 className="text-[16px] font-black" style={{ color: '#111', paddingLeft: 8 }}>通知</h1>
       </div>
 
       <div className="flex-1 overflow-y-auto">
@@ -108,12 +126,12 @@ export function NotificationList({ onClose }: Props) {
           </div>
         ) : (
           items.map((n) => {
-            const dest = destination(n);
+            const dest = destinationUrl(n);
             return (
               <button
                 key={n.id}
-                onClick={() => openNotification(n)}
-                className="w-full flex items-start gap-3 px-4 py-3 text-left active:opacity-70"
+                onClick={() => { if (dest) router.push(dest); }}
+                className={"w-full flex items-start gap-3 px-4 py-3 text-left active:opacity-70" + (n.read ? "" : " notif-shine")}
                 style={{
                   background: n.read ? 'transparent' : '#FFF8D0',
                   borderBottom: '1px solid #F0ECD8',

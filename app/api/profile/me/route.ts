@@ -43,7 +43,7 @@ export async function PATCH(req: Request) {
     name?: string;
     handle?: string;
     bio?: string;
-    avatarUrl?: string;
+    avatarUrl?: string | null;
     favoriteIps?: string[];
     notifyFavoriteStock?: boolean;
     notifyReaction?: boolean;
@@ -86,7 +86,12 @@ export async function PATCH(req: Request) {
   const profileData: db.ProfileUpsertData = {};
   if (handle !== undefined) profileData.handle = handle;
   if (bio !== undefined) profileData.bio = bio;
-  if (avatarUrl !== undefined) profileData.avatarUrl = avatarUrl;
+  // アイコン：空文字/nullは削除扱い。プロフィール(avatarUrl)とUser.imageを同期し、全ポストカードに反映する
+  if (avatarUrl !== undefined) {
+    const normalized = avatarUrl ? avatarUrl : null;
+    profileData.avatarUrl = normalized;
+    await db.updateUserImage(userId, normalized);
+  }
   if (favoriteIps !== undefined) profileData.favoriteIps = favoriteIps.map((ip) => ip.trim());
   if (notifyFavoriteStock !== undefined) profileData.notifyFavoriteStock = notifyFavoriteStock;
   if (notifyReaction !== undefined) profileData.notifyReaction = notifyReaction;

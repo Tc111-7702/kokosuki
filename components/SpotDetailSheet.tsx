@@ -260,7 +260,7 @@ export default function SpotDetailSheet({
                 }}
               >
                 {matchedGacha.map(g => (
-                  <SpotGachaCard key={g.id} gacha={g} stockStatus={spot.stockMap[g.id] ?? null} isMobile={isMobile} mode="scroll" />
+                  <SpotGachaCard key={g.id} gacha={g} stockStatus={spot.stockMap[g.id] ?? null} isMobile={isMobile} mode="scroll" highlight={searchSet != null && searchSet.has(g.id)} />
                 ))}
               </div>
             </>
@@ -342,14 +342,14 @@ export default function SpotDetailSheet({
             )}
             <button
               disabled={isEmpty || tooFarForStock}
-              onClick={() => router.push(`/post?mode=stock&spotId=${spot.id}&spotName=${encodeURIComponent(spot.name)}&filterGachaIds=${filterGachaIds.join(',')}`)}
+              onClick={() => router.push(`/post?mode=stock&spotId=${spot.id}&spotName=${encodeURIComponent(spot.name)}&filterGachaIds=${filterGachaIds.join(',')}${searchLabel ? `&contentSearch=${encodeURIComponent(searchLabel)}` : ''}`)}
               className="flex-1 py-3 rounded-2xl text-[14px] font-bold"
               style={{ background: '#F5F3ED', color: '#555', opacity: isEmpty || tooFarForStock ? 0.4 : 1, cursor: isEmpty || tooFarForStock ? 'not-allowed' : 'pointer' }}>
               在庫を報告
             </button>
             <button
               disabled={isEmpty}
-              onClick={() => router.push(`/post?mode=pull&spotId=${spot.id}&spotName=${encodeURIComponent(spot.name)}&filterGachaIds=${filterGachaIds.join(',')}`)}
+              onClick={() => router.push(`/post?mode=pull&spotId=${spot.id}&spotName=${encodeURIComponent(spot.name)}&filterGachaIds=${filterGachaIds.join(',')}${searchLabel ? `&contentSearch=${encodeURIComponent(searchLabel)}` : ''}`)}
               className="flex-1 py-3 rounded-2xl text-[14px] font-bold"
               style={{ background: '#F2B800', color: 'white', opacity: isEmpty ? 0.4 : 1, cursor: isEmpty ? 'not-allowed' : 'pointer' }}>
               引いた！

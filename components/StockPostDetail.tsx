@@ -113,6 +113,9 @@ export function StockPostDetail({ post, onBack, onReplied, onDeleted }: { post: 
     setReplies(prev => prev.filter(r => r.id !== replyId));
   }, []);
 
+  // メンション着色用の参加者名（投稿主＋返信者。スペース入りの名前も正しく着色するため）
+  const mentionNames = [...new Set([post.user.name, ...replies.map(r => r.user.name)])];
+
   return (
     <div className="flex flex-col h-full bg-[#F5F5F0]">
       <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 bg-white/90 backdrop-blur-sm border-b border-gray-100 sticky top-0 z-10">
@@ -137,7 +140,7 @@ export function StockPostDetail({ post, onBack, onReplied, onDeleted }: { post: 
             <p className="text-center text-sm text-gray-400 py-8">{'まだ返信がありません'}</p>
           ) : (
             replies.map(r => (
-              <ReplyCard key={r.id} reply={r} postId={post.id} isOwn={r.user.id === currentUid} onDelete={handleDeleteReply} />
+              <ReplyCard key={r.id} reply={r} postId={post.id} isOwn={r.user.id === currentUid} onDelete={handleDeleteReply} mentionNames={mentionNames} />
             ))
           )}
         </div>

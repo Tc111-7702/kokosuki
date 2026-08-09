@@ -11,11 +11,12 @@ type PostType = 'normal' | 'stock';
 
 // ─── デスクトップ：タブ切り替え ───────────────────────────────────────────
 
-function DesktopPostPage({ initialMode, initialSpotId, initialSpotName, initialFilterGachaIds }: {
+function DesktopPostPage({ initialMode, initialSpotId, initialSpotName, initialFilterGachaIds, initialSearch }: {
   initialMode: string | null;
   initialSpotId: string;
   initialSpotName: string;
   initialFilterGachaIds: string[];
+  initialSearch: string;
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<PostType>(initialMode === 'stock' ? 'stock' : 'normal');
@@ -31,8 +32,19 @@ function DesktopPostPage({ initialMode, initialSpotId, initialSpotName, initialF
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: bg }}>
       <div style={{
         flexShrink: 0, background: 'white', borderBottom: '1.5px solid #EDE9D8',
-        display: 'flex', gap: 0, justifyContent: 'center',
+        display: 'flex', gap: 0, justifyContent: 'center', position: 'relative',
       }}>
+        {initialMode && (
+          <button onClick={() => router.back()}
+            style={{
+              position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
+              display: 'flex', alignItems: 'center', gap: 4,
+              background: 'none', border: 'none', cursor: 'pointer', padding: 8,
+              color: '#888', fontSize: 14, fontWeight: 700,
+            }}>
+            <ChevronLeft size={20} />戻る
+          </button>
+        )}
         {TABS.map(t => {
           const locked = !!initialMode && t.key !== tab;
           return (
@@ -53,8 +65,8 @@ function DesktopPostPage({ initialMode, initialSpotId, initialSpotName, initialF
       </div>
       <div style={{ flex: 1, overflowY: 'auto' }}>
         {tab === 'normal'
-          ? <DesktopNormalForm onDone={handleDone} initialSpotId={initialSpotId} initialSpotName={initialSpotName} initialFilterGachaIds={initialFilterGachaIds} />
-          : <DesktopStockForm  onDone={handleDone} initialSpotId={initialSpotId} initialSpotName={initialSpotName} initialFilterGachaIds={initialFilterGachaIds} />
+          ? <DesktopNormalForm onDone={handleDone} initialSpotId={initialSpotId} initialSpotName={initialSpotName} initialFilterGachaIds={initialFilterGachaIds} initialSearch={initialSearch} />
+          : <DesktopStockForm  onDone={handleDone} initialSpotId={initialSpotId} initialSpotName={initialSpotName} initialFilterGachaIds={initialFilterGachaIds} initialSearch={initialSearch} />
         }
       </div>
     </div>
@@ -63,11 +75,12 @@ function DesktopPostPage({ initialMode, initialSpotId, initialSpotName, initialF
 
 // ─── モバイル：タイプ選択 → フォーム ─────────────────────────────────────
 
-function MobilePostPage({ initialMode, initialSpotId, initialSpotName, initialFilterGachaIds }: {
+function MobilePostPage({ initialMode, initialSpotId, initialSpotName, initialFilterGachaIds, initialSearch }: {
   initialMode: string | null;
   initialSpotId: string;
   initialSpotName: string;
   initialFilterGachaIds: string[];
+  initialSearch: string;
 }) {
   const router = useRouter();
   const [postType, setPostType] = useState<PostType | null>(
@@ -132,8 +145,8 @@ function MobilePostPage({ initialMode, initialSpotId, initialSpotName, initialFi
       </div>
       <div style={{ flex: 1, overflowY: 'auto' }}>
         {isNormal
-          ? <NormalPostForm onDone={handleDone} initialSpotId={initialSpotId} initialSpotName={initialSpotName} initialFilterGachaIds={initialFilterGachaIds} />
-          : <StockPostForm  onDone={handleDone} initialSpotId={initialSpotId} initialSpotName={initialSpotName} initialFilterGachaIds={initialFilterGachaIds} />
+          ? <NormalPostForm onDone={handleDone} initialSpotId={initialSpotId} initialSpotName={initialSpotName} initialFilterGachaIds={initialFilterGachaIds} initialSearch={initialSearch} />
+          : <StockPostForm  onDone={handleDone} initialSpotId={initialSpotId} initialSpotName={initialSpotName} initialFilterGachaIds={initialFilterGachaIds} initialSearch={initialSearch} />
         }
       </div>
     </div>
@@ -149,10 +162,11 @@ function PostPageContent() {
   const spotName  = searchParams.get('spotName')  ?? '';
   const filterRaw = searchParams.get('filterGachaIds') ?? '';
   const filterIds = filterRaw ? filterRaw.split(',').filter(Boolean) : [];
+  const search    = searchParams.get('contentSearch') ?? '';   // マップの検索を引き継ぐ
   const isMobile  = useIsMobile();
   return isMobile
-    ? <MobilePostPage  initialMode={mode} initialSpotId={spotId} initialSpotName={spotName} initialFilterGachaIds={filterIds} />
-    : <DesktopPostPage initialMode={mode} initialSpotId={spotId} initialSpotName={spotName} initialFilterGachaIds={filterIds} />;
+    ? <MobilePostPage  initialMode={mode} initialSpotId={spotId} initialSpotName={spotName} initialFilterGachaIds={filterIds} initialSearch={search} />
+    : <DesktopPostPage initialMode={mode} initialSpotId={spotId} initialSpotName={spotName} initialFilterGachaIds={filterIds} initialSearch={search} />;
 }
 
 // ─── エントリポイント ─────────────────────────────────────────────────────

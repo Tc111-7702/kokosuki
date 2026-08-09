@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getNotificationsByUserId } from '@/lib/db';
+import * as db from '@/lib/db';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 
@@ -11,7 +11,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const notifications = await getNotificationsByUserId(session.user.id);
+    const notifications = await db.getNotificationsByUserId(session.user.id);
     return NextResponse.json({ notifications });
   } catch (e) {
     console.error('[notifications GET]', e);

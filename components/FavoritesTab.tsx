@@ -105,7 +105,7 @@ function FavoriteCard({
 
 // ─── メイン ───────────────────────────────────────────────────────────────────
 
-export function FavoritesTab() {
+export function FavoritesTab({ userId, editable = true }: { userId?: string; editable?: boolean }) {
   const [gachas,   setGachas]   = useState<FavoriteGacha[]>([]);
   const [loading,  setLoading]  = useState(true);
   const [editing,  setEditing]  = useState(false);
@@ -120,12 +120,14 @@ export function FavoritesTab() {
   }, []);
 
   useEffect(() => {
-    fetch('/api/gacha/favorites')
+    // 自分＝編集可の自分用API / 他人＝公開API
+    const url = editable ? '/api/gacha/favorites' : `/api/users/${userId}/favorites`;
+    fetch(url)
       .then(r => r.json())
       .then(d => setGachas(d.gachas ?? []))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [editable, userId]);
 
   const handleDelete = async (gachaId: string) => {
     setDeleting(prev => new Set(prev).add(gachaId));
@@ -150,9 +152,9 @@ export function FavoritesTab() {
       {/* ヘッダー行 */}
       <div className="flex items-center justify-between px-4 py-3">
         <span style={{ fontSize: 13, fontWeight: 700, color: '#555' }}>
-          引きたいもの {loading ? '…' : `${gachas.length}件`}
+          {editable ? '引きたいもの' : 'おきにいり'} {loading ? '…' : `${gachas.length}件`}
         </span>
-        {!loading && gachas.length > 0 && (
+        {editable && !loading && gachas.length > 0 && (
           <button
             onClick={() => setEditing(e => !e)}
             style={{ fontSize: 13, fontWeight: 700, color: editing ? '#F2B800' : '#888' }}
@@ -171,8 +173,14 @@ export function FavoritesTab() {
         ) : gachas.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3">
             <p style={{ fontSize: 22 }}>🎰</p>
-            <p style={{ fontSize: 14, color: '#aaa', fontWeight: 600 }}>引きたいガチャを登録しよう</p>
-            <p style={{ fontSize: 12, color: '#ccc' }}>ガチャ詳細ページからハートで追加できます</p>
+            {editable ? (
+              <>
+                <p style={{ fontSize: 14, color: '#aaa', fontWeight: 600 }}>引きたいガチャを登録しよう</p>
+                <p style={{ fontSize: 12, color: '#ccc' }}>ガチャ詳細ページからハートで追加できます</p>
+              </>
+            ) : (
+              <p style={{ fontSize: 14, color: '#aaa', fontWeight: 600 }}>おきにいりはまだありません</p>
+            )}
           </div>
         ) : (
           <div

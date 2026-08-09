@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getUnreadNotificationCount } from '@/lib/db';
+import * as db from '@/lib/db';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 
@@ -11,7 +11,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const count = await getUnreadNotificationCount(session.user.id);
+    const count = await db.getUnreadNotificationCount(session.user.id);
     return NextResponse.json({ count });
   } catch (e) {
     console.error('[notifications unread-count]', e);
