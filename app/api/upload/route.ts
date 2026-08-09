@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
-import { supabaseAdmin, UPLOAD_BUCKET } from '@/lib/supabase';
+import { getSupabaseAdmin, UPLOAD_BUCKET } from '@/lib/supabase';
 
 export async function POST(request: Request) {
   try {
@@ -17,7 +17,8 @@ export async function POST(request: Request) {
     const path = `${randomUUID()}.${ext}`;
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    const { error } = await supabaseAdmin.storage
+    const supabase = getSupabaseAdmin();
+    const { error } = await supabase.storage
       .from(UPLOAD_BUCKET)
       .upload(path, buffer, {
         contentType: file.type || 'image/jpeg',
@@ -28,7 +29,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: '保存に失敗しました' }, { status: 500 });
     }
 
-    const { data } = supabaseAdmin.storage.from(UPLOAD_BUCKET).getPublicUrl(path);
+    const { data } = supabase.storage.from(UPLOAD_BUCKET).getPublicUrl(path);
     return NextResponse.json({ url: data.publicUrl });
   } catch (e) {
     console.error('[upload]', e);
