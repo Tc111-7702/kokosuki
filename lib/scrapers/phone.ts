@@ -15,11 +15,11 @@ const PHONE_TASKS = [
   () => fetchPhoneNumbers(),  // phone-fetch
 ];
 
-/** 定期ポーリング開始（常駐プロセス用） */
+/** 定期ポーリング開始（常駐プロセス用）。停止関数を返す。 */
 export function startPhoneScraping(
   opts: { everyWeeks?: number; dayOfWeek?: number; atTime?: string } = {},
-): void {
-  scraperPolling({
+): () => void {
+  return scraperPolling({
     label: 'phone',
     everyWeeks: opts.everyWeeks ?? PHONE_DEFAULT.everyWeeks,
     dayOfWeek:  opts.dayOfWeek  ?? PHONE_DEFAULT.dayOfWeek,

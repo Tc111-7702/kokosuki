@@ -197,7 +197,7 @@ export async function syncScheduleGachas(): Promise<ScheduleSyncResult> {
         const price       = parsePrice(pageHtml) ?? 300;
         const lineup      = parseLineup(pageHtml);
         const releaseDate = parseReleaseDate(pageHtml);
-        const status      = releaseDate && releaseDate > new Date() ? 'coming_soon' : 'on_sale';
+        const status      = 'coming_soon'; // 在庫ベース: 店舗にない発売スケジュール由来 = これから発売
 
         const classList = post.class_list ?? [];
         const wpTerms   = post._embedded?.['wp:term'] ?? [];
@@ -211,7 +211,6 @@ export async function syncScheduleGachas(): Promise<ScheduleSyncResult> {
         await db.upsertGachaFromScraper({
           seriesName:   post.title.rendered,
           ipName,
-          kind:         'gacha',
           category,
           status,
           price,

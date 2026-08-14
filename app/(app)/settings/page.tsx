@@ -46,6 +46,7 @@ export default function SettingsPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [settings, setSettings] = useState<Settings | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [sheet, setSheet] = useState<Sheet>(null);
   const closeSheet = () => setSheet(null);
@@ -58,6 +59,12 @@ export default function SettingsPage() {
         setEmail(d.email ?? '');
         setSettings(d.settings);
       })
+      .catch(() => {});
+
+    // 管理者かどうか（管理者のみ「管理者画面を開く」を表示）
+    fetch('/api/me')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setIsAdmin(d?.user?.role === 'admin'))
       .catch(() => {});
   }, []);
 
@@ -165,8 +172,13 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* ログアウト・退会 */}
+        {/* 管理者画面・ログアウト・退会 */}
         <div className="mt-8 px-4 flex flex-col gap-3">
+          {isAdmin && (
+            <button onClick={() => router.push('/admin')} className="w-full py-3.5 rounded-2xl text-[14px] font-black text-white active:opacity-80" style={{ background: '#F2B800' }}>
+              管理者画面を開く
+            </button>
+          )}
           <button onClick={handleLogout} className="w-full py-3.5 rounded-2xl text-[14px] font-bold" style={{ background: '#EDE9D8', color: '#555' }}>
             ログアウト
           </button>

@@ -22,7 +22,9 @@ export default function LoginPage() {
       setLoading(false);
       return;
     }
-    router.push('/home');
+    // admin は管理者画面へ、それ以外はホームへ
+    const me = await fetch('/api/me').then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    router.push(me?.user?.role === 'admin' ? '/admin' : '/home');
   };
 
   return (

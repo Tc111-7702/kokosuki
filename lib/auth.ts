@@ -15,7 +15,13 @@ export const auth = betterAuth({
   },
   user: {
     additionalFields: {
-      // UserProfileはリレーションで管理するため不要
+      // 認可用のロール（'user' | 'admin'）。admin は seed で付与。session.user.role で参照
+      role: {
+        type: 'string',
+        required: false,
+        defaultValue: 'user',
+        input: false, // クライアントからの登録時に role を指定させない（改ざん防止）
+      },
     },
   },
 });

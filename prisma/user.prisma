@@ -6,6 +6,7 @@ model User {
   emailVerified Boolean   @default(false)
   name          String
   image         String?
+  role          String    @default("user")  // 'user' | 'admin'（認可用）
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

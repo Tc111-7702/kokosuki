@@ -17,11 +17,11 @@ const GACHA_TASKS = [
   () => syncScheduleGachas(),  // schedule（予定ガチャ補完）
 ];
 
-/** 定期ポーリング開始（常駐プロセス用） */
+/** 定期ポーリング開始（常駐プロセス用）。停止関数を返す。 */
 export function startGachaScraping(
   opts: { everyWeeks?: number; dayOfWeek?: number; atTime?: string } = {},
-): void {
-  scraperPolling({
+): () => void {
+  return scraperPolling({
     label: 'gacha-island',
     everyWeeks: opts.everyWeeks ?? GACHA_DEFAULT.everyWeeks,
     dayOfWeek:  opts.dayOfWeek  ?? GACHA_DEFAULT.dayOfWeek,

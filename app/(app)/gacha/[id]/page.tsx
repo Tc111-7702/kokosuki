@@ -15,10 +15,6 @@ import type { FeedPost } from '@/components/community-types';
 const STATUS_LABEL: Record<string, string> = {
   on_sale: '発売中', coming_soon: '発売予定', ended: '終了',
 };
-const KIND_LABEL: Record<string, string> = {
-  gacha: 'ガチャ', kuji: 'くじ', capsule: 'カプセル', other: 'その他',
-};
-
 // ─── 投稿セクション ────────────────────────────────────────────────────────
 
 type OpenReply = { id: string; type: 'post' | 'stock' } | null;
@@ -326,11 +322,9 @@ export default function GachaDetailPage() {
       </span>
       <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20,
         background: 'rgba(0,0,0,0.07)', color: '#555' }}>
-        {KIND_LABEL[gacha.kind] ?? gacha.kind}
+        ガチャ
       </span>
-      {gacha.isCollab       && <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: '#EDE9FE', color: '#7C3AED' }}>コラボ</span>}
-      {gacha.isReissue      && <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: '#FEF3C7', color: '#D97706' }}>再販</span>}
-      {gacha.isContinuation && <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: '#DBEAFE', color: '#1D4ED8' }}>続編</span>}
+      {gacha.isReissue && <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: '#FEF3C7', color: '#D97706' }}>再販</span>}
     </div>
   );
 

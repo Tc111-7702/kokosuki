@@ -32,11 +32,12 @@ async function main() {
 
   const yamamoto = await prisma.user.upsert({
     where: { email: 'yamamoto@example.com' },
-    update: {},
+    update: { role: 'admin' },
     create: {
       email: 'yamamoto@example.com',
       name: '山本 雄太',
       emailVerified: true,
+      role: 'admin',
       accounts: {
         create: {
           accountId: 'yamamoto@example.com',
@@ -55,11 +56,12 @@ async function main() {
 
   const fukuda = await prisma.user.upsert({
     where: { email: 'hukuda@example.com' },
-    update: {},
+    update: { role: 'admin' },
     create: {
       email: 'hukuda@example.com',
       name: '福田 大陽',
       emailVerified: true,
+      role: 'admin',
       accounts: {
         create: {
           accountId: 'hukuda@example.com',
@@ -79,11 +81,12 @@ async function main() {
 
   const iida = await prisma.user.upsert({
     where: { email: 'iida@example.com' },
-    update: {},
+    update: { role: 'admin' },
     create: {
       email: 'iida@example.com',
       name: '飯田 成',
       emailVerified: true,
+      role: 'admin',
       accounts: {
         create: {
           accountId: 'iida@example.com',

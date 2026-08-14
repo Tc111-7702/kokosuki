@@ -7,7 +7,8 @@ export async function GET() {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session?.user) return NextResponse.json({ user: null });
-    return NextResponse.json({ user: { id: session.user.id, name: session.user.name } });
+    const role = (session.user as { role?: string }).role ?? 'user';
+    return NextResponse.json({ user: { id: session.user.id, name: session.user.name, role } });
   } catch {
     return NextResponse.json({ user: null });
   }
