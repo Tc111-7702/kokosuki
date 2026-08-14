@@ -1084,3 +1084,23 @@ export const findComingSoonGachas = (where: Prisma.GachaWhereInput, take: number
     take,
     select: COMING_SOON_SELECT,
   });
+
+// ─── ホーム: カテゴリ別（発売中×いいね順） ────────────────────────────────────
+
+/** 発売中のうち ipName が指定リストに含まれるものを、いいね数降順で take 件。 */
+export const getOnSaleGachasByIpNames = (ipNames: string[], take: number) =>
+  prisma.gacha.findMany({
+    where: { isOnSale: true, ipName: { in: ipNames } },
+    orderBy: { gachaLikes: { _count: 'desc' } },
+    take,
+    select: COMING_SOON_SELECT,
+  });
+
+/** 発売中のうち ipName が指定リストに含まれないものを、いいね数降順で take 件（食べ物・動物・その他用）。 */
+export const getOnSaleGachasNotInIpNames = (ipNames: string[], take: number) =>
+  prisma.gacha.findMany({
+    where: { isOnSale: true, ipName: { notIn: ipNames } },
+    orderBy: { gachaLikes: { _count: 'desc' } },
+    take,
+    select: COMING_SOON_SELECT,
+  });
