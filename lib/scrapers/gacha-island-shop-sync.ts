@@ -227,7 +227,7 @@ async function upsertGachaFromPost(post: WpPost): Promise<string> {
   const price       = parsePrice(pageHtml) ?? 300;
   const lineup      = parseLineup(pageHtml);
   const releaseDate = parseReleaseDate(pageHtml);
-  const status      = releaseDate && releaseDate > new Date() ? 'coming_soon' : 'on_sale';
+  const status      = 'on_sale'; // 在庫ベース: 店舗にある = 発売中（releaseDate の日付は status に使わない）
 
   const gacha = await db.upsertGachaFromScraper({
     seriesName:   post.title.rendered,
@@ -324,6 +324,14 @@ export async function syncShopGachas(): Promise<ShopSyncResult> {
 
   // ── スイープ: 今回全エリアで発見されなかったガチャを ended に更新 ──
   const seenIdSet = new Set(areas.flatMap((a) => a.seenGachaIds));
+
+  // ── 発見したガチャは在庫あり(発売中)に更新（スケジュール登録で isOnSale=false のままだったものも是正） ──
+  const seenIds = [...seenIdSet];
+  if (seenIds.length > 0) {
+    await db.markGachasInStore(seenIds);
+    console.log(`[shop-sync] 在庫更新: ${seenIds.length} 件を on_sale に更新`);
+  }
+
   const endedIds  = prevOnSaleIds.filter((id) => !seenIdSet.has(id));
   if (endedIds.length > 0) {
     await db.markGachasEnded(endedIds);

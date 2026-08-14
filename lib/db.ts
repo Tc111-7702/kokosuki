@@ -271,6 +271,15 @@ export const upsertGachaFromScraper = (data: GachaUpsertData) =>
     },
   });
 
+/** 店舗スクレイパー: 今回店舗で見つかったガチャを在庫あり(発売中)に更新する（スイープの逆） */
+export const markGachasInStore = (ids: string[]) =>
+  ids.length === 0
+    ? Promise.resolve({ count: 0 })
+    : prisma.gacha.updateMany({
+        where: { id: { in: ids } },
+        data: { isOnSale: true, status: 'on_sale' },
+      });
+
 /** 店舗スクレイパーのスイープ処理: 今回見つからなかったガチャを終了扱いにする */
 export const markGachasEnded = (ids: string[]) =>
   ids.length === 0
