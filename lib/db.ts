@@ -308,9 +308,9 @@ export const getGachaById = (id: string) =>
     },
   });
 
-export async function getPopularGachas(limit = 20) {
+export async function getPopularGachas(limit = 20, excludeIds: string[] = []) {
   const rows = await prisma.gacha.findMany({
-    where: { isOnSale: true },
+    where: { isOnSale: true, ...(excludeIds.length ? { id: { notIn: excludeIds } } : {}) },
     orderBy: { gachaLikes: { _count: 'desc' } },
     take: limit,
     select: {
@@ -1087,19 +1087,19 @@ export const findComingSoonGachas = (where: Prisma.GachaWhereInput, take: number
 
 // ─── ホーム: カテゴリ別（発売中×いいね順） ────────────────────────────────────
 
-/** 発売中のうち ipName が指定リストに含まれるものを、いいね数降順で take 件。 */
-export const getOnSaleGachasByIpNames = (ipNames: string[], take: number) =>
+/** 発売中のうち ipName が指定リストに含まれるものを、いいね数降順で take 件（excludeIds は除外）。 */
+export const getOnSaleGachasByIpNames = (ipNames: string[], take: number, excludeIds: string[] = []) =>
   prisma.gacha.findMany({
-    where: { isOnSale: true, ipName: { in: ipNames } },
+    where: { isOnSale: true, ipName: { in: ipNames }, ...(excludeIds.length ? { id: { notIn: excludeIds } } : {}) },
     orderBy: { gachaLikes: { _count: 'desc' } },
     take,
     select: COMING_SOON_SELECT,
   });
 
-/** 発売中のうち ipName が指定リストに含まれないものを、いいね数降順で take 件（食べ物・動物・その他用）。 */
-export const getOnSaleGachasNotInIpNames = (ipNames: string[], take: number) =>
+/** 発売中のうち ipName が指定リストに含まれないものを、いいね数降順で take 件（食べ物・動物・その他用、excludeIds は除外）。 */
+export const getOnSaleGachasNotInIpNames = (ipNames: string[], take: number, excludeIds: string[] = []) =>
   prisma.gacha.findMany({
-    where: { isOnSale: true, ipName: { notIn: ipNames } },
+    where: { isOnSale: true, ipName: { notIn: ipNames }, ...(excludeIds.length ? { id: { notIn: excludeIds } } : {}) },
     orderBy: { gachaLikes: { _count: 'desc' } },
     take,
     select: COMING_SOON_SELECT,

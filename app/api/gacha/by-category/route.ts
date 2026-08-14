@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
+import { headers } from 'next/headers';
+import { auth } from '@/lib/auth';
 import * as db from '@/lib/db';
 import { getCategoryIpNames } from '@/lib/wpCategories';
+
+export const dynamic = 'force-dynamic';
 
 // ホームのカテゴリ別セクション用。?category=character|anime|other
 //  character: キャラクター・マスコット / anime: アニメ・漫画・ゲーム / other: それ以外（食べ物・動物・その他）
@@ -26,16 +30,17 @@ export async function GET(request: Request) {
   }
 
   try {
+    // お気に入り済みは表示しない（未ログインは除外なし）
+    const session = await auth.api.getSession({ headers: await headers() });
+    const excludeIds = session?.user?.id ? await db.getLikedGachaIds(session.user.id) : [];
+
     const { character, anime } = await getCategoryIpNames();
     let rows: CardRow[];
-    if (category === 'character') rows = await db.getOnSaleGachasByIpNames(character, 10);
-    else if (category === 'anime') rows = await db.getOnSaleGachasByIpNames(anime, 10);
-    else rows = await db.getOnSaleGachasNotInIpNames([...character, ...anime], 10);
+    if (category === 'character') rows = await db.getOnSaleGachasByIpNames(character, 10, excludeIds);
+    else if (category === 'anime') rows = await db.getOnSaleGachasByIpNames(anime, 10, excludeIds);
+    else rows = await db.getOnSaleGachasNotInIpNames([...character, ...anime], 10, excludeIds);
 
-    return NextResponse.json(
-      { gachas: rows.map(toItem) },
-      { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' } },
-    );
+    return NextResponse.json({ gachas: rows.map(toItem) });
   } catch (e) {
     console.error('[/api/gacha/by-category]', e);
     return NextResponse.json({ gachas: [] }, { status: 500 });
