@@ -52,7 +52,6 @@ export interface SpotUpsertData {
 export interface GachaUpsertData {
   seriesName: string;
   ipName: string;
-  kind: string;
   category: string;
   status: string;
   price: number;
@@ -256,7 +255,6 @@ export const upsertGachaFromScraper = (data: GachaUpsertData) =>
     create: {
       seriesName:   data.seriesName,
       ipName:       data.ipName,
-      kind:         data.kind,
       category:     data.category,
       status:       data.status,
       price:        data.price,
@@ -293,10 +291,10 @@ export const getGachaById = (id: string) =>
   prisma.gacha.findUnique({
     where: { id },
     select: {
-      id: true, seriesName: true, ipName: true, kind: true, category: true,
+      id: true, seriesName: true, ipName: true, category: true,
       status: true, price: true, gradientFrom: true, gradientTo: true,
-      lineup: true, imageUrl: true, commentCount: true, weeklyPulls: true,
-      postCount: true, isCollab: true, isReissue: true, isContinuation: true,
+      lineup: true, imageUrl: true,
+      postCount: true, isReissue: true,
       genre: true, releaseDate: true, maker: true, sourceUrl: true,
     },
   });

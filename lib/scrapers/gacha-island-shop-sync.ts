@@ -232,7 +232,6 @@ async function upsertGachaFromPost(post: WpPost): Promise<string> {
   const gacha = await db.upsertGachaFromScraper({
     seriesName:   post.title.rendered,
     ipName,
-    kind:         'gacha',
     category,
     status,
     price,
