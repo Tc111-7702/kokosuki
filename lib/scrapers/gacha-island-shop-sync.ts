@@ -322,7 +322,7 @@ export async function syncShopGachas(): Promise<ShopSyncResult> {
     await new Promise((r) => setTimeout(r, 500)); // エリア間の待機
   }
 
-  // ── スイープ: 今回全エリアで発見されなかったガチャを ended に更新 ──
+  // 今回全エリアで発見したガチャID（在庫更新・スイープ両方で使う）
   const seenIdSet = new Set(areas.flatMap((a) => a.seenGachaIds));
 
   // ── 発見したガチャは在庫あり(発売中)に更新（スケジュール登録で isOnSale=false のままだったものも是正） ──
@@ -332,6 +332,7 @@ export async function syncShopGachas(): Promise<ShopSyncResult> {
     console.log(`[shop-sync] 在庫更新: ${seenIds.length} 件を on_sale に更新`);
   }
 
+  // ── スイープ: 今回発見されなかったガチャを ended に更新 ──
   const endedIds  = prevOnSaleIds.filter((id) => !seenIdSet.has(id));
   if (endedIds.length > 0) {
     await db.markGachasEnded(endedIds);
