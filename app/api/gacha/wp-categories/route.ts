@@ -31,6 +31,7 @@ async function fetchAllCategories(): Promise<WpCategory[]> {
     page++;
   }
   return all;
+  console.log(2);
 }
 
 export async function GET() {
