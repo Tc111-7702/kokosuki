@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import * as db from '@/lib/db';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
-import { notifyLike } from '@/lib/notifications';
+import { notifyLike, removeLikeNotification } from '@/lib/notifications';
 
 export async function POST(
   _request: Request,
@@ -19,6 +19,8 @@ export async function POST(
     const { liked, likeCount } = await db.togglePostLike(userId, postId);
     if (liked) {
       await notifyLike('post', postId, userId);
+    } else {
+      await removeLikeNotification('post', postId, userId);
     }
 
     return NextResponse.json({ liked, likeCount });

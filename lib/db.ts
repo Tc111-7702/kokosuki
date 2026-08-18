@@ -529,6 +529,9 @@ export const createNotificationMany = (data: Prisma.NotificationCreateManyInput[
 export const findLikeNotification = (where: Prisma.NotificationWhereInput) =>
   prisma.notification.findFirst({ where, select: { id: true } });
 
+export const deleteLikeNotification = (where: Prisma.NotificationWhereInput) =>
+  prisma.notification.deleteMany({ where });
+
 /** 既読かつ cutoff より前に作成された通知を削除（自動クリーンアップ用） */
 export const deleteReadNotificationsBefore = (cutoff: Date) =>
   prisma.notification.deleteMany({ where: { read: true, createdAt: { lt: cutoff } } });

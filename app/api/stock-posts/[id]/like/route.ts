@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import * as db from '@/lib/db';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
-import { notifyLike } from '@/lib/notifications';
+import { notifyLike, removeLikeNotification } from '@/lib/notifications';
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -14,6 +14,8 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   const { liked } = await db.toggleStockPostLike(userId, stockPostId);
   if (liked) {
     await notifyLike('stockPost', stockPostId, userId);
+  } else {
+    await removeLikeNotification('stockPost', stockPostId, userId);
   }
 
   return NextResponse.json({ liked });
