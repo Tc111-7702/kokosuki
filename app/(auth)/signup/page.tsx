@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Welcome }         from '@/components/Welcome';
 import { IpChoose }        from '@/components/IpChoose';
 import { GachaHeart }      from '@/components/GachaHeart';
@@ -28,11 +28,18 @@ export default function SignupPage() {
     setSelectedIps((prev) => prev.includes(ip) ? prev.filter((i) => i !== ip) : [...prev, ip]);
   const toggleGacha = (id: string) =>
     setLikedGachaIds((prev) => prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]);
+  // 選択中IP配下のガチャだけにハートを剪定（IP選択に戻って外したIPのハートが残る不具合の是正）
+  const pruneLiked = useCallback((validIds: Set<string>) => {
+    setLikedGachaIds((prev) => {
+      const next = prev.filter((id) => validIds.has(id));
+      return next.length === prev.length ? prev : next;
+    });
+  }, []);
 
   if (step === 'welcome')      return <Welcome onNext={() => setStep('location')} />;
   if (step === 'location')     return <Location onAllow={() => setStep('notification')} onSkip={() => setStep('notification')} onBack={goBack} />;
   if (step === 'notification') return <Notification onAllow={() => setStep('character')} onSkip={() => setStep('character')} onBack={goBack} />;
   if (step === 'character')    return <IpChoose selected={selectedIps} onToggle={toggleIp} onNext={() => setStep('gacha')} onBack={goBack} />;
-  if (step === 'gacha')        return <GachaHeart liked={likedGachaIds} selectedIps={selectedIps} onToggle={toggleGacha} onNext={() => setStep('register')} onBack={goBack} />;
+  if (step === 'gacha')        return <GachaHeart liked={likedGachaIds} selectedIps={selectedIps} onToggle={toggleGacha} onPrune={pruneLiked} onNext={() => setStep('register')} onBack={goBack} />;
   return <Register likedGachaIds={likedGachaIds} onBack={goBack} />;
 }

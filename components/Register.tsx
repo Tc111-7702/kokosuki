@@ -1,15 +1,20 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, Camera } from 'lucide-react';
 import { authClient } from '@/lib/auth-client';
 import { avatarColor } from '@/components/ui/Avatar';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 interface Props {
   likedGachaIds: string[];
   onBack: () => void;
 }
+
+// アカウントID（handle）の形式: 英数字・アンダースコア 1〜30文字
+const HANDLE_RE = /^[a-z0-9_]{1,30}$/;
+type HandleStatus = 'idle' | 'checking' | 'ok' | 'taken' | 'invalid';
 
 export function Register({ likedGachaIds, onBack }: Props) {
   const router = useRouter();
@@ -21,10 +26,35 @@ export function Register({ likedGachaIds, onBack }: Props) {
   const [loading, setLoading]   = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [emailTaken, setEmailTaken] = useState(false);
+  const [handleStatus, setHandleStatus] = useState<HandleStatus>('idle');
   const fileRef = useRef<HTMLInputElement>(null);
+  const signedUpRef   = useRef(false);                                  // signUp 成功済みフラグ（再実行防止）
+  const handleDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestHandleRef = useRef('');                                   // 最新入力（デバウンス応答の陳腐化検知）
 
-  // @を除いた英数字・アンダースコアのみ許可
-  const handleInput = (v: string) => setHandle(v.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase());
+  useEffect(() => () => { if (handleDebounce.current) clearTimeout(handleDebounce.current); }, []);
+
+  // @を除いた英数字・アンダースコアのみ許可。入力中に空き確認をデバウンス実行。
+  const handleInput = (v: string) => {
+    const next = v.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
+    setHandle(next);
+    latestHandleRef.current = next;
+    if (handleDebounce.current) clearTimeout(handleDebounce.current);
+    if (!next)                 { setHandleStatus('idle');    return; }
+    if (!HANDLE_RE.test(next)) { setHandleStatus('invalid'); return; }
+    setHandleStatus('checking');
+    handleDebounce.current = setTimeout(async () => {
+      try {
+        const r = await fetch(`/api/profile/handle-available?handle=${encodeURIComponent(next)}`);
+        const d = await r.json();
+        if (latestHandleRef.current !== next) return;                   // 応答到着時に入力が変わっていたら破棄
+        setHandleStatus(d.available ? 'ok' : 'taken');
+      } catch {
+        if (latestHandleRef.current === next) setHandleStatus('idle');
+      }
+    }, 400);
+  };
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -45,24 +75,73 @@ export function Register({ likedGachaIds, onBack }: Props) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
+    setEmailTaken(false);
+    setLoading(true);
 
-    const { error: signUpError } = await authClient.signUp.email({ name, email, password });
-    if (signUpError) {
-      setError('登録に失敗しました。もう一度お試しください。');
-      setLoading(false);
-      return;
+    const trimmedHandle = handle.trim();
+
+    // ⑥ handle の pre-flight: signUp の前に形式＋空きを確認し、不正/重複なら User を作らない
+    if (trimmedHandle) {
+      if (!HANDLE_RE.test(trimmedHandle)) {
+        setError('アカウントIDは英数字・アンダースコア（1〜30文字）で入力してください。');
+        setLoading(false);
+        return;
+      }
+      try {
+        const r = await fetch(`/api/profile/handle-available?handle=${encodeURIComponent(trimmedHandle)}`);
+        const d = await r.json();
+        if (!r.ok || !d.available) {
+          setError('このアカウントIDはすでに使われています。別のIDを試してください。');
+          setLoading(false);
+          return;
+        }
+      } catch {
+        setError('通信エラーが発生しました。もう一度お試しください。');
+        setLoading(false);
+        return;
+      }
     }
 
-    const res = await fetch('/api/profile/init', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ likedGachaIds, handle: handle || null, avatarUrl }),
-    });
+    // signUp（既に成功済みなら再実行しない＝二重作成防止）
+    if (!signedUpRef.current) {
+      const { error: signUpError } = await authClient.signUp.email({ name, email, password });
+      if (signUpError) {
+        // ③ メール重複を判別して専用文言＋ログイン導線を出す
+        const dup = signUpError.code === 'USER_ALREADY_EXISTS'
+          || signUpError.status === 422
+          || /exist|already/i.test(signUpError.message ?? '');
+        if (dup) {
+          setEmailTaken(true);
+          setError('このメールアドレスは既に登録されています。');
+        } else {
+          setError('登録に失敗しました。もう一度お試しください。');
+        }
+        setLoading(false);
+        return;
+      }
+      signedUpRef.current = true;
+    }
 
-    if (res.status === 409) {
-      setError('このアカウントIDはすでに使われています。別のIDを試してください。');
+    // プロフィール作成（失敗を握りつぶさずハンドリング）
+    try {
+      const res = await fetch('/api/profile/init', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ likedGachaIds, handle: trimmedHandle || null, avatarUrl }),
+      });
+      if (res.status === 409) {
+        setError('このアカウントIDはすでに使われています。別のIDを試してください。');
+        setLoading(false);
+        return;
+      }
+      if (!res.ok) {
+        setError('プロフィールの作成に失敗しました。もう一度お試しください。');
+        setLoading(false);
+        return;
+      }
+    } catch {
+      setError('通信エラーが発生しました。もう一度お試しください。');
       setLoading(false);
       return;
     }
@@ -137,9 +216,17 @@ export function Register({ likedGachaIds, onBack }: Props) {
               className="flex-1 px-2 py-3 text-[15px] outline-none bg-transparent"
             />
           </div>
-          <p className="text-[11px] text-[#BBB] mt-1">
-            空欄の場合はランダムなIDが設定されます
-          </p>
+          {handleStatus === 'checking' ? (
+            <p className="text-[11px] mt-1" style={{ color: '#AAA' }}>確認中…</p>
+          ) : handleStatus === 'ok' ? (
+            <p className="text-[11px] mt-1" style={{ color: '#4CAF50' }}>このIDは使えます</p>
+          ) : handleStatus === 'taken' ? (
+            <p className="text-[11px] mt-1" style={{ color: '#E5484D' }}>このIDはすでに使われています</p>
+          ) : handleStatus === 'invalid' ? (
+            <p className="text-[11px] mt-1" style={{ color: '#E5484D' }}>英数字・アンダースコアのみ（1〜30文字）</p>
+          ) : (
+            <p className="text-[11px] text-[#BBB] mt-1">空欄の場合はランダムなIDが設定されます</p>
+          )}
         </div>
 
         <div>
@@ -169,7 +256,16 @@ export function Register({ likedGachaIds, onBack }: Props) {
           />
         </div>
 
-        {error && <p className="text-red-500 text-[13px]">{error}</p>}
+        {error && (
+          <div className="text-[13px]">
+            <p className="text-red-500">{error}</p>
+            {emailTaken && (
+              <Link href="/login" className="inline-block mt-1 font-bold underline underline-offset-2" style={{ color: '#F2B800' }}>
+                ログインする
+              </Link>
+            )}
+          </div>
+        )}
         </div>
       </div>
 
@@ -180,9 +276,9 @@ export function Register({ likedGachaIds, onBack }: Props) {
       >
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || handleStatus === 'taken' || handleStatus === 'invalid'}
           className="w-full py-4 rounded-2xl font-black text-white text-[16px]"
-          style={{ background: '#F2B800', opacity: loading ? 0.6 : 1 }}
+          style={{ background: '#F2B800', opacity: (loading || handleStatus === 'taken' || handleStatus === 'invalid') ? 0.6 : 1 }}
         >
           {loading ? '登録中...' : 'はじめる'}
         </button>
