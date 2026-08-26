@@ -1,0 +1,12 @@
+{
+  "gacha": {
+    "everyWeeks": 1,
+    "dayOfWeek": 0,
+    "atTime": "03:00"
+  },
+  "phone": {
+    "everyWeeks": 4,
+    "dayOfWeek": 0,
+    "atTime": "04:00"
+  }
+}

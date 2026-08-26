@@ -52,7 +52,6 @@ export interface SpotUpsertData {
 export interface GachaUpsertData {
   seriesName: string;
   ipName: string;
-  kind: string;
   category: string;
   status: string;
   price: number;
@@ -256,7 +255,6 @@ export const upsertGachaFromScraper = (data: GachaUpsertData) =>
     create: {
       seriesName:   data.seriesName,
       ipName:       data.ipName,
-      kind:         data.kind,
       category:     data.category,
       status:       data.status,
       price:        data.price,
@@ -272,6 +270,15 @@ export const upsertGachaFromScraper = (data: GachaUpsertData) =>
       isOnSale:     data.isOnSale,
     },
   });
+
+/** 店舗スクレイパー: 今回店舗で見つかったガチャを在庫あり(発売中)に更新する（スイープの逆） */
+export const markGachasInStore = (ids: string[]) =>
+  ids.length === 0
+    ? Promise.resolve({ count: 0 })
+    : prisma.gacha.updateMany({
+        where: { id: { in: ids } },
+        data: { isOnSale: true, status: 'on_sale' },
+      });
 
 /** 店舗スクレイパーのスイープ処理: 今回見つからなかったガチャを終了扱いにする */
 export const markGachasEnded = (ids: string[]) =>
@@ -293,17 +300,17 @@ export const getGachaById = (id: string) =>
   prisma.gacha.findUnique({
     where: { id },
     select: {
-      id: true, seriesName: true, ipName: true, kind: true, category: true,
+      id: true, seriesName: true, ipName: true, category: true,
       status: true, price: true, gradientFrom: true, gradientTo: true,
-      lineup: true, imageUrl: true, commentCount: true, weeklyPulls: true,
-      postCount: true, isCollab: true, isReissue: true, isContinuation: true,
+      lineup: true, imageUrl: true,
+      postCount: true, isReissue: true,
       genre: true, releaseDate: true, maker: true, sourceUrl: true,
     },
   });
 
-export async function getPopularGachas(limit = 20) {
+export async function getPopularGachas(limit = 20, excludeIds: string[] = []) {
   const rows = await prisma.gacha.findMany({
-    where: { isOnSale: true },
+    where: { isOnSale: true, ...(excludeIds.length ? { id: { notIn: excludeIds } } : {}) },
     orderBy: { gachaLikes: { _count: 'desc' } },
     take: limit,
     select: {
@@ -521,6 +528,9 @@ export const createNotificationMany = (data: Prisma.NotificationCreateManyInput[
 
 export const findLikeNotification = (where: Prisma.NotificationWhereInput) =>
   prisma.notification.findFirst({ where, select: { id: true } });
+
+export const deleteLikeNotification = (where: Prisma.NotificationWhereInput) =>
+  prisma.notification.deleteMany({ where });
 
 /** 既読かつ cutoff より前に作成された通知を削除（自動クリーンアップ用） */
 export const deleteReadNotificationsBefore = (cutoff: Date) =>
@@ -1073,6 +1083,26 @@ const COMING_SOON_SELECT = {
 export const findComingSoonGachas = (where: Prisma.GachaWhereInput, take: number) =>
   prisma.gacha.findMany({
     where: { isOnSale: true, ...where },
+    orderBy: { gachaLikes: { _count: 'desc' } },
+    take,
+    select: COMING_SOON_SELECT,
+  });
+
+// ─── ホーム: カテゴリ別（発売中×いいね順） ────────────────────────────────────
+
+/** 発売中のうち ipName が指定リストに含まれるものを、いいね数降順で take 件（excludeIds は除外）。 */
+export const getOnSaleGachasByIpNames = (ipNames: string[], take: number, excludeIds: string[] = []) =>
+  prisma.gacha.findMany({
+    where: { isOnSale: true, ipName: { in: ipNames }, ...(excludeIds.length ? { id: { notIn: excludeIds } } : {}) },
+    orderBy: { gachaLikes: { _count: 'desc' } },
+    take,
+    select: COMING_SOON_SELECT,
+  });
+
+/** 発売中のうち ipName が指定リストに含まれないものを、いいね数降順で take 件（食べ物・動物・その他用、excludeIds は除外）。 */
+export const getOnSaleGachasNotInIpNames = (ipNames: string[], take: number, excludeIds: string[] = []) =>
+  prisma.gacha.findMany({
+    where: { isOnSale: true, ipName: { notIn: ipNames }, ...(excludeIds.length ? { id: { notIn: excludeIds } } : {}) },
     orderBy: { gachaLikes: { _count: 'desc' } },
     take,
     select: COMING_SOON_SELECT,

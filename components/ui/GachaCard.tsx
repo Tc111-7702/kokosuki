@@ -26,9 +26,11 @@ interface GachaCardProps {
   rank: number;
   showRank: boolean;
   isMobile: boolean;
+  onClick?: () => void;    // 指定時は詳細遷移の代わりにこれを呼ぶ（掲載ピッカー等で使用）
+  badgeLabel?: string;     // 指定時はステータスバッジの代わりに固定ラベルを表示（例: 今秋発売）
 }
 
-export function GachaCard({ gacha, rank, showRank, isMobile }: GachaCardProps) {
+export function GachaCard({ gacha, rank, showRank, isMobile, onClick, badgeLabel }: GachaCardProps) {
   const router = useRouter();
   const cardW  = isMobile ? 140 : 320;
   const imgH   = isMobile ? 158 : 320;
@@ -37,7 +39,7 @@ export function GachaCard({ gacha, rank, showRank, isMobile }: GachaCardProps) {
 
   return (
     <div
-      onClick={() => router.push(`/gacha/${gacha.id}`)}
+      onClick={onClick ?? (() => router.push(`/gacha/${gacha.id}`))}
       style={{
         flexShrink: 0, width: cardW, borderRadius: radius, overflow: 'hidden',
         background: 'white', boxShadow: '0 2px 10px rgba(0,0,0,0.08)', cursor: 'pointer',
@@ -75,10 +77,12 @@ export function GachaCard({ gacha, rank, showRank, isMobile }: GachaCardProps) {
           <span style={{
             padding: isMobile ? '3px 7px' : '4px 10px', borderRadius: 99,
             fontSize: isMobile ? 10 : 11, fontWeight: 800,
-            background: gacha.status === 'coming_soon' ? '#EEF2FF' : st.bg,
-            color: gacha.status === 'coming_soon' ? '#4F46E5' : st.text,
+            background: badgeLabel || gacha.status === 'coming_soon' ? '#EEF2FF' : st.bg,
+            color: badgeLabel || gacha.status === 'coming_soon' ? '#4F46E5' : st.text,
           }}>
-            {gacha.releaseDate
+            {badgeLabel
+              ? badgeLabel
+              : gacha.releaseDate
               ? `${new Date(gacha.releaseDate).getMonth() + 1}/${new Date(gacha.releaseDate).getDate()}発売予定`
               : gacha.status === 'coming_soon' ? '発売予定' : STATUS_LABEL[gacha.status] ?? gacha.status}
           </span>

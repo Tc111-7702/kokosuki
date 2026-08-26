@@ -138,6 +138,19 @@ export async function notifyLike(kind: NotifyTargetKind, targetId: string, actor
   }
 }
 
+/** いいね取り消し → 対応する既存のいいね通知を削除（type/actor/対象で一意に特定） */
+export async function removeLikeNotification(kind: NotifyTargetKind, targetId: string, actorId: string) {
+  try {
+    await db.deleteLikeNotification({
+      type: 'like',
+      actorId,
+      ...targetIdWhere(kind, targetId),
+    });
+  } catch (e) {
+    console.error('[removeLikeNotification]', e);
+  }
+}
+
 /** 返信 → 投稿主へ（自分の投稿への自分の返信は通知しない） */
 export async function notifyReply(kind: NotifyTargetKind, targetId: string, actorId: string, text: string) {
   try {

@@ -12,9 +12,10 @@ interface Props {
   apiUrl: string;
   scrollId: string;    // CSSクラス名に使う一意ID 例: "trending" | "coming-soon"
   showRank?: boolean;
+  badgeLabel?: string; // 指定時は各カードのバッジを固定ラベルに（例: 今秋発売）
 }
 
-export function HorizontalGachaSection({ title, subtitle, color, colorDark, colorMid, apiUrl, scrollId, showRank = true }: Props) {
+export function HorizontalGachaSection({ title, subtitle, color, colorDark, colorMid, apiUrl, scrollId, showRank = true, badgeLabel }: Props) {
   const [gachas, setGachas] = useState<Gacha[]>([]);
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
@@ -90,7 +91,7 @@ export function HorizontalGachaSection({ title, subtitle, color, colorDark, colo
         }}
       >
         {gachas.map((item, rank) => (
-          <GachaCard key={item.id} gacha={item} rank={rank} showRank={showRank} isMobile={isMobile} />
+          <GachaCard key={item.id} gacha={item} rank={rank} showRank={showRank} isMobile={isMobile} badgeLabel={badgeLabel} />
         ))}
       </div>
 

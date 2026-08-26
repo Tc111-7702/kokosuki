@@ -5,19 +5,13 @@ model Gacha {
   seriesName     String
   ipName         String
   ipCategory     String   @default("other")
-  kind           String   @default("gacha")
   category       String
   status         String   @default("on_sale")
   price          Int
   gradientFrom   String
   gradientTo     String
-  startWeekLabel String?
   lineup         String[] @default([])
-  isCollab       Boolean  @default(false)
   isReissue      Boolean  @default(false)
-  isContinuation Boolean  @default(false)
-  commentCount   Int      @default(0)
-  weeklyPulls    Int      @default(0)
   postCount      Int      @default(0)
   // スクレイパー由来フィールド
   genre          String?
