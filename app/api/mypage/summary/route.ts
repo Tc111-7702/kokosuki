@@ -24,7 +24,7 @@ export async function GET() {
       name:      session.user.name,
       email:     session.user.email,
       handle:    profile?.handle ?? null,
-      avatarUrl: profile?.avatarUrl ?? null,
+      avatarUrl: session.user.image ?? null,
       bio:       profile?.bio ?? null,
       favoriteIps: profile?.favoriteIps ?? [],
       stats: {

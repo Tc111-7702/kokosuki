@@ -35,9 +35,8 @@ export async function POST(req: NextRequest) {
 
   await db.upsertProfile(session.user.id, resolvedHandle);
 
-  // アイコン（任意）: プロフィール編集と同様に avatarUrl と User.image を同期
+  // アイコン（任意）: アバターは User.image に一本化
   if (typeof avatarUrl === 'string' && avatarUrl) {
-    await db.upsertUserProfile(session.user.id, { avatarUrl });
     await db.updateUserImage(session.user.id, avatarUrl);
   }
 

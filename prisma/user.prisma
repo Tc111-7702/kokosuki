@@ -78,7 +78,6 @@ model UserProfile {
   id        String   @id @default(cuid())
   userId    String   @unique
   handle    String?  @unique
-  avatarUrl String?
   bio       String?
   // 好きIP（お気に入りガチャのIPから選択・プロフィールに表示）
   favoriteIps String[] @default([])

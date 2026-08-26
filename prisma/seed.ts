@@ -55,11 +55,12 @@ async function main() {
 
   const fukuda = await prisma.user.upsert({
     where: { email: 'hukuda@example.com' },
-    update: {},
+    update: { image: 'https://api.dicebear.com/7.x/thumbs/svg?seed=taiyo' },
     create: {
       email: 'hukuda@example.com',
       name: '福田 大陽',
       emailVerified: true,
+      image: 'https://api.dicebear.com/7.x/thumbs/svg?seed=taiyo',
       accounts: {
         create: {
           accountId: 'hukuda@example.com',
@@ -70,7 +71,6 @@ async function main() {
       profile: {
         create: {
           handle: 'hukuda',
-          avatarUrl: 'https://api.dicebear.com/7.x/thumbs/svg?seed=taiyo',
           bio: '推しはハイキューとポケモン。近所のガチャは大体踏破。神引き報告します',
         },
       },
@@ -102,11 +102,12 @@ async function main() {
 
   const yuna = await prisma.user.upsert({
     where: { email: 'yuna@example.com' },
-    update: {},
+    update: { image: 'https://api.dicebear.com/7.x/thumbs/svg?seed=yuna' },
     create: {
       email: 'yuna@example.com',
       name: 'ゆうな',
       emailVerified: true,
+      image: 'https://api.dicebear.com/7.x/thumbs/svg?seed=yuna',
       accounts: {
         create: {
           accountId: 'yuna@example.com',
@@ -117,7 +118,6 @@ async function main() {
       profile: {
         create: {
           handle: 'yuna',
-          avatarUrl: 'https://api.dicebear.com/7.x/thumbs/svg?seed=yuna',
           bio: 'ジョジョのスタンドフィギュア集めてます。池袋・渋谷によく出没',
         },
       },
@@ -126,11 +126,12 @@ async function main() {
 
   const kenta = await prisma.user.upsert({
     where: { email: 'kenta@example.com' },
-    update: {},
+    update: { image: 'https://api.dicebear.com/7.x/thumbs/svg?seed=kenta' },
     create: {
       email: 'kenta@example.com',
       name: 'けんた',
       emailVerified: true,
+      image: 'https://api.dicebear.com/7.x/thumbs/svg?seed=kenta',
       accounts: {
         create: {
           accountId: 'kenta@example.com',
@@ -141,7 +142,6 @@ async function main() {
       profile: {
         create: {
           handle: 'kenta',
-          avatarUrl: 'https://api.dicebear.com/7.x/thumbs/svg?seed=kenta',
           bio: 'ONE PIECEとドラゴンボール一筋。在庫報告まめにやってます',
         },
       },
@@ -158,8 +158,8 @@ async function main() {
   });
   await prisma.userProfile.upsert({
     where: { userId: fukuda.id },
-    update: { handle: 'hukuda', avatarUrl: 'https://api.dicebear.com/7.x/thumbs/svg?seed=taiyo' },
-    create: { userId: fukuda.id, handle: 'hukuda', avatarUrl: 'https://api.dicebear.com/7.x/thumbs/svg?seed=taiyo', bio: '推しはハイキューとポケモン。近所のガチャは大体踏破。神引き報告します' },
+    update: { handle: 'hukuda' },
+    create: { userId: fukuda.id, handle: 'hukuda', bio: '推しはハイキューとポケモン。近所のガチャは大体踏破。神引き報告します' },
   });
   await prisma.userProfile.upsert({
     where: { userId: iida.id },
@@ -168,13 +168,13 @@ async function main() {
   });
   await prisma.userProfile.upsert({
     where: { userId: yuna.id },
-    update: { handle: 'yuna', avatarUrl: 'https://api.dicebear.com/7.x/thumbs/svg?seed=yuna' },
-    create: { userId: yuna.id, handle: 'yuna', avatarUrl: 'https://api.dicebear.com/7.x/thumbs/svg?seed=yuna', bio: 'ジョジョのスタンドフィギュア集めてます。池袋・渋谷によく出没' },
+    update: { handle: 'yuna' },
+    create: { userId: yuna.id, handle: 'yuna', bio: 'ジョジョのスタンドフィギュア集めてます。池袋・渋谷によく出没' },
   });
   await prisma.userProfile.upsert({
     where: { userId: kenta.id },
-    update: { handle: 'kenta', avatarUrl: 'https://api.dicebear.com/7.x/thumbs/svg?seed=kenta' },
-    create: { userId: kenta.id, handle: 'kenta', avatarUrl: 'https://api.dicebear.com/7.x/thumbs/svg?seed=kenta', bio: 'ONE PIECEとドラゴンボール一筋。在庫報告まめにやってます' },
+    update: { handle: 'kenta' },
+    create: { userId: kenta.id, handle: 'kenta', bio: 'ONE PIECEとドラゴンボール一筋。在庫報告まめにやってます' },
   });
   console.log('Profiles upserted');
 
