@@ -51,14 +51,8 @@ export async function notifyFavoriteStock(stockPost: {
       );
       if (favorites.length === 0) break;
 
-      // 通知設定でOFFにしているユーザーを除外（プロフィール未作成はデフォルトON扱い）
-      const disabledIds = new Set(
-        await db.getFavoriteStockDisabledUserIds(favorites.map((f) => f.userId)),
-      );
-      const recipients = favorites.filter((f) => !disabledIds.has(f.userId));
-
       await db.createNotificationMany(
-        recipients.map(({ userId }) => ({
+        favorites.map(({ userId }) => ({
           userId,
           type: 'favorite_stock',
           title: 'お気に入りの在庫情報',
@@ -95,12 +89,6 @@ async function resolveTarget(
   return r ? { ownerId: r.userId, spotId: r.spotId } : null;
 }
 
-/** 反応通知（いいね・返信）をOFFにしているか（プロフィール未作成はデフォルトON扱い） */
-async function isReactionNotifyDisabled(userId: string): Promise<boolean> {
-  const profile = await db.findProfileByUserId(userId);
-  return profile?.notifyReaction === false;
-}
-
 /** 通知行の対象ID条件（対象種別に応じた1列だけを指す） */
 function targetIdWhere(kind: NotifyTargetKind, targetId: string) {
   if (kind === 'post') return { postId: targetId };
@@ -113,7 +101,6 @@ export async function notifyLike(kind: NotifyTargetKind, targetId: string, actor
   try {
     const target = await resolveTarget(kind, targetId);
     if (!target || target.ownerId === actorId) return;
-    if (await isReactionNotifyDisabled(target.ownerId)) return;
 
     const existing = await db.findLikeNotification({
       userId: target.ownerId,
@@ -156,7 +143,6 @@ export async function notifyReply(kind: NotifyTargetKind, targetId: string, acto
   try {
     const target = await resolveTarget(kind, targetId);
     if (!target || target.ownerId === actorId) return;
-    if (await isReactionNotifyDisabled(target.ownerId)) return;
     const actor = await db.getUserById(actorId);
     const excerpt = text.length > 30 ? `${text.slice(0, 30)}…` : text;
     await db.createNotification({

@@ -75,15 +75,6 @@ export const findProfileByHandle = (handle: string) =>
 export const findProfileByUserId = (userId: string) =>
   prisma.userProfile.findUnique({ where: { userId } });
 
-/** 指定ユーザーのうち「お気に入り在庫通知」をOFFにしているユーザーID（未作成はON扱いで対象外） */
-export const getFavoriteStockDisabledUserIds = async (userIds: string[]): Promise<string[]> => {
-  const rows = await prisma.userProfile.findMany({
-    where: { userId: { in: userIds }, notifyFavoriteStock: false },
-    select: { userId: true },
-  });
-  return rows.map((r) => r.userId);
-};
-
 export const upsertProfile = (userId: string, handle: string) =>
   prisma.userProfile.upsert({
     where:  { userId },
@@ -792,8 +783,6 @@ export type ProfileUpsertData = {
   handle?: string;
   bio?: string;
   favoriteIps?: string[];
-  notifyFavoriteStock?: boolean;
-  notifyReaction?: boolean;
   mapRadiusM?: number;
 };
 

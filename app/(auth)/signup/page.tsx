@@ -5,17 +5,15 @@ import { Welcome }         from '@/components/Welcome';
 import { IpChoose }        from '@/components/IpChoose';
 import { GachaHeart }      from '@/components/GachaHeart';
 import { Location }        from '@/components/Location';
-import { Notification }    from '@/components/Notification';
 import { Register }        from '@/components/Register';
 
-type Step = 'welcome' | 'character' | 'gacha' | 'location' | 'notification' | 'register';
+type Step = 'welcome' | 'character' | 'gacha' | 'location' | 'register';
 
 const PREV: Partial<Record<Step, Step>> = {
-  location:     'welcome',
-  notification: 'location',
-  character:    'notification',
-  gacha:        'character',
-  register:     'gacha',
+  location:  'welcome',
+  character: 'location',
+  gacha:     'character',
+  register:  'gacha',
 };
 
 export default function SignupPage() {
@@ -37,8 +35,7 @@ export default function SignupPage() {
   }, []);
 
   if (step === 'welcome')      return <Welcome onNext={() => setStep('location')} />;
-  if (step === 'location')     return <Location onAllow={() => setStep('notification')} onSkip={() => setStep('notification')} onBack={goBack} />;
-  if (step === 'notification') return <Notification onAllow={() => setStep('character')} onSkip={() => setStep('character')} onBack={goBack} />;
+  if (step === 'location')     return <Location onAllow={() => setStep('character')} onSkip={() => setStep('character')} onBack={goBack} />;
   if (step === 'character')    return <IpChoose selected={selectedIps} onToggle={toggleIp} onNext={() => setStep('gacha')} onBack={goBack} />;
   if (step === 'gacha')        return <GachaHeart liked={likedGachaIds} selectedIps={selectedIps} onToggle={toggleGacha} onPrune={pruneLiked} onNext={() => setStep('register')} onBack={goBack} />;
   return <Register likedGachaIds={likedGachaIds} onBack={goBack} />;

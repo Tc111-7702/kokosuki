@@ -33,9 +33,7 @@ export async function GET() {
         likeCount: postLikes + stockPostLikes, // 引いた！＋在庫報告の合算いいね
       },
       settings: {
-        notifyFavoriteStock: profile?.notifyFavoriteStock ?? true,
-        notifyReaction:      profile?.notifyReaction ?? true,
-        mapRadiusM:          profile?.mapRadiusM ?? 20000,
+        mapRadiusM: profile?.mapRadiusM ?? 20000,
       },
     });
   } catch (e) {
