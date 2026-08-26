@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Heart } from 'lucide-react';
 import { GachaCard } from '@/components/ui/GachaCard';
 import type { GachaItem } from '@/components/ui/GachaCard';
+import { useIsMobile } from '@/lib/useIsMobile';
 
 interface Group {
   ipName: string;
@@ -15,14 +16,7 @@ export function OshiNewSection() {
   const [groups, setGroups]   = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const [noFav, setNoFav]     = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const update = () => setIsMobile(window.innerWidth < 640);
-    update();
-    window.addEventListener('resize', update);
-    return () => window.removeEventListener('resize', update);
-  }, []);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     fetch('/api/gacha/recommended')

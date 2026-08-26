@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { HomeSearchBar } from '@/components/HomeSearchBar';
+import { useIsMobile } from '@/lib/useIsMobile';
 
 // ─── 型 ──────────────────────────────────────────────────────────────────────
 
@@ -76,14 +77,7 @@ function GenrePageInner() {
 
   const [gachas, setGachas]   = useState<GachaItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isMobile, setIsMobile] = useState(true);
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 640);
-    check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
-  }, []);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (!ipName) { queueMicrotask(() => setLoading(false)); return; }

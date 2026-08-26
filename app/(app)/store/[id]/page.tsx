@@ -10,6 +10,7 @@ import { StockPostCard, type StockFeedPost } from '@/components/StockPostCard';
 import { PostCard } from '@/components/PostCard';
 import { InlineReplies } from '@/components/InlineReplies';
 import { type FeedPost, type FeedItem } from '@/components/community-types';
+import { useIsMobile } from '@/lib/useIsMobile';
 import { StoreReviews } from '@/components/StoreReviews';
 
 // ─── 型定義 ──────────────────────────────────────────────────
@@ -216,7 +217,7 @@ export default function StorePage() {
   const [navOpen,       setNavOpen]       = useState(false);
   const [currentPos,    setCurrentPos]    = useState<{ lat: number; lng: number } | null>(null);
   const [loading,       setLoading]       = useState(true);
-  const [isMobile,      setIsMobile]      = useState(false);
+  const isMobile = useIsMobile();
   // 通知から来たとき（返信欄を開く指定あり）は「口コミ・投稿」タブを初期表示に
   const [activeTab,     setActiveTab]     = useState<'products' | 'posts'>(openReplyId || openReviewId ? 'posts' : 'products');
 
@@ -227,13 +228,6 @@ export default function StorePage() {
   const [suggestions,      setSuggestions]      = useState<Suggestion[]>([]);
   const [inputFocused,     setInputFocused]     = useState(false);
   const suggTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    const update = () => setIsMobile(window.innerWidth < 640);
-    update();
-    window.addEventListener('resize', update);
-    return () => window.removeEventListener('resize', update);
-  }, []);
 
   // データ取得
   useEffect(() => {
@@ -436,7 +430,7 @@ export default function StorePage() {
             <p style={{ fontSize: 14, marginTop: 12 }}>該当するガチャがありません</p>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(auto-fill, minmax(150px, 1fr))' : 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
             {visibleGachas.map(g => (
               <SpotGachaCard key={g.id} gacha={g} stockStatus={spot.stockMap[g.id]} highlight={searchSet != null && searchSet.has(g.id)} mode="grid" isMobile={isMobile} />
             ))}
