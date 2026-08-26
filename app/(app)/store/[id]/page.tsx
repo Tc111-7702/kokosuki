@@ -430,7 +430,7 @@ export default function StorePage() {
             <p style={{ fontSize: 14, marginTop: 12 }}>該当するガチャがありません</p>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(auto-fill, minmax(150px, 1fr))' : 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
             {visibleGachas.map(g => (
               <SpotGachaCard key={g.id} gacha={g} stockStatus={spot.stockMap[g.id]} highlight={searchSet != null && searchSet.has(g.id)} mode="grid" isMobile={isMobile} />
             ))}
