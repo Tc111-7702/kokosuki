@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { GachaCard, type GachaItem as Gacha } from '@/components/ui/GachaCard';
+import { useIsMobile } from '@/lib/useIsMobile';
 
 interface Props {
   title: string;
@@ -18,7 +19,7 @@ interface Props {
 export function HorizontalGachaSection({ title, subtitle, color, colorDark, colorMid, apiUrl, scrollId, showRank = true, badgeLabel }: Props) {
   const [gachas, setGachas] = useState<Gacha[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isMobile, setIsMobile] = useState(false);
+  const isMobile = useIsMobile();
   const [scrollRatio, setScrollRatio] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const scrollClass = `h-gacha-scroll-${scrollId}`;
@@ -29,13 +30,6 @@ export function HorizontalGachaSection({ title, subtitle, color, colorDark, colo
       .then(d => { setGachas(d.gachas ?? []); setLoading(false); })
       .catch(() => setLoading(false));
   }, [apiUrl]);
-
-  useEffect(() => {
-    const update = () => setIsMobile(window.innerWidth < 640);
-    update();
-    window.addEventListener('resize', update);
-    return () => window.removeEventListener('resize', update);
-  }, []);
 
   const onScroll = useCallback(() => {
     const el = scrollRef.current;

@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useIsMobile } from '@/lib/useIsMobile';
 import { NewTab }        from '@/components/NewTab';
 import { CommunityTab }  from '@/components/CommunityTab';
 import { FavoritesTab }  from '@/components/FavoritesTab';
@@ -21,7 +22,7 @@ const TAB_LABELS: { key: HomeTab; label: string }[] = [
 function HomePageInner() {
   const router       = useRouter();
   const searchParams = useSearchParams();
-  const [isMobile, setIsMobile] = useState(true);
+  const isMobile = useIsMobile();
 
   // URLの ?tab= からタブを決定、不正値は 'new' にフォールバック
   const rawTab = searchParams.get('tab');
@@ -45,13 +46,6 @@ function HomePageInner() {
       sessionStorage.setItem('homeTab', rawTab);
     }
   }, [rawTab]);
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 640);
-    check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
-  }, []);
 
   const switchTab = (key: HomeTab) => {
     router.replace(`/home?tab=${key}`);

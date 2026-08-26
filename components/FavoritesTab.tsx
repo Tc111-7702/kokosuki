@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { X } from 'lucide-react';
+import { useIsMobile } from '@/lib/useIsMobile';
 
 interface FavoriteGacha {
   favoriteId: string;
@@ -110,14 +111,7 @@ export function FavoritesTab({ userId, editable = true }: { userId?: string; edi
   const [loading,  setLoading]  = useState(true);
   const [editing,  setEditing]  = useState(false);
   const [deleting, setDeleting] = useState<Set<string>>(new Set());
-  const [isMobile, setIsMobile] = useState(true);
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 640);
-    check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
-  }, []);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     // 自分＝編集可の自分用API / 他人＝公開API

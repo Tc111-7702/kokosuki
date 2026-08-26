@@ -6,6 +6,7 @@ import { X, MapPin, Navigation, Phone, ChevronRight, Send } from 'lucide-react';
 import { SpotGachaCard } from '@/components/SpotGachaCard';
 import NavPickerModal from '@/components/NavPickerModal';
 import { Avatar } from '@/components/ui/Avatar';
+import { useIsMobile } from '@/lib/useIsMobile';
 
 type SheetReview = {
   id: string;
@@ -55,19 +56,13 @@ export default function SpotDetailSheet({
   const router = useRouter();
   const sheetRef = useRef<HTMLDivElement>(null);
   const [navOpen,     setNavOpen]     = useState(false);
-  const [isMobile,    setIsMobile]    = useState(false);
+  const isMobile = useIsMobile();
   const [expanded,    setExpanded]    = useState(false);
   const dragStartY = useRef<number | null>(null);
   const [reviews,     setReviews]     = useState<SheetReview[]>([]);
   const [reviewText,  setReviewText]  = useState('');
   const [submittingR, setSubmittingR] = useState(false);
 
-  useEffect(() => {
-    const update = () => setIsMobile(window.innerWidth < 640);
-    update();
-    window.addEventListener('resize', update);
-    return () => window.removeEventListener('resize', update);
-  }, []);
   useEffect(() => { setExpanded(false); setReviews([]); setReviewText(''); }, [spot?.id]);
 
   useEffect(() => {

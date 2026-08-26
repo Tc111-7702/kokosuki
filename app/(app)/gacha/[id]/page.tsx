@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Heart, ChevronRight } from 'lucide-react';
+import { useIsMobile } from '@/lib/useIsMobile';
 import type { GachaDetail, NearbySpot } from '@/components/gacha-types';
 import { NearbyButton } from '@/components/NearbyButton';
 import { LineupSection } from '@/components/LineupSection';
@@ -227,14 +228,7 @@ export default function GachaDetailPage() {
   const [nearbySpots,   setNearbySpots]   = useState<NearbySpot[]>([]);
   const [nearbyLoading, setNearbyLoading] = useState(false);
   const [nearbyError,   setNearbyError]   = useState<string | null>(null);
-  const [isMobile,      setIsMobile]      = useState(false);
-
-  useEffect(() => {
-    const update = () => setIsMobile(window.innerWidth < 640);
-    update();
-    window.addEventListener('resize', update);
-    return () => window.removeEventListener('resize', update);
-  }, []);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     fetch('/api/gacha/' + id)
