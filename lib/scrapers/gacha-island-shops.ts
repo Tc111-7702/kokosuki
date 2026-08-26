@@ -1,10 +1,5 @@
 import * as db from '@/lib/db';
-
-// 関西の都道府県スラッグ
-const KANSAI_PREFS = ['osaka', 'hyogo', 'kyoto', 'nara', 'shiga', 'wakayama'] as const;
-
-const BASE = 'https://gacha-island.jp/shops';
-const GEOCODE_BASE = 'https://maps.googleapis.com/maps/api/geocode/json';
+import { KANSAI_PREFS, SHOP_BASE, GEOCODE_BASE } from './constants';
 
 export interface ShopScrapeResult {
   saved: number;
@@ -32,12 +27,12 @@ async function fetchShopsForPref(
   const shops: Array<{ id: number; name: string; address: string }> = [];
 
   // 1ページ目で総ページ数を把握
-  const firstHtml = await fetch(`${BASE}/${pref}/`).then((r) => r.text());
+  const firstHtml = await fetch(`${SHOP_BASE}/${pref}/`).then((r) => r.text());
   const pageNums = [...firstHtml.matchAll(/page\/(\d+)\//g)].map((m) => parseInt(m[1]));
   const maxPage = pageNums.length > 0 ? Math.max(...pageNums) : 1;
 
   for (let page = 1; page <= maxPage; page++) {
-    const url = page === 1 ? `${BASE}/${pref}/` : `${BASE}/${pref}/page/${page}/`;
+    const url = page === 1 ? `${SHOP_BASE}/${pref}/` : `${SHOP_BASE}/${pref}/page/${page}/`;
     const html = await fetch(url).then((r) => r.text());
 
     // 店舗IDと名前

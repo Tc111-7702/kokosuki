@@ -1,20 +1,5 @@
 import * as db from '@/lib/db';
-
-// ─── エリア設定 ──────────────────────────────────────────────────────────────
-// 追加したいエリアをここに1行足すだけでスクレイプ対象が広がります
-// 例: { pref: 'tokyo', label: '東京' }
-export const TARGET_AREAS = [
-  { pref: 'osaka',    label: '大阪' },
-  { pref: 'hyogo',    label: '兵庫' },
-  { pref: 'kyoto',    label: '京都' },
-  { pref: 'nara',     label: '奈良' },
-  { pref: 'shiga',    label: '滋賀' },
-  { pref: 'wakayama', label: '和歌山' },
-] as const;
-
-const WP_API    = 'https://gacha-island.jp/wp-json/wp/v2';
-const SHOP_BASE = 'https://gacha-island.jp/shops';
-const UA        = { 'User-Agent': 'mikke-scraper/1.0' };
+import { TARGET_AREAS, WP_API, SHOP_BASE, UA } from './constants';
 
 // ─── 型定義 ───────────────────────────────────────────────────────────────────
 

@@ -1,8 +1,5 @@
 import * as db from '@/lib/db';
-
-const SCHEDULE_BASE = 'https://gacha-island.jp/gacha-release-schedule';
-const WP_API        = 'https://gacha-island.jp/wp-json/wp/v2';
-const UA            = { 'User-Agent': 'mikke-scraper/1.0' };
+import { SCHEDULE_BASE, WP_API, UA } from './constants';
 
 // ─── 対象月を算出（今月・来月）────────────────────────────────────────────────
 
@@ -124,20 +121,42 @@ function toCategory(slug: string | null): string {
 
 // ─── フェッチ ─────────────────────────────────────────────────────────────────
 
-/** 月別スケジュールページから wpPostId を抽出 */
+/** 月別スケジュールページ（全ページ）から wpPostId を抽出 */
 async function fetchWpPostIdsForMonth(year: number, month: number): Promise<number[]> {
   const slug = monthSlug(year, month);
-  const url  = `${SCHEDULE_BASE}/${slug}/`;
+  // <a href="https://gacha-island.jp/44161/" class="p-postList__link">
+  const postLink = /href="https:\/\/gacha-island\.jp\/(\d{4,})\/" class="p-postList__link"/g;
+  const ids = new Set<number>();
+  const collect = (html: string) => {
+    for (const m of html.matchAll(postLink)) ids.add(parseInt(m[1]));
+  };
+
+  // 1ページ目を取得し、ページネーションリンク(page/N/)から総ページ数を把握
+  let firstHtml: string;
   try {
-    const res  = await fetch(url, { headers: UA, next: { revalidate: 0 } });
+    const res = await fetch(`${SCHEDULE_BASE}/${slug}/`, { headers: UA, next: { revalidate: 0 } });
     if (!res.ok) return [];
-    const html = await res.text();
-    // <a href="https://gacha-island.jp/44161/" class="p-postList__link">
-    const matches = [...html.matchAll(/href="https:\/\/gacha-island\.jp\/(\d{4,})\/" class="p-postList__link"/g)];
-    return [...new Set(matches.map((m) => parseInt(m[1])))];
+    firstHtml = await res.text();
   } catch {
     return [];
   }
+  collect(firstHtml);
+  const pageNums = [...firstHtml.matchAll(/page\/(\d+)\//g)].map((m) => parseInt(m[1]));
+  const maxPage  = pageNums.length > 0 ? Math.max(...pageNums) : 1;
+
+  // 2ページ目以降を順に取得（全ページを走査。旧実装は1ページ目のみで取りこぼしていた）
+  for (let page = 2; page <= maxPage; page++) {
+    try {
+      const res = await fetch(`${SCHEDULE_BASE}/${slug}/page/${page}/`, { headers: UA, next: { revalidate: 0 } });
+      if (!res.ok) break;
+      collect(await res.text());
+    } catch {
+      break;
+    }
+    await new Promise((r) => setTimeout(r, 300)); // ページ間の待機
+  }
+
+  return [...ids];
 }
 
 /** WP REST API で個別記事のメタ情報を取得 */
