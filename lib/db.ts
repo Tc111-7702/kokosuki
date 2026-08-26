@@ -791,7 +791,6 @@ export const updateUserImage = (id: string, image: string | null) =>
 export type ProfileUpsertData = {
   handle?: string;
   bio?: string;
-  avatarUrl?: string | null;
   favoriteIps?: string[];
   notifyFavoriteStock?: boolean;
   notifyReaction?: boolean;
@@ -880,7 +879,7 @@ export async function getPublicUserSummary(userId: string) {
     id:          userId,
     name:        user.name,
     handle:      profile?.handle ?? null,
-    avatarUrl:   profile?.avatarUrl ?? user.image ?? null,
+    avatarUrl:   user.image ?? null,
     bio:         profile?.bio ?? null,
     favoriteIps: profile?.favoriteIps ?? [],
     stats: {
@@ -1051,7 +1050,7 @@ export const getUserIdsWhoLikedGachas = async (gachaIds: string[], excludeUserId
 
 const USER_PROFILE_SELECT = {
   id: true, name: true, image: true,
-  profile: { select: { handle: true, avatarUrl: true, bio: true } },
+  profile: { select: { handle: true, bio: true } },
 } as const;
 
 export const getUsersByIds = (ids: string[], take: number) =>

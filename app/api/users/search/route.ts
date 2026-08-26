@@ -19,7 +19,7 @@ export async function GET(request: Request) {
         id: u.id,
         name: u.name,
         handle: u.profile?.handle ?? null,
-        image: u.profile?.avatarUrl ?? u.image ?? null,
+        image: u.image ?? null,
         bio: u.profile?.bio ?? null,
       })),
     });
