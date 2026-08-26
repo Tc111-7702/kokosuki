@@ -17,6 +17,14 @@ export const GEOCODE_BASE = 'https://maps.googleapis.com/maps/api/geocode/json';
 export const UA = { 'User-Agent': 'mikke-scraper/1.0' };
 
 /**
+ * 一覧/スケジュールページからガチャ記事リンクの wpPostId を抽出する正規表現。
+ * 例: <a href="https://gacha-island.jp/44161/" class="p-postList__link">
+ * グローバルフラグ付きだが、String.prototype.matchAll は内部で正規表現を複製するため、
+ * このインスタンスを複数箇所・複数回で共有しても lastIndex 汚染は起きない。
+ */
+export const POST_LINK_RE = /href="https:\/\/gacha-island\.jp\/(\d{4,})\/" class="p-postList__link"/g;
+
+/**
  * スクレイプ対象エリア（関西）。
  * 追加したいエリアはここに1行足すだけでスクレイプ対象が広がる。例: { pref: 'tokyo', label: '東京' }
  */

@@ -1,5 +1,5 @@
 import * as db from '@/lib/db';
-import { SCHEDULE_BASE, WP_API, UA } from './constants';
+import { SCHEDULE_BASE, WP_API, UA, POST_LINK_RE } from './constants';
 
 // ─── 対象月を算出（今月・来月）────────────────────────────────────────────────
 
@@ -124,11 +124,9 @@ function toCategory(slug: string | null): string {
 /** 月別スケジュールページ（全ページ）から wpPostId を抽出 */
 async function fetchWpPostIdsForMonth(year: number, month: number): Promise<number[]> {
   const slug = monthSlug(year, month);
-  // <a href="https://gacha-island.jp/44161/" class="p-postList__link">
-  const postLink = /href="https:\/\/gacha-island\.jp\/(\d{4,})\/" class="p-postList__link"/g;
   const ids = new Set<number>();
   const collect = (html: string) => {
-    for (const m of html.matchAll(postLink)) ids.add(parseInt(m[1]));
+    for (const m of html.matchAll(POST_LINK_RE)) ids.add(parseInt(m[1]));
   };
 
   // 1ページ目を取得し、ページネーションリンク(page/N/)から総ページ数を把握
