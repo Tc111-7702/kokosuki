@@ -39,14 +39,12 @@ export async function PATCH(req: Request) {
   const userId = session.user.id;
 
   const body = await req.json();
-  const { name, handle, bio, avatarUrl, favoriteIps, notifyFavoriteStock, notifyReaction, mapRadiusM } = body as {
+  const { name, handle, bio, avatarUrl, favoriteIps, mapRadiusM } = body as {
     name?: string;
     handle?: string;
     bio?: string;
     avatarUrl?: string | null;
     favoriteIps?: string[];
-    notifyFavoriteStock?: boolean;
-    notifyReaction?: boolean;
     mapRadiusM?: number;
   };
 
@@ -92,8 +90,6 @@ export async function PATCH(req: Request) {
     await db.updateUserImage(userId, normalized);
   }
   if (favoriteIps !== undefined) profileData.favoriteIps = favoriteIps.map((ip) => ip.trim());
-  if (notifyFavoriteStock !== undefined) profileData.notifyFavoriteStock = notifyFavoriteStock;
-  if (notifyReaction !== undefined) profileData.notifyReaction = notifyReaction;
   if (mapRadiusM !== undefined) profileData.mapRadiusM = mapRadiusM;
 
   if (Object.keys(profileData).length > 0) {

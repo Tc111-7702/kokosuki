@@ -20,26 +20,7 @@ const RADIUS_OPTIONS = [
 ];
 
 interface Settings {
-  notifyFavoriteStock: boolean;
-  notifyReaction: boolean;
   mapRadiusM: number;
-}
-
-function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <button
-      onClick={() => onChange(!on)}
-      className="flex-shrink-0 transition-colors"
-      style={{ width: 46, height: 27, borderRadius: 14, background: on ? '#F2B800' : '#D9D5C4', position: 'relative' }}
-      aria-checked={on}
-      role="switch"
-    >
-      <span
-        className="absolute transition-all"
-        style={{ top: 3, left: on ? 22 : 3, width: 21, height: 21, borderRadius: 11, background: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}
-      />
-    </button>
-  );
 }
 
 export default function SettingsPage() {
@@ -99,25 +80,6 @@ export default function SettingsPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto pb-10">
-        {/* 通知 */}
-        <SectionTitle>通知</SectionTitle>
-        <div className="bg-white" style={{ borderTop: '1px solid #F0ECD8', borderBottom: '1px solid #F0ECD8' }}>
-          <div className="flex items-center justify-between px-4 py-3.5" style={{ borderBottom: '1px solid #F5F2E4' }}>
-            <div className="pr-3">
-              <p className="text-[14px] font-bold" style={{ color: '#111' }}>お気に入りの在庫情報</p>
-              <p className="text-[11px] mt-0.5" style={{ color: '#AAA' }}>お気に入りガチャの在庫が報告されたとき</p>
-            </div>
-            <Toggle on={settings?.notifyFavoriteStock ?? true} onChange={(v) => patch({ notifyFavoriteStock: v })} />
-          </div>
-          <div className="flex items-center justify-between px-4 py-3.5">
-            <div className="pr-3">
-              <p className="text-[14px] font-bold" style={{ color: '#111' }}>いいね・返信</p>
-              <p className="text-[11px] mt-0.5" style={{ color: '#AAA' }}>自分の投稿に反応があったとき</p>
-            </div>
-            <Toggle on={settings?.notifyReaction ?? true} onChange={(v) => patch({ notifyReaction: v })} />
-          </div>
-        </div>
-
         {/* 地図 */}
         <SectionTitle>地図</SectionTitle>
         <div className="bg-white px-4 py-3.5" style={{ borderTop: '1px solid #F0ECD8', borderBottom: '1px solid #F0ECD8' }}>

@@ -81,9 +81,6 @@ model UserProfile {
   bio       String?
   // 好きIP（お気に入りガチャのIPから選択・プロフィールに表示）
   favoriteIps String[] @default([])
-  // 通知設定（実装済みの2系統のみ）
-  notifyFavoriteStock Boolean @default(true)
-  notifyReaction      Boolean @default(true)
   // 地図の検索範囲（メートル）
   mapRadiusM Int @default(20000)
   createdAt DateTime @default(now())
