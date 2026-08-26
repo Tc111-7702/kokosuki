@@ -18,11 +18,13 @@ interface Props {
   onToggle: (id: string) => void;
   onNext: () => void;
   onBack: () => void;
+  /** 選択中IP配下のガチャIDだけを渡す。親はこれで likedGachaIds を剪定する（選択解除IPのハートを除去） */
+  onPrune: (validIds: Set<string>) => void;
 }
 
 const MIN_PER_IP = 3;
 
-export function GachaHeart({ liked, selectedIps, onToggle, onNext, onBack }: Props) {
+export function GachaHeart({ liked, selectedIps, onToggle, onNext, onBack, onPrune }: Props) {
   const [items, setItems] = useState<GachaItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -31,10 +33,16 @@ export function GachaHeart({ liked, selectedIps, onToggle, onNext, onBack }: Pro
     const params = encodeURIComponent(selectedIps.join(','));
     fetch(`/api/gacha/by-ips?ipNames=${params}`)
       .then(r => r.json())
-      .then(data => setItems(data.gachas ?? []))
+      .then(data => {
+        const gachas: GachaItem[] = data.gachas ?? [];
+        setItems(gachas);
+        // 選択中IPに属さないハート（＝IP選択に戻って外したIPのガチャ）を剪定する。
+        // 取得成功時のみ実行（catch時は items が不確定なため剪定しない）。
+        onPrune(new Set(gachas.map((g) => g.id)));
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [selectedIps]);
+  }, [selectedIps, onPrune]);
 
   // IPごとにグループ化（selectedIpsの順序を維持）
   const groups = selectedIps
