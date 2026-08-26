@@ -1,30 +1,21 @@
 import { NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
+import { headers } from 'next/headers';
 import * as db from '@/lib/db';
 
-function authorized(req: Request): boolean {
-  const auth = req.headers.get('authorization') ?? '';
-  const secret = process.env.CRON_SECRET;
-  return !!secret && auth === `Bearer ${secret}`;
-}
+// 保持期間: 既読かつ作成から30日経過した通知を削除（24hは短すぎるため1ヶ月に緩和）
+const RETENTION_DAYS = 30;
+const RETENTION_MS = RETENTION_DAYS * 24 * 60 * 60 * 1000;
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-// 既読かつ作成から24時間経過した通知を削除
-async function cleanup() {
-  const cutoff = new Date(Date.now() - DAY_MS);
-  const { count } = await db.deleteReadNotificationsBefore(cutoff);
-  return count;
-}
-
-// Vercel Cron から呼ばれる
-export async function GET(req: Request) {
-  if (!authorized(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  const deleted = await cleanup();
-  return NextResponse.json({ ok: true, deleted });
-}
-
-// 手動実行用
+// クライアント駆動の自動クリーンアップ。ログイン中ユーザーからのみ実行可（無認可の穴を塞ぐ）。
+// 呼び出し頻度はクライアント側で localStorage により 24h に1回へスロットルする。
+// 冪等（read かつ30日経過を削除するだけ）なので、複数ユーザーから呼ばれても安全。
 export async function POST() {
-  const deleted = await cleanup();
-  return NextResponse.json({ ok: true, deleted });
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  const cutoff = new Date(Date.now() - RETENTION_MS);
+  const { count } = await db.deleteReadNotificationsBefore(cutoff);
+  return NextResponse.json({ ok: true, deleted: count });
 }
