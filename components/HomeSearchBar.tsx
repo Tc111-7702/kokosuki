@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Search, X, Gamepad2 } from 'lucide-react';
 
 interface Suggestion {
+  id?: string;              // gacha候補はガチャIDを持つ（直接遷移用）
   label: string;
   type: 'gacha' | 'genre';
   imageUrl?: string | null;
@@ -33,13 +34,15 @@ export function HomeSearchBar({ placeholder = 'IP・ガチャを検索' }: HomeS
     }, 150);
   };
 
-  const navigateByType = (label: string, type: 'gacha' | 'genre') => {
-    setValue(label);
+  const navigateBySuggestion = (s: Suggestion) => {
+    setValue(s.label);
     setSuggestions([]);
-    if (type === 'genre') {
-      router.push(`/search/genre?ipName=${encodeURIComponent(label)}&label=${encodeURIComponent(label)}`);
+    if (s.type === 'genre') {
+      router.push(`/search/genre?ipName=${encodeURIComponent(s.label)}&label=${encodeURIComponent(s.label)}`);
+    } else if (s.id) {
+      router.push(`/gacha/${s.id}`);   // gacha候補は id を持つので直接遷移（2回目のAPI解決が不要）
     } else {
-      navigateByQuery(label);
+      navigateByQuery(s.label);        // 保険: id が無い場合のみ従来の解決経路
     }
   };
 
@@ -115,7 +118,7 @@ export function HomeSearchBar({ placeholder = 'IP・ガチャを検索' }: HomeS
               key={i}
               className="w-full text-left px-3 py-2.5 active:bg-amber-50"
               style={{ display: 'block', borderBottom: i < suggestions.length - 1 ? '1px solid #f5f5f5' : 'none' }}
-              onMouseDown={e => { e.preventDefault(); navigateByType(s.label, s.type); }}
+              onMouseDown={e => { e.preventDefault(); navigateBySuggestion(s); }}
             >
               <div className="flex items-center gap-2">
                 {s.type === 'gacha' && s.imageUrl ? (
