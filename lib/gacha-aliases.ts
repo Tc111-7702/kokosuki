@@ -46,6 +46,9 @@ export const GACHA_ALIASES: Record<string, string> = {
   'deathnote':           'DEATH NOTE',
   'デスノート':          'DEATH NOTE',
   'デスノ':              'DEATH NOTE',
+  // マインクラフト
+  'マインクラフト':      'MINECRAFT',
+  'マイクラ':            'MINECRAFT',
 };
 
 /**
