@@ -960,7 +960,7 @@ const ipTermsWhere = (terms: string[]): Prisma.GachaWhereInput =>
 export const findOnSaleSeriesByExactIp = (ipName: string) =>
   prisma.gacha.findMany({
     where: { isOnSale: true, ipName: { equals: ipName, mode: 'insensitive' } },
-    select: { seriesName: true, imageUrl: true },
+    select: { id: true, seriesName: true, imageUrl: true },
     distinct: ['seriesName'],
     orderBy: { seriesName: 'asc' },
   });
@@ -968,7 +968,7 @@ export const findOnSaleSeriesByExactIp = (ipName: string) =>
 export const suggestGachaSeries = (terms: string[]) =>
   prisma.gacha.findMany({
     where: { isOnSale: true, ...seriesTermsWhere(terms) },
-    select: { seriesName: true, imageUrl: true },
+    select: { id: true, seriesName: true, imageUrl: true },
     distinct: ['seriesName'],
     orderBy: { seriesName: 'asc' },
   });

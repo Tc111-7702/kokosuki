@@ -18,7 +18,7 @@ export async function GET(request: Request) {
     const exactIpSeries = await db.findOnSaleSeriesByExactIp(q.trim());
     if (exactIpSeries.length > 0) {
       return NextResponse.json({
-        suggestions: exactIpSeries.map(g => ({ label: g.seriesName, type: 'gacha' as const, imageUrl: g.imageUrl })),
+        suggestions: exactIpSeries.map(g => ({ id: g.id, label: g.seriesName, type: 'gacha' as const, imageUrl: g.imageUrl })),
       });
     }
 
@@ -29,7 +29,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
       suggestions: [
         ...ips.map(g => ({ label: g.ipName, type: 'genre' as const, imageUrl: null })),
-        ...series.map(g => ({ label: g.seriesName, type: 'gacha' as const, imageUrl: g.imageUrl })),
+        ...series.map(g => ({ id: g.id, label: g.seriesName, type: 'gacha' as const, imageUrl: g.imageUrl })),
       ]
     });
   }
