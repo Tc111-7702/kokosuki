@@ -961,16 +961,16 @@ export const findOnSaleSeriesByExactIp = (ipName: string) =>
   prisma.gacha.findMany({
     where: { isOnSale: true, ipName: { equals: ipName, mode: 'insensitive' } },
     select: { id: true, seriesName: true, imageUrl: true },
-    distinct: ['seriesName'],
-    orderBy: { seriesName: 'asc' },
+    // seriesName は 1:1（distinct は no-op）なので削除し、いいね数の多い順に
+    orderBy: { gachaLikes: { _count: 'desc' } },
   });
 
 export const suggestGachaSeries = (terms: string[]) =>
   prisma.gacha.findMany({
     where: { isOnSale: true, ...seriesTermsWhere(terms) },
     select: { id: true, seriesName: true, imageUrl: true },
-    distinct: ['seriesName'],
-    orderBy: { seriesName: 'asc' },
+    // seriesName は 1:1（distinct は no-op）なので削除し、いいね数の多い順に
+    orderBy: { gachaLikes: { _count: 'desc' } },
   });
 
 export const suggestGachaIps = (terms: string[]) =>
@@ -991,18 +991,21 @@ export const findGachaIdsByExactIp = (ipName: string) =>
   prisma.gacha.findMany({
     where: { isOnSale: true, ipName: { equals: ipName, mode: 'insensitive' } },
     select: { id: true, ipName: true },
+    orderBy: { gachaLikes: { _count: 'desc' } },   // gachaIds[0] が最人気に
   });
 
 export const findGachaIdsBySeriesTerms = (terms: string[]) =>
   prisma.gacha.findMany({
     where: { isOnSale: true, ...seriesTermsWhere(terms) },
     select: { id: true, seriesName: true },
+    orderBy: { gachaLikes: { _count: 'desc' } },   // gachaIds[0] が最人気に
   });
 
 export const findGachaIdsByIpTerms = (terms: string[]) =>
   prisma.gacha.findMany({
     where: { isOnSale: true, ...ipTermsWhere(terms) },
     select: { id: true, ipName: true },
+    orderBy: { gachaLikes: { _count: 'desc' } },   // gachaIds[0] が最人気に
   });
 
 // ─── Community / User 検索 ──────────────────────────────────────────────────────
