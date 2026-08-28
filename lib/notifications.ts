@@ -27,11 +27,8 @@ export async function notifyFavoriteStock(stockPost: {
   gachaId: string;
   spotId: string;
   stockStatus: string;
-  isPublic?: boolean;
 }) {
   try {
-    if (stockPost.isPublic === false) return;
-
     const [gacha, spot] = await Promise.all([
       db.getGachaById(stockPost.gachaId),
       db.getSpotById(stockPost.spotId),
