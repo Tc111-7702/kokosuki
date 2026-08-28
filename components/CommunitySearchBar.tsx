@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { type UserResult } from '@/components/community-types';
 
 export function UserAvatar({ user, size }: { user: { name: string; image: string | null }; size: number }) {
@@ -21,10 +22,11 @@ export function CommunitySearchBar({
   onClear,
   searchActive,
 }: {
-  onSearch: (label: string, gachaIds: string[], users: UserResult[]) => void;
+  onSearch: (label: string, gachaIds: string[]) => void;
   onClear: () => void;
   searchActive: boolean;
 }) {
+  const router = useRouter();
   const [value,    setValue]    = useState('');
   const [gachaSug, setGachaSug] = useState<{ label: string; type: 'gacha' | 'genre'; imageUrl?: string | null }[]>([]);
   const [userSug,  setUserSug]  = useState<UserResult[]>([]);
@@ -47,29 +49,24 @@ export function CommunitySearchBar({
     }, 150);
   };
 
-  const doSearch = async (q: string) => {
+  // 検索実行を1本に統一（Enter / ガチャ候補クリック 共通）。
+  // Twitter方式：Enter/実行は投稿(ガチャ・IP)のみ検索し、ユーザーは検索しない（候補経由で開く）。
+  const runSearch = async (q: string) => {
     if (!q.trim() || busy) return;
-    setBusy(true);
+    setValue(q);                       // Enter時は同値=no-op / 候補クリック時は入力欄へ反映
     setGachaSug([]); setUserSug([]);
+    setBusy(true);
     try {
-      const [gd, ud] = await Promise.all([
-        fetch(`/api/gacha/search?q=${encodeURIComponent(q)}`).then(r => r.json()),
-        fetch(`/api/users/search?q=${encodeURIComponent(q)}`).then(r => r.json()),
-      ]);
-      onSearch(q, gd.gachaIds ?? [], ud.users ?? []);
+      const gd = await fetch(`/api/gacha/search?q=${encodeURIComponent(q)}`).then(r => r.json());
+      onSearch(q, gd.gachaIds ?? []);
     } catch {} finally { setBusy(false); }
   };
 
-  const selectGacha = async (label: string) => {
-    setValue(label); setGachaSug([]); setUserSug([]);
-    setBusy(true);
-    try {
-      const [gd, ud] = await Promise.all([
-        fetch(`/api/gacha/search?q=${encodeURIComponent(label)}`).then(r => r.json()),
-        fetch(`/api/users/search?q=${encodeURIComponent(label)}`).then(r => r.json()),
-      ]);
-      onSearch(label, gd.gachaIds ?? [], ud.users ?? []);
-    } catch {} finally { setBusy(false); }
+  // ユーザー候補タップ → その場で直接プロフィールへ（Twitter方式・API再取得なし・曖昧さなし）
+  // プロフィールは /mypage/[id]（[id]=userId。handleでは解決しないので id を使う）
+  const openProfile = (u: UserResult) => {
+    setGachaSug([]); setUserSug([]);
+    router.push(`/mypage/${u.id}`);
   };
 
   const handleClear = () => { setValue(''); setGachaSug([]); setUserSug([]); onClear(); };
@@ -96,7 +93,7 @@ export function CommunitySearchBar({
           onChange={e => { setValue(e.target.value); fetchSuggestions(e.target.value); }}
           onFocus={() => { setFocused(true); if (value) fetchSuggestions(value); }}
           onBlur={() => setTimeout(() => setFocused(false), 200)}
-          onKeyDown={e => e.key === 'Enter' && doSearch(value)}
+          onKeyDown={e => e.key === 'Enter' && runSearch(value)}
           placeholder="アカウント / IP・ガチャの投稿を検索"
           className="flex-1 bg-transparent text-sm outline-none"
           style={{ color: '#111', fontSize: 13, textAlign: 'left' }}
@@ -116,7 +113,7 @@ export function CommunitySearchBar({
               <div className="px-3 py-1.5 text-xs font-bold text-gray-400 bg-gray-50 border-b border-gray-100">{'アカウント'}</div>
               {userSug.slice(0, 4).map(u => (
                 <button key={u.id} className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 text-left border-b border-gray-50"
-                  onMouseDown={e => { e.preventDefault(); setValue(u.name); doSearch(u.name); }}>
+                  onMouseDown={e => { e.preventDefault(); openProfile(u); }}>
                   <UserAvatar user={u} size={32} />
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-gray-900 truncate">{u.name}</p>
@@ -131,7 +128,7 @@ export function CommunitySearchBar({
               <div className="px-3 py-1.5 text-xs font-bold text-gray-400 bg-gray-50 border-b border-gray-100">{'ガチャ・IP'}</div>
               {gachaSug.map((s, i) => (
                 <button key={i} className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-gray-50 border-b border-gray-50 last:border-0 text-left"
-                  onMouseDown={e => { e.preventDefault(); selectGacha(s.label); }}>
+                  onMouseDown={e => { e.preventDefault(); runSearch(s.label); }}>
                   <span className="text-sm font-medium text-gray-800">{s.label}</span>
                   {s.type === 'genre' ? (
                     <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: '#DBEAFE', color: '#1D4ED8' }}>IP</span>
@@ -146,27 +143,6 @@ export function CommunitySearchBar({
           )}
         </div>
       )}
-    </div>
-  );
-}
-
-export function UserResultList({ users }: { users: UserResult[] }) {
-  if (users.length === 0) return null;
-  return (
-    <div className="bg-white mx-3 my-2.5 rounded-2xl overflow-hidden shadow-sm">
-      <div className="px-4 py-2.5 border-b border-gray-100 text-sm font-bold text-gray-700">
-        {'アカウント '}{users.length}{'件'}
-      </div>
-      {users.map(u => (
-        <div key={u.id} className="flex items-center gap-3 px-4 py-3 border-b border-gray-50 last:border-0 hover:bg-gray-50">
-          <UserAvatar user={u} size={42} />
-          <div className="flex-1 min-w-0">
-            <p className="font-bold text-sm text-gray-900">{u.name}</p>
-            {u.handle && <p className="text-xs text-gray-500">@{u.handle}</p>}
-            {u.bio && <p className="text-xs text-gray-400 truncate mt-0.5">{u.bio}</p>}
-          </div>
-        </div>
-      ))}
     </div>
   );
 }

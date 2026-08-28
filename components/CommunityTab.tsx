@@ -3,11 +3,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { type StockFeedPost } from '@/components/StockPostCard';
-import { type FeedPost, type UserResult, type TrendingGacha, type TrendingIP } from '@/components/community-types';
+import { type FeedPost, type TrendingGacha, type TrendingIP } from '@/components/community-types';
 import { Feed, type FeedHandle } from '@/components/CommunityFeed';
 import { PostDetail } from '@/components/PostDetail';
 import { StockPostDetail } from '@/components/StockPostDetail';
-import { CommunitySearchBar, UserResultList } from '@/components/CommunitySearchBar';
+import { CommunitySearchBar } from '@/components/CommunitySearchBar';
 import { GachaAvatar } from '@/components/ui/GachaAvatar';
 import { TrendingSection, TrendingRow } from '@/components/ui/TrendingCard';
 
@@ -18,7 +18,7 @@ function RightSidebar({
   onClear,
   searchActive,
 }: {
-  onSearch: (label: string, gachaIds: string[], users: UserResult[]) => void;
+  onSearch: (label: string, gachaIds: string[]) => void;
   onClear: () => void;
   searchActive: boolean;
 }) {
@@ -100,7 +100,6 @@ export function CommunityTab() {
   const [selectedStock,  setSelectedStock]  = useState<StockFeedPost | null>(null);
   const [searchLabel,    setSearchLabel]    = useState('');
   const [searchGachaIds, setSearchGachaIds] = useState<string[]>([]);
-  const [searchUsers,    setSearchUsers]    = useState<UserResult[]>([]);
   const [searchActive,   setSearchActive]   = useState(false);
   const [deletedIds,     setDeletedIds]     = useState<string[]>([]);
   const feedRef = useRef<FeedHandle>(null);
@@ -136,10 +135,9 @@ export function CommunityTab() {
     feedRef.current?.bumpReplies(id, 'stock');
   };
 
-  const handleSearch = (label: string, gachaIds: string[], users: UserResult[]) => {
+  const handleSearch = (label: string, gachaIds: string[]) => {
     setSearchLabel(label);
     setSearchGachaIds(gachaIds);
-    setSearchUsers(users);
     setSearchActive(true);
   };
 
@@ -147,7 +145,6 @@ export function CommunityTab() {
     setSearchActive(false);
     setSearchLabel('');
     setSearchGachaIds([]);
-    setSearchUsers([]);
   };
 
   const handleDeleted = (id: string) => {
@@ -178,10 +175,9 @@ export function CommunityTab() {
                   </span>
                 </div>
               )}
-              <UserResultList users={searchUsers} />
               {searchGachaIds.length > 0
                 ? <Feed ref={feedRef} key={`search-${searchLabel}`} feedType="search" searchGachaIds={searchGachaIds} onSelect={setSelectedPost} onSelectStock={setSelectedStock} excludeIds={deletedIds} />
-                : searchUsers.length === 0 && (
+                : (
                   <div className="flex flex-col items-center justify-center py-20 text-gray-400">
                     <span className="text-4xl mb-3">🔍</span>
                     <p className="text-sm">検索結果が見つかりませんでした</p>
