@@ -11,12 +11,12 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   const { id: stockPostId } = await params;
   const userId = session.user.id;
 
-  const { liked } = await db.toggleStockPostLike(userId, stockPostId);
+  const { liked, likeCount } = await db.toggleStockPostLike(userId, stockPostId);
   if (liked) {
     await notifyLike('stockPost', stockPostId, userId);
   } else {
     await removeLikeNotification('stockPost', stockPostId, userId);
   }
 
-  return NextResponse.json({ liked });
+  return NextResponse.json({ liked, likeCount });
 }

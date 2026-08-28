@@ -110,7 +110,15 @@ export function StockPostCard({
     setLiked(next);
     setLikeCount(c => c + (next ? 1 : -1));
     try {
-      await fetch('/api/stock-posts/' + post.id + '/like', { method: 'POST' });
+      const res = await fetch('/api/stock-posts/' + post.id + '/like', { method: 'POST' });
+      if (res.ok) {
+        const data: { liked: boolean; likeCount: number } = await res.json();
+        setLiked(data.liked);
+        setLikeCount(data.likeCount);
+      } else {
+        setLiked(!next);
+        setLikeCount(c => c + (next ? -1 : 1));
+      }
     } catch {
       setLiked(!next);
       setLikeCount(c => c + (next ? -1 : 1));
