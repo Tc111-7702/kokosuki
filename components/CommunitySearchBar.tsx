@@ -63,9 +63,10 @@ export function CommunitySearchBar({
   };
 
   // ユーザー候補タップ → その場で直接プロフィールへ（Twitter方式・API再取得なし・曖昧さなし）
+  // プロフィールは /mypage/[id]（[id]=userId。handleでは解決しないので id を使う）
   const openProfile = (u: UserResult) => {
     setGachaSug([]); setUserSug([]);
-    router.push(`/profile/${u.handle ?? u.id}`);
+    router.push(`/mypage/${u.id}`);
   };
 
   const handleClear = () => { setValue(''); setGachaSug([]); setUserSug([]); onClear(); };

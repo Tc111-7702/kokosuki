@@ -9,7 +9,7 @@ export function RecommendedUserRow({ user }: { user: RecommendedUser }) {
   return (
     <div
       style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 16px', cursor: 'pointer' }}
-      onClick={() => router.push(`/profile/${user.handle ?? user.id}`)}
+      onClick={() => router.push(`/mypage/${user.id}`)}
     >
       <div style={{
         width: 38, height: 38, borderRadius: '50%', flexShrink: 0, overflow: 'hidden',
