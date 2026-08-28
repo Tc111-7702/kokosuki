@@ -670,11 +670,12 @@ export async function toggleStockPostLike(userId: string, stockPostId: string) {
   const existing = await prisma.stockPostLike.findUnique({ where: { userId_stockPostId: { userId, stockPostId } } });
   if (existing) {
     await prisma.stockPostLike.delete({ where: { userId_stockPostId: { userId, stockPostId } } });
-    return { liked: false };
   } else {
     await prisma.stockPostLike.create({ data: { userId, stockPostId } });
-    return { liked: true };
   }
+  // togglePostLike と同じく、最新の likeCount を数えて返す（サーバ値で確定=reconcileできるように）
+  const likeCount = await prisma.stockPostLike.count({ where: { stockPostId } });
+  return { liked: !existing, likeCount };
 }
 
 export const listStockPostReplies = (stockPostId: string) =>
