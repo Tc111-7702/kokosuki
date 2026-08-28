@@ -489,13 +489,13 @@ export const getUserById = (id: string) =>
   prisma.user.findUnique({ where: { id }, select: { name: true } });
 
 export const findPublicPost = (id: string) =>
-  prisma.post.findFirst({ where: { id, isPublic: true }, select: { userId: true, spotId: true } });
+  prisma.post.findFirst({ where: { id }, select: { userId: true, spotId: true } });
 
 export const findPublicStockPost = (id: string) =>
-  prisma.stockPost.findFirst({ where: { id, isPublic: true }, select: { userId: true, spotId: true } });
+  prisma.stockPost.findFirst({ where: { id }, select: { userId: true, spotId: true } });
 
 export const findPublicSpotReview = (id: string) =>
-  prisma.spotReview.findFirst({ where: { id, isPublic: true }, select: { userId: true, spotId: true } });
+  prisma.spotReview.findFirst({ where: { id }, select: { userId: true, spotId: true } });
 
 export const getGachaLikesForFanout = (
   gachaId: string,
@@ -609,7 +609,6 @@ export const getUserGachaLikesWithIp = (userId: string) =>
 export const getFeedStockPosts = (filter: { spotId?: string | null; gachaIds?: string[] | null }) =>
   prisma.stockPost.findMany({
     where: {
-      isPublic: true,
       gacha: { isOnSale: true },
       ...(filter.spotId ? { spotId: filter.spotId } : {}),
       ...(filter.gachaIds && filter.gachaIds.length > 0 ? { gachaId: { in: filter.gachaIds } } : {}),
@@ -625,7 +624,6 @@ export const getFeedStockPosts = (filter: { spotId?: string | null; gachaIds?: s
 export const getFeedPosts = (filter: { spotId?: string | null; gachaIds?: string[] | null }) =>
   prisma.post.findMany({
     where: {
-      isPublic: true,
       gacha: { isOnSale: true },
       ...(filter.spotId ? { spotId: filter.spotId } : {}),
       ...(filter.gachaIds && filter.gachaIds.length > 0 ? { gachaId: { in: filter.gachaIds } } : {}),
@@ -710,11 +708,11 @@ export const deleteStockPostReply = async (id: string) => {
 // ─── SpotReview（店舗レビュー） ─────────────────────────────────────────────────
 
 export const countSpotReviews = (spotId: string) =>
-  prisma.spotReview.count({ where: { spotId, isPublic: true } });
+  prisma.spotReview.count({ where: { spotId } });
 
 export const listSpotReviews = (spotId: string, skip: number, take: number) =>
   prisma.spotReview.findMany({
-    where: { spotId, isPublic: true },
+    where: { spotId },
     orderBy: { createdAt: 'desc' },
     skip,
     take,

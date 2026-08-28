@@ -10,7 +10,6 @@ model Post {
   itemName  String?
   imageUrl  String?
   memo      String?
-  isPublic  Boolean  @default(true)
   createdAt DateTime @default(now())
 
   machine Machine    @relation(fields: [machineId], references: [id], onDelete: Cascade)
@@ -94,7 +93,6 @@ model StockPost {
   gachaId     String
   userId      String
   stockStatus String
-  isPublic    Boolean  @default(true)
   createdAt   DateTime @default(now())
 
   machine Machine          @relation(fields: [machineId], references: [id], onDelete: Cascade)
