@@ -606,35 +606,90 @@ export const getUserGachaLikesWithIp = (userId: string) =>
     select: { gachaId: true, gacha: { select: { ipName: true } } },
   });
 
-export const getFeedStockPosts = (filter: { spotId?: string | null; gachaIds?: string[] | null }) =>
-  prisma.stockPost.findMany({
-    where: {
-      gacha: { isOnSale: true },
-      ...(filter.spotId ? { spotId: filter.spotId } : {}),
-      ...(filter.gachaIds && filter.gachaIds.length > 0 ? { gachaId: { in: filter.gachaIds } } : {}),
-    },
-    include: {
-      user:   { select: FEED_USER_SELECT },
-      spot:   { select: FEED_SPOT_SELECT },
-      gacha:  { select: FEED_GACHA_SELECT },
-      _count: { select: { likes: true, replies: true } },
-    },
-  });
+// 在庫の鮮度窓（この日数より古い在庫報告はフィードに出さない＝誤情報を除外）。
+// 量が増えたらここを縮める。通常投稿は制限なし（新着＋カーソルで自然に沈む）。
+export const STOCK_FEED_FRESH_DAYS = 7;
 
-export const getFeedPosts = (filter: { spotId?: string | null; gachaIds?: string[] | null }) =>
-  prisma.post.findMany({
-    where: {
-      gacha: { isOnSale: true },
-      ...(filter.spotId ? { spotId: filter.spotId } : {}),
-      ...(filter.gachaIds && filter.gachaIds.length > 0 ? { gachaId: { in: filter.gachaIds } } : {}),
-    },
-    include: {
-      user:   { select: FEED_USER_SELECT },
-      spot:   { select: FEED_SPOT_SELECT },
-      gacha:  { select: FEED_GACHA_SELECT },
-      _count: { select: { likes: true, replies: true } },
-    },
-  });
+const FEED_INCLUDE = {
+  user:   { select: FEED_USER_SELECT },
+  spot:   { select: FEED_SPOT_SELECT },
+  gacha:  { select: FEED_GACHA_SELECT },
+  _count: { select: { likes: true, replies: true } },
+} as const;
+
+type FeedIdOpts = {
+  spotId?: string | null;
+  gachaIds?: string[] | null;
+  likedGachaIds: string[];
+  likedIps: string[];
+  limit: number;
+  offset: number;
+};
+
+// 好み(いいねガチャ→同IP→その他)＋新着 の順に並べた「在庫」の ID を limit 件だけ返す。
+// 同一マシンは DISTINCT ON で最新のみに畳んでから並べる（15件に絞っても dedup で減らない）。
+export async function getFeedStockIds(opts: FeedIdOpts): Promise<string[]> {
+  const { spotId, gachaIds, likedGachaIds, likedIps, limit, offset } = opts;
+  const freshSince = new Date(Date.now() - STOCK_FEED_FRESH_DAYS * 24 * 60 * 60 * 1000);
+  const conds: Prisma.Sql[] = [
+    Prisma.sql`sp."createdAt" >= ${freshSince}`,
+    Prisma.sql`g."isOnSale" = true`,
+  ];
+  if (spotId) conds.push(Prisma.sql`sp."spotId" = ${spotId}`);
+  if (gachaIds && gachaIds.length > 0) conds.push(Prisma.sql`sp."gachaId" = ANY(${gachaIds}::text[])`);
+  const rows = await prisma.$queryRaw<{ id: string }[]>`
+    SELECT latest.id FROM (
+      SELECT DISTINCT ON (sp."machineId") sp.id, sp."createdAt", sp."gachaId", g."ipName"
+      FROM "StockPost" sp
+      JOIN "Gacha" g ON g.id = sp."gachaId"
+      WHERE ${Prisma.join(conds, ' AND ')}
+      ORDER BY sp."machineId", sp."createdAt" DESC
+    ) latest
+    ORDER BY
+      CASE WHEN latest."gachaId" = ANY(${likedGachaIds}::text[]) THEN 0
+           WHEN latest."ipName"  = ANY(${likedIps}::text[])      THEN 1
+           ELSE 2 END,
+      latest."createdAt" DESC
+    LIMIT ${limit} OFFSET ${offset}
+  `;
+  return rows.map(r => r.id);
+}
+
+// 好み＋新着 の順に並べた「通常投稿」の ID を limit 件だけ返す（鮮度窓なし・dedupなし）。
+export async function getFeedPostIds(opts: FeedIdOpts): Promise<string[]> {
+  const { spotId, gachaIds, likedGachaIds, likedIps, limit, offset } = opts;
+  const conds: Prisma.Sql[] = [Prisma.sql`g."isOnSale" = true`];
+  if (spotId) conds.push(Prisma.sql`p."spotId" = ${spotId}`);
+  if (gachaIds && gachaIds.length > 0) conds.push(Prisma.sql`p."gachaId" = ANY(${gachaIds}::text[])`);
+  const rows = await prisma.$queryRaw<{ id: string }[]>`
+    SELECT p.id
+    FROM "Post" p
+    JOIN "Gacha" g ON g.id = p."gachaId"
+    WHERE ${Prisma.join(conds, ' AND ')}
+    ORDER BY
+      CASE WHEN p."gachaId" = ANY(${likedGachaIds}::text[]) THEN 0
+           WHEN g."ipName"  = ANY(${likedIps}::text[])      THEN 1
+           ELSE 2 END,
+      p."createdAt" DESC
+    LIMIT ${limit} OFFSET ${offset}
+  `;
+  return rows.map(r => r.id);
+}
+
+// 2段目：ID 群の本体を include 付きで取得し、渡された ID 順に並べ直す。
+export async function getStockPostsByIds(ids: string[]) {
+  if (ids.length === 0) return [];
+  const rows = await prisma.stockPost.findMany({ where: { id: { in: ids } }, include: FEED_INCLUDE });
+  const map = new Map(rows.map(r => [r.id, r]));
+  return ids.map(id => map.get(id)).filter((r): r is (typeof rows)[number] => r != null);
+}
+
+export async function getPostsByIds(ids: string[]) {
+  if (ids.length === 0) return [];
+  const rows = await prisma.post.findMany({ where: { id: { in: ids } }, include: FEED_INCLUDE });
+  const map = new Map(rows.map(r => [r.id, r]));
+  return ids.map(id => map.get(id)).filter((r): r is (typeof rows)[number] => r != null);
+}
 
 export const getStockPostLikedIds = (userId: string, stockPostIds: string[]) =>
   prisma.stockPostLike.findMany({ where: { userId, stockPostId: { in: stockPostIds } }, select: { stockPostId: true } });

@@ -38,7 +38,8 @@ function GachaPostsSection({ gachaId, isMobile }: { gachaId: string; isMobile: b
     fetch(`/api/posts/feed?type=search&gachaIds=${gachaId}`)
       .then(r => r.json())
       .then(d => {
-        const all: (FeedPost | StockFeedPost)[] = d.items ?? [];
+        // feed API はバケツ分離（{stock, feed}）で返すのでここで結合する
+        const all: (FeedPost | StockFeedPost)[] = [...(d.stock ?? []), ...(d.feed ?? [])];
         all.sort((a, b) =>
           (a.postType === 'stock' ? 0 : 1) - (b.postType === 'stock' ? 0 : 1) ||
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
