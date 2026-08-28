@@ -960,7 +960,8 @@ const ipTermsWhere = (terms: string[]): Prisma.GachaWhereInput =>
 export const findOnSaleSeriesByExactIp = (ipName: string) =>
   prisma.gacha.findMany({
     where: { isOnSale: true, ipName: { equals: ipName, mode: 'insensitive' } },
-    select: { id: true, seriesName: true, imageUrl: true },
+    // ipName も返す：IP完全一致時に「ジャンル候補」を組み立てるため（#17-4）
+    select: { id: true, ipName: true, seriesName: true, imageUrl: true },
     // seriesName は 1:1（distinct は no-op）なので削除し、いいね数の多い順に
     orderBy: { gachaLikes: { _count: 'desc' } },
   });

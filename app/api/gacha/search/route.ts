@@ -18,7 +18,11 @@ export async function GET(request: Request) {
     const exactIpSeries = await db.findOnSaleSeriesByExactIp(q.trim());
     if (exactIpSeries.length > 0) {
       return NextResponse.json({
-        suggestions: exactIpSeries.map(g => ({ id: g.id, label: g.seriesName, type: 'gacha' as const, imageUrl: g.imageUrl })),
+        suggestions: [
+          // IP完全一致でも「ジャンル候補」を先頭に残す（ジャンル一覧ページへ行けるように）(#17-4)
+          { label: exactIpSeries[0].ipName, type: 'genre' as const, imageUrl: null },
+          ...exactIpSeries.map(g => ({ id: g.id, label: g.seriesName, type: 'gacha' as const, imageUrl: g.imageUrl })),
+        ],
       });
     }
 
