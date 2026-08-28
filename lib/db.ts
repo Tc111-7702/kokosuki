@@ -974,11 +974,13 @@ export const suggestGachaSeries = (terms: string[]) =>
   });
 
 export const suggestGachaIps = (terms: string[]) =>
-  prisma.gacha.findMany({
+  // IP候補は「配下ガチャの本数が多い順」。groupBy で ipName ごとに件数を数えて降順。
+  // （いいね合計順は relation の集約が要るため別対応。本数順は #19 前でも groupBy で可能）
+  prisma.gacha.groupBy({
+    by: ['ipName'],
     where: { isOnSale: true, ...ipTermsWhere(terms) },
-    select: { ipName: true },
-    distinct: ['ipName'],
-    orderBy: { ipName: 'asc' },
+    _count: { id: true },
+    orderBy: { _count: { id: 'desc' } },
   });
 
 export const findOnSaleExactIp = (ipName: string) =>
