@@ -185,190 +185,118 @@ async function main() {
   console.log('Profiles upserted');
 
   // ─── 投稿・GachaLike（再実行時に重複しないよう先に削除） ──────────
-  const seedUserIds = [yamamoto.id, fukuda.id, iida.id, yuna.id, kenta.id];
+  const users = [yamamoto, fukuda, iida, yuna, kenta];
+  const seedUserIds = users.map((u) => u.id);
   await prisma.stockPostLike.deleteMany({ where: { userId: { in: seedUserIds } } });
   await prisma.stockPost.deleteMany(    { where: { userId: { in: seedUserIds } } });
   await prisma.like.deleteMany(         { where: { userId: { in: seedUserIds } } });
   await prisma.post.deleteMany(         { where: { userId: { in: seedUserIds } } });
-  // 実在スポット（川西市・宝塚市）
-  const SPOTS = {
-    kappa:       'cmr63juft00anc0ujnxh6mfac',
-    kobayashi:   'cmr63jj8g009gc0ujvvuzraqt',
-    bunkyodo:    'cmr63kj6a00d8c0ujsiitsz6v',
-    tada:        'cmr63jizn009fc0ujaebsjkmh',
-    rasora:      'cmr63jm6q009sc0uj0xuxrivb',
-    aste:        'cmr63jrj900acc0ujnkxf2y20',
-  };
+  await prisma.gachaLike.deleteMany(    { where: { userId: { in: seedUserIds } } });
 
-  // 実在マシン
-  const M: Record<string, { id: string; spotId: string; gachaId: string }> = {
-    pokemon_kappa:     { id: 'cmr66fzoz0rvewcujjidjip76', spotId: SPOTS.kappa,     gachaId: 'cmr63tlsj00f2wcujcs287z14' },
-    csm_kobayashi:     { id: 'cmr65jp5v0ky6wcujkias3gnv', spotId: SPOTS.kobayashi, gachaId: 'cmr63vkxm00o3wcujsgmo4hhf' },
-    doraemon_kobayashi:{ id: 'cmr65jow50kxywcujzcda7w0t', spotId: SPOTS.kobayashi, gachaId: 'cmr64138a01mjwcuj2ar37ki9' },
-    natsume_kobayashi: { id: 'cmr65jotq0kxwwcujrtcgc5ex', spotId: SPOTS.kobayashi, gachaId: 'cmr63tb9500e0wcujdjygseoh' },
-    op_bunkyodo:       { id: 'cmr68iwx50z7xwcujso0xqtui', spotId: SPOTS.bunkyodo,  gachaId: 'cmr63suq300cfwcuj192j2x7n' },
-    minecraft_bunkyodo:{ id: 'cmr68iwte0z7uwcujqulhwxs3', spotId: SPOTS.bunkyodo,  gachaId: 'cmr63sv8d00chwcuj2bbmme8u' },
-    miku_bunkyodo:     { id: 'cmr68izn00zciwcujqvwnljc4', spotId: SPOTS.bunkyodo,  gachaId: 'cmr647546030jwcujk3de9evb' },
-    pokemon_tada:      { id: 'cmr65jo7i0kxmwcujz4v4tbyi', spotId: SPOTS.tada,      gachaId: 'cmr63wlnl00tnwcujhlrcx5kn' },
-    haikyu_tada:       { id: 'cmr65jo8q0kxnwcujk7ooarwt', spotId: SPOTS.tada,      gachaId: 'cmr63uz7i00kwwcujwyyl9n8c' },
-    disney_rasora:     { id: 'cmr65kem20lamwcuj7wite11h', spotId: SPOTS.rasora,    gachaId: 'cmr63y5j60131wcujnmxg1fbr' },
-    kirby_rasora:      { id: 'cmr65kefw0lahwcuj2k9ijlhe', spotId: SPOTS.rasora,    gachaId: 'cmr63qhei0049wcuj3tu2240p' },
-    hxh_aste:          { id: 'cmr65s5uw0pp3wcujt7qf327r', spotId: SPOTS.aste,      gachaId: 'cmr63y7r6013awcuj1pz9hdqx' },
-    op_aste:           { id: 'cmr65s93c0prmwcuj603mm6m8', spotId: SPOTS.aste,      gachaId: 'cmr63suq300cfwcuj192j2x7n' },
-    minecraft_aste:    { id: 'cmr65s6kn0ppnwcujguci6tez', spotId: SPOTS.aste,      gachaId: 'cmr63s8qe00a7wcuj4i0e0zp4' },
-  };
+  // ─── 実在マシンをプールとして取得 ───────────────────────────────────────────
+  // 発売中ガチャのマシンを id 昇順（決定的）で取得。フィードの在庫は「マシンごと最新1件」に
+  // 畳まれるため、別マシンでありさえすれば同一店舗でも件数は減らない（＝ユニークマシン数＝表示数）。
+  const POOL_SIZE = 70;
+  const pool = await prisma.machine.findMany({
+    where: { gacha: { isOnSale: true } },
+    orderBy: { id: 'asc' },
+    take: POOL_SIZE,
+    include: {
+      gacha: { select: { id: true, ipName: true, seriesName: true } },
+      spot:  { select: { id: true, name: true } },
+    },
+  });
+  if (pool.length < 60) throw new Error(`machine pool too small: ${pool.length}（発売中マシンが不足）`);
 
   // ─── GachaLike（ハート＝お気に入り） ────────────────────────────────────────
-  // 再実行時の重複を防ぐため先に削除
-  await prisma.gachaLike.deleteMany({ where: { userId: { in: seedUserIds } } });
-
-  await prisma.gachaLike.createMany({
-    skipDuplicates: true,
-    data: [
-      // yamamoto：ポケモン・ONE PIECE 系
-      { userId: yamamoto.id, gachaId: M.pokemon_kappa.gachaId },
-      { userId: yamamoto.id, gachaId: M.pokemon_tada.gachaId },
-      { userId: yamamoto.id, gachaId: M.op_bunkyodo.gachaId },
-      { userId: yamamoto.id, gachaId: M.haikyu_tada.gachaId },
-      { userId: yamamoto.id, gachaId: M.minecraft_bunkyodo.gachaId },
-
-      // fukuda：ポケモン・ハイキュー・チェンソーマン 系
-      { userId: fukuda.id, gachaId: M.pokemon_tada.gachaId },
-      { userId: fukuda.id, gachaId: M.pokemon_kappa.gachaId },
-      { userId: fukuda.id, gachaId: M.haikyu_tada.gachaId },
-      { userId: fukuda.id, gachaId: M.csm_kobayashi.gachaId },
-      { userId: fukuda.id, gachaId: M.doraemon_kobayashi.gachaId },
-      { userId: fukuda.id, gachaId: M.minecraft_aste.gachaId },
-
-      // iida：HUNTER×HUNTER・チェンソーマン・ONE PIECE 系
-      { userId: iida.id, gachaId: M.hxh_aste.gachaId },
-      { userId: iida.id, gachaId: M.csm_kobayashi.gachaId },
-      { userId: iida.id, gachaId: M.op_bunkyodo.gachaId },
-      { userId: iida.id, gachaId: M.natsume_kobayashi.gachaId },
-      { userId: iida.id, gachaId: M.minecraft_aste.gachaId },
-
-      // yuna：ポケモン・ONE PIECE・ディズニー・初音ミク 系
-      { userId: yuna.id, gachaId: M.pokemon_kappa.gachaId },
-      { userId: yuna.id, gachaId: M.pokemon_tada.gachaId },
-      { userId: yuna.id, gachaId: M.op_bunkyodo.gachaId },
-      { userId: yuna.id, gachaId: M.disney_rasora.gachaId },
-      { userId: yuna.id, gachaId: M.miku_bunkyodo.gachaId },
-      { userId: yuna.id, gachaId: M.kirby_rasora.gachaId },
-
-      // kenta：ONE PIECE・星のカービィ・ポケモン 系
-      { userId: kenta.id, gachaId: M.op_bunkyodo.gachaId },
-      { userId: kenta.id, gachaId: M.op_aste.gachaId },
-      { userId: kenta.id, gachaId: M.pokemon_kappa.gachaId },
-      { userId: kenta.id, gachaId: M.kirby_rasora.gachaId },
-      { userId: kenta.id, gachaId: M.haikyu_tada.gachaId },
-      { userId: kenta.id, gachaId: M.minecraft_bunkyodo.gachaId },
-    ],
+  // 各ユーザーにプールのガチャを数件割り当て、フィードの好み順(tier0/tier1)が出るようにする
+  // （在庫プールのガチャと重ねる）。開始位置をユーザーごとにずらす。
+  const likeRows: { userId: string; gachaId: string }[] = [];
+  users.forEach((u, ui) => {
+    const seen = new Set<string>();
+    for (let k = 0; k < 8; k++) {
+      const m = pool[(ui * 3 + k * 5) % pool.length];
+      if (seen.has(m.gacha.id)) continue;
+      seen.add(m.gacha.id);
+      likeRows.push({ userId: u.id, gachaId: m.gacha.id });
+    }
   });
-  console.log('GachaLikes created');
+  await prisma.gachaLike.createMany({ data: likeRows, skipDuplicates: true });
+  console.log(`GachaLikes created (${likeRows.length})`);
 
-  // ─── 在庫ポスト（StockPost）────────────────────────────────────────────────
-  // 在庫投稿はアプリの主力コンテンツ。1人あたり6〜7件、合計34件
-  // 各行の「作成日（日前）」。下の data 配列と同じ並び順で1対1対応する。
-  //   ≤6 = 7日以内（フィードに出る） / ≥10 = 7日超（フィードに出ない）
-  // 同一マシンに新旧を混ぜ、DISTINCT ON（マシンごと最新のみ）の挙動も確認できるようにしている。
-  // 7日超だけのマシン（minecraft_aste/op_aste/natsume_kobayashi/miku_bunkyodo/doraemon_kobayashi）は
-  // フィードに一切出ない想定。残り9マシンは最新が7日以内なので出る想定。
-  const STOCK_AGES = [
-    5, 10, 6, 4, 6, 5, 3,          // yamamoto（op_bunkyodoの10は古row→dedupで落ちる）
-    2, 2, 4, 20, 15, 30,           // fukuda（minecraft_aste=20 / op_aste=15 / natsume=30 は7日超）
-    1, 6, 3, 28, 25, 2, 12,        // iida（natsume=28 / minecraft_aste=25 / miku=12 は7日超）
-    6, 18, 2, 16, 3, 40, 12,       // yuna（op_aste=18 / miku=16 / doraemon=40 / haikyu古row=12）
-    4, 22, 1, 5, 6, 5, 9,          // kenta（op_aste=22 / minecraft_bunkyodo古row=9）
-  ];
-  await prisma.stockPost.createMany({ data: ([
-    // ── yamamoto（ポケモン・ONE PIECE中心）──────────────
-    { userId: yamamoto.id, machineId: M.pokemon_kappa.id,      spotId: M.pokemon_kappa.spotId,      gachaId: M.pokemon_kappa.gachaId,      stockStatus: 'in_stock' },
-    { userId: yamamoto.id, machineId: M.op_bunkyodo.id,        spotId: M.op_bunkyodo.spotId,        gachaId: M.op_bunkyodo.gachaId,        stockStatus: 'in_stock' },
-    { userId: yamamoto.id, machineId: M.haikyu_tada.id,        spotId: M.haikyu_tada.spotId,        gachaId: M.haikyu_tada.gachaId,        stockStatus: 'in_stock' },
-    { userId: yamamoto.id, machineId: M.minecraft_bunkyodo.id, spotId: M.minecraft_bunkyodo.spotId, gachaId: M.minecraft_bunkyodo.gachaId, stockStatus: 'in_stock' },
-    { userId: yamamoto.id, machineId: M.kirby_rasora.id,       spotId: M.kirby_rasora.spotId,       gachaId: M.kirby_rasora.gachaId,       stockStatus: 'out_of_stock' },
-    { userId: yamamoto.id, machineId: M.disney_rasora.id,      spotId: M.disney_rasora.spotId,      gachaId: M.disney_rasora.gachaId,      stockStatus: 'in_stock' },
-    { userId: yamamoto.id, machineId: M.hxh_aste.id,           spotId: M.hxh_aste.spotId,           gachaId: M.hxh_aste.gachaId,           stockStatus: 'in_stock' },
+  // ─── 在庫ポスト（StockPost）───────────────────────────────────────────────
+  // 主力コンテンツ。約50件をフィードに“見える”状態で作る。
+  //  (a) 50マシンに各1件、全て7日以内(0〜6日前) → dedup後も50件表示される
+  //  (b) 先頭6マシンに古い重複(8〜13日前・別ユーザー) → 同マシン最新に負けて消える（dedupデモ）
+  //  (c) 別の8マシンに古い在庫だけ(10〜31日前) → 鮮度窓で除外され出ない（窓デモ）
+  const STOCK_VISIBLE = 50;
+  const STATUSES = ['in_stock', 'in_stock', 'in_stock', 'low_stock', 'out_of_stock'];
+  const visibleMachines = pool.slice(0, STOCK_VISIBLE);
 
-    // ── fukuda（ポケモン・ハイキュー・チェンソー中心）──
-    { userId: fukuda.id, machineId: M.pokemon_tada.id,      spotId: M.pokemon_tada.spotId,      gachaId: M.pokemon_tada.gachaId,      stockStatus: 'in_stock' },
-    { userId: fukuda.id, machineId: M.haikyu_tada.id,       spotId: M.haikyu_tada.spotId,       gachaId: M.haikyu_tada.gachaId,       stockStatus: 'in_stock' },
-    { userId: fukuda.id, machineId: M.csm_kobayashi.id,     spotId: M.csm_kobayashi.spotId,     gachaId: M.csm_kobayashi.gachaId,     stockStatus: 'in_stock' },
-    { userId: fukuda.id, machineId: M.minecraft_aste.id,    spotId: M.minecraft_aste.spotId,    gachaId: M.minecraft_aste.gachaId,    stockStatus: 'out_of_stock' },
-    { userId: fukuda.id, machineId: M.op_aste.id,           spotId: M.op_aste.spotId,           gachaId: M.op_aste.gachaId,           stockStatus: 'in_stock' },
-    { userId: fukuda.id, machineId: M.natsume_kobayashi.id, spotId: M.natsume_kobayashi.spotId, gachaId: M.natsume_kobayashi.gachaId, stockStatus: 'in_stock' },
+  type StockRow = { userId: string; machineId: string; spotId: string; gachaId: string; stockStatus: string; createdAt: Date };
+  const stockData: StockRow[] = [];
 
-    // ── iida（HxH・チェンソー・ONE PIECE中心）──────────
-    { userId: iida.id, machineId: M.hxh_aste.id,          spotId: M.hxh_aste.spotId,          gachaId: M.hxh_aste.gachaId,          stockStatus: 'in_stock' },
-    { userId: iida.id, machineId: M.csm_kobayashi.id,     spotId: M.csm_kobayashi.spotId,     gachaId: M.csm_kobayashi.gachaId,     stockStatus: 'in_stock' },
-    { userId: iida.id, machineId: M.op_bunkyodo.id,       spotId: M.op_bunkyodo.spotId,       gachaId: M.op_bunkyodo.gachaId,       stockStatus: 'in_stock' },
-    { userId: iida.id, machineId: M.natsume_kobayashi.id, spotId: M.natsume_kobayashi.spotId, gachaId: M.natsume_kobayashi.gachaId, stockStatus: 'out_of_stock' },
-    { userId: iida.id, machineId: M.minecraft_aste.id,   spotId: M.minecraft_aste.spotId,    gachaId: M.minecraft_aste.gachaId,    stockStatus: 'in_stock' },
-    { userId: iida.id, machineId: M.pokemon_kappa.id,    spotId: M.pokemon_kappa.spotId,     gachaId: M.pokemon_kappa.gachaId,     stockStatus: 'in_stock' },
-    { userId: iida.id, machineId: M.miku_bunkyodo.id,    spotId: M.miku_bunkyodo.spotId,     gachaId: M.miku_bunkyodo.gachaId,     stockStatus: 'in_stock' },
-
-    // ── yuna（ポケモン・ディズニー・ミク中心）──────────
-    { userId: yuna.id, machineId: M.pokemon_kappa.id,     spotId: M.pokemon_kappa.spotId,     gachaId: M.pokemon_kappa.gachaId,     stockStatus: 'in_stock' },
-    { userId: yuna.id, machineId: M.op_aste.id,           spotId: M.op_aste.spotId,           gachaId: M.op_aste.gachaId,           stockStatus: 'in_stock' },
-    { userId: yuna.id, machineId: M.disney_rasora.id,     spotId: M.disney_rasora.spotId,     gachaId: M.disney_rasora.gachaId,     stockStatus: 'out_of_stock' },
-    { userId: yuna.id, machineId: M.miku_bunkyodo.id,     spotId: M.miku_bunkyodo.spotId,     gachaId: M.miku_bunkyodo.gachaId,     stockStatus: 'in_stock' },
-    { userId: yuna.id, machineId: M.kirby_rasora.id,      spotId: M.kirby_rasora.spotId,      gachaId: M.kirby_rasora.gachaId,      stockStatus: 'in_stock' },
-    { userId: yuna.id, machineId: M.doraemon_kobayashi.id,spotId: M.doraemon_kobayashi.spotId,gachaId: M.doraemon_kobayashi.gachaId,stockStatus: 'in_stock' },
-    { userId: yuna.id, machineId: M.haikyu_tada.id,       spotId: M.haikyu_tada.spotId,       gachaId: M.haikyu_tada.gachaId,       stockStatus: 'in_stock' },
-
-    // ── kenta（ONE PIECE・カービィ・ポケモン中心）──────
-    { userId: kenta.id, machineId: M.op_bunkyodo.id,      spotId: M.op_bunkyodo.spotId,      gachaId: M.op_bunkyodo.gachaId,      stockStatus: 'in_stock' },
-    { userId: kenta.id, machineId: M.op_aste.id,          spotId: M.op_aste.spotId,          gachaId: M.op_aste.gachaId,          stockStatus: 'in_stock' },
-    { userId: kenta.id, machineId: M.pokemon_kappa.id,    spotId: M.pokemon_kappa.spotId,    gachaId: M.pokemon_kappa.gachaId,    stockStatus: 'in_stock' },
-    { userId: kenta.id, machineId: M.kirby_rasora.id,     spotId: M.kirby_rasora.spotId,     gachaId: M.kirby_rasora.gachaId,     stockStatus: 'in_stock' },
-    { userId: kenta.id, machineId: M.hxh_aste.id,         spotId: M.hxh_aste.spotId,         gachaId: M.hxh_aste.gachaId,         stockStatus: 'in_stock' },
-    { userId: kenta.id, machineId: M.csm_kobayashi.id,    spotId: M.csm_kobayashi.spotId,    gachaId: M.csm_kobayashi.gachaId,    stockStatus: 'out_of_stock' },
-    { userId: kenta.id, machineId: M.minecraft_bunkyodo.id,spotId: M.minecraft_bunkyodo.spotId,gachaId: M.minecraft_bunkyodo.gachaId,stockStatus: 'in_stock' },
-  ] as const).map((r, i) => ({ ...r, createdAt: daysAgo(STOCK_AGES[i]) })) });
+  // (a) 見える50件
+  visibleMachines.forEach((m, i) => {
+    stockData.push({
+      userId: users[i % users.length].id,
+      machineId: m.id, spotId: m.spotId, gachaId: m.gachaId,
+      stockStatus: STATUSES[i % STATUSES.length],
+      createdAt: new Date(daysAgo(i % 7).getTime() - i * 60_000), // 0〜6日前（分単位でずらし一意化）
+    });
+  });
+  // (b) dedupデモ: 先頭6マシンに古い重複
+  visibleMachines.slice(0, 6).forEach((m, i) => {
+    stockData.push({
+      userId: users[(i + 1) % users.length].id,
+      machineId: m.id, spotId: m.spotId, gachaId: m.gachaId,
+      stockStatus: 'out_of_stock',
+      createdAt: daysAgo(8 + i), // 8〜13日前（古い重複）
+    });
+  });
+  // (c) 窓デモ: 別の8マシンに古い在庫だけ
+  pool.slice(STOCK_VISIBLE, STOCK_VISIBLE + 8).forEach((m, i) => {
+    stockData.push({
+      userId: users[i % users.length].id,
+      machineId: m.id, spotId: m.spotId, gachaId: m.gachaId,
+      stockStatus: 'in_stock',
+      createdAt: daysAgo(10 + i * 3), // 10,13,…,31日前
+    });
+  });
+  await prisma.stockPost.createMany({ data: stockData });
   {
-    const fresh = await prisma.stockPost.findMany({ where: { createdAt: { gte: daysAgo(7) } }, select: { machineId: true } });
-    console.log(`StockPosts created（7日以内=${fresh.length}件 / ユニークマシン=${new Set(fresh.map((f) => f.machineId)).size}＝フィード在庫の想定件数）`);
+    const fresh = await prisma.stockPost.findMany({
+      where: { userId: { in: seedUserIds }, createdAt: { gte: daysAgo(7) } },
+      select: { machineId: true },
+    });
+    console.log(`StockPosts created（${stockData.length}行 / 7日以内=${fresh.length}件 / ユニークマシン=${new Set(fresh.map((f) => f.machineId)).size}＝フィード在庫の想定件数）`);
   }
 
   // ─── 通常ポスト（Post）─────────────────────────────────────────────────────
-  // 通常投稿は補助的。1人あたり2件、合計10件
-  // 通常投稿は鮮度窓なし＝古くてもフィードに出る（在庫との対比確認用に新旧を混ぜる）。
-  // data 配列と同じ並びで作成日（日前）を対応させる。15/20/10 は7日超だが表示されるはず。
-  const POST_AGES = [2, 3, 15, 1, 5, 20, 4, 6, 10, 2];
-  await prisma.post.createMany({ data: ([
-    { userId: yamamoto.id, machineId: M.pokemon_kappa.id, spotId: M.pokemon_kappa.spotId, gachaId: M.pokemon_kappa.gachaId, result: '神引き', itemName: 'イーブイ',   imageUrl: null, memo: 'イーブイ出た！かっぱ寿司帰りに寄ったら神引き' },
-    { userId: yamamoto.id, machineId: M.op_bunkyodo.id,   spotId: M.op_bunkyodo.spotId,   gachaId: M.op_bunkyodo.gachaId,   result: '神引き', itemName: 'ルフィ',     imageUrl: null, memo: 'まちぼうけのルフィゲット！塗装きれい' },
-    { userId: fukuda.id,   machineId: M.pokemon_tada.id,  spotId: M.pokemon_tada.spotId,  gachaId: M.pokemon_tada.gachaId,  result: '神引き', itemName: 'メタモン',   imageUrl: null, memo: 'メタモンコレ揃ってきた！あと2種類' },
-    { userId: fukuda.id,   machineId: M.haikyu_tada.id,   spotId: M.haikyu_tada.spotId,   gachaId: M.haikyu_tada.gachaId,   result: '神引き', itemName: '影山飛雄',   imageUrl: null, memo: '影山きた！制服ver最高すぎ' },
-    { userId: iida.id,     machineId: M.hxh_aste.id,      spotId: M.hxh_aste.spotId,      gachaId: M.hxh_aste.gachaId,      result: '神引き', itemName: 'ゴン',       imageUrl: null, memo: 'ゴンきた！幻影旅団編全種コンプ目指してる' },
-    { userId: iida.id,     machineId: M.op_bunkyodo.id,   spotId: M.op_bunkyodo.spotId,   gachaId: M.op_bunkyodo.gachaId,   result: '神引き', itemName: 'ゾロ',       imageUrl: null, memo: 'ゾロのまちぼうけ！立体感すごい' },
-    { userId: yuna.id,     machineId: M.pokemon_kappa.id, spotId: M.pokemon_kappa.spotId, gachaId: M.pokemon_kappa.gachaId, result: '神引き', itemName: 'ピカチュウ', imageUrl: null, memo: 'ピカチュウ！ぽかぽかびよりシリーズかわいすぎ' },
-    { userId: yuna.id,     machineId: M.miku_bunkyodo.id, spotId: M.miku_bunkyodo.spotId, gachaId: M.miku_bunkyodo.gachaId, result: '神引き', itemName: '初音ミク',   imageUrl: null, memo: 'ミクのフィギュア！文教堂はラインナップ最高' },
-    { userId: kenta.id,    machineId: M.op_bunkyodo.id,   spotId: M.op_bunkyodo.spotId,   gachaId: M.op_bunkyodo.gachaId,   result: '神引き', itemName: 'エース',     imageUrl: null, memo: 'エースのまちぼうけゲット！文教堂逆瀬川は在庫多い' },
-    { userId: kenta.id,    machineId: M.kirby_rasora.id,  spotId: M.kirby_rasora.spotId,  gachaId: M.kirby_rasora.gachaId,  result: '神引き', itemName: 'カービィ',   imageUrl: null, memo: 'カービィのミニコンテナ！思ったより小さいけどかわいい' },
-  ] as const).map((r, i) => ({ ...r, createdAt: daysAgo(POST_AGES[i]) })) });
-  console.log('Posts created');
+  // 鮮度窓なし＝古くても出る。約30件。3件に1件は7日超（古くても表示されることの確認用）。
+  const FEED_COUNT = 30;
+  const RESULTS = ['神引き', '神引き', 'ダブり', '爆死'];
+  const VERBS = ['引いた', 'ゲットした', 'コンプ間近', '交換募集中'];
+  const postData = pool.slice(0, FEED_COUNT).map((m, i) => ({
+    userId: users[i % users.length].id,
+    machineId: m.id, spotId: m.spotId, gachaId: m.gachaId,
+    result: RESULTS[i % RESULTS.length],
+    itemName: null as string | null,
+    imageUrl: null as string | null,
+    memo: `${m.gacha.seriesName} を${VERBS[i % VERBS.length]}！ @${m.spot.name}`,
+    createdAt: new Date(daysAgo(i % 3 === 0 ? 10 + i : i % 7).getTime() - i * 60_000), // 3件に1件は古い(>7日)
+  }));
+  await prisma.post.createMany({ data: postData });
+  console.log(`Posts created (${postData.length})`);
 
-  // ─── マシン在庫ステータス（宝塚市・川西市）────────────────────────────────
-  const machineStockUpdates: { id: string; stockStatus: string }[] = [
-    { id: M.pokemon_kappa.id,      stockStatus: 'in_stock'     },
-    { id: M.csm_kobayashi.id,      stockStatus: 'in_stock'     },
-    { id: M.doraemon_kobayashi.id, stockStatus: 'out_of_stock' },
-    { id: M.natsume_kobayashi.id,  stockStatus: 'in_stock'     },
-    { id: M.op_bunkyodo.id,        stockStatus: 'in_stock'     },
-    { id: M.minecraft_bunkyodo.id, stockStatus: 'in_stock'     },
-    { id: M.miku_bunkyodo.id,      stockStatus: 'out_of_stock' },
-    { id: M.pokemon_tada.id,       stockStatus: 'in_stock'     },
-    { id: M.haikyu_tada.id,        stockStatus: 'in_stock'     },
-    { id: M.disney_rasora.id,      stockStatus: 'out_of_stock' },
-    { id: M.kirby_rasora.id,       stockStatus: 'in_stock'     },
-    { id: M.hxh_aste.id,           stockStatus: 'in_stock'     },
-    { id: M.op_aste.id,            stockStatus: 'in_stock'     },
-    { id: M.minecraft_aste.id,     stockStatus: 'out_of_stock' },
-  ];
+  // ─── マシン在庫ステータス（作成した在庫を地図にも反映）────────────────────
+  // 見える50マシンの stockStatus を、その在庫投稿の値に合わせて更新（地図ビュー整合）。
   await Promise.all(
-    machineStockUpdates.map(({ id, stockStatus }) =>
-      prisma.machine.update({ where: { id }, data: { stockStatus, stockSyncedAt: new Date() } })
+    visibleMachines.map((m, i) =>
+      prisma.machine.update({
+        where: { id: m.id },
+        data: { stockStatus: STATUSES[i % STATUSES.length], stockSyncedAt: new Date() },
+      })
     )
   );
   console.log('Machine stock updated');
