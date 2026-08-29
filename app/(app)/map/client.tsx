@@ -290,10 +290,10 @@ export default function MapPage() {
         .setLngLat([lng, lat]).addTo(mapRef.current);
       (mapRef.current.getSource('station-range') as mapboxgl.GeoJSONSource)?.setData({ type: 'FeatureCollection', features: [] });
       reverseGeocode(lat, lng, mapboxToken).then(addr => { if (addr) setCurrentAddress(addr); });
-    }
-    if (tempSearchPosRef.current && currentPosRef.current && mapRef.current) {
+      // 検索(位置/コンテンツ)の種類に関わらず、現在地＋現在のフィルターで通常マーカーを再ロードする。
+      // コンテンツ検索中は通常マーカーを除外(excludeSpotIds)/全削除しており、かつ tempSearchPosRef が
+      // 無いため、ここで必ず再ロードしないと解除後にフィルターが効かなくなる（マーカーが復元されない）。
       tempSearchPosRef.current = null;
-      const { lat, lng } = currentPosRef.current;
       loadNearbySpots(mapRef.current, lat, lng, spotMarkersRef, filterRef.current, gachaMapRef.current, setSelectedSpot,
         { onSpotsLoaded: setFilterSpotList });
     }
