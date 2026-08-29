@@ -76,11 +76,11 @@ function GachaPostsSection({ gachaId, seriesName, isMobile }: { gachaId: string;
     // 1回の取得で在庫≤15＋通常≤5（計≤20）を表示。「みんなで見る」は投稿数に関わらず常時表示でホームへ。
     return (
       <div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 12 }}>
           <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: '#1A1A1A' }}>このシリーズのみんなの投稿</p>
           <button onClick={() => router.push(communityUrl)}
             style={{ display: 'flex', alignItems: 'center', gap: 2, background: 'none', border: 'none',
-              cursor: 'pointer', fontSize: 12, color: '#999', fontWeight: 600 }}>
+              cursor: 'pointer', fontSize: 12, color: '#999', fontWeight: 600, flexShrink: 0, whiteSpace: 'nowrap' }}>
             みんなで見る <ChevronRight size={14} color="#999" />
           </button>
         </div>
@@ -144,7 +144,7 @@ function GachaPostsSection({ gachaId, seriesName, isMobile }: { gachaId: string;
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         marginBottom: 12, padding: '0 2px' }}>
         <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: '#1A1A1A' }}>
-          投稿{' '}
+          このシリーズのみんなの投稿{' '}
           <span style={{ fontSize: 12, color: '#999', fontWeight: 600 }}>({posts.length})</span>
         </p>
         <button onClick={() => router.push(communityUrl)}
