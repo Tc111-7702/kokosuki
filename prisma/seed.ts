@@ -10,6 +10,12 @@ const pool = new pg.Pool({
 });
 const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
 
+// seed実行時刻を基準に「n日前」の日時を作る。
+// フィードの在庫は鮮度窓（直近 STOCK_FEED_FRESH_DAYS=7 日）で絞られるので、
+// 7日以内（フィードに出る）と 7日超（出ない）を意図的に混在させて挙動確認する。
+const DAY = 24 * 60 * 60 * 1000;
+const daysAgo = (n: number) => new Date(Date.now() - n * DAY);
+
 // Better Auth と同じ scrypt 実装
 function generateKey(password: string, salt: string): Promise<Buffer> {
   return new Promise((resolve, reject) => {
@@ -262,7 +268,19 @@ async function main() {
 
   // ─── 在庫ポスト（StockPost）────────────────────────────────────────────────
   // 在庫投稿はアプリの主力コンテンツ。1人あたり6〜7件、合計34件
-  await prisma.stockPost.createMany({ data: [
+  // 各行の「作成日（日前）」。下の data 配列と同じ並び順で1対1対応する。
+  //   ≤6 = 7日以内（フィードに出る） / ≥10 = 7日超（フィードに出ない）
+  // 同一マシンに新旧を混ぜ、DISTINCT ON（マシンごと最新のみ）の挙動も確認できるようにしている。
+  // 7日超だけのマシン（minecraft_aste/op_aste/natsume_kobayashi/miku_bunkyodo/doraemon_kobayashi）は
+  // フィードに一切出ない想定。残り9マシンは最新が7日以内なので出る想定。
+  const STOCK_AGES = [
+    5, 10, 6, 4, 6, 5, 3,          // yamamoto（op_bunkyodoの10は古row→dedupで落ちる）
+    2, 2, 4, 20, 15, 30,           // fukuda（minecraft_aste=20 / op_aste=15 / natsume=30 は7日超）
+    1, 6, 3, 28, 25, 2, 12,        // iida（natsume=28 / minecraft_aste=25 / miku=12 は7日超）
+    6, 18, 2, 16, 3, 40, 12,       // yuna（op_aste=18 / miku=16 / doraemon=40 / haikyu古row=12）
+    4, 22, 1, 5, 6, 5, 9,          // kenta（op_aste=22 / minecraft_bunkyodo古row=9）
+  ];
+  await prisma.stockPost.createMany({ data: ([
     // ── yamamoto（ポケモン・ONE PIECE中心）──────────────
     { userId: yamamoto.id, machineId: M.pokemon_kappa.id,      spotId: M.pokemon_kappa.spotId,      gachaId: M.pokemon_kappa.gachaId,      stockStatus: 'in_stock' },
     { userId: yamamoto.id, machineId: M.op_bunkyodo.id,        spotId: M.op_bunkyodo.spotId,        gachaId: M.op_bunkyodo.gachaId,        stockStatus: 'in_stock' },
@@ -306,12 +324,18 @@ async function main() {
     { userId: kenta.id, machineId: M.hxh_aste.id,         spotId: M.hxh_aste.spotId,         gachaId: M.hxh_aste.gachaId,         stockStatus: 'in_stock' },
     { userId: kenta.id, machineId: M.csm_kobayashi.id,    spotId: M.csm_kobayashi.spotId,    gachaId: M.csm_kobayashi.gachaId,    stockStatus: 'out_of_stock' },
     { userId: kenta.id, machineId: M.minecraft_bunkyodo.id,spotId: M.minecraft_bunkyodo.spotId,gachaId: M.minecraft_bunkyodo.gachaId,stockStatus: 'in_stock' },
-  ]});
-  console.log('StockPosts created');
+  ] as const).map((r, i) => ({ ...r, createdAt: daysAgo(STOCK_AGES[i]) })) });
+  {
+    const fresh = await prisma.stockPost.findMany({ where: { createdAt: { gte: daysAgo(7) } }, select: { machineId: true } });
+    console.log(`StockPosts created（7日以内=${fresh.length}件 / ユニークマシン=${new Set(fresh.map((f) => f.machineId)).size}＝フィード在庫の想定件数）`);
+  }
 
   // ─── 通常ポスト（Post）─────────────────────────────────────────────────────
   // 通常投稿は補助的。1人あたり2件、合計10件
-  await prisma.post.createMany({ data: [
+  // 通常投稿は鮮度窓なし＝古くてもフィードに出る（在庫との対比確認用に新旧を混ぜる）。
+  // data 配列と同じ並びで作成日（日前）を対応させる。15/20/10 は7日超だが表示されるはず。
+  const POST_AGES = [2, 3, 15, 1, 5, 20, 4, 6, 10, 2];
+  await prisma.post.createMany({ data: ([
     { userId: yamamoto.id, machineId: M.pokemon_kappa.id, spotId: M.pokemon_kappa.spotId, gachaId: M.pokemon_kappa.gachaId, result: '神引き', itemName: 'イーブイ',   imageUrl: null, memo: 'イーブイ出た！かっぱ寿司帰りに寄ったら神引き' },
     { userId: yamamoto.id, machineId: M.op_bunkyodo.id,   spotId: M.op_bunkyodo.spotId,   gachaId: M.op_bunkyodo.gachaId,   result: '神引き', itemName: 'ルフィ',     imageUrl: null, memo: 'まちぼうけのルフィゲット！塗装きれい' },
     { userId: fukuda.id,   machineId: M.pokemon_tada.id,  spotId: M.pokemon_tada.spotId,  gachaId: M.pokemon_tada.gachaId,  result: '神引き', itemName: 'メタモン',   imageUrl: null, memo: 'メタモンコレ揃ってきた！あと2種類' },
@@ -322,7 +346,7 @@ async function main() {
     { userId: yuna.id,     machineId: M.miku_bunkyodo.id, spotId: M.miku_bunkyodo.spotId, gachaId: M.miku_bunkyodo.gachaId, result: '神引き', itemName: '初音ミク',   imageUrl: null, memo: 'ミクのフィギュア！文教堂はラインナップ最高' },
     { userId: kenta.id,    machineId: M.op_bunkyodo.id,   spotId: M.op_bunkyodo.spotId,   gachaId: M.op_bunkyodo.gachaId,   result: '神引き', itemName: 'エース',     imageUrl: null, memo: 'エースのまちぼうけゲット！文教堂逆瀬川は在庫多い' },
     { userId: kenta.id,    machineId: M.kirby_rasora.id,  spotId: M.kirby_rasora.spotId,  gachaId: M.kirby_rasora.gachaId,  result: '神引き', itemName: 'カービィ',   imageUrl: null, memo: 'カービィのミニコンテナ！思ったより小さいけどかわいい' },
-  ]});
+  ] as const).map((r, i) => ({ ...r, createdAt: daysAgo(POST_AGES[i]) })) });
   console.log('Posts created');
 
   // ─── マシン在庫ステータス（宝塚市・川西市）────────────────────────────────
