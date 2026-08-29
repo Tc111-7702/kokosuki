@@ -6,8 +6,11 @@ import { Avatar } from '@/components/ui/Avatar';
 import { ReplyCard } from '@/components/ReplyCard';
 import { PostCard } from '@/components/PostCard';
 import { type FeedPost, type Reply } from '@/components/community-types';
+import { useInteractionActions } from '@/components/InteractionStore';
 
 export function PostDetail({ post, onBack, onReplied, onDeleted }: { post: FeedPost; onBack: () => void; onReplied?: () => void; onDeleted?: (id: string) => void }) {
+  // 返信数の同期: コミュニティは InteractionStore(bumpReply)、Provider外(マイページ等)は onReplied。
+  const { bumpReply } = useInteractionActions();
   const [replies,          setReplies]          = useState<Reply[]>([]);
   const [loadingR,         setLoadingR]         = useState(true);
   const [text,             setText]             = useState('');
@@ -146,6 +149,7 @@ export function PostDetail({ post, onBack, onReplied, onDeleted }: { post: FeedP
       if (res.ok) {
         const data: { reply: Reply } = await res.json();
         setReplies((prev) => [...prev, data.reply]);
+        bumpReply('post', post.id, 1);
         onReplied?.();
         setText('');
         setInsertedMentions([]);
@@ -160,7 +164,8 @@ export function PostDetail({ post, onBack, onReplied, onDeleted }: { post: FeedP
 
   const handleDeleteReply = useCallback((replyId: string) => {
     setReplies((prev) => prev.filter((r) => r.id !== replyId));
-  }, []);
+    bumpReply('post', post.id, -1);
+  }, [bumpReply, post.id]);
 
   // メンション着色用の参加者名（投稿主＋返信者。スペース入りの名前も正しく着色するため）
   const mentionNames = [...new Set([post.user.name, ...replies.map((r) => r.user.name)])];

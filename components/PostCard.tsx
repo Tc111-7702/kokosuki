@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { MapPin, Heart, MessageCircle, Trash2 } from 'lucide-react';
 import { Avatar, timeAgo } from '@/components/ui/Avatar';
 import { type FeedPost } from '@/components/community-types';
+import { useInteraction } from '@/components/InteractionStore';
 
 export const RESULT_BADGE: Record<string, { label: string; cls: string }> = {
   '神引き': { label: '● 神引き', cls: 'border border-yellow-400 text-yellow-600 bg-yellow-50'   },
@@ -51,10 +52,12 @@ export function PostCard({
   const badge    = RESULT_BADGE[post.result];
   const gradient = 'linear-gradient(135deg, ' + post.gacha.gradientFrom + ', ' + post.gacha.gradientTo + ')';
 
-  const [liked,     setLiked]     = useState(post.likedByMe);
-  const [likeCount, setLikeCount] = useState(post._count.likes);
-  const [pending,   setPending]   = useState(false);
-  const [deleting,  setDeleting]  = useState(false);
+  // いいね・返信数はインタラクションストアで一元管理（一覧↔詳細で同期）。
+  // Provider が無い画面ではフック内部でローカルstateにフォールバックする。
+  const { liked, likeCount, replyCount, toggleLike } = useInteraction('post', post.id, {
+    likedByMe: post.likedByMe, likeCount: post._count.likes, replyCount: post._count.replies,
+  });
+  const [deleting, setDeleting] = useState(false);
 
   const isOwner = !!currentUserId && post.user.id === currentUserId;
 
@@ -72,29 +75,7 @@ export function PostCard({
     }
   };
 
-  const handleLike = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (pending) return;
-    setLiked((p) => !p);
-    setLikeCount((p) => liked ? p - 1 : p + 1);
-    setPending(true);
-    try {
-      const res = await fetch('/api/posts/' + post.id + '/like', { method: 'POST' });
-      if (res.ok) {
-        const data: { liked: boolean; likeCount: number } = await res.json();
-        setLiked(data.liked);
-        setLikeCount(data.likeCount);
-      } else {
-        setLiked((p) => !p);
-        setLikeCount((p) => liked ? p + 1 : p - 1);
-      }
-    } catch {
-      setLiked((p) => !p);
-      setLikeCount((p) => liked ? p + 1 : p - 1);
-    } finally {
-      setPending(false);
-    }
-  };
+  const handleLike = (e: React.MouseEvent) => { e.stopPropagation(); toggleLike(); };
 
   return (
     <article
@@ -189,11 +170,10 @@ export function PostCard({
             className={"flex items-center gap-1 text-sm transition-colors " + (replyOpen ? "text-yellow-500" : "text-gray-400") + (onReplyClick ? " hover:text-yellow-500" : " cursor-default")}
           >
             <MessageCircle size={20} />
-            <span className="font-medium">{post._count.replies}</span>
+            <span className="font-medium">{replyCount}</span>
           </button>
           <button
             onClick={handleLike}
-            disabled={pending}
             className={'flex items-center gap-1.5 text-sm px-2 py-1 -mr-2 rounded-full transition-colors ' + (liked ? 'text-red-500 hover:text-red-400' : 'text-gray-400 hover:text-red-400')}
           >
             <Heart size={24} fill={liked ? 'currentColor' : 'none'} />
@@ -225,11 +205,10 @@ export function PostCard({
             className={"flex items-center gap-1 text-sm transition-colors " + (replyOpen ? "text-yellow-500" : "text-gray-400") + (onReplyClick ? " hover:text-yellow-500" : " cursor-default")}
           >
             <MessageCircle size={20} />
-            <span className="font-medium">{post._count.replies}</span>
+            <span className="font-medium">{replyCount}</span>
           </button>
           <button
             onClick={handleLike}
-            disabled={pending}
             className={'flex items-center gap-1.5 text-sm px-2 py-1 -mr-2 rounded-full transition-colors ' + (liked ? 'text-red-500 hover:text-red-400' : 'text-gray-400 hover:text-red-400')}
           >
             <Heart size={24} fill={liked ? 'currentColor' : 'none'} />

@@ -1,14 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { StockPostCard, type StockFeedPost } from '@/components/StockPostCard';
 import { PostCard } from '@/components/PostCard';
 import { type FeedPost, type FeedItem } from '@/components/community-types';
-
-// 親（CommunityTab）から返信数を一覧に反映するための命令的ハンドル
-export interface FeedHandle {
-  bumpReplies: (id: string, type: 'post' | 'stock') => void;
-}
 
 interface FeedResponse {
   stock: StockFeedPost[];
@@ -17,19 +12,19 @@ interface FeedResponse {
   feedHasMore: boolean;
 }
 
-export const Feed = forwardRef<FeedHandle, {
-  feedType: 'recommended' | 'search';
-  onSelect: (post: FeedPost) => void;
-  onSelectStock: (post: StockFeedPost) => void;
-  searchGachaIds?: string[];
-  excludeIds?: string[];
-}>(function Feed({
+export function Feed({
   feedType,
   onSelect,
   onSelectStock,
   searchGachaIds,
   excludeIds,
-}, ref) {
+}: {
+  feedType: 'recommended' | 'search';
+  onSelect: (post: FeedPost) => void;
+  onSelectStock: (post: StockFeedPost) => void;
+  searchGachaIds?: string[];
+  excludeIds?: string[];
+}) {
   // 取得は在庫/通常の2バケツだが、表示はページごとに結合した1本の allItems で持つ
   // （在庫15→通常5→次ページ在庫15…とページ単位でインターリーブされる）。
   const [posts,         setPosts]         = useState<FeedItem[]>([]);
@@ -46,17 +41,6 @@ export const Feed = forwardRef<FeedHandle, {
   const feedMoreRef    = useRef(true);
   const gachaIdsRef    = useRef<string[]>(searchGachaIds ?? []);
   gachaIdsRef.current = searchGachaIds ?? [];
-
-  // 返信投稿時、一覧の該当カードの返信数を+1（リロードせず即時反映）
-  useImperativeHandle(ref, () => ({
-    bumpReplies: (id, type) => {
-      setPosts((prev) => prev.map((item) =>
-        item.id === id && item.postType === type
-          ? { ...item, _count: { ...item._count, replies: item._count.replies + 1 } }
-          : item
-      ));
-    },
-  }), []);
 
   // 現在ユーザーIDを取得（自分の投稿にゴミ箱を表示するため）
   useEffect(() => {
@@ -176,4 +160,4 @@ export const Feed = forwardRef<FeedHandle, {
       )}
     </div>
   );
-});
+}
