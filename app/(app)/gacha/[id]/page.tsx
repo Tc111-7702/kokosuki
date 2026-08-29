@@ -20,8 +20,11 @@ const STATUS_LABEL: Record<string, string> = {
 
 type OpenReply = { id: string; type: 'post' | 'stock' } | null;
 
-function GachaPostsSection({ gachaId, isMobile }: { gachaId: string; isMobile: boolean }) {
+function GachaPostsSection({ gachaId, seriesName, isMobile }: { gachaId: string; seriesName: string; isMobile: boolean }) {
   const router = useRouter();
+  // 「みんなで見る」→ home のコミュニティタブを、このガチャで検索した状態で開く
+  // （seriesName は gacha と1:1なので、系列名で検索したのと同義）。
+  const communityUrl = `/home?tab=community&gachaId=${gachaId}&label=${encodeURIComponent(seriesName)}`;
   const [posts,         setPosts]         = useState<(FeedPost | StockFeedPost)[]>([]);
   const [loading,       setLoading]       = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | undefined>(undefined);
@@ -38,7 +41,8 @@ function GachaPostsSection({ gachaId, isMobile }: { gachaId: string; isMobile: b
     fetch(`/api/posts/feed?type=search&gachaIds=${gachaId}`)
       .then(r => r.json())
       .then(d => {
-        const all: (FeedPost | StockFeedPost)[] = d.items ?? [];
+        // feed API はバケツ分離（{stock, feed}）で返すのでここで結合する
+        const all: (FeedPost | StockFeedPost)[] = [...(d.stock ?? []), ...(d.feed ?? [])];
         all.sort((a, b) =>
           (a.postType === 'stock' ? 0 : 1) - (b.postType === 'stock' ? 0 : 1) ||
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -69,21 +73,19 @@ function GachaPostsSection({ gachaId, isMobile }: { gachaId: string; isMobile: b
 
   // ── モバイル: 在庫優先の縦並び ─────────────────────────────────────────
   if (isMobile) {
-    const preview = posts.slice(0, 10);
+    // 1回の取得で在庫≤15＋通常≤5（計≤20）を表示。「みんなで見る」は投稿数に関わらず常時表示でホームへ。
     return (
       <div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 12 }}>
           <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: '#1A1A1A' }}>このシリーズのみんなの投稿</p>
-          {posts.length > 10 && (
-            <button onClick={() => router.push('/home?tab=community')}
-              style={{ display: 'flex', alignItems: 'center', gap: 2, background: 'none', border: 'none',
-                cursor: 'pointer', fontSize: 12, color: '#999', fontWeight: 600 }}>
-              みんなで見る <ChevronRight size={14} color="#999" />
-            </button>
-          )}
+          <button onClick={() => router.push(communityUrl)}
+            style={{ display: 'flex', alignItems: 'center', gap: 2, background: 'none', border: 'none',
+              cursor: 'pointer', fontSize: 12, color: '#999', fontWeight: 600, flexShrink: 0, whiteSpace: 'nowrap' }}>
+            みんなで見る <ChevronRight size={14} color="#999" />
+          </button>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          {preview.map(p => {
+          {posts.map(p => {
             const type = p.postType as 'post' | 'stock';
             const isOpen = openReply?.id === p.id;
             return (
@@ -127,28 +129,34 @@ function GachaPostsSection({ gachaId, isMobile }: { gachaId: string; isMobile: b
   const normalPosts = posts.filter(p => p.postType === 'post')  as FeedPost[];
   const COL_H = 520;
 
-  const colHeader = (title: string, count: number, showMore: boolean) => (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      marginBottom: 10, padding: '0 2px' }}>
+  const colHeader = (title: string, count: number) => (
+    <div style={{ marginBottom: 10, padding: '0 2px' }}>
       <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#1A1A1A' }}>
         {title}{' '}
         <span style={{ fontSize: 11, color: '#999', fontWeight: 600 }}>({count})</span>
       </p>
-      {showMore && (
-        <button onClick={() => router.push('/home?tab=community')}
-          style={{ display: 'flex', alignItems: 'center', gap: 2, background: 'none', border: 'none',
-            cursor: 'pointer', fontSize: 11, color: '#AAA', fontWeight: 600 }}>
-          もっと見る <ChevronRight size={12} color="#AAA" />
-        </button>
-      )}
     </div>
   );
 
   return (
-    <div style={{ display: 'flex', gap: 12 }}>
+    <div>
+      {/* 投稿(在庫+通常の合計) ＋「みんなで見る」（投稿数に関わらず常時表示、押すとホームへ） */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        marginBottom: 12, padding: '0 2px' }}>
+        <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: '#1A1A1A' }}>
+          このシリーズのみんなの投稿{' '}
+          <span style={{ fontSize: 12, color: '#999', fontWeight: 600 }}>({posts.length})</span>
+        </p>
+        <button onClick={() => router.push(communityUrl)}
+          style={{ display: 'flex', alignItems: 'center', gap: 2, background: 'none', border: 'none',
+            cursor: 'pointer', fontSize: 12, color: '#999', fontWeight: 600 }}>
+          みんなで見る <ChevronRight size={14} color="#999" />
+        </button>
+      </div>
+      <div style={{ display: 'flex', gap: 12 }}>
       {/* 左列: 在庫情報 */}
       <div style={{ flex: 1, minWidth: 0, background: '#F3F4F6', borderRadius: 16, padding: '14px 12px' }}>
-        {colHeader('在庫情報', stockPosts.length, false)}
+        {colHeader('在庫情報', stockPosts.length)}
         <div style={{ maxHeight: COL_H, overflowY: 'scroll', display: 'flex', flexDirection: 'column', paddingRight: 4 }}>
           {stockPosts.length === 0
             ? <p style={{ fontSize: 12, color: '#CCC', textAlign: 'center', marginTop: 24 }}>まだ在庫情報がありません</p>
@@ -180,7 +188,7 @@ function GachaPostsSection({ gachaId, isMobile }: { gachaId: string; isMobile: b
       </div>
       {/* 右列: 引いた！ */}
       <div style={{ flex: 1, minWidth: 0, background: '#FFF7ED', borderRadius: 16, padding: '14px 12px' }}>
-        {colHeader('引いた！', normalPosts.length, posts.length > 20)}
+        {colHeader('引いた！', normalPosts.length)}
         <div style={{ maxHeight: COL_H, overflowY: 'scroll', display: 'flex', flexDirection: 'column', paddingRight: 4 }}>
           {normalPosts.length === 0
             ? <p style={{ fontSize: 12, color: '#CCC', textAlign: 'center', marginTop: 24 }}>まだ投稿がありません</p>
@@ -209,6 +217,7 @@ function GachaPostsSection({ gachaId, isMobile }: { gachaId: string; isMobile: b
               })
           }
         </div>
+      </div>
       </div>
     </div>
   );
@@ -390,7 +399,7 @@ export default function GachaDetailPage() {
             onToggle={handleNearby} onSpotClick={handleSpotClick} isMobile={true} />
           {statsBlock(3)}
           <LineupSection gacha={gacha} />
-          <GachaPostsSection gachaId={id} isMobile={true} />
+          <GachaPostsSection gachaId={id} seriesName={gacha.seriesName} isMobile={true} />
         </div>
       ) : (
         /* ── デスクトップレイアウト ── */
@@ -420,7 +429,7 @@ export default function GachaDetailPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             {statsBlock(3)}
             <LineupSection gacha={gacha} />
-            <GachaPostsSection gachaId={id} isMobile={false} />
+            <GachaPostsSection gachaId={id} seriesName={gacha.seriesName} isMobile={false} />
           </div>
         </div>
       )}

@@ -64,7 +64,12 @@ function StorePosts({
   const [openReply,     setOpenReply]     = useState<OpenReply>(null);
   const [autoOpenDone,  setAutoOpenDone]  = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
-  const nextPageRef = useRef<number | null>(null);
+  // 在庫・通常を別バケツでページング（feed API のバケツ契約に合わせる）
+  const stockOffsetRef = useRef(0);
+  const feedOffsetRef  = useRef(0);
+  const stockMoreRef   = useRef(true);
+  const feedMoreRef    = useRef(true);
+  const hasMoreRef     = useRef(true);
   const filterRef   = useRef(filterGachaIds);
   filterRef.current = filterGachaIds;
   const loadingRef  = useRef(false);
@@ -76,28 +81,42 @@ function StorePosts({
       .catch(() => {});
   }, []);
 
-  const load = useCallback(async (page: number, filter: string[]) => {
+  const load = useCallback(async (reset: boolean, filter: string[]) => {
     if (loadingRef.current) return;
     loadingRef.current = true;
     try {
-      const p = new URLSearchParams({ type: 'recommended', spotId, page: String(page) });
+      if (reset) {
+        stockOffsetRef.current = 0; feedOffsetRef.current = 0;
+        stockMoreRef.current = true; feedMoreRef.current = true; hasMoreRef.current = true;
+      }
+      // 尽きたバケツは offset=-1 を送って取得スキップ
+      const so = stockMoreRef.current ? stockOffsetRef.current : -1;
+      const fo = feedMoreRef.current  ? feedOffsetRef.current  : -1;
+      if (so < 0 && fo < 0) { hasMoreRef.current = false; return; }
+      const p = new URLSearchParams({ type: 'recommended', spotId, stockOffset: String(so), feedOffset: String(fo) });
       if (filter.length > 0) p.set('filterGachaIds', filter.join(','));
       const res = await fetch('/api/posts/feed?' + p.toString());
       if (!res.ok) return;
-      const data: { items: FeedItem[]; nextPage: number | null } = await res.json();
-      setPosts(prev => page === 0 ? (data.items ?? []) : [...prev, ...(data.items ?? [])]);
-      nextPageRef.current = data.nextPage;
+      const data: { stock: StockFeedPost[]; feed: FeedPost[]; stockHasMore: boolean; feedHasMore: boolean } = await res.json();
+      const incoming: FeedItem[] = [...(so >= 0 ? data.stock : []), ...(fo >= 0 ? data.feed : [])];
+      setPosts(prev => {
+        const base = reset ? [] : prev;
+        const seen = new Set(base.map(i => `${i.postType}-${i.id}`));
+        return [...base, ...incoming.filter(i => !seen.has(`${i.postType}-${i.id}`))];
+      });
+      if (so >= 0) { stockOffsetRef.current += data.stock.length; stockMoreRef.current = data.stockHasMore; }
+      if (fo >= 0) { feedOffsetRef.current  += data.feed.length;  feedMoreRef.current  = data.feedHasMore;  }
+      hasMoreRef.current = stockMoreRef.current || feedMoreRef.current;
     } catch {}
     loadingRef.current = false;
-    if (page === 0) setLoading(false);
+    if (reset) setLoading(false);
   }, [spotId]);
 
   // フィルター変更 → 先頭から再フェッチ
   useEffect(() => {
     setLoading(true);
     setPosts([]);
-    nextPageRef.current = null;
-    load(0, filterGachaIds);
+    load(true, filterGachaIds);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterGachaIds.join(','), load]);
 
@@ -106,8 +125,8 @@ function StorePosts({
     const el = sentinelRef.current;
     if (!el) return;
     const obs = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting && nextPageRef.current !== null) {
-        load(nextPageRef.current, filterRef.current);
+      if (entry.isIntersecting && hasMoreRef.current) {
+        load(false, filterRef.current);
       }
     }, { threshold: 0.5 });
     obs.observe(el);
@@ -125,8 +144,8 @@ function StorePosts({
       }, 100);
       return () => clearTimeout(t);
     }
-    if (nextPageRef.current !== null) {
-      load(nextPageRef.current, filterRef.current);
+    if (hasMoreRef.current) {
+      load(false, filterRef.current);
     } else {
       const t = setTimeout(() => setAutoOpenDone(true), 0);
       return () => clearTimeout(t);

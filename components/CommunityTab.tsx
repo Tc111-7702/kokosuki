@@ -17,10 +17,12 @@ function RightSidebar({
   onSearch,
   onClear,
   searchActive,
+  initialValue = '',
 }: {
   onSearch: (label: string, gachaIds: string[]) => void;
   onClear: () => void;
   searchActive: boolean;
+  initialValue?: string;
 }) {
   const router = useRouter();
   const [trendingGachas, setTrendingGachas] = useState<TrendingGacha[]>([]);
@@ -39,7 +41,7 @@ function RightSidebar({
   return (
     <div className="hidden lg:block w-[480px] xl:w-[560px] flex-shrink-0 pl-6 pr-4 pt-4 h-full overflow-y-auto">
       <div className="space-y-4 pb-8">
-        <CommunitySearchBar onSearch={onSearch} onClear={onClear} searchActive={searchActive} />
+        <CommunitySearchBar onSearch={onSearch} onClear={onClear} searchActive={searchActive} initialValue={initialValue} />
 
         {trendingIPs.length > 0 && (
           <TrendingSection title="話題のIP">
@@ -96,14 +98,17 @@ function RightSidebar({
 
 export function CommunityTab() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // ガチャページの「みんなで見る」等から ?gachaId=&label= 付きで来たら、その検索状態で開く
+  const initGachaId = searchParams.get('gachaId');
+  const initLabel   = searchParams.get('label') ?? '';
   const [selectedPost,   setSelectedPost]   = useState<FeedPost | null>(null);
   const [selectedStock,  setSelectedStock]  = useState<StockFeedPost | null>(null);
-  const [searchLabel,    setSearchLabel]    = useState('');
-  const [searchGachaIds, setSearchGachaIds] = useState<string[]>([]);
-  const [searchActive,   setSearchActive]   = useState(false);
+  const [searchLabel,    setSearchLabel]    = useState(initGachaId ? initLabel : '');
+  const [searchGachaIds, setSearchGachaIds] = useState<string[]>(initGachaId ? [initGachaId] : []);
+  const [searchActive,   setSearchActive]   = useState(!!initGachaId);
   const [deletedIds,     setDeletedIds]     = useState<string[]>([]);
   const feedRef = useRef<FeedHandle>(null);
-  const searchParams = useSearchParams();
 
   // 通知から来たとき（?openPost=<id>&type=post|stock）: 該当投稿を取得して返信詳細を開く
   useEffect(() => {
@@ -163,7 +168,7 @@ export function CommunityTab() {
         <div className="absolute inset-0 overflow-y-auto flex flex-col" style={{ visibility: detailOpen ? 'hidden' : 'visible' }}>
           {/* モバイルのみ: 検索バー */}
           <div className="lg:hidden sticky top-0 z-10 bg-white/90 backdrop-blur-sm border-b border-gray-100 px-3 py-2">
-            <CommunitySearchBar onSearch={handleSearch} onClear={handleClearSearch} searchActive={searchActive} />
+            <CommunitySearchBar onSearch={handleSearch} onClear={handleClearSearch} searchActive={searchActive} initialValue={initLabel} />
           </div>
 
           {searchActive ? (
@@ -203,7 +208,7 @@ export function CommunityTab() {
         )}
       </div>
 
-      <RightSidebar onSearch={handleSearch} onClear={handleClearSearch} searchActive={searchActive} />
+      <RightSidebar onSearch={handleSearch} onClear={handleClearSearch} searchActive={searchActive} initialValue={initLabel} />
 
       {/* 投稿ボタン（返信詳細を開いている間は非表示） */}
       {!detailOpen && (

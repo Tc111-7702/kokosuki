@@ -21,13 +21,15 @@ export function CommunitySearchBar({
   onSearch,
   onClear,
   searchActive,
+  initialValue = '',
 }: {
   onSearch: (label: string, gachaIds: string[]) => void;
   onClear: () => void;
   searchActive: boolean;
+  initialValue?: string; // 遷移時に検索語を入力欄へ初期表示する（例: ガチャページ→home）
 }) {
   const router = useRouter();
-  const [value,    setValue]    = useState('');
+  const [value,    setValue]    = useState(initialValue);
   const [gachaSug, setGachaSug] = useState<{ label: string; type: 'gacha' | 'genre'; imageUrl?: string | null }[]>([]);
   const [userSug,  setUserSug]  = useState<UserResult[]>([]);
   const [focused,  setFocused]  = useState(false);
