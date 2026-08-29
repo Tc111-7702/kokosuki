@@ -643,13 +643,13 @@ export async function getFeedStockIds(opts: FeedIdOpts): Promise<string[]> {
       FROM "StockPost" sp
       JOIN "Gacha" g ON g.id = sp."gachaId"
       WHERE ${Prisma.join(conds, ' AND ')}
-      ORDER BY sp."machineId", sp."createdAt" DESC
+      ORDER BY sp."machineId", sp."createdAt" DESC, sp.id DESC
     ) latest
     ORDER BY
       CASE WHEN latest."gachaId" = ANY(${likedGachaIds}::text[]) THEN 0
            WHEN latest."ipName"  = ANY(${likedIps}::text[])      THEN 1
            ELSE 2 END,
-      latest."createdAt" DESC
+      latest."createdAt" DESC, latest.id DESC
     LIMIT ${limit} OFFSET ${offset}
   `;
   return rows.map(r => r.id);
@@ -670,7 +670,7 @@ export async function getFeedPostIds(opts: FeedIdOpts): Promise<string[]> {
       CASE WHEN p."gachaId" = ANY(${likedGachaIds}::text[]) THEN 0
            WHEN g."ipName"  = ANY(${likedIps}::text[])      THEN 1
            ELSE 2 END,
-      p."createdAt" DESC
+      p."createdAt" DESC, p.id DESC
     LIMIT ${limit} OFFSET ${offset}
   `;
   return rows.map(r => r.id);
