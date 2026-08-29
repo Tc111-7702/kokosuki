@@ -20,8 +20,11 @@ const STATUS_LABEL: Record<string, string> = {
 
 type OpenReply = { id: string; type: 'post' | 'stock' } | null;
 
-function GachaPostsSection({ gachaId, isMobile }: { gachaId: string; isMobile: boolean }) {
+function GachaPostsSection({ gachaId, seriesName, isMobile }: { gachaId: string; seriesName: string; isMobile: boolean }) {
   const router = useRouter();
+  // 「みんなで見る」→ home のコミュニティタブを、このガチャで検索した状態で開く
+  // （seriesName は gacha と1:1なので、系列名で検索したのと同義）。
+  const communityUrl = `/home?tab=community&gachaId=${gachaId}&label=${encodeURIComponent(seriesName)}`;
   const [posts,         setPosts]         = useState<(FeedPost | StockFeedPost)[]>([]);
   const [loading,       setLoading]       = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | undefined>(undefined);
@@ -83,7 +86,7 @@ function GachaPostsSection({ gachaId, isMobile }: { gachaId: string; isMobile: b
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: '#1A1A1A' }}>このシリーズのみんなの投稿</p>
           {hasMore && (
-            <button onClick={() => router.push('/home?tab=community')}
+            <button onClick={() => router.push(communityUrl)}
               style={{ display: 'flex', alignItems: 'center', gap: 2, background: 'none', border: 'none',
                 cursor: 'pointer', fontSize: 12, color: '#999', fontWeight: 600 }}>
               みんなで見る <ChevronRight size={14} color="#999" />
@@ -143,7 +146,7 @@ function GachaPostsSection({ gachaId, isMobile }: { gachaId: string; isMobile: b
         <span style={{ fontSize: 11, color: '#999', fontWeight: 600 }}>({count})</span>
       </p>
       {showMore && (
-        <button onClick={() => router.push('/home?tab=community')}
+        <button onClick={() => router.push(communityUrl)}
           style={{ display: 'flex', alignItems: 'center', gap: 2, background: 'none', border: 'none',
             cursor: 'pointer', fontSize: 11, color: '#AAA', fontWeight: 600 }}>
           みんなで見る <ChevronRight size={12} color="#AAA" />
@@ -398,7 +401,7 @@ export default function GachaDetailPage() {
             onToggle={handleNearby} onSpotClick={handleSpotClick} isMobile={true} />
           {statsBlock(3)}
           <LineupSection gacha={gacha} />
-          <GachaPostsSection gachaId={id} isMobile={true} />
+          <GachaPostsSection gachaId={id} seriesName={gacha.seriesName} isMobile={true} />
         </div>
       ) : (
         /* ── デスクトップレイアウト ── */
@@ -428,7 +431,7 @@ export default function GachaDetailPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             {statsBlock(3)}
             <LineupSection gacha={gacha} />
-            <GachaPostsSection gachaId={id} isMobile={false} />
+            <GachaPostsSection gachaId={id} seriesName={gacha.seriesName} isMobile={false} />
           </div>
         </div>
       )}
