@@ -26,6 +26,9 @@ function GachaPostsSection({ gachaId, isMobile }: { gachaId: string; isMobile: b
   const [loading,       setLoading]       = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | undefined>(undefined);
   const [openReply,     setOpenReply]     = useState<OpenReply>(null);
+  // feed API が返す「続きの有無」。true のとき「みんなで見る」でホームへ誘導する。
+  const [stockHasMore,  setStockHasMore]  = useState(false);
+  const [feedHasMore,   setFeedHasMore]   = useState(false);
 
   useEffect(() => {
     fetch('/api/me')
@@ -45,6 +48,8 @@ function GachaPostsSection({ gachaId, isMobile }: { gachaId: string; isMobile: b
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
         setPosts(all);
+        setStockHasMore(!!d.stockHasMore);
+        setFeedHasMore(!!d.feedHasMore);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -70,12 +75,14 @@ function GachaPostsSection({ gachaId, isMobile }: { gachaId: string; isMobile: b
 
   // ── モバイル: 在庫優先の縦並び ─────────────────────────────────────────
   if (isMobile) {
-    const preview = posts.slice(0, 10);
+    // 1回の取得で在庫≤15＋通常≤5（計≤20）。取得分はそのまま全部表示し、
+    // まだ続きがある(hasMore)ときだけ「みんなで見る」でホームへ。
+    const hasMore = stockHasMore || feedHasMore;
     return (
       <div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: '#1A1A1A' }}>このシリーズのみんなの投稿</p>
-          {posts.length > 10 && (
+          {hasMore && (
             <button onClick={() => router.push('/home?tab=community')}
               style={{ display: 'flex', alignItems: 'center', gap: 2, background: 'none', border: 'none',
                 cursor: 'pointer', fontSize: 12, color: '#999', fontWeight: 600 }}>
@@ -84,7 +91,7 @@ function GachaPostsSection({ gachaId, isMobile }: { gachaId: string; isMobile: b
           )}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          {preview.map(p => {
+          {posts.map(p => {
             const type = p.postType as 'post' | 'stock';
             const isOpen = openReply?.id === p.id;
             return (
@@ -139,7 +146,7 @@ function GachaPostsSection({ gachaId, isMobile }: { gachaId: string; isMobile: b
         <button onClick={() => router.push('/home?tab=community')}
           style={{ display: 'flex', alignItems: 'center', gap: 2, background: 'none', border: 'none',
             cursor: 'pointer', fontSize: 11, color: '#AAA', fontWeight: 600 }}>
-          もっと見る <ChevronRight size={12} color="#AAA" />
+          みんなで見る <ChevronRight size={12} color="#AAA" />
         </button>
       )}
     </div>
@@ -149,7 +156,7 @@ function GachaPostsSection({ gachaId, isMobile }: { gachaId: string; isMobile: b
     <div style={{ display: 'flex', gap: 12 }}>
       {/* 左列: 在庫情報 */}
       <div style={{ flex: 1, minWidth: 0, background: '#F3F4F6', borderRadius: 16, padding: '14px 12px' }}>
-        {colHeader('在庫情報', stockPosts.length, false)}
+        {colHeader('在庫情報', stockPosts.length, stockHasMore)}
         <div style={{ maxHeight: COL_H, overflowY: 'scroll', display: 'flex', flexDirection: 'column', paddingRight: 4 }}>
           {stockPosts.length === 0
             ? <p style={{ fontSize: 12, color: '#CCC', textAlign: 'center', marginTop: 24 }}>まだ在庫情報がありません</p>
@@ -181,7 +188,7 @@ function GachaPostsSection({ gachaId, isMobile }: { gachaId: string; isMobile: b
       </div>
       {/* 右列: 引いた！ */}
       <div style={{ flex: 1, minWidth: 0, background: '#FFF7ED', borderRadius: 16, padding: '14px 12px' }}>
-        {colHeader('引いた！', normalPosts.length, posts.length > 20)}
+        {colHeader('引いた！', normalPosts.length, feedHasMore)}
         <div style={{ maxHeight: COL_H, overflowY: 'scroll', display: 'flex', flexDirection: 'column', paddingRight: 4 }}>
           {normalPosts.length === 0
             ? <p style={{ fontSize: 12, color: '#CCC', textAlign: 'center', marginTop: 24 }}>まだ投稿がありません</p>
