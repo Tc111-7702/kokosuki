@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { MapPin, Search, X, Store, TrainFront } from 'lucide-react';
+import { MapPin, Search, X, Store, TrainFront, ArrowLeft } from 'lucide-react';
 
 interface Suggestion {
   label: string;
@@ -102,6 +102,13 @@ export default function SearchBar({ onSearch, onClear, hasSearchResult }: Search
     // outer: no horizontal padding so dropdown can be full-width
     <div className="relative pb-1">
       <div className="flex gap-1.5 items-center px-4">
+        {hasInput && (
+          <button onClick={clear} aria-label="検索を解除"
+            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 active:scale-90 transition-transform"
+            style={{ background: '#eee' }}>
+            <ArrowLeft size={16} color="#666" />
+          </button>
+        )}
         <div className="flex-1">
           <div
             className="flex items-center gap-1.5 px-3 py-2 rounded-2xl"
@@ -137,13 +144,6 @@ export default function SearchBar({ onSearch, onClear, hasSearchResult }: Search
           </div>
         </div>
 
-        {hasInput && (
-          <button onClick={clear}
-            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 active:scale-90 transition-transform"
-            style={{ background: '#eee' }}>
-            <X size={13} color="#666" />
-          </button>
-        )}
         <button onClick={submit}
           className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 hover:scale-110 active:scale-90 transition-transform"
           style={{ background: '#F2B800' }}>
