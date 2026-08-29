@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { StockPostCard, type StockFeedPost } from '@/components/StockPostCard';
 import { PostCard } from '@/components/PostCard';
-import { type FeedPost } from '@/components/community-types';
+import { type FeedPost, type FeedItem } from '@/components/community-types';
 
 // 親（CommunityTab）から返信数を一覧に反映するための命令的ハンドル
 export interface FeedHandle {
@@ -30,16 +30,16 @@ export const Feed = forwardRef<FeedHandle, {
   searchGachaIds,
   excludeIds,
 }, ref) {
-  // 在庫（最大15/ページ）と通常投稿（最大5/ページ）を別 state・別ページングで保持する。
-  const [stockItems,    setStockItems]    = useState<StockFeedPost[]>([]);
-  const [feedItems,     setFeedItems]     = useState<FeedPost[]>([]);
+  // 取得は在庫/通常の2バケツだが、表示はページごとに結合した1本の allItems で持つ
+  // （在庫15→通常5→次ページ在庫15…とページ単位でインターリーブされる）。
+  const [posts,         setPosts]         = useState<FeedItem[]>([]);
   const [loading,       setLoading]       = useState(false);
   const [initialLoaded, setInitialLoaded] = useState(false);
   const [hasMore,       setHasMore]       = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | undefined>(undefined);
   const sentinelRef  = useRef<HTMLDivElement>(null);
   const loadingRef   = useRef(false);
-  // バケツごとの取得済み件数（=次のoffset）と、続きの有無。-1相当は more=false で表現。
+  // ページングは在庫/通常で独立。取得済み件数(=次のoffset)と続きの有無を保持。
   const stockOffsetRef = useRef(0);
   const feedOffsetRef  = useRef(0);
   const stockMoreRef   = useRef(true);
@@ -50,15 +50,11 @@ export const Feed = forwardRef<FeedHandle, {
   // 返信投稿時、一覧の該当カードの返信数を+1（リロードせず即時反映）
   useImperativeHandle(ref, () => ({
     bumpReplies: (id, type) => {
-      if (type === 'stock') {
-        setStockItems((prev) => prev.map((item) =>
-          item.id === id ? { ...item, _count: { ...item._count, replies: item._count.replies + 1 } } : item
-        ));
-      } else {
-        setFeedItems((prev) => prev.map((item) =>
-          item.id === id ? { ...item, _count: { ...item._count, replies: item._count.replies + 1 } } : item
-        ));
-      }
+      setPosts((prev) => prev.map((item) =>
+        item.id === id && item.postType === type
+          ? { ...item, _count: { ...item._count, replies: item._count.replies + 1 } }
+          : item
+      ));
     },
   }), []);
 
@@ -88,22 +84,18 @@ export const Feed = forwardRef<FeedHandle, {
       if (!res.ok) { setHasMore(false); return; }
       const data: FeedResponse = await res.json();
 
-      if (so >= 0) {
-        setStockItems((prev) => {
-          const seen = new Set(prev.map((i) => i.id));
-          return [...prev, ...data.stock.filter((i) => !seen.has(i.id))];
-        });
-        stockOffsetRef.current += data.stock.length;
-        stockMoreRef.current = data.stockHasMore;
-      }
-      if (fo >= 0) {
-        setFeedItems((prev) => {
-          const seen = new Set(prev.map((i) => i.id));
-          return [...prev, ...data.feed.filter((i) => !seen.has(i.id))];
-        });
-        feedOffsetRef.current += data.feed.length;
-        feedMoreRef.current = data.feedHasMore;
-      }
+      // このページ分の在庫→通常を結合して末尾に追加（ページ単位のインターリーブ）
+      const incoming: FeedItem[] = [
+        ...(so >= 0 ? data.stock : []),
+        ...(fo >= 0 ? data.feed  : []),
+      ];
+      setPosts((prev) => {
+        const seen = new Set(prev.map((i) => `${i.postType}-${i.id}`));
+        return [...prev, ...incoming.filter((i) => !seen.has(`${i.postType}-${i.id}`))];
+      });
+
+      if (so >= 0) { stockOffsetRef.current += data.stock.length; stockMoreRef.current = data.stockHasMore; }
+      if (fo >= 0) { feedOffsetRef.current  += data.feed.length;  feedMoreRef.current  = data.feedHasMore;  }
       setHasMore(stockMoreRef.current || feedMoreRef.current);
     } catch {
       setHasMore(false);
@@ -116,8 +108,7 @@ export const Feed = forwardRef<FeedHandle, {
 
   // feedType / 検索条件が変わったら全リセットして先頭から読み直す
   useEffect(() => {
-    setStockItems([]);
-    setFeedItems([]);
+    setPosts([]);
     setHasMore(true);
     setInitialLoaded(false);
     stockOffsetRef.current = 0;
@@ -144,10 +135,9 @@ export const Feed = forwardRef<FeedHandle, {
     return () => observer.disconnect();
   }, [hasMore, initialLoaded, load]);
 
-  const removeStock = (id: string) => setStockItems((prev) => prev.filter((p) => p.id !== id));
-  const removePost  = (id: string) => setFeedItems((prev) => prev.filter((p) => p.id !== id));
+  const removePost = (id: string) => setPosts((prev) => prev.filter((p) => p.id !== id));
 
-  if (initialLoaded && stockItems.length === 0 && feedItems.length === 0) {
+  if (initialLoaded && posts.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-gray-400">
         <span className="text-4xl mb-3">&#127920;</span>
@@ -156,37 +146,32 @@ export const Feed = forwardRef<FeedHandle, {
     );
   }
 
-  const visibleStock = stockItems.filter((item) => !excludeIds?.includes(item.id));
-  const visibleFeed  = feedItems.filter((item) => !excludeIds?.includes(item.id));
-
   return (
     <div className="pb-4">
-      {/* 在庫ブロック → 通常投稿ブロック（15:5で必ず両方出る） */}
-      {visibleStock.map((item) => (
-        <StockPostCard
-          key={`stock-${item.id}`}
-          post={item}
-          onSelect={onSelectStock}
-          currentUserId={currentUserId}
-          onDelete={removeStock}
-        />
-      ))}
-      {visibleFeed.map((item) => (
-        <PostCard
-          key={`post-${item.id}`}
-          post={item}
-          onSelect={onSelect}
-          currentUserId={currentUserId}
-          onDelete={removePost}
-        />
-      ))}
+      {posts.filter((item) => !excludeIds?.includes(item.id)).map((item) =>
+        item.postType === 'stock'
+          ? <StockPostCard
+              key={`stock-${item.id}`}
+              post={item}
+              onSelect={onSelectStock}
+              currentUserId={currentUserId}
+              onDelete={removePost}
+            />
+          : <PostCard
+              key={`post-${item.id}`}
+              post={item}
+              onSelect={onSelect}
+              currentUserId={currentUserId}
+              onDelete={removePost}
+            />
+      )}
       <div ref={sentinelRef} className="h-1" />
       {loading && (
         <div className="flex justify-center py-6">
           <div className="w-6 h-6 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin" />
         </div>
       )}
-      {!hasMore && (stockItems.length > 0 || feedItems.length > 0) && (
+      {!hasMore && posts.length > 0 && (
         <p className="text-center text-xs text-gray-300 py-6">{'すべて読み込みました'}</p>
       )}
     </div>
