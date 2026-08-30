@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { MapPin, Heart, MessageCircle, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useInteraction } from '@/components/InteractionStore';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -78,9 +79,10 @@ export function StockPostCard({
   replyOpen?: boolean;
 }) {
   const router = useRouter();
-  const [liked, setLiked]       = useState(post.likedByMe);
-  const [likeCount, setLikeCount] = useState(post._count.likes);
-  const [pending, setPending]   = useState(false);
+  // いいね・返信数はインタラクションストアで一元管理（一覧↔詳細で同期）。
+  const { liked, likeCount, replyCount, toggleLike } = useInteraction('stock', post.id, {
+    likedByMe: post.likedByMe, likeCount: post._count.likes, replyCount: post._count.replies,
+  });
   const [deleting, setDeleting] = useState(false);
 
   const isOwner = !!currentUserId && post.user.id === currentUserId;
@@ -102,30 +104,7 @@ export function StockPostCard({
   const status = STATUS_CONFIG[post.stockStatus] ?? STATUS_CONFIG.in_stock;
   const gradient = 'linear-gradient(135deg, ' + post.gacha.gradientFrom + ', ' + post.gacha.gradientTo + ')';
 
-  async function handleLike(e: React.MouseEvent) {
-    e.stopPropagation();
-    if (pending) return;
-    setPending(true);
-    const next = !liked;
-    setLiked(next);
-    setLikeCount(c => c + (next ? 1 : -1));
-    try {
-      const res = await fetch('/api/stock-posts/' + post.id + '/like', { method: 'POST' });
-      if (res.ok) {
-        const data: { liked: boolean; likeCount: number } = await res.json();
-        setLiked(data.liked);
-        setLikeCount(data.likeCount);
-      } else {
-        setLiked(!next);
-        setLikeCount(c => c + (next ? -1 : 1));
-      }
-    } catch {
-      setLiked(!next);
-      setLikeCount(c => c + (next ? -1 : 1));
-    } finally {
-      setPending(false);
-    }
-  }
+  function handleLike(e: React.MouseEvent) { e.stopPropagation(); toggleLike(); }
 
   return (
     <article
@@ -210,11 +189,10 @@ export function StockPostCard({
             className={"flex items-center gap-1.5 transition-colors " + (replyOpen ? "text-yellow-500" : "text-gray-400") + (onReplyClick ? " hover:text-yellow-500" : " cursor-default")}
           >
             <MessageCircle size={18} />
-            <span className="text-sm font-medium">{post._count.replies}</span>
+            <span className="text-sm font-medium">{replyCount}</span>
           </button>
           <button
             onClick={handleLike}
-            disabled={pending}
             className={'flex items-center gap-1.5 px-2 py-1 rounded-full transition-colors ' + (liked ? 'text-red-500' : 'text-gray-400 hover:text-red-400')}
           >
             <Heart size={20} fill={liked ? 'currentColor' : 'none'} />

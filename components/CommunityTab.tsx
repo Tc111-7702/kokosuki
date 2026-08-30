@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { type StockFeedPost } from '@/components/StockPostCard';
 import { type FeedPost, type TrendingGacha, type TrendingIP } from '@/components/community-types';
-import { Feed, type FeedHandle } from '@/components/CommunityFeed';
+import { Feed } from '@/components/CommunityFeed';
+import { InteractionProvider } from '@/components/InteractionStore';
 import { PostDetail } from '@/components/PostDetail';
 import { StockPostDetail } from '@/components/StockPostDetail';
 import { CommunitySearchBar } from '@/components/CommunitySearchBar';
@@ -108,7 +109,6 @@ export function CommunityTab() {
   const [searchGachaIds, setSearchGachaIds] = useState<string[]>(initGachaId ? [initGachaId] : []);
   const [searchActive,   setSearchActive]   = useState(!!initGachaId);
   const [deletedIds,     setDeletedIds]     = useState<string[]>([]);
-  const feedRef = useRef<FeedHandle>(null);
 
   // 通知から来たとき（?openPost=<id>&type=post|stock）: 該当投稿を取得して返信詳細を開く
   useEffect(() => {
@@ -126,19 +126,8 @@ export function CommunityTab() {
       .catch(() => {});
   }, [searchParams]);
 
-  // 返信投稿時、詳細（オーバーレイ）の返信数とフィード一覧の該当カードを両方+1（リロードなし）
-  const bumpPostReplies = () => {
-    const id = selectedPost?.id;
-    if (!id) return;
-    setSelectedPost((prev) => prev ? { ...prev, _count: { ...prev._count, replies: prev._count.replies + 1 } } : prev);
-    feedRef.current?.bumpReplies(id, 'post');
-  };
-  const bumpStockReplies = () => {
-    const id = selectedStock?.id;
-    if (!id) return;
-    setSelectedStock((prev) => prev ? { ...prev, _count: { ...prev._count, replies: prev._count.replies + 1 } } : prev);
-    feedRef.current?.bumpReplies(id, 'stock');
-  };
+  // 返信数の一覧↔詳細同期はインタラクションストア(bumpReply)が担うため、
+  // ここでの ref hack / 二重更新は不要になった。
 
   const handleSearch = (label: string, gachaIds: string[]) => {
     setSearchLabel(label);
@@ -161,6 +150,7 @@ export function CommunityTab() {
   const detailOpen = !!(selectedPost || selectedStock);
 
   return (
+    <InteractionProvider>
     <div className="flex w-full h-full overflow-hidden">
       <div className="flex-1 min-w-0 relative overflow-hidden bg-[#F5F5F0]">
 
@@ -181,7 +171,7 @@ export function CommunityTab() {
                 </div>
               )}
               {searchGachaIds.length > 0
-                ? <Feed ref={feedRef} key={`search-${searchLabel}`} feedType="search" searchGachaIds={searchGachaIds} onSelect={setSelectedPost} onSelectStock={setSelectedStock} excludeIds={deletedIds} />
+                ? <Feed key={`search-${searchLabel}`} feedType="search" searchGachaIds={searchGachaIds} onSelect={setSelectedPost} onSelectStock={setSelectedStock} excludeIds={deletedIds} />
                 : (
                   <div className="flex flex-col items-center justify-center py-20 text-gray-400">
                     <span className="text-4xl mb-3">🔍</span>
@@ -191,7 +181,7 @@ export function CommunityTab() {
               }
             </div>
           ) : (
-            <Feed ref={feedRef} feedType="recommended" onSelect={setSelectedPost} onSelectStock={setSelectedStock} excludeIds={deletedIds} />
+            <Feed feedType="recommended" onSelect={setSelectedPost} onSelectStock={setSelectedStock} excludeIds={deletedIds} />
           )}
         </div>
 
@@ -199,9 +189,9 @@ export function CommunityTab() {
         {detailOpen && (
           <div className="absolute inset-0 overflow-y-auto flex flex-col bg-[#F5F5F0] z-10">
             {selectedStock
-              ? <StockPostDetail post={selectedStock} onBack={() => setSelectedStock(null)} onDeleted={handleDeleted} onReplied={bumpStockReplies} />
+              ? <StockPostDetail post={selectedStock} onBack={() => setSelectedStock(null)} onDeleted={handleDeleted} />
               : selectedPost
-              ? <PostDetail post={selectedPost} onBack={() => setSelectedPost(null)} onDeleted={handleDeleted} onReplied={bumpPostReplies} />
+              ? <PostDetail post={selectedPost} onBack={() => setSelectedPost(null)} onDeleted={handleDeleted} />
               : null
             }
           </div>
@@ -225,5 +215,6 @@ export function CommunityTab() {
       </button>
       )}
     </div>
+    </InteractionProvider>
   );
 }
