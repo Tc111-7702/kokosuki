@@ -204,9 +204,9 @@ export async function syncScheduleGachas(): Promise<ScheduleSyncResult> {
 
     for (const wpPostId of wpPostIds) {
       try {
-        // すでに店舗スクレイパーで isOnSale: true で登録済みならスキップ
+        // すでに店舗スクレイパーで status='on_sale' で登録済みならスキップ
         const existing = await db.findGachaByWpPostId(wpPostId);
-        if (existing?.isOnSale) {
+        if (existing?.status === 'on_sale') {
           skipped++;
           continue;
         }
@@ -249,8 +249,7 @@ export async function syncScheduleGachas(): Promise<ScheduleSyncResult> {
           releaseDate,
           sourceUrl:    post.link,
           wpPostId:     post.id,
-          lineup,
-          isOnSale:     false,  // 発売スケジュールからの登録 = まだ店舗にない
+          lineup,  // status='coming_soon'（発売スケジュールからの登録 = まだ店舗にない）
         });
 
         saved++;

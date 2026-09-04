@@ -21,7 +21,6 @@ model Gacha {
   maker          String?
   sourceUrl      String?
   wpPostId       Int?     @unique
-  isOnSale       Boolean  @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -32,6 +31,7 @@ model Gacha {
   ip              IpName?     @relation(fields: [ipNameId], references: [id])
 
   @@index([ipNameId])
+  @@index([status])
 }
 
 // ─── IP正規化（3階層: IpCategory 1—* IpName 1—* Gacha）#19 ─────────────────────

@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 // ホームのカテゴリ別セクション用。?category=character|anime|other
 //  character: キャラクター・マスコット / anime: アニメ・漫画・ゲーム / other: それ以外（食べ物・動物・その他）
-//  発売中(isOnSale=true)のうち、いいね数上位10件を返す。
+//  発売中(status='on_sale')のうち、いいね数上位10件を返す。
 //  #19: 分類は正規化済みの IpCategory リレーション（Gacha.ip.category.key）基準。
 
 type CardRow = Awaited<ReturnType<typeof db.getOnSaleGachasByCategoryKeys>>[number];

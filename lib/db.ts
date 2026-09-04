@@ -64,7 +64,6 @@ export interface GachaUpsertData {
   sourceUrl: string;
   wpPostId: number;
   lineup: string[];
-  isOnSale: boolean;
 }
 
 // #19: ip リレーション付きの行を、従来の { ipName: string } 形状へ平坦化する（外部レスポンス契約を維持）。
@@ -221,7 +220,7 @@ export const updateSpotPhone = (id: string, phone: string) =>
 
 export async function getGachaFilters() {
   const rows = await prisma.gacha.findMany({
-    where: { isOnSale: true },
+    where: { status: 'on_sale' },
     select: { id: true, seriesName: true, imageUrl: true, ...IP_NAME_SELECT },
     orderBy: [{ ip: { name: 'asc' } }, { seriesName: 'asc' }],
   });
@@ -252,12 +251,10 @@ export const upsertGachaFromScraper = (data: GachaUpsertData) =>
       imageUrl:    data.imageUrl,
       releaseDate: data.releaseDate,
       sourceUrl:   data.sourceUrl,
+      // status は on_sale→coming_soon に戻さない（スケジュールは on_sale をスキップするので上書きされない）
       status:      data.status,
       price:       data.price,
       lineup:      data.lineup,
-      // isOnSale は true→false に絶対に戻さない
-      // （店舗スクレイパーで true になったものをスケジュールスクレイパーが上書きしない）
-      ...(data.isOnSale ? { isOnSale: true } : {}),
     },
     create: {
       seriesName:   data.seriesName,
@@ -274,7 +271,6 @@ export const upsertGachaFromScraper = (data: GachaUpsertData) =>
       sourceUrl:    data.sourceUrl,
       wpPostId:     data.wpPostId,
       lineup:       data.lineup,
-      isOnSale:     data.isOnSale,
     },
   });
 
@@ -284,7 +280,7 @@ export const markGachasInStore = (ids: string[]) =>
     ? Promise.resolve({ count: 0 })
     : prisma.gacha.updateMany({
         where: { id: { in: ids } },
-        data: { isOnSale: true, status: 'on_sale' },
+        data: { status: 'on_sale' },
       });
 
 /** 店舗スクレイパーのスイープ処理: 今回見つからなかったガチャを終了扱いにする */
@@ -293,13 +289,13 @@ export const markGachasEnded = (ids: string[]) =>
     ? Promise.resolve({ count: 0 })
     : prisma.gacha.updateMany({
         where: { id: { in: ids } },
-        data:  { isOnSale: false, status: 'ended' },
+        data:  { status: 'ended' },
       });
 
-/** スイープ用: 現在 isOnSale:true の全ガチャIDを返す */
+/** スイープ用: 現在 status='on_sale' の全ガチャIDを返す */
 export const getOnSaleGachaIds = () =>
   prisma.gacha.findMany({
-    where:  { isOnSale: true },
+    where:  { status: 'on_sale' },
     select: { id: true },
   }).then((rows) => rows.map((r) => r.id));
 
@@ -319,7 +315,7 @@ export async function getGachaById(id: string) {
 
 export async function getPopularGachas(limit = 20, excludeIds: string[] = []) {
   const rows = await prisma.gacha.findMany({
-    where: { isOnSale: true, ...(excludeIds.length ? { id: { notIn: excludeIds } } : {}) },
+    where: { status: 'on_sale', ...(excludeIds.length ? { id: { notIn: excludeIds } } : {}) },
     orderBy: { gachaLikes: { _count: 'desc' } },
     take: limit,
     select: {
@@ -347,7 +343,7 @@ export async function getRecommendedByLikedGachas(userId: string, perIp = 10) {
   const results = await Promise.all(
     ipNames.map((ipName) =>
       prisma.gacha.findMany({
-        where: { isOnSale: true, ip: { name: ipName }, id: { notIn: likedIds } },
+        where: { status: 'on_sale', ip: { name: ipName }, id: { notIn: likedIds } },
         orderBy: { gachaLikes: { _count: 'desc' } },
         take: perIp,
         select: {
@@ -372,7 +368,7 @@ export async function getGachasByIpNamesForSignup(ipNames: string[], perIp = 20)
   const results = await Promise.all(
     ipNames.map((ipName) =>
       prisma.gacha.findMany({
-        where: { isOnSale: true, ip: { name: ipName } },
+        where: { status: 'on_sale', ip: { name: ipName } },
         orderBy: { machines: { _count: 'desc' } },
         take: perIp,
         select: {
@@ -389,7 +385,7 @@ export async function getGachasByIpNamesForSignup(ipNames: string[], perIp = 20)
 
 export async function getGachasByIpName(ipName: string, limit = 100) {
   const rows = await prisma.gacha.findMany({
-    where: { isOnSale: true, ip: { name: ipName } },
+    where: { status: 'on_sale', ip: { name: ipName } },
     orderBy: { gachaLikes: { _count: 'desc' } },
     take: limit,
     select: {
@@ -653,7 +649,7 @@ export async function getFeedStockIds(opts: FeedIdOpts): Promise<string[]> {
   const freshSince = new Date(Date.now() - STOCK_FEED_FRESH_DAYS * 24 * 60 * 60 * 1000);
   const conds: Prisma.Sql[] = [
     Prisma.sql`sp."createdAt" >= ${freshSince}`,
-    Prisma.sql`g."isOnSale" = true`,
+    Prisma.sql`g."status" = 'on_sale'`,
   ];
   if (spotId) conds.push(Prisma.sql`sp."spotId" = ${spotId}`);
   if (gachaIds && gachaIds.length > 0) conds.push(Prisma.sql`sp."gachaId" = ANY(${gachaIds}::text[])`);
@@ -679,7 +675,7 @@ export async function getFeedStockIds(opts: FeedIdOpts): Promise<string[]> {
 // 好み＋新着 の順に並べた「通常投稿」の ID を limit 件だけ返す（鮮度窓なし・dedupなし）。
 export async function getFeedPostIds(opts: FeedIdOpts): Promise<string[]> {
   const { spotId, gachaIds, likedGachaIds, likedIps, limit, offset } = opts;
-  const conds: Prisma.Sql[] = [Prisma.sql`g."isOnSale" = true`];
+  const conds: Prisma.Sql[] = [Prisma.sql`g."status" = 'on_sale'`];
   if (spotId) conds.push(Prisma.sql`p."spotId" = ${spotId}`);
   if (gachaIds && gachaIds.length > 0) conds.push(Prisma.sql`p."gachaId" = ANY(${gachaIds}::text[])`);
   const rows = await prisma.$queryRaw<{ id: string }[]>`
@@ -873,7 +869,7 @@ export const upsertUserProfile = (userId: string, data: ProfileUpsertData) =>
 const PROFILE_POST_INCLUDE = {
   user:  { select: { id: true, name: true, image: true } },
   spot:  { select: { id: true, name: true, address: true } },
-  gacha: { select: { id: true, ...IP_NAME_SELECT, seriesName: true, gradientFrom: true, gradientTo: true, imageUrl: true, isOnSale: true } },
+  gacha: { select: { id: true, ...IP_NAME_SELECT, seriesName: true, gradientFrom: true, gradientTo: true, imageUrl: true, status: true } },
   _count: { select: { likes: true, replies: true } },
 } as const;
 
@@ -914,7 +910,7 @@ export const getUserFavorites = async (userId: string) =>
       gacha: {
         select: {
           id: true, seriesName: true, ...IP_NAME_SELECT, imageUrl: true,
-          gradientFrom: true, gradientTo: true, status: true, releaseDate: true, isOnSale: true,
+          gradientFrom: true, gradientTo: true, status: true, releaseDate: true,
         },
       },
     },
@@ -1010,7 +1006,7 @@ export const getUserFavoriteGachas = async (userId: string) =>
       gacha: {
         select: {
           id: true, seriesName: true, ...IP_NAME_SELECT, imageUrl: true,
-          gradientFrom: true, gradientTo: true, status: true, releaseDate: true, isOnSale: true,
+          gradientFrom: true, gradientTo: true, status: true, releaseDate: true,
         },
       },
     },
@@ -1041,7 +1037,7 @@ const ipTermsWhere = (terms: string[]): Prisma.GachaWhereInput =>
 
 export const findOnSaleSeriesByExactIp = async (ipName: string) =>
   (await prisma.gacha.findMany({
-    where: { isOnSale: true, ip: { name: { equals: ipName, mode: 'insensitive' } } },
+    where: { status: 'on_sale', ip: { name: { equals: ipName, mode: 'insensitive' } } },
     // ipName も返す：IP完全一致時に「ジャンル候補」を組み立てるため（#17-4）
     select: { id: true, ...IP_NAME_SELECT, seriesName: true, imageUrl: true },
     // seriesName は 1:1（distinct は no-op）なので削除し、いいね数の多い順に
@@ -1050,7 +1046,7 @@ export const findOnSaleSeriesByExactIp = async (ipName: string) =>
 
 export const suggestGachaSeries = (terms: string[]) =>
   prisma.gacha.findMany({
-    where: { isOnSale: true, ...seriesTermsWhere(terms) },
+    where: { status: 'on_sale', ...seriesTermsWhere(terms) },
     select: { id: true, seriesName: true, imageUrl: true },
     // seriesName は 1:1（distinct は no-op）なので削除し、いいね数の多い順に
     orderBy: { gachaLikes: { _count: 'desc' } },
@@ -1060,7 +1056,7 @@ export const suggestGachaSeries = (terms: string[]) =>
 export const suggestGachaIps = async (terms: string[]) => {
   const grouped = await prisma.gacha.groupBy({
     by: ['ipNameId'],
-    where: { isOnSale: true, ipNameId: { not: null }, ...ipTermsWhere(terms) },
+    where: { status: 'on_sale', ipNameId: { not: null }, ...ipTermsWhere(terms) },
     _count: { id: true },
     orderBy: { _count: { id: 'desc' } },
   });
@@ -1075,7 +1071,7 @@ export const suggestGachaIps = async (terms: string[]) => {
 
 export const findOnSaleExactIp = async (ipName: string) => {
   const row = await prisma.gacha.findFirst({
-    where: { isOnSale: true, ip: { name: { equals: ipName, mode: 'insensitive' } } },
+    where: { status: 'on_sale', ip: { name: { equals: ipName, mode: 'insensitive' } } },
     select: { ...IP_NAME_SELECT },
   });
   return row ? flatIp(row) : null;
@@ -1083,21 +1079,21 @@ export const findOnSaleExactIp = async (ipName: string) => {
 
 export const findGachaIdsByExactIp = async (ipName: string) =>
   (await prisma.gacha.findMany({
-    where: { isOnSale: true, ip: { name: { equals: ipName, mode: 'insensitive' } } },
+    where: { status: 'on_sale', ip: { name: { equals: ipName, mode: 'insensitive' } } },
     select: { id: true, ...IP_NAME_SELECT },
     orderBy: { gachaLikes: { _count: 'desc' } },   // gachaIds[0] が最人気に
   })).map(flatIp);
 
 export const findGachaIdsBySeriesTerms = (terms: string[]) =>
   prisma.gacha.findMany({
-    where: { isOnSale: true, ...seriesTermsWhere(terms) },
+    where: { status: 'on_sale', ...seriesTermsWhere(terms) },
     select: { id: true, seriesName: true },
     orderBy: { gachaLikes: { _count: 'desc' } },   // gachaIds[0] が最人気に
   });
 
 export const findGachaIdsByIpTerms = async (terms: string[]) =>
   (await prisma.gacha.findMany({
-    where: { isOnSale: true, ...ipTermsWhere(terms) },
+    where: { status: 'on_sale', ...ipTermsWhere(terms) },
     select: { id: true, ...IP_NAME_SELECT },
     orderBy: { gachaLikes: { _count: 'desc' } },   // gachaIds[0] が最人気に
   })).map(flatIp);
@@ -1167,7 +1163,7 @@ const COMING_SOON_SELECT = {
 /** 追加の where を受け取り、いいね数降順で take 件のガチャを返す（発売中のみ） */
 export const findComingSoonGachas = async (where: Prisma.GachaWhereInput, take: number) =>
   (await prisma.gacha.findMany({
-    where: { isOnSale: true, ...where },
+    where: { status: 'on_sale', ...where },
     orderBy: { gachaLikes: { _count: 'desc' } },
     take,
     select: COMING_SOON_SELECT,
@@ -1179,7 +1175,7 @@ export const findComingSoonGachas = async (where: Prisma.GachaWhereInput, take: 
 export const getOnSaleGachasByCategoryKeys = async (keys: string[], take: number, excludeIds: string[] = []) =>
   (await prisma.gacha.findMany({
     where: {
-      isOnSale: true,
+      status: 'on_sale',
       ip: { category: { key: { in: keys } } },
       ...(excludeIds.length ? { id: { notIn: excludeIds } } : {}),
     },
@@ -1192,7 +1188,7 @@ export const getOnSaleGachasByCategoryKeys = async (keys: string[], take: number
 export const getOnSaleGachasNotInCategoryKeys = async (keys: string[], take: number, excludeIds: string[] = []) =>
   (await prisma.gacha.findMany({
     where: {
-      isOnSale: true,
+      status: 'on_sale',
       OR: [
         { ipNameId: null },
         { ip: { category: { key: { notIn: keys } } } },

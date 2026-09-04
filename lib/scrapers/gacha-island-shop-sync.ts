@@ -234,8 +234,7 @@ async function upsertGachaFromPost(post: WpPost, catTree: CatTree, topNames: Set
     releaseDate,
     sourceUrl:    post.link,
     wpPostId:     post.id,
-    lineup,
-    isOnSale:     true,  // 店舗に設置済み = 発売中
+    lineup,  // status='on_sale'（店舗に設置済み = 発売中）
   });
 
   return gacha.id;
@@ -297,7 +296,7 @@ async function syncArea(pref: string, label: string, catTree: CatTree, topNames:
 // ─── メインエントリ ───────────────────────────────────────────────────────────
 
 export async function syncShopGachas(): Promise<ShopSyncResult> {
-  // ── スイープ用: スクレイプ前に現在 isOnSale:true のガチャIDを全取得 ──
+  // ── スイープ用: スクレイプ前に現在 status='on_sale' のガチャIDを全取得 ──
   const prevOnSaleIds = await db.getOnSaleGachaIds();
   console.log(`[shop-sync] スイープ対象: ${prevOnSaleIds.length} 件`);
 
@@ -320,7 +319,7 @@ export async function syncShopGachas(): Promise<ShopSyncResult> {
   // 今回全エリアで発見したガチャID（在庫更新・スイープ両方で使う）
   const seenIdSet = new Set(areas.flatMap((a) => a.seenGachaIds));
 
-  // ── 発見したガチャは在庫あり(発売中)に更新（スケジュール登録で isOnSale=false のままだったものも是正） ──
+  // ── 発見したガチャは status='on_sale' に更新（coming_soon のままだったものも是正） ──
   const seenIds = [...seenIdSet];
   if (seenIds.length > 0) {
     await db.markGachasInStore(seenIds);

@@ -15,7 +15,7 @@ export interface StockFeedPost {
   likedByMe: boolean;
   user: { id: string; name: string; image: string | null };
   spot: { id: string; name: string; address?: string | null };
-  gacha: { id: string; ipName: string; seriesName: string; gradientFrom: string; gradientTo: string; imageUrl: string | null; isOnSale?: boolean };
+  gacha: { id: string; ipName: string; seriesName: string; gradientFrom: string; gradientTo: string; imageUrl: string | null; status?: string };
   _count: { likes: number; replies: number };
 }
 
@@ -138,7 +138,7 @@ export function StockPostCard({
             >
               {post.gacha.ipName}
             </button>
-            {post.gacha.isOnSale === false && (
+            {post.gacha.status != null && post.gacha.status !== 'on_sale' && (
               <span className="text-xs px-2 py-0.5 rounded-full font-semibold border border-red-200 text-red-500 bg-red-50">発売中止</span>
             )}
           </div>
