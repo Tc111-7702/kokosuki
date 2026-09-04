@@ -237,7 +237,6 @@ export async function syncScheduleGachas(): Promise<ScheduleSyncResult> {
 
         await db.upsertGachaFromScraper({
           seriesName:   post.title.rendered,
-          ipName,
           ipNameId,
           category,
           status,

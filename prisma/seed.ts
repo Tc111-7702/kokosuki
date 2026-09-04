@@ -202,7 +202,7 @@ async function main() {
     orderBy: { id: 'asc' },
     take: POOL_SIZE,
     include: {
-      gacha: { select: { id: true, ipName: true, seriesName: true } },
+      gacha: { select: { id: true, seriesName: true } },
       spot:  { select: { id: true, name: true } },
     },
   });

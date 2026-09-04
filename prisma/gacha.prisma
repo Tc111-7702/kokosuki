@@ -3,10 +3,8 @@
 model Gacha {
   id             String   @id @default(cuid())
   seriesName     String
-  ipName         String
-  ipCategory     String   @default("other")
-  // #19 正規化(Expand): IpName への FK。当面 nullable、Backfill 後に not-null 化予定。
-  // 旧 ipName/ipCategory(string) は Contract フェーズで削除する。
+  // #19 正規化: IP は IpName リレーション(ipNameId)で参照する。
+  // 除外 ipName（ジャンル名/不明）のガチャは ipNameId=null のため nullable のまま。
   ipNameId       String?
   category       String
   status         String   @default("on_sale")

@@ -51,7 +51,6 @@ export interface SpotUpsertData {
 
 export interface GachaUpsertData {
   seriesName: string;
-  ipName: string;        // 旧 ipName 列（NOT NULL のため書き込みは維持。読み取りは ip リレーションへ移行済み）
   ipNameId: string | null; // #19: スクレイプ時に解決した IpName の id（除外 ipName は null）
   category: string;
   status: string;
@@ -246,7 +245,6 @@ export const upsertGachaFromScraper = (data: GachaUpsertData) =>
     where:  { wpPostId: data.wpPostId },
     update: {
       seriesName:  data.seriesName,
-      ipName:      data.ipName,
       ipNameId:    data.ipNameId,
       genre:       data.genre,
       maker:       data.maker,
@@ -262,7 +260,6 @@ export const upsertGachaFromScraper = (data: GachaUpsertData) =>
     },
     create: {
       seriesName:   data.seriesName,
-      ipName:       data.ipName,
       ipNameId:     data.ipNameId,
       category:     data.category,
       status:       data.status,
@@ -1216,10 +1213,6 @@ export const upsertIpCategory = (key: string, name: string, sortOrder: number) =
     create: { key, name, sortOrder },
   });
 
-/** 全ガチャの (id, ipName) を取得（既存分の一括 link 用。旧 ipName 列を読む唯一の ETL 経路） */
-export const getAllGachaIpNames = () =>
-  prisma.gacha.findMany({ select: { id: true, ipName: true } });
-
 /** IpName を name で upsert（所属カテゴリを同期）し、行を返す */
 export const upsertIpName = (name: string, categoryId: string) =>
   prisma.ipName.upsert({
@@ -1231,10 +1224,6 @@ export const upsertIpName = (name: string, categoryId: string) =>
 /** IpName を name で取得（存在すれば id と現カテゴリ key。スクレイプ時の link 判定用） */
 export const getIpNameByName = (name: string) =>
   prisma.ipName.findUnique({ where: { name }, select: { id: true, category: { select: { key: true } } } });
-
-/** ガチャに IpName を link（除外 ipName の場合は null） */
-export const setGachaIpNameId = (gachaId: string, ipNameId: string | null) =>
-  prisma.gacha.update({ where: { id: gachaId }, data: { ipNameId } });
 
 /** signup 用: IpCategory を表示順で、配下 IpName（配下ガチャ数付き）とともに取得 */
 export const getIpCategoriesWithIpNames = () =>

@@ -3,7 +3,7 @@ import * as db from '@/lib/db';
 // #19 IP正規化の共通ロジック。
 // - カテゴリは「各ガチャの WP category term を根まで辿ったトップ親」→ 固定4カテゴリ(+other)へ写像。
 // - IpName は「スクレイプで得た ipName 文字列」だけを登録（トップ親カテゴリ名＝ジャンルは除外）。
-// - 2つのスクレイパー・後処理・backfill で共有する。
+// - スクレイプ時に resolveIpNameId で Gacha.ipNameId を link する（2つのスクレイパーで共有）。
 
 const WP_API = 'https://gacha-island.jp/wp-json/wp/v2';
 const UA = { 'User-Agent': 'Mozilla/5.0' };
@@ -86,20 +86,6 @@ export async function upsertIpCategories(): Promise<Record<string, string>> {
   return idByKey;
 }
 
-/** 表示名 → term id（同名は最初の1件）。ipName 文字列からカテゴリを導出するため。 */
-function buildNameToTermId(tree: CatTree): Map<string, number> {
-  const m = new Map<string, number>();
-  for (const c of tree.values()) if (!m.has(c.name)) m.set(c.name, c.id);
-  return m;
-}
-
-/** ipName 文字列 → categoryKey（WPツリーを名前で引いて walk-up。無ければ 'other'）。 */
-export function categoryKeyForIpName(name: string, nameToTermId: Map<string, number>, tree: CatTree): string {
-  const termId = nameToTermId.get(name);
-  if (termId === undefined) return 'other';
-  return topCategoryKey(termId, tree) ?? 'other';
-}
-
 // IpCategory key→id のプロセス内キャッシュ（idempotent なので使い回してよい）。
 let _idByKey: Record<string, string> | null = null;
 async function ipCategoryIds(): Promise<Record<string, string>> {
@@ -120,43 +106,4 @@ export async function resolveIpNameId(name: string, categoryKey: string, exclude
   if (!existing) return (await db.upsertIpName(name, catId)).id;
   if (rank(categoryKey) < rank(existing.category.key)) await db.upsertIpName(name, catId);
   return existing.id;
-}
-
-/**
- * 既存ガチャ一括 link 用（移行時の一回 / 再構築用）。旧 ipName 列を読む唯一の ETL 経路。
- * カテゴリは WP ツリーを ipName 名で引いて導出する（旧 ipCategory 列には依存しない）。
- * 通常運用ではスクレイパーが upsert 時に resolveIpNameId で link 済みなので、これは定常実行しない。
- */
-export async function syncIpNameTable(): Promise<{ ipNames: number; excluded: number; linked: number }> {
-  const tree = await fetchWpCategoryTree();
-  const topNames = topParentNames(tree);
-  const nameToTermId = buildNameToTermId(tree);
-  const idByKey = await upsertIpCategories();
-
-  const gachas = await db.getAllGachaIpNames();
-
-  // ipName → categoryKey（WPツリーを名前で引いて導出）
-  const catByIp = new Map<string, string>();
-  let excluded = 0;
-  for (const g of gachas) {
-    if (isExcludedIpName(g.ipName, topNames)) { excluded++; continue; } // 自転車・スケボー等は除外
-    if (!catByIp.has(g.ipName)) catByIp.set(g.ipName, categoryKeyForIpName(g.ipName, nameToTermId, tree));
-  }
-
-  // IpName upsert
-  const ipNameId = new Map<string, string>();
-  for (const [name, key] of catByIp) {
-    const row = await db.upsertIpName(name, idByKey[key] ?? idByKey.other);
-    ipNameId.set(name, row.id);
-  }
-
-  // Gacha.ipNameId を link（除外 ipName の分は null のまま）
-  let linked = 0;
-  for (const g of gachas) {
-    const id = ipNameId.get(g.ipName) ?? null;
-    await db.setGachaIpNameId(g.id, id);
-    if (id) linked++;
-  }
-
-  return { ipNames: ipNameId.size, excluded, linked };
 }

@@ -222,7 +222,6 @@ async function upsertGachaFromPost(post: WpPost, catTree: CatTree, topNames: Set
 
   const gacha = await db.upsertGachaFromScraper({
     seriesName:   post.title.rendered,
-    ipName,
     ipNameId,
     category,
     status,
