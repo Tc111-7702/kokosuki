@@ -1141,19 +1141,30 @@ export const findComingSoonGachas = (where: Prisma.GachaWhereInput, take: number
 
 // ─── ホーム: カテゴリ別（発売中×いいね順） ────────────────────────────────────
 
-/** 発売中のうち ipName が指定リストに含まれるものを、いいね数降順で take 件（excludeIds は除外）。 */
-export const getOnSaleGachasByIpNames = (ipNames: string[], take: number, excludeIds: string[] = []) =>
+/** #19: 発売中のうち IpCategory.key が指定リストに含まれるものを、いいね数降順で take 件（excludeIds は除外）。 */
+export const getOnSaleGachasByCategoryKeys = (keys: string[], take: number, excludeIds: string[] = []) =>
   prisma.gacha.findMany({
-    where: { isOnSale: true, ipName: { in: ipNames }, ...(excludeIds.length ? { id: { notIn: excludeIds } } : {}) },
+    where: {
+      isOnSale: true,
+      ip: { category: { key: { in: keys } } },
+      ...(excludeIds.length ? { id: { notIn: excludeIds } } : {}),
+    },
     orderBy: { gachaLikes: { _count: 'desc' } },
     take,
     select: COMING_SOON_SELECT,
   });
 
-/** 発売中のうち ipName が指定リストに含まれないものを、いいね数降順で take 件（食べ物・動物・その他用、excludeIds は除外）。 */
-export const getOnSaleGachasNotInIpNames = (ipNames: string[], take: number, excludeIds: string[] = []) =>
+/** #19: 発売中のうち IpCategory.key が指定リストに含まれないもの（未linkの ipNameId=null も含む）を、いいね数降順で take 件。 */
+export const getOnSaleGachasNotInCategoryKeys = (keys: string[], take: number, excludeIds: string[] = []) =>
   prisma.gacha.findMany({
-    where: { isOnSale: true, ipName: { notIn: ipNames }, ...(excludeIds.length ? { id: { notIn: excludeIds } } : {}) },
+    where: {
+      isOnSale: true,
+      OR: [
+        { ipNameId: null },
+        { ip: { category: { key: { notIn: keys } } } },
+      ],
+      ...(excludeIds.length ? { id: { notIn: excludeIds } } : {}),
+    },
     orderBy: { gachaLikes: { _count: 'desc' } },
     take,
     select: COMING_SOON_SELECT,
