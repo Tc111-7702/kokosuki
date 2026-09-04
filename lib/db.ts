@@ -226,9 +226,10 @@ export async function getGachaFilters() {
     orderBy: [{ ip: { name: 'asc' } }, { seriesName: 'asc' }],
   });
   const items = rows.map(flatIp);
-  // ガチャ数が多い順にIPを並べる
+  // ガチャ数が多い順にIPを並べる（未link ＝ ipName 空のガチャは IP 一覧に出さない）
   const countMap = new Map<string, number>();
   for (const g of items) {
+    if (!g.ipName) continue;
     countMap.set(g.ipName, (countMap.get(g.ipName) ?? 0) + 1);
   }
   const ipNames = [...countMap.entries()]

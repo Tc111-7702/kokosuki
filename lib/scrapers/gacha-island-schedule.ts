@@ -105,7 +105,7 @@ function extractIpName(wpTerms: WpTerm[][], tree: CatTree): string {
   //   [動物, 犬, 猫] → 犬 / [親, サンリオ, ハローキティ] → サンリオ
   const specific = categories.find((c) => { const t = tree.get(c.id); return t !== undefined && t.parent !== 0; });
   if (specific) return specific.name;
-  return '不明'; // 親ジャンルしか付いていない（モンハン等）→ syncIpNameTable で除外される
+  return '不明'; // 親ジャンルしか付いていない（モンハン等）→ resolveIpNameId で除外され ipNameId=null
 }
 
 function ipGradientFromName(ipName: string): { from: string; to: string } {

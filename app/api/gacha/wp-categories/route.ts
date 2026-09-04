@@ -5,7 +5,7 @@ import * as db from '@/lib/db';
 // 正規化済みの IpCategory / IpName テーブル参照に切り替える。
 // - セクション = IpCategory（固定5カテゴリ, sortOrder 順）
 // - タグ       = そのカテゴリに属す IpName（配下ガチャ数付き・人気順）
-//   ※ ジャンル名（トップ親カテゴリ名）は syncIpNameTable で除外済みなので出ない。
+//   ※ ジャンル名（トップ親カテゴリ名）は IpName に登録されない（除外）ので出ない。
 
 interface CategorySummary {
   id: string;
