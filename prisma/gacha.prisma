@@ -5,6 +5,9 @@ model Gacha {
   seriesName     String
   ipName         String
   ipCategory     String   @default("other")
+  // #19 正規化(Expand): IpName への FK。当面 nullable、Backfill 後に not-null 化予定。
+  // 旧 ipName/ipCategory(string) は Contract フェーズで削除する。
+  ipNameId       String?
   category       String
   status         String   @default("on_sale")
   price          Int
@@ -28,6 +31,31 @@ model Gacha {
   posts           Post[]
   stockPosts      StockPost[]
   gachaLikes      GachaLike[]
+  ip              IpName?     @relation(fields: [ipNameId], references: [id])
+
+  @@index([ipNameId])
+}
+
+// ─── IP正規化（3階層: IpCategory 1—* IpName 1—* Gacha）#19 ─────────────────────
+// Expand フェーズ: テーブル追加のみ。読み書きは既存の Gacha.ipName/ipCategory(string)
+// のままで、Backfill→読み替え→Contract の順に移行する。
+
+model IpCategory {
+  id        String   @id @default(cuid())
+  key       String   @unique   // 安定slug: 'anime' | 'character' | 'other' 等
+  name      String             // 表示名（例: アニメ・漫画・ゲーム）
+  sortOrder Int      @default(0)
+  ipNames   IpName[]
+}
+
+model IpName {
+  id         String     @id @default(cuid())
+  name       String     @unique
+  categoryId String
+  category   IpCategory @relation(fields: [categoryId], references: [id])
+  gachas     Gacha[]
+
+  @@index([categoryId])
 }
 
 model GachaLike {
