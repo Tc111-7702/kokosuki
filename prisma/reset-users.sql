@@ -24,8 +24,7 @@ DELETE FROM "Post";
 DELETE FROM "QAAnswer";
 DELETE FROM "QA";
 
--- お気に入り・ガチャいいね
-DELETE FROM "UserFavoriteGacha";
+-- ガチャいいね（お気に入り）
 DELETE FROM "GachaLike";
 
 -- 口コミ
