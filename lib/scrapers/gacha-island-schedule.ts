@@ -1,6 +1,6 @@
 import * as db from '@/lib/db';
 import { SCHEDULE_BASE, WP_API, UA, POST_LINK_RE } from './constants';
-import { fetchWpCategoryTree, resolveGachaCategoryKey, type CatTree } from '@/lib/ipCategory';
+import { fetchWpCategoryTree, resolveGachaCategoryKey, resolveIpNameId, isExcludedIpName, topParentNames, type CatTree } from '@/lib/ipCategory';
 
 // ─── 対象月を算出（今月・来月）────────────────────────────────────────────────
 
@@ -192,6 +192,7 @@ export async function syncScheduleGachas(): Promise<ScheduleSyncResult> {
 
   // #19: カテゴリ判定用の WP ツリーを1回だけ取得して使い回す
   const catTree = await fetchWpCategoryTree();
+  const topNames = topParentNames(catTree); // IpName 除外判定用（トップ親カテゴリ名）
 
   const months = targetMonths();
   console.log(`[schedule-sync] 対象月: ${months.map((m) => `${m.year}年${m.month}月`).join(', ')}`);
@@ -224,9 +225,10 @@ export async function syncScheduleGachas(): Promise<ScheduleSyncResult> {
         const classList = post.class_list ?? [];
         const wpTerms   = post._embedded?.['wp:term'] ?? [];
         const ipName    = extractIpName(wpTerms, catTree);
-        // #19: WP category term を根まで辿り、固定4カテゴリ(+other)へ写像
+        // #19: WP category term を根まで辿り固定4カテゴリ(+other)へ写像し、IpName を解決して link
         const catIds     = wpTerms.flat().filter((t) => t.taxonomy === 'category').map((t) => t.id);
         const ipCategory = resolveGachaCategoryKey(catIds, catTree);
+        const ipNameId   = await resolveIpNameId(ipName, ipCategory, isExcludedIpName(ipName, topNames));
         const makerSlug = extractClass(classList, 'manufacturer');
         const ptSlug    = extractClass(classList, 'product_type');
         const category  = toCategory(ptSlug);
@@ -236,7 +238,7 @@ export async function syncScheduleGachas(): Promise<ScheduleSyncResult> {
         await db.upsertGachaFromScraper({
           seriesName:   post.title.rendered,
           ipName,
-          ipCategory,
+          ipNameId,
           category,
           status,
           price,
