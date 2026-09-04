@@ -13,7 +13,7 @@ export interface FeedPost {
   user: { id: string; name: string; image: string | null };
   spot: { id: string; name: string };
   postType: 'post';
-  gacha: { id: string; ipName: string; seriesName: string; gradientFrom: string; gradientTo: string; imageUrl: string | null; isOnSale?: boolean };
+  gacha: { id: string; ipName: string; seriesName: string; gradientFrom: string; gradientTo: string; imageUrl: string | null; status?: string };
   _count: { likes: number; replies: number };
 }
 

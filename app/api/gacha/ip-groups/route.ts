@@ -11,25 +11,12 @@ export async function GET() {
     const character: { ipName: string; count: number }[] = [];
     const other: { ipName: string; count: number }[] = [];
 
-    // ipNameごとに集計（同じipNameが複数ipCategoryに跨ぐ場合は多数派に）
-    const map = new Map<string, { anime: number; character: number; other: number }>();
+    // #19: 各 IpName は単一カテゴリに属す。anime/character 以外（動物・食べ物・その他）は other にまとめる。
     for (const r of rows) {
-      const key = r.ipName;
-      if (!map.has(key)) map.set(key, { anime: 0, character: 0, other: 0 });
-      const entry = map.get(key)!;
-      const cat = r.ipCategory as 'anime' | 'character' | 'other';
-      entry[cat] = (entry[cat] ?? 0) + r._count.id;
-    }
-
-    for (const [ipName, counts] of map) {
-      const total = counts.anime + counts.character + counts.other;
-      const dominant =
-        counts.anime >= counts.character && counts.anime >= counts.other ? 'anime'
-        : counts.character >= counts.other ? 'character'
-        : 'other';
-      const item = { ipName, count: total };
-      if (dominant === 'anime') anime.push(item);
-      else if (dominant === 'character') character.push(item);
+      if (r._count.id === 0) continue;
+      const item = { ipName: r.ipName, count: r._count.id };
+      if (r.ipCategory === 'anime') anime.push(item);
+      else if (r.ipCategory === 'character') character.push(item);
       else other.push(item);
     }
 

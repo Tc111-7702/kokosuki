@@ -198,11 +198,11 @@ async function main() {
   // 畳まれるため、別マシンでありさえすれば同一店舗でも件数は減らない（＝ユニークマシン数＝表示数）。
   const POOL_SIZE = 70;
   const pool = await prisma.machine.findMany({
-    where: { gacha: { isOnSale: true } },
+    where: { gacha: { status: 'on_sale' } },
     orderBy: { id: 'asc' },
     take: POOL_SIZE,
     include: {
-      gacha: { select: { id: true, ipName: true, seriesName: true } },
+      gacha: { select: { id: true, seriesName: true } },
       spot:  { select: { id: true, name: true } },
     },
   });

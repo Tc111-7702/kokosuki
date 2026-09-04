@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 
-interface CatItem  { id: number; name: string; count: number }
-interface Section  { id: number; name: string; count: number; children: CatItem[] }
+interface CatItem  { id: string; name: string; count: number }
+interface Section  { id: string; name: string; count: number; children: CatItem[] }
 interface Props {
   selected: string[];
   onToggle: (ip: string) => void;

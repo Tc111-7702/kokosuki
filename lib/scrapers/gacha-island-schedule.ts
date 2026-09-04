@@ -1,5 +1,6 @@
 import * as db from '@/lib/db';
 import { SCHEDULE_BASE, WP_API, UA, POST_LINK_RE } from './constants';
+import { fetchWpCategoryTree, resolveGachaCategoryKey, resolveIpNameId, isExcludedIpName, topParentNames, type CatTree } from '@/lib/ipCategory';
 
 // ─── 対象月を算出（今月・来月）────────────────────────────────────────────────
 
@@ -97,13 +98,14 @@ function parseReleaseDate(html: string): Date | null {
   return null;
 }
 
-function extractIpName(wpTerms: WpTerm[][]): string {
+function extractIpName(wpTerms: WpTerm[][], tree: CatTree): string {
   const categories = wpTerms.flat().filter((t) => t.taxonomy === 'category');
-  const child = categories.find((c) => c.parent !== 0);
-  if (child) return child.name;
-  const parent = categories.find((c) => c.parent === 0);
-  if (parent) return parent.name;
-  return '不明';
+  // トップ親カテゴリ（＝ジャンル）を飛ばし、最初の「具体IP（parent!==0）」を採用する。
+  // 埋め込み term の parent は欠落するため、判定は必ず権威ツリー(tree)の parent で行う。
+  //   [動物, 犬, 猫] → 犬 / [親, サンリオ, ハローキティ] → サンリオ
+  const specific = categories.find((c) => { const t = tree.get(c.id); return t !== undefined && t.parent !== 0; });
+  if (specific) return specific.name;
+  return '不明'; // 親ジャンルしか付いていない（モンハン等）→ resolveIpNameId で除外され ipNameId=null
 }
 
 function ipGradientFromName(ipName: string): { from: string; to: string } {
@@ -188,6 +190,10 @@ export async function syncScheduleGachas(): Promise<ScheduleSyncResult> {
   let skipped = 0;
   const errors: string[] = [];
 
+  // #19: カテゴリ判定用の WP ツリーを1回だけ取得して使い回す
+  const catTree = await fetchWpCategoryTree();
+  const topNames = topParentNames(catTree); // IpName 除外判定用（トップ親カテゴリ名）
+
   const months = targetMonths();
   console.log(`[schedule-sync] 対象月: ${months.map((m) => `${m.year}年${m.month}月`).join(', ')}`);
 
@@ -198,9 +204,9 @@ export async function syncScheduleGachas(): Promise<ScheduleSyncResult> {
 
     for (const wpPostId of wpPostIds) {
       try {
-        // すでに店舗スクレイパーで isOnSale: true で登録済みならスキップ
+        // すでに店舗スクレイパーで status='on_sale' で登録済みならスキップ
         const existing = await db.findGachaByWpPostId(wpPostId);
-        if (existing?.isOnSale) {
+        if (existing?.status === 'on_sale') {
           skipped++;
           continue;
         }
@@ -218,7 +224,11 @@ export async function syncScheduleGachas(): Promise<ScheduleSyncResult> {
 
         const classList = post.class_list ?? [];
         const wpTerms   = post._embedded?.['wp:term'] ?? [];
-        const ipName    = extractIpName(wpTerms);
+        const ipName    = extractIpName(wpTerms, catTree);
+        // #19: WP category term を根まで辿り固定4カテゴリ(+other)へ写像し、IpName を解決して link
+        const catIds     = wpTerms.flat().filter((t) => t.taxonomy === 'category').map((t) => t.id);
+        const ipCategory = resolveGachaCategoryKey(catIds, catTree);
+        const ipNameId   = await resolveIpNameId(ipName, ipCategory, isExcludedIpName(ipName, topNames));
         const makerSlug = extractClass(classList, 'manufacturer');
         const ptSlug    = extractClass(classList, 'product_type');
         const category  = toCategory(ptSlug);
@@ -227,7 +237,7 @@ export async function syncScheduleGachas(): Promise<ScheduleSyncResult> {
 
         await db.upsertGachaFromScraper({
           seriesName:   post.title.rendered,
-          ipName,
+          ipNameId,
           category,
           status,
           price,
@@ -239,8 +249,7 @@ export async function syncScheduleGachas(): Promise<ScheduleSyncResult> {
           releaseDate,
           sourceUrl:    post.link,
           wpPostId:     post.id,
-          lineup,
-          isOnSale:     false,  // 発売スケジュールからの登録 = まだ店舗にない
+          lineup,  // status='coming_soon'（発売スケジュールからの登録 = まだ店舗にない）
         });
 
         saved++;

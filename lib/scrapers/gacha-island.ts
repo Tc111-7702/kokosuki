@@ -11,6 +11,8 @@ export const GACHA_DEFAULT = {
 };
 
 // 実行するタスク（正しい順序: 店舗リスト → 店舗ガチャ同期 → 発売スケジュール）
+// #19: IpName/IpCategory の link は各スクレイパーが upsert 時に resolveIpNameId で実施するため、
+//      後処理 syncIpNameTable は定常タスクから除外（既存分の一括 link は移行時に一度だけ実行）。
 const GACHA_TASKS = [
   () => scrapeKansaiShops(),   // shops（Spot作成）
   () => syncShopGachas(),      // shop-sync（店舗×ガチャ）

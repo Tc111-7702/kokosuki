@@ -15,7 +15,6 @@ interface FavoriteGacha {
   gradientTo: string;
   status: string;
   releaseDate: string | null;
-  isOnSale: boolean;
 }
 
 // ─── カード ───────────────────────────────────────────────────────────────────
@@ -34,13 +33,13 @@ function FavoriteCard({
   const router = useRouter();
 
   const statusLabel =
-    gacha.status === 'on_sale' || gacha.isOnSale ? '発売中'
+    gacha.status === 'on_sale'        ? '発売中'
     : gacha.status === 'new'          ? 'NEW'
     : gacha.status === 'coming_soon'  ? 'SOON'
     : null;
 
   const statusColor =
-    gacha.status === 'on_sale' || gacha.isOnSale ? '#22c55e'
+    gacha.status === 'on_sale'        ? '#22c55e'
     : gacha.status === 'new'          ? '#F2B800'
     : '#aaa';
 

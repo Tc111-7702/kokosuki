@@ -26,6 +26,7 @@ export async function GET() {
     }>();
 
     for (const g of gachas) {
+      if (!g.ipName) continue; // 未link（除外ipName）のガチャは「話題のIP」に出さない
       const cur = ipMap.get(g.ipName);
       if (cur) {
         cur.likeCount += g._count.gachaLikes;

@@ -134,7 +134,7 @@ export function PostCard({
         >
           {post.gacha.seriesName}
         </button>
-        {post.gacha.isOnSale === false && (
+        {post.gacha.status != null && post.gacha.status !== 'on_sale' && (
           <span className="ml-1.5 text-xs px-2 py-0.5 rounded-full font-semibold border border-red-200 text-red-500 bg-red-50">発売中止</span>
         )}
         {post.itemName && (
