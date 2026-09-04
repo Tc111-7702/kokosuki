@@ -2,6 +2,7 @@ import { scraperPolling, runSequential } from '@/lib/scraperPolling';
 import { scrapeKansaiShops } from '@/lib/scrapers/gacha-island-shops';
 import { syncShopGachas } from '@/lib/scrapers/gacha-island-shop-sync';
 import { syncScheduleGachas } from '@/lib/scrapers/gacha-island-schedule';
+import { syncIpNameTable } from '@/lib/ipCategory';
 
 // デフォルト設定（あとで start/run の引数で上書き可）
 export const GACHA_DEFAULT = {
@@ -15,6 +16,7 @@ const GACHA_TASKS = [
   () => scrapeKansaiShops(),   // shops（Spot作成）
   () => syncShopGachas(),      // shop-sync（店舗×ガチャ）
   () => syncScheduleGachas(),  // schedule（予定ガチャ補完）
+  () => syncIpNameTable(),     // #19: 両スクレイパー完了後に IpName/IpCategory を構築＆link
 ];
 
 /** 定期ポーリング開始（常駐プロセス用） */

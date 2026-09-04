@@ -52,6 +52,7 @@ export interface SpotUpsertData {
 export interface GachaUpsertData {
   seriesName: string;
   ipName: string;
+  ipCategory: string;   // #19: per-gacha の正規化カテゴリ key（character/animal/anime/food/other）
   category: string;
   status: string;
   price: number;
@@ -231,6 +232,7 @@ export const upsertGachaFromScraper = (data: GachaUpsertData) =>
     update: {
       seriesName:  data.seriesName,
       ipName:      data.ipName,
+      ipCategory:  data.ipCategory,
       genre:       data.genre,
       maker:       data.maker,
       imageUrl:    data.imageUrl,
@@ -246,6 +248,7 @@ export const upsertGachaFromScraper = (data: GachaUpsertData) =>
     create: {
       seriesName:   data.seriesName,
       ipName:       data.ipName,
+      ipCategory:   data.ipCategory,
       category:     data.category,
       status:       data.status,
       price:        data.price,
@@ -1154,4 +1157,47 @@ export const getOnSaleGachasNotInIpNames = (ipNames: string[], take: number, exc
     orderBy: { gachaLikes: { _count: 'desc' } },
     take,
     select: COMING_SOON_SELECT,
+  });
+
+// ─── #19 IP正規化（IpCategory / IpName） ─────────────────────────────────────
+
+/** IpCategory を key で upsert（表示名・並び順を同期）し、行を返す */
+export const upsertIpCategory = (key: string, name: string, sortOrder: number) =>
+  prisma.ipCategory.upsert({
+    where:  { key },
+    update: { name, sortOrder },
+    create: { key, name, sortOrder },
+  });
+
+/** 全ガチャの IP 集計元（id, ipName, ipCategory）を取得 */
+export const getAllGachaIpInfo = () =>
+  prisma.gacha.findMany({ select: { id: true, ipName: true, ipCategory: true } });
+
+/** IpName を name で upsert（所属カテゴリを同期）し、行を返す */
+export const upsertIpName = (name: string, categoryId: string) =>
+  prisma.ipName.upsert({
+    where:  { name },
+    update: { categoryId },
+    create: { name, categoryId },
+  });
+
+/** ガチャに IpName を link（除外 ipName の場合は null） */
+export const setGachaIpNameId = (gachaId: string, ipNameId: string | null) =>
+  prisma.gacha.update({ where: { id: gachaId }, data: { ipNameId } });
+
+/** signup 用: IpCategory を表示順で、配下 IpName（配下ガチャ数付き）とともに取得 */
+export const getIpCategoriesWithIpNames = () =>
+  prisma.ipCategory.findMany({
+    orderBy: { sortOrder: 'asc' },
+    select: {
+      key:  true,
+      name: true,
+      ipNames: {
+        select: {
+          id:   true,
+          name: true,
+          _count: { select: { gachas: true } },
+        },
+      },
+    },
   });
