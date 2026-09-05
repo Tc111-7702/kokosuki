@@ -13,6 +13,9 @@ interface CategorySummary {
   count: number;
 }
 
+// 各セクション（カテゴリ）で表示する IP の上限（人気＝配下ガチャ数の多い順に上位）。
+const MAX_PER_SECTION = 15;
+
 export async function GET() {
   try {
     const categories = await db.getIpCategoriesWithIpNames();
@@ -22,7 +25,8 @@ export async function GET() {
         const children: CategorySummary[] = cat.ipNames
           .map((ip) => ({ id: ip.id, name: ip.name, count: ip._count.gachas }))
           .filter((c) => c.count > 0)               // ガチャ0件のIPは出さない
-          .sort((a, b) => b.count - a.count);       // 人気順
+          .sort((a, b) => b.count - a.count)        // 人気順
+          .slice(0, MAX_PER_SECTION);               // 各セクション最大15件
         const count = children.reduce((s, c) => s + c.count, 0);
         return { id: cat.key, name: cat.name, count, children };
       })

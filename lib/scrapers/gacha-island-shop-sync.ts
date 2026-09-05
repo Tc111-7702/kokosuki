@@ -1,6 +1,6 @@
 import * as db from '@/lib/db';
 import { TARGET_AREAS, WP_API, SHOP_BASE, UA } from './constants';
-import { fetchWpCategoryTree, resolveGachaCategoryKey, resolveIpNameId, isExcludedIpName, topParentNames, type CatTree } from '@/lib/ipCategory';
+import { fetchWpCategoryTree, resolveGachaCategoryKey, resolveIpNameId, isExcludedIpName, extractIpName, type CatTree } from '@/lib/ipCategory';
 
 // ─── 型定義 ───────────────────────────────────────────────────────────────────
 
@@ -103,16 +103,6 @@ function parseReleaseDate(html: string): Date | null {
   return null;
 }
 
-function extractIpName(wpTerms: WpTerm[][], tree: CatTree): string {
-  const categories = wpTerms.flat().filter((t) => t.taxonomy === 'category');
-  // トップ親カテゴリ（＝ジャンル）を飛ばし、最初の「具体IP（parent!==0）」を採用する。
-  // 埋め込み term の parent は欠落するため、判定は必ず権威ツリー(tree)の parent で行う。
-  //   [動物, 犬, 猫] → 犬 / [親, サンリオ, ハローキティ] → サンリオ
-  const specific = categories.find((c) => { const t = tree.get(c.id); return t !== undefined && t.parent !== 0; });
-  if (specific) return specific.name;
-  return '不明'; // 親ジャンルしか付いていない（モンハン等）→ resolveIpNameId で除外され ipNameId=null
-}
-
 function ipGradientFromName(ipName: string): { from: string; to: string } {
   let h = 0;
   for (let i = 0; i < ipName.length; i++) h = ipName.charCodeAt(i) + ((h << 5) - h);
@@ -198,14 +188,14 @@ async function fetchShopIdsForPref(pref: string): Promise<number[]> {
 
 // ─── WpPost → Gacha upsert、gachaId を返す ────────────────────────────────────
 
-async function upsertGachaFromPost(post: WpPost, catTree: CatTree, topNames: Set<string>): Promise<string> {
+async function upsertGachaFromPost(post: WpPost, catTree: CatTree): Promise<string> {
   const classList = post.class_list ?? [];
   const wpTerms   = post._embedded?.['wp:term'] ?? [];
-  const ipName    = extractIpName(wpTerms, catTree);
   // #19: WP category term を根まで辿り固定4カテゴリ(+other)へ写像し、IpName を解決して link
   const catIds     = wpTerms.flat().filter((t) => t.taxonomy === 'category').map((t) => t.id);
+  const ipName     = extractIpName(catIds, catTree);
   const ipCategory = resolveGachaCategoryKey(catIds, catTree);
-  const ipNameId   = await resolveIpNameId(ipName, ipCategory, isExcludedIpName(ipName, topNames));
+  const ipNameId   = await resolveIpNameId(ipName, ipCategory, isExcludedIpName(ipName));
   const makerSlug = extractClass(classList, 'manufacturer');
   const ptSlug    = extractClass(classList, 'product_type');
   const category  = toCategory(ptSlug);
@@ -242,7 +232,7 @@ async function upsertGachaFromPost(post: WpPost, catTree: CatTree, topNames: Set
 
 // ─── 1 エリアの同期 ───────────────────────────────────────────────────────────
 
-async function syncArea(pref: string, label: string, catTree: CatTree, topNames: Set<string>): Promise<AreaSyncResult> {
+async function syncArea(pref: string, label: string, catTree: CatTree): Promise<AreaSyncResult> {
   let gachaSaved   = 0;
   let machineSaved = 0;
   let skipped      = 0;
@@ -267,7 +257,7 @@ async function syncArea(pref: string, label: string, catTree: CatTree, topNames:
         if (!gacha) {
           const post = await fetchWpPost(wpPostId);
           if (!post) { skipped++; continue; }
-          const gachaId = await upsertGachaFromPost(post, catTree, topNames);
+          const gachaId = await upsertGachaFromPost(post, catTree);
           gacha = { id: gachaId } as Awaited<ReturnType<typeof db.findGachaByWpPostId>>;
           gachaSaved++;
           await new Promise((r) => setTimeout(r, 300)); // WP API 取得後の待機
@@ -302,13 +292,12 @@ export async function syncShopGachas(): Promise<ShopSyncResult> {
 
   // #19: カテゴリ判定用の WP ツリーを1回だけ取得して全エリアで使い回す
   const catTree = await fetchWpCategoryTree();
-  const topNames = topParentNames(catTree); // IpName 除外判定用（トップ親カテゴリ名）
 
   const areas: AreaSyncResult[] = [];
 
   for (const { pref, label } of TARGET_AREAS) {
     console.log(`[shop-sync] === ${label} 開始 ===`);
-    const result = await syncArea(pref, label, catTree, topNames);
+    const result = await syncArea(pref, label, catTree);
     areas.push(result);
     console.log(
       `[shop-sync] ${label} 完了: gacha=${result.gachaSaved} machine=${result.machineSaved} skip=${result.skipped} err=${result.errors.length}`,
