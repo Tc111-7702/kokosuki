@@ -1,6 +1,6 @@
 import * as db from '@/lib/db';
 import { SCHEDULE_BASE, WP_API, UA, POST_LINK_RE } from './constants';
-import { fetchWpCategoryTree, resolveGachaCategoryKey, resolveIpNameId, isExcludedIpName, topParentNames, type CatTree } from '@/lib/ipCategory';
+import { fetchWpCategoryTree, resolveGachaCategoryKey, resolveIpNameId, isExcludedIpName, extractIpName, type CatTree } from '@/lib/ipCategory';
 
 // ─── 対象月を算出（今月・来月）────────────────────────────────────────────────
 
@@ -98,16 +98,6 @@ function parseReleaseDate(html: string): Date | null {
   return null;
 }
 
-function extractIpName(wpTerms: WpTerm[][], tree: CatTree): string {
-  const categories = wpTerms.flat().filter((t) => t.taxonomy === 'category');
-  // トップ親カテゴリ（＝ジャンル）を飛ばし、最初の「具体IP（parent!==0）」を採用する。
-  // 埋め込み term の parent は欠落するため、判定は必ず権威ツリー(tree)の parent で行う。
-  //   [動物, 犬, 猫] → 犬 / [親, サンリオ, ハローキティ] → サンリオ
-  const specific = categories.find((c) => { const t = tree.get(c.id); return t !== undefined && t.parent !== 0; });
-  if (specific) return specific.name;
-  return '不明'; // 親ジャンルしか付いていない（モンハン等）→ resolveIpNameId で除外され ipNameId=null
-}
-
 function ipGradientFromName(ipName: string): { from: string; to: string } {
   let h = 0;
   for (let i = 0; i < ipName.length; i++) h = ipName.charCodeAt(i) + ((h << 5) - h);
@@ -192,7 +182,6 @@ export async function syncScheduleGachas(): Promise<ScheduleSyncResult> {
 
   // #19: カテゴリ判定用の WP ツリーを1回だけ取得して使い回す
   const catTree = await fetchWpCategoryTree();
-  const topNames = topParentNames(catTree); // IpName 除外判定用（トップ親カテゴリ名）
 
   const months = targetMonths();
   console.log(`[schedule-sync] 対象月: ${months.map((m) => `${m.year}年${m.month}月`).join(', ')}`);
@@ -224,11 +213,11 @@ export async function syncScheduleGachas(): Promise<ScheduleSyncResult> {
 
         const classList = post.class_list ?? [];
         const wpTerms   = post._embedded?.['wp:term'] ?? [];
-        const ipName    = extractIpName(wpTerms, catTree);
         // #19: WP category term を根まで辿り固定4カテゴリ(+other)へ写像し、IpName を解決して link
         const catIds     = wpTerms.flat().filter((t) => t.taxonomy === 'category').map((t) => t.id);
+        const ipName     = extractIpName(catIds, catTree);
         const ipCategory = resolveGachaCategoryKey(catIds, catTree);
-        const ipNameId   = await resolveIpNameId(ipName, ipCategory, isExcludedIpName(ipName, topNames));
+        const ipNameId   = await resolveIpNameId(ipName, ipCategory, isExcludedIpName(ipName));
         const makerSlug = extractClass(classList, 'manufacturer');
         const ptSlug    = extractClass(classList, 'product_type');
         const category  = toCategory(ptSlug);

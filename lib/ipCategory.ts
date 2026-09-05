@@ -2,7 +2,8 @@ import * as db from '@/lib/db';
 
 // #19 IP正規化の共通ロジック。
 // - カテゴリは「各ガチャの WP category term を根まで辿ったトップ親」→ 固定4カテゴリ(+other)へ写像。
-// - IpName は「スクレイプで得た ipName 文字列」だけを登録（トップ親カテゴリ名＝ジャンルは除外）。
+// - IpName は「具体IP（子カテゴリ）」を優先採用。子が無い場合は「その他」系のトップ親ジャンル名
+//   （芸能人・アイドル/スポーツ/音楽 等）も採用する。上位4のトップ親ジャンル名と'不明'のみ除外。
 // - スクレイプ時に resolveIpNameId で Gacha.ipNameId を link する（2つのスクレイパーで共有）。
 
 const WP_API = 'https://gacha-island.jp/wp-json/wp/v2';
@@ -46,13 +47,6 @@ export async function fetchWpCategoryTree(): Promise<CatTree> {
   return map;
 }
 
-/** トップ親カテゴリ名（parent===0）の集合 ＝ IpName 除外用 */
-export function topParentNames(tree: CatTree): Set<string> {
-  const s = new Set<string>();
-  for (const c of tree.values()) if (c.parent === 0) s.add(c.name);
-  return s;
-}
-
 /** category term id を根まで辿って category key（上位4に無ければ null） */
 export function topCategoryKey(termId: number, tree: CatTree): string | null {
   let cur = tree.get(termId);
@@ -71,9 +65,23 @@ export function resolveGachaCategoryKey(catTermIds: number[], tree: CatTree): st
   return best ?? 'other';
 }
 
-/** IpName 除外判定（トップ親カテゴリ名＝ジャンル、'不明' は IpName にしない） */
-export function isExcludedIpName(name: string, topNames: Set<string>): boolean {
-  return name === '不明' || topNames.has(name);
+/**
+ * ガチャの ipName を決める（両スクレイパー共有）。
+ * ① 具体IP（子カテゴリ parent!==0）を最優先で採用（例: サンリオ, ポケモン）。
+ * ② 子IPが無い場合、上位4以外のトップ親（＝「その他」ジャンル。芸能人・アイドル/スポーツ/音楽 等）名を採用。
+ *    ※ gacha-island では「その他」系の親は子カテゴリを持たないものが多く、従来は全部'不明'で除外されていた。
+ * ③ 上位4（キャラ/アニメ/動物/食べ物）のトップ親しか付いていない → '不明'（従来どおり除外＝具体IPのみ拾う）。
+ * 判定は必ず権威ツリー(tree)の parent/slug で行う（埋め込み term の parent は欠落するため）。
+ */
+export function extractIpName(catTermIds: number[], tree: CatTree): string {
+  for (const id of catTermIds) { const t = tree.get(id); if (t && t.parent !== 0) return t.name; }
+  for (const id of catTermIds) { const t = tree.get(id); if (t && t.parent === 0 && SLUG_TO_KEY[t.slug] === undefined) return t.name; }
+  return '不明';
+}
+
+/** IpName 除外判定。'不明'（具体IPも「その他」ジャンルも取れなかった）だけ除外する。 */
+export function isExcludedIpName(name: string): boolean {
+  return name === '不明';
 }
 
 /** IpCategory 5行を upsert し key→id を返す */
