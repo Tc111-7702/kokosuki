@@ -1,4 +1,4 @@
-import { scraperPolling, runSequential } from '@/lib/scraperPolling';
+import { scraperPolling, runSequential, type ScraperPollingHandle } from '@/lib/scraperPolling';
 import { fetchPlaceIds } from '@/lib/scrapers/place-id-fetch';
 import { fetchPhoneNumbers } from '@/lib/scrapers/phone-fetch';
 
@@ -15,11 +15,11 @@ const PHONE_TASKS = [
   () => fetchPhoneNumbers(),  // phone-fetch
 ];
 
-/** 定期ポーリング開始（常駐プロセス用） */
+/** 定期ポーリング開始（常駐プロセス用）。停止用ハンドルを返す。 */
 export function startPhoneScraping(
   opts: { everyDays?: number; atTime?: string } = {},
-): void {
-  scraperPolling({
+): ScraperPollingHandle {
+  return scraperPolling({
     label: 'phone',
     everyDays: opts.everyDays ?? PHONE_DEFAULT.everyDays,
     atTime:    opts.atTime    ?? PHONE_DEFAULT.atTime,
