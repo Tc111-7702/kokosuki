@@ -28,6 +28,7 @@ model Gacha {
   posts           Post[]
   stockPosts      StockPost[]
   gachaLikes      GachaLike[]
+  homeFeatured    HomeFeatured[]
   ip              IpName?     @relation(fields: [ipNameId], references: [id])
 
   @@index([ipNameId])
@@ -66,6 +67,21 @@ model GachaLike {
   gacha Gacha @relation(fields: [gachaId], references: [id], onDelete: Cascade)
 
   @@unique([userId, gachaId])
+}
+
+// ホーム掲載枠（admin と共有）。admin が手動設定して書き込み、mikke のホームが読む。
+// section='今週発売'|'再販' 等ごとに、掲載するガチャと表示順(sortOrder)を保持する。
+model HomeFeatured {
+  id        String   @id @default(cuid())
+  section   String
+  gachaId   String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  gacha Gacha @relation(fields: [gachaId], references: [id], onDelete: Cascade)
+
+  @@unique([section, gachaId])
+  @@index([section, sortOrder])
 }
 
 // スクレイピング予約設定（DB管理）。admin が書き込み、worker が読み込む共有テーブル。

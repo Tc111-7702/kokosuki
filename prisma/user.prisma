@@ -6,6 +6,7 @@ model User {
   emailVerified Boolean   @default(false)
   name          String
   image         String?
+  role          String    @default("user") // 権限（既定 'user'）。20260810 の add_user_role で追加。
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
