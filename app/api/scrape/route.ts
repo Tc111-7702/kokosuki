@@ -6,8 +6,8 @@ import { spawn, type ChildProcess } from 'node:child_process';
 //  - 以前は admin が MIKKE_DIR 越しに子プロセスを起動していたが、別サーバ運用では
 //    ファイルシステムにアクセスできない。スクレイパーが在る mikke 側で実行する形にした。
 //  - 子プロセス実行なので stdout が隔離され、他リクエストのログを巻き込まない。
-//  - shop-sync 中など可視ログが無出力になる区間があるため、一定間隔でハートビートを送り
-//    接続のアイドルタイムアウト（fetch/プロキシ）で切れないようにする。
+//  - shop-sync 中など可視ログが無出力になる区間があるため、一定間隔で不可視ハートビートを
+//    送り、接続のアイドルタイムアウト（fetch/プロキシ）で切れないようにする。
 //
 // 認証: SCRAPE_TRIGGER_TOKEN が設定されていれば Authorization: Bearer で照合する。
 //       未設定なら素通し（開発用）。本番では必ず設定すること。
@@ -17,6 +17,8 @@ export const maxDuration = 300; // スクレイピングは長時間かかるた
 
 // 無出力が続いたときにハートビートを送る間隔（ms）。
 const HEARTBEAT_MS = 20_000;
+// 不可視ハートビート文字（NUL = U+0000）。実ログには現れないため、クライアント側で確実に除去できる。
+const HEARTBEAT_CHAR = String.fromCharCode(0);
 
 // 同時実行ガード（このサーバープロセス内で1件のみ）。
 let running = false;
@@ -81,9 +83,10 @@ export async function POST(req: Request) {
       child.stdout?.on('data', onChunk);
       child.stderr?.on('data', onChunk);
 
-      // 無出力が HEARTBEAT_MS 続いたら「処理継続中」を1行流して接続を維持する。
+      // 無出力が HEARTBEAT_MS 続いたら不可視のハートビート(NUL)を流して接続を維持する。
+      // 1文字でも受信すればアイドルタイマーがリセットされる。画面にはクライアント側で除去され出ない。
       heartbeat = setInterval(() => {
-        if (Date.now() - lastSent >= HEARTBEAT_MS) enqueue('… 処理継続中\n');
+        if (Date.now() - lastSent >= HEARTBEAT_MS) enqueue(HEARTBEAT_CHAR);
       }, HEARTBEAT_MS);
 
       child.on('error', (err: Error) => {
