@@ -16,10 +16,14 @@ interface Props {
   badgeLabel?: string; // 指定時は各カードのバッジを固定ラベルに（例: 今秋発売）
 }
 
+const MOBILE_BREAKPOINT = 768;
+const NARROW_BREAKPOINT = 341; // 340px以下でカードを縮小して3枚目を覗かせる
+
 export function HorizontalGachaSection({ title, subtitle, color, colorDark, colorMid, apiUrl, scrollId, showRank = true, badgeLabel }: Props) {
   const [gachas, setGachas] = useState<Gacha[]>([]);
   const [loading, setLoading] = useState(true);
-  const isMobile = useIsMobile();
+  const isMobile = useIsMobile(MOBILE_BREAKPOINT);
+  const isNarrow = useIsMobile(NARROW_BREAKPOINT);
   const [scrollRatio, setScrollRatio] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const scrollClass = `h-gacha-scroll-${scrollId}`;
@@ -82,7 +86,7 @@ export function HorizontalGachaSection({ title, subtitle, color, colorDark, colo
         }}
       >
         {gachas.map((item, rank) => (
-          <GachaCard key={item.id} gacha={item} rank={rank} showRank={showRank} isMobile={isMobile} badgeLabel={badgeLabel} />
+          <GachaCard key={item.id} gacha={item} rank={rank} showRank={showRank} isMobile={isMobile} narrow={isNarrow} badgeLabel={badgeLabel} />
         ))}
       </div>
 

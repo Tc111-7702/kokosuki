@@ -22,7 +22,8 @@ const TAB_LABELS: { key: HomeTab; label: string }[] = [
 function HomePageInner() {
   const router       = useRouter();
   const searchParams = useSearchParams();
-  const isMobile = useIsMobile();
+  const MOBILE_BREAKPOINT = 768;
+  const isMobile = useIsMobile(MOBILE_BREAKPOINT);
 
   // URLの ?tab= からタブを決定、不正値は 'new' にフォールバック
   const rawTab = searchParams.get('tab');

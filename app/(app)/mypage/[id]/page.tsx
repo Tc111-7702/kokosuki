@@ -32,7 +32,8 @@ type Tab = 'posts' | 'reports' | 'favorites';
 export default function ProfilePage() {
   const router = useRouter();
   const { id: userId } = useParams<{ id: string }>();
-  const isMobile = useIsMobile();
+  const MOBILE_BREAKPOINT = 768;
+  const isMobile = useIsMobile(MOBILE_BREAKPOINT);
 
   // 自分自身のID（設定ギア/削除ボタン/お気に入り編集の判定に使用）。
   // /api/me が一時的に null/失敗を返しても再試行し、必ず解決させる（設定ギアが出ない問題の恒久対策）

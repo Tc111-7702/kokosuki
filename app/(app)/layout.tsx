@@ -5,7 +5,8 @@ import { BottomNav } from '@/components/BottomNav';
 import { useIsMobile } from '@/lib/useIsMobile';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const isMobile = useIsMobile();
+  const MOBILE_BREAKPOINT = 768;
+  const isMobile = useIsMobile(MOBILE_BREAKPOINT);
 
   return isMobile ? (
     <div className="flex flex-col h-screen bg-[#F7F6F3]">

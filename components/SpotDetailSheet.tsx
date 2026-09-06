@@ -56,7 +56,8 @@ export default function SpotDetailSheet({
   const router = useRouter();
   const sheetRef = useRef<HTMLDivElement>(null);
   const [navOpen,     setNavOpen]     = useState(false);
-  const isMobile = useIsMobile();
+  const MOBILE_BREAKPOINT = 768;
+  const isMobile = useIsMobile(MOBILE_BREAKPOINT);
   const [expanded,    setExpanded]    = useState(false);
   const dragStartY = useRef<number | null>(null);
   const [reviews,     setReviews]     = useState<SheetReview[]>([]);

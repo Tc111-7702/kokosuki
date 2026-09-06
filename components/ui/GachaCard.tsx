@@ -26,14 +26,16 @@ interface GachaCardProps {
   rank: number;
   showRank: boolean;
   isMobile: boolean;
+  narrow?: boolean;        // 極小画面(≤340px)。3枚目が見えるようカードを縮小する
   onClick?: () => void;    // 指定時は詳細遷移の代わりにこれを呼ぶ（掲載ピッカー等で使用）
   badgeLabel?: string;     // 指定時はステータスバッジの代わりに固定ラベルを表示（例: 今秋発売）
 }
 
-export function GachaCard({ gacha, rank, showRank, isMobile, onClick, badgeLabel }: GachaCardProps) {
+export function GachaCard({ gacha, rank, showRank, isMobile, narrow = false, onClick, badgeLabel }: GachaCardProps) {
   const router = useRouter();
-  const cardW  = isMobile ? 140 : 320;
-  const imgH   = isMobile ? 158 : 320;
+  // narrow は極小画面用の縮小サイズ（モバイル時のみ有効）。3枚目が少し覗く幅にする。
+  const cardW  = isMobile ? (narrow ? 116 : 140) : 320;
+  const imgH   = isMobile ? (narrow ? 130 : 158) : 320;
   const radius = isMobile ? 16 : 10;
   const st = STATUS_STYLE[gacha.status] ?? STATUS_STYLE.ended;
 

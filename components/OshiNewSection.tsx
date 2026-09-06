@@ -12,11 +12,15 @@ interface Group {
   gachas: GachaItem[];
 }
 
+const MOBILE_BREAKPOINT = 768;
+const NARROW_BREAKPOINT = 341; // 340px以下でカードを縮小して3枚目を覗かせる
+
 export function OshiNewSection() {
   const [groups, setGroups]   = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const [noFav, setNoFav]     = useState(false);
-  const isMobile = useIsMobile();
+  const isMobile = useIsMobile(MOBILE_BREAKPOINT);
+  const isNarrow = useIsMobile(NARROW_BREAKPOINT);
 
   useEffect(() => {
     fetch('/api/gacha/recommended')
@@ -76,14 +80,14 @@ export function OshiNewSection() {
       {/* IP別セクション（モバイルは右marginを除去して横スクロールを右端まで見切れさせる） */}
       <div style={{ margin: isMobile ? '0 0 0 16px' : '0 16px', paddingTop: isMobile ? 16 : 32 }}>
         {groups.map((group, i) => (
-          <IpGroup key={group.ipName} group={group} isMobile={isMobile} isLast={i === groups.length - 1} />
+          <IpGroup key={group.ipName} group={group} isMobile={isMobile} narrow={isNarrow} isLast={i === groups.length - 1} />
         ))}
       </div>
     </div>
   );
 }
 
-function IpGroup({ group, isMobile, isLast }: { group: Group; isMobile: boolean; isLast: boolean }) {
+function IpGroup({ group, isMobile, narrow, isLast }: { group: Group; isMobile: boolean; narrow: boolean; isLast: boolean }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [scrollRatio, setScrollRatio] = useState(0);
 
@@ -126,7 +130,7 @@ function IpGroup({ group, isMobile, isLast }: { group: Group; isMobile: boolean;
         }}
       >
         {group.gachas.map((item, rank) => (
-          <GachaCard key={item.id} gacha={item} rank={rank} showRank={false} isMobile={isMobile} />
+          <GachaCard key={item.id} gacha={item} rank={rank} showRank={false} isMobile={isMobile} narrow={narrow} />
         ))}
       </div>
 

@@ -77,7 +77,8 @@ function GenrePageInner() {
 
   const [gachas, setGachas]   = useState<GachaItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const isMobile = useIsMobile();
+  const MOBILE_BREAKPOINT = 768;
+  const isMobile = useIsMobile(MOBILE_BREAKPOINT);
 
   useEffect(() => {
     if (!ipName) { queueMicrotask(() => setLoading(false)); return; }
