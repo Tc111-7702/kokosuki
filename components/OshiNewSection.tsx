@@ -111,11 +111,9 @@ function IpGroup({ group, isMobile, isLast }: { group: Group; isMobile: boolean;
         <div style={{ flex: 1, height: 1, background: '#EDE9D8' }} />
       </div>
 
-      {/* 横スクロール */}
+      {/* 横スクロール（スクロールバーは常に非表示・スワイプ/矢印で操作） */}
       <style>{`
-        .ip-scroll-${group.ipName.replace(/[^a-zA-Z0-9]/g, '')}::-webkit-scrollbar { height: ${isMobile ? '4px' : '0px'}; }
-        .ip-scroll-${group.ipName.replace(/[^a-zA-Z0-9]/g, '')}::-webkit-scrollbar-track { background: rgba(0,0,0,0.07); border-radius: 2px; }
-        .ip-scroll-${group.ipName.replace(/[^a-zA-Z0-9]/g, '')}::-webkit-scrollbar-thumb { background: #F2B800; border-radius: 2px; }
+        .ip-scroll-${group.ipName.replace(/[^a-zA-Z0-9]/g, '')}::-webkit-scrollbar { display: none; }
       `}</style>
       <div
         ref={scrollRef}
@@ -124,8 +122,7 @@ function IpGroup({ group, isMobile, isLast }: { group: Group; isMobile: boolean;
         style={{
           display: 'flex', gap: isMobile ? 12 : 32, overflowX: 'auto',
           paddingBottom: isMobile ? 10 : 10,
-          scrollbarWidth: isMobile ? 'thin' : 'none',
-          scrollbarColor: isMobile ? '#F2B800 rgba(0,0,0,0.07)' : undefined,
+          scrollbarWidth: 'none',
         }}
       >
         {group.gachas.map((item, rank) => (

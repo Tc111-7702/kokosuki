@@ -67,11 +67,9 @@ export function HorizontalGachaSection({ title, subtitle, color, colorDark, colo
           backgroundClip: 'text', display: 'inline-block' }}>{title}</p>
       </div>
 
-      {/* 横スクロールグリッド */}
+      {/* 横スクロールグリッド（スクロールバーは常に非表示・スワイプ/矢印で操作） */}
       <style>{`
-        .${cls}::-webkit-scrollbar { height: ${isMobile ? '4px' : '0px'}; }
-        .${cls}::-webkit-scrollbar-track { background: rgba(0,0,0,0.07); border-radius: 2px; }
-        .${cls}::-webkit-scrollbar-thumb { background: ${color}; border-radius: 2px; opacity: 0.7; }
+        .${cls}::-webkit-scrollbar { display: none; }
       `}</style>
       <div
         ref={scrollRef}
@@ -80,8 +78,7 @@ export function HorizontalGachaSection({ title, subtitle, color, colorDark, colo
         style={{
           display: 'flex', gap: isMobile ? 12 : 32, overflowX: 'auto',
           paddingBottom: isMobile ? 10 : 10,
-          scrollbarWidth: isMobile ? 'thin' : 'none',
-          scrollbarColor: isMobile ? `${color} rgba(0,0,0,0.07)` : undefined,
+          scrollbarWidth: 'none',
         }}
       >
         {gachas.map((item, rank) => (
