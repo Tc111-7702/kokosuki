@@ -1,9 +1,8 @@
-// スクレイピング予約設定の永続化（JSONファイル）。
+// スクレイピング予約設定（DB管理）。
 // admin が書き込み、この worker（mikke）が起動時に読み込んで start*Scraping に渡す。
-// ※ ファイルシステム書き込み前提（常駐/自ホスト運用）。将来的には DB 化を検討。
+// 以前は JSON ファイルだったが、別サーバ運用でも共有できるよう DB(ScrapeSchedule) へ移行。
 
-import { promises as fs } from 'node:fs';
-import path from 'node:path';
+import * as db from '@/lib/db';
 
 export type ScrapeType = 'gacha' | 'phone';
 
@@ -12,33 +11,19 @@ export interface ScheduleConfig {
   atTime: string;    // 実行時刻 "HH:MM"
 }
 
-const FILE = path.join(process.cwd(), 'scrape-schedule.json');
-
 // 既定値（lib/scrapers/*.ts の *_DEFAULT と揃える）。gacha=毎日 / phone=7日ごと。
 const DEFAULTS: Record<ScrapeType, ScheduleConfig> = {
   gacha: { everyDays: 1, atTime: '03:00' },
   phone: { everyDays: 7, atTime: '04:00' },
 };
 
-export async function getSchedules(): Promise<Record<ScrapeType, ScheduleConfig>> {
-  try {
-    const raw = await fs.readFile(FILE, 'utf-8');
-    const parsed = JSON.parse(raw) as Partial<Record<ScrapeType, Partial<ScheduleConfig>>>;
-    return {
-      gacha: { ...DEFAULTS.gacha, ...(parsed.gacha ?? {}) },
-      phone: { ...DEFAULTS.phone, ...(parsed.phone ?? {}) },
-    };
-  } catch {
-    return { gacha: { ...DEFAULTS.gacha }, phone: { ...DEFAULTS.phone } };
-  }
-}
-
+/** 予約設定を取得。未設定（DBに行が無い）なら既定値。 */
 export async function getSchedule(type: ScrapeType): Promise<ScheduleConfig> {
-  return (await getSchedules())[type];
+  const row = await db.getScrapeSchedule(type);
+  return row ? { everyDays: row.everyDays, atTime: row.atTime } : DEFAULTS[type];
 }
 
+/** 予約設定を保存（upsert）。 */
 export async function setSchedule(type: ScrapeType, cfg: ScheduleConfig): Promise<void> {
-  const all = await getSchedules();
-  all[type] = cfg;
-  await fs.writeFile(FILE, JSON.stringify(all, null, 2), 'utf-8');
+  await db.upsertScrapeSchedule(type, cfg.everyDays, cfg.atTime);
 }

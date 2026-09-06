@@ -5,7 +5,7 @@ import { getSchedule } from '@/lib/scrapeSchedule';
 
 // 常駐ワーカー: Vercel ではなく常駐 Node プロセスで実行すること。
 //   起動例: npm run worker
-// 予約設定（scrape-schedule.json）を起動時に読み込み、無ければ既定値（gacha=毎日/phone=7日）。
+// 予約設定（DB: ScrapeSchedule）を起動時に読み込み、無ければ既定値（gacha=毎日/phone=7日）。
 // 設定を変えたら worker を再起動すると反映される。
 async function main() {
   const [gacha, phone] = await Promise.all([getSchedule('gacha'), getSchedule('phone')]);
