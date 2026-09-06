@@ -1,4 +1,4 @@
-import { scraperPolling, runSequential } from '@/lib/scraperPolling';
+import { scraperPolling, runSequential, type ScraperPollingHandle } from '@/lib/scraperPolling';
 import { scrapeKansaiShops } from '@/lib/scrapers/gacha-island-shops';
 import { syncShopGachas } from '@/lib/scrapers/gacha-island-shop-sync';
 import { syncScheduleGachas } from '@/lib/scrapers/gacha-island-schedule';
@@ -19,11 +19,11 @@ const GACHA_TASKS = [
   () => syncScheduleGachas(),  // schedule（予定ガチャ補完）
 ];
 
-/** 定期ポーリング開始（常駐プロセス用） */
+/** 定期ポーリング開始（常駐プロセス用）。停止用ハンドルを返す。 */
 export function startGachaScraping(
   opts: { everyDays?: number; atTime?: string } = {},
-): void {
-  scraperPolling({
+): ScraperPollingHandle {
+  return scraperPolling({
     label: 'gacha-island',
     everyDays: opts.everyDays ?? GACHA_DEFAULT.everyDays,
     atTime:    opts.atTime    ?? GACHA_DEFAULT.atTime,

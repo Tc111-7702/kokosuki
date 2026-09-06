@@ -11,6 +11,12 @@ export interface ScraperPollingOptions {
   label?: string;
 }
 
+// ポーリングを止めるためのハンドル。予約設定の変更時に stop() で古いタイマーを解除し、
+// 新しい設定で scraperPolling を張り直す（worker が使う）。
+export interface ScraperPollingHandle {
+  stop: () => void;
+}
+
 const MAX_DELAY = 2 ** 31 - 1; // setTimeout の上限(約24.8日)。長い遅延はチャンク化する
 
 /** tasks を配列順に「1つずつ完了(resolved)を待って」直列実行する（手動実行・ポーリング共通） */
@@ -26,15 +32,20 @@ export async function runSequential(tasks: Task[], label = 'scraper'): Promise<v
   console.log(`[${label}] ✔ 完了`);
 }
 
-/** 絶対時刻 timestamp に fn を実行（長い遅延は分割して setTimeout の上限を回避） */
-function scheduleAt(timestamp: number, fn: () => void): void {
-  const delay = timestamp - Date.now();
-  if (delay <= 0) { fn(); return; }
-  if (delay > MAX_DELAY) {
-    setTimeout(() => scheduleAt(timestamp, fn), MAX_DELAY);
-  } else {
-    setTimeout(fn, delay);
-  }
+/**
+ * 絶対時刻 timestamp に fn を実行（長い遅延は分割して setTimeout の上限を回避）。
+ * 返り値の cancel() で保留中のタイマーを解除できる。
+ */
+function scheduleAt(timestamp: number, fn: () => void): { cancel: () => void } {
+  let timer: ReturnType<typeof setTimeout>;
+  const arm = () => {
+    const delay = timestamp - Date.now();
+    if (delay <= 0) { fn(); return; }
+    // 上限を超える遅延はチャンク化。再アームで timer を更新するので cancel は常に最新を解除する。
+    timer = delay > MAX_DELAY ? setTimeout(arm, MAX_DELAY) : setTimeout(fn, delay);
+  };
+  arm();
+  return { cancel: () => clearTimeout(timer) };
 }
 
 /** 次に atTime になる瞬間の絶対時刻(ms)。今日の時刻を過ぎていれば翌日。 */
@@ -47,18 +58,30 @@ function nextAtTime(atTime: string): number {
   return next.getTime();
 }
 
-export function scraperPolling({ tasks, everyDays, atTime, label = 'scraper' }: ScraperPollingOptions): void {
+export function scraperPolling({ tasks, everyDays, atTime, label = 'scraper' }: ScraperPollingOptions): ScraperPollingHandle {
   const days = Math.min(7, Math.max(1, Math.floor(everyDays) || 1));
   const intervalMs = days * 24 * 60 * 60 * 1000;
 
+  let stopped = false;
+  let pending: { cancel: () => void } | null = null;
+
   const cycle = (scheduledTs: number) => {
+    if (stopped) return;
     runSequential(tasks, label).finally(() => {
+      if (stopped) return; // 停止済みなら次回を張らない（実行中のものは最後まで走る）
       const nextTs = scheduledTs + intervalMs;
-      scheduleAt(nextTs, () => cycle(nextTs));
+      pending = scheduleAt(nextTs, () => cycle(nextTs));
     });
   };
 
   const firstTs = nextAtTime(atTime);
   console.log(`[${label}] 初回=${new Date(firstTs).toISOString()} / 以降 ${days}日ごと ${atTime}`);
-  scheduleAt(firstTs, () => cycle(firstTs));
+  pending = scheduleAt(firstTs, () => cycle(firstTs));
+
+  return {
+    stop: () => {
+      stopped = true;
+      pending?.cancel();
+    },
+  };
 }
