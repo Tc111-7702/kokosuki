@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process';
+import { spawn, type ChildProcess } from 'node:child_process';
 
 // スクレイピング即時実行 API（admin から呼ばれる）。
 //  - npm run scrape:gacha / scrape:phone を「mikke 自身の cwd で」子プロセス起動し、
@@ -6,12 +6,17 @@ import { spawn } from 'node:child_process';
 //  - 以前は admin が MIKKE_DIR 越しに子プロセスを起動していたが、別サーバ運用では
 //    ファイルシステムにアクセスできない。スクレイパーが在る mikke 側で実行する形にした。
 //  - 子プロセス実行なので stdout が隔離され、他リクエストのログを巻き込まない。
+//  - shop-sync 中など可視ログが無出力になる区間があるため、一定間隔でハートビートを送り
+//    接続のアイドルタイムアウト（fetch/プロキシ）で切れないようにする。
 //
 // 認証: SCRAPE_TRIGGER_TOKEN が設定されていれば Authorization: Bearer で照合する。
 //       未設定なら素通し（開発用）。本番では必ず設定すること。
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // スクレイピングは長時間かかるため上限を延長
+
+// 無出力が続いたときにハートビートを送る間隔（ms）。
+const HEARTBEAT_MS = 20_000;
 
 // 同時実行ガード（このサーバープロセス内で1件のみ）。
 let running = false;
@@ -40,14 +45,22 @@ export async function POST(req: Request) {
   const script = type === 'phone' ? 'scrape:phone' : 'scrape:gacha';
   const encoder = new TextEncoder();
 
+  // start / cancel の双方から触るため外側で保持。
+  let child: ChildProcess | undefined;
+  let heartbeat: ReturnType<typeof setInterval> | undefined;
+
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
+      let lastSent = Date.now();
       const enqueue = (text: string) => {
-        try { controller.enqueue(encoder.encode(text)); } catch { /* closed */ }
+        try {
+          controller.enqueue(encoder.encode(text));
+          lastSent = Date.now();
+        } catch { /* closed */ }
       };
 
       // mikke 自身のディレクトリで実行（スクレイパーは mikke に在る）。
-      const child = spawn('npm', ['run', script], {
+      child = spawn('npm', ['run', script], {
         cwd: process.cwd(),
         shell: true,
         env: process.env,
@@ -65,22 +78,35 @@ export async function POST(req: Request) {
         const kept = complete.split('\n').filter((l) => !isNoise(l));
         if (kept.length) enqueue(kept.join('\n') + '\n');
       };
-      child.stdout.on('data', onChunk);
-      child.stderr.on('data', onChunk);
+      child.stdout?.on('data', onChunk);
+      child.stderr?.on('data', onChunk);
+
+      // 無出力が HEARTBEAT_MS 続いたら「処理継続中」を1行流して接続を維持する。
+      heartbeat = setInterval(() => {
+        if (Date.now() - lastSent >= HEARTBEAT_MS) enqueue('… 処理継続中\n');
+      }, HEARTBEAT_MS);
 
       child.on('error', (err: Error) => {
+        if (heartbeat) clearInterval(heartbeat);
         enqueue(`\n[起動エラー] ${err.message}\n`);
         running = false;
         try { controller.close(); } catch { /* noop */ }
       });
 
       child.on('close', (code: number | null) => {
+        if (heartbeat) clearInterval(heartbeat);
         if (lineBuf && !isNoise(lineBuf)) enqueue(lineBuf + '\n');
         lineBuf = '';
         if (code !== 0) enqueue(`\n[異常終了] exit code = ${code}\n`);
         running = false;
         try { controller.close(); } catch { /* noop */ }
       });
+    },
+
+    // クライアント切断時。ハートビートは止めるが、スクレイプ本体は完走させる
+    // （途中終了で中途半端な状態を作らないため。完了時に close ハンドラで running が解除される）。
+    cancel() {
+      if (heartbeat) clearInterval(heartbeat);
     },
   });
 
