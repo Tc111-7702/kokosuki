@@ -41,6 +41,3 @@ yarn-error.log*
 next-env.d.ts
 
 /lib/generated/prisma
-
-# スクレイピング予約設定（ランタイム生成）
-scrape-schedule.json

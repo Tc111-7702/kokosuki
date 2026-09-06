@@ -67,3 +67,12 @@ model GachaLike {
 
   @@unique([userId, gachaId])
 }
+
+// スクレイピング予約設定（DB管理）。admin が書き込み、worker が読み込む共有テーブル。
+// type='gacha'|'phone' を主キーに、それぞれの頻度(everyDays 1〜7)と実行時刻(atTime)を保持。
+model ScrapeSchedule {
+  type      String   @id // 'gacha' | 'phone'
+  everyDays Int      @default(1)
+  atTime    String   @default("03:00")
+  updatedAt DateTime @updatedAt
+}

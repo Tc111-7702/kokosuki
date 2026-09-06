@@ -1238,3 +1238,17 @@ export const getIpCategoriesWithIpNames = () =>
       },
     },
   });
+
+// ─── スクレイピング予約設定（DB管理） ─────────────────────────────────────────
+
+/** 予約設定を取得（type='gacha'|'phone'）。未設定なら null。 */
+export const getScrapeSchedule = (type: string) =>
+  prisma.scrapeSchedule.findUnique({ where: { type } });
+
+/** 予約設定を upsert（everyDays 1〜7 / atTime "HH:MM"）。 */
+export const upsertScrapeSchedule = (type: string, everyDays: number, atTime: string) =>
+  prisma.scrapeSchedule.upsert({
+    where:  { type },
+    update: { everyDays, atTime },
+    create: { type, everyDays, atTime },
+  });
