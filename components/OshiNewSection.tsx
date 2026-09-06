@@ -73,8 +73,8 @@ export function OshiNewSection() {
           backgroundClip: 'text', display: 'inline-block' }}>あなたへのおすすめ</p>
       </div>
 
-      {/* IP別セクション */}
-      <div style={{ margin: '0 16px', paddingTop: isMobile ? 16 : 32 }}>
+      {/* IP別セクション（モバイルは右marginを除去して横スクロールを右端まで見切れさせる） */}
+      <div style={{ margin: isMobile ? '0 0 0 16px' : '0 16px', paddingTop: isMobile ? 16 : 32 }}>
         {groups.map((group, i) => (
           <IpGroup key={group.ipName} group={group} isMobile={isMobile} isLast={i === groups.length - 1} />
         ))}
