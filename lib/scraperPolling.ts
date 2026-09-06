@@ -1,18 +1,17 @@
 // 常駐 Node プロセス用のスクレイピング・スケジューラ。
-// 「毎 everyWeeks 週間、指定曜日 dayOfWeek の時刻 atTime」に tasks を配列順で直列実行する。
+// 「everyDays 日ごと、時刻 atTime」に tasks を配列順で直列実行する。
 // ※ Vercel サーバーレスでは動きません（プロセスが常駐している環境で使うこと）。
 
 type Task = () => Promise<unknown>;
 
 export interface ScraperPollingOptions {
-  tasks: Task[];        // 実行する関数群（配列の順に直列実行）
-  everyWeeks: number;   // a: 何週間ごとに繰り返すか
-  dayOfWeek: number;    // 実行曜日（0=日, 1=月, … 6=土）
-  atTime: string;       // b: 実行時刻 "HH:MM"（24h表記）
+  tasks: Task[];      // 実行する関数群（配列の順に直列実行）
+  everyDays: number;  // 何日ごとに繰り返すか（1〜7）
+  atTime: string;     // 実行時刻 "HH:MM"（24h表記）
   label?: string;
 }
 
-const MAX_DELAY = 2 ** 31 - 1; // setTimeout の上限(約24.8日)。週単位はこれを超えるのでチャンク化する
+const MAX_DELAY = 2 ** 31 - 1; // setTimeout の上限(約24.8日)。長い遅延はチャンク化する
 
 /** tasks を配列順に「1つずつ完了(resolved)を待って」直列実行する（手動実行・ポーリング共通） */
 export async function runSequential(tasks: Task[], label = 'scraper'): Promise<void> {
@@ -38,21 +37,19 @@ function scheduleAt(timestamp: number, fn: () => void): void {
   }
 }
 
-/** 現在時刻から見て「次に dayOfWeek 曜日の atTime になる瞬間」の絶対時刻(ms) */
-function nextOccurrence(dayOfWeek: number, atTime: string): number {
+/** 次に atTime になる瞬間の絶対時刻(ms)。今日の時刻を過ぎていれば翌日。 */
+function nextAtTime(atTime: string): number {
   const [h, m] = atTime.split(':').map((v) => parseInt(v, 10));
   const now = new Date();
   const next = new Date(now);
-  next.setHours(h, Number.isFinite(m) ? m : 0, 0, 0);
-  let dayDiff = ((dayOfWeek - next.getDay()) % 7 + 7) % 7;
-  // 当日で既に時刻を過ぎている場合は翌週の同曜日へ
-  if (dayDiff === 0 && next.getTime() <= now.getTime()) dayDiff = 7;
-  next.setDate(next.getDate() + dayDiff);
+  next.setHours(Number.isFinite(h) ? h : 0, Number.isFinite(m) ? m : 0, 0, 0);
+  if (next.getTime() <= now.getTime()) next.setDate(next.getDate() + 1);
   return next.getTime();
 }
 
-export function scraperPolling({ tasks, everyWeeks, dayOfWeek, atTime, label = 'scraper' }: ScraperPollingOptions): void {
-  const intervalMs = everyWeeks * 7 * 24 * 60 * 60 * 1000;
+export function scraperPolling({ tasks, everyDays, atTime, label = 'scraper' }: ScraperPollingOptions): void {
+  const days = Math.min(7, Math.max(1, Math.floor(everyDays) || 1));
+  const intervalMs = days * 24 * 60 * 60 * 1000;
 
   const cycle = (scheduledTs: number) => {
     runSequential(tasks, label).finally(() => {
@@ -61,7 +58,7 @@ export function scraperPolling({ tasks, everyWeeks, dayOfWeek, atTime, label = '
     });
   };
 
-  const firstTs = nextOccurrence(dayOfWeek, atTime);
-  console.log(`[${label}] 初回=${new Date(firstTs).toISOString()} / 以降 ${everyWeeks} 週間ごと 曜日=${dayOfWeek} ${atTime}`);
+  const firstTs = nextAtTime(atTime);
+  console.log(`[${label}] 初回=${new Date(firstTs).toISOString()} / 以降 ${days}日ごと ${atTime}`);
   scheduleAt(firstTs, () => cycle(firstTs));
 }
