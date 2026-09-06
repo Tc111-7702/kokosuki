@@ -56,7 +56,8 @@ export default function SpotDetailSheet({
   const router = useRouter();
   const sheetRef = useRef<HTMLDivElement>(null);
   const [navOpen,     setNavOpen]     = useState(false);
-  const isMobile = useIsMobile();
+  const MOBILE_BREAKPOINT = 768;
+  const isMobile = useIsMobile(MOBILE_BREAKPOINT);
   const [expanded,    setExpanded]    = useState(false);
   const dragStartY = useRef<number | null>(null);
   const [reviews,     setReviews]     = useState<SheetReview[]>([]);
@@ -241,17 +242,14 @@ export default function SpotDetailSheet({
             <>
               {isMobile && matchedGacha.length > 2 && (
                 <style>{`
-                  .spot-gacha-scroll::-webkit-scrollbar { height: 4px; }
-                  .spot-gacha-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.07); border-radius: 2px; }
-                  .spot-gacha-scroll::-webkit-scrollbar-thumb { background: #F2B800; border-radius: 2px; }
+                  .spot-gacha-scroll::-webkit-scrollbar { display: none; }
                 `}</style>
               )}
               <div
                 className={isMobile && matchedGacha.length > 2 ? 'spot-gacha-scroll' : ''}
                 style={{
                   display: 'flex', gap: 12, padding: '12px 16px', overflowX: 'auto',
-                  scrollbarWidth: isMobile && matchedGacha.length > 2 ? 'thin' : 'none',
-                  scrollbarColor: isMobile && matchedGacha.length > 2 ? '#F2B800 rgba(0,0,0,0.07)' : undefined,
+                  scrollbarWidth: 'none',
                 }}
               >
                 {matchedGacha.map(g => (

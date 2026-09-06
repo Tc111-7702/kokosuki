@@ -163,7 +163,8 @@ function PostPageContent() {
   const filterRaw = searchParams.get('filterGachaIds') ?? '';
   const filterIds = filterRaw ? filterRaw.split(',').filter(Boolean) : [];
   const search    = searchParams.get('contentSearch') ?? '';   // マップの検索を引き継ぐ
-  const isMobile  = useIsMobile();
+  const MOBILE_BREAKPOINT = 768;
+  const isMobile  = useIsMobile(MOBILE_BREAKPOINT);
   return isMobile
     ? <MobilePostPage  initialMode={mode} initialSpotId={spotId} initialSpotName={spotName} initialFilterGachaIds={filterIds} initialSearch={search} />
     : <DesktopPostPage initialMode={mode} initialSpotId={spotId} initialSpotName={spotName} initialFilterGachaIds={filterIds} initialSearch={search} />;

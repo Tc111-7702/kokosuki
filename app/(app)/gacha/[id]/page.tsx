@@ -237,7 +237,8 @@ export default function GachaDetailPage() {
   const [nearbySpots,   setNearbySpots]   = useState<NearbySpot[]>([]);
   const [nearbyLoading, setNearbyLoading] = useState(false);
   const [nearbyError,   setNearbyError]   = useState<string | null>(null);
-  const isMobile = useIsMobile();
+  const MOBILE_BREAKPOINT = 768;
+  const isMobile = useIsMobile(MOBILE_BREAKPOINT);
 
   useEffect(() => {
     fetch('/api/gacha/' + id)

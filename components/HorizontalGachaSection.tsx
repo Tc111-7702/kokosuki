@@ -16,10 +16,14 @@ interface Props {
   badgeLabel?: string; // 指定時は各カードのバッジを固定ラベルに（例: 今秋発売）
 }
 
+const MOBILE_BREAKPOINT = 768;
+const NARROW_BREAKPOINT = 341; // 340px以下でカードを縮小して3枚目を覗かせる
+
 export function HorizontalGachaSection({ title, subtitle, color, colorDark, colorMid, apiUrl, scrollId, showRank = true, badgeLabel }: Props) {
   const [gachas, setGachas] = useState<Gacha[]>([]);
   const [loading, setLoading] = useState(true);
-  const isMobile = useIsMobile();
+  const isMobile = useIsMobile(MOBILE_BREAKPOINT);
+  const isNarrow = useIsMobile(NARROW_BREAKPOINT);
   const [scrollRatio, setScrollRatio] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const scrollClass = `h-gacha-scroll-${scrollId}`;
@@ -53,7 +57,7 @@ export function HorizontalGachaSection({ title, subtitle, color, colorDark, colo
   const cls = scrollClass;
 
   return (
-    <div style={{ marginLeft: 16, marginRight: 16 }}>
+    <div style={{ marginLeft: 16, marginRight: isMobile ? 0 : 16 }}>
       {/* ヘッダー */}
       <div style={{ paddingTop: isMobile ? 24 : 34, paddingBottom: isMobile ? 16 : 24, paddingLeft: isMobile ? 4 : 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
@@ -67,11 +71,9 @@ export function HorizontalGachaSection({ title, subtitle, color, colorDark, colo
           backgroundClip: 'text', display: 'inline-block' }}>{title}</p>
       </div>
 
-      {/* 横スクロールグリッド */}
+      {/* 横スクロールグリッド（スクロールバーは常に非表示・スワイプ/矢印で操作） */}
       <style>{`
-        .${cls}::-webkit-scrollbar { height: ${isMobile ? '4px' : '0px'}; }
-        .${cls}::-webkit-scrollbar-track { background: rgba(0,0,0,0.07); border-radius: 2px; }
-        .${cls}::-webkit-scrollbar-thumb { background: ${color}; border-radius: 2px; opacity: 0.7; }
+        .${cls}::-webkit-scrollbar { display: none; }
       `}</style>
       <div
         ref={scrollRef}
@@ -80,12 +82,11 @@ export function HorizontalGachaSection({ title, subtitle, color, colorDark, colo
         style={{
           display: 'flex', gap: isMobile ? 12 : 32, overflowX: 'auto',
           paddingBottom: isMobile ? 10 : 10,
-          scrollbarWidth: isMobile ? 'thin' : 'none',
-          scrollbarColor: isMobile ? `${color} rgba(0,0,0,0.07)` : undefined,
+          scrollbarWidth: 'none',
         }}
       >
         {gachas.map((item, rank) => (
-          <GachaCard key={item.id} gacha={item} rank={rank} showRank={showRank} isMobile={isMobile} badgeLabel={badgeLabel} />
+          <GachaCard key={item.id} gacha={item} rank={rank} showRank={showRank} isMobile={isMobile} narrow={isNarrow} badgeLabel={badgeLabel} />
         ))}
       </div>
 

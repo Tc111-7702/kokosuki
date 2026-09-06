@@ -27,7 +27,8 @@ export function SpotGachaPicker({ spotId, filterGachaIds, onSelect, selectedId, 
   selectedId?: string;
   initialQuery?: string;
 }) {
-  const isMobile = useIsMobile();
+  const MOBILE_BREAKPOINT = 768;
+  const isMobile = useIsMobile(MOBILE_BREAKPOINT);
   const [allGachas,       setAllGachas]       = useState<GachaItem[]>([]);
   const [loading,         setLoading]         = useState(true);
   const [resolving,       setResolving]       = useState<string | null>(null);

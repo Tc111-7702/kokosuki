@@ -236,7 +236,8 @@ export default function StorePage() {
   const [navOpen,       setNavOpen]       = useState(false);
   const [currentPos,    setCurrentPos]    = useState<{ lat: number; lng: number } | null>(null);
   const [loading,       setLoading]       = useState(true);
-  const isMobile = useIsMobile();
+  const MOBILE_BREAKPOINT = 768;
+  const isMobile = useIsMobile(MOBILE_BREAKPOINT);
   // 通知から来たとき（返信欄を開く指定あり）は「口コミ・投稿」タブを初期表示に
   const [activeTab,     setActiveTab]     = useState<'products' | 'posts'>(openReplyId || openReviewId ? 'posts' : 'products');
 

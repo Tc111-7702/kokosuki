@@ -361,6 +361,13 @@
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* モバイル(<768px): スクロールバーを視覚的に非表示（スクロール自体は可能）。
+   右側の余白を取らず画面幅をフルに使える。 */
+@media (max-width: 767px) {
+  * { scrollbar-width: none; -ms-overflow-style: none; }
+  *::-webkit-scrollbar { width: 0; height: 0; display: none; }
+}
 /* Zoom slider - white track */
 .zoom-slider::-webkit-slider-runnable-track {
   background: white;

@@ -12,11 +12,15 @@ interface Group {
   gachas: GachaItem[];
 }
 
+const MOBILE_BREAKPOINT = 768;
+const NARROW_BREAKPOINT = 341; // 340px以下でカードを縮小して3枚目を覗かせる
+
 export function OshiNewSection() {
   const [groups, setGroups]   = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const [noFav, setNoFav]     = useState(false);
-  const isMobile = useIsMobile();
+  const isMobile = useIsMobile(MOBILE_BREAKPOINT);
+  const isNarrow = useIsMobile(NARROW_BREAKPOINT);
 
   useEffect(() => {
     fetch('/api/gacha/recommended')
@@ -73,17 +77,17 @@ export function OshiNewSection() {
           backgroundClip: 'text', display: 'inline-block' }}>あなたへのおすすめ</p>
       </div>
 
-      {/* IP別セクション */}
-      <div style={{ margin: '0 16px', paddingTop: isMobile ? 16 : 32 }}>
+      {/* IP別セクション（モバイルは右marginを除去して横スクロールを右端まで見切れさせる） */}
+      <div style={{ margin: isMobile ? '0 0 0 16px' : '0 16px', paddingTop: isMobile ? 16 : 32 }}>
         {groups.map((group, i) => (
-          <IpGroup key={group.ipName} group={group} isMobile={isMobile} isLast={i === groups.length - 1} />
+          <IpGroup key={group.ipName} group={group} isMobile={isMobile} narrow={isNarrow} isLast={i === groups.length - 1} />
         ))}
       </div>
     </div>
   );
 }
 
-function IpGroup({ group, isMobile, isLast }: { group: Group; isMobile: boolean; isLast: boolean }) {
+function IpGroup({ group, isMobile, narrow, isLast }: { group: Group; isMobile: boolean; narrow: boolean; isLast: boolean }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [scrollRatio, setScrollRatio] = useState(0);
 
@@ -111,11 +115,9 @@ function IpGroup({ group, isMobile, isLast }: { group: Group; isMobile: boolean;
         <div style={{ flex: 1, height: 1, background: '#EDE9D8' }} />
       </div>
 
-      {/* 横スクロール */}
+      {/* 横スクロール（スクロールバーは常に非表示・スワイプ/矢印で操作） */}
       <style>{`
-        .ip-scroll-${group.ipName.replace(/[^a-zA-Z0-9]/g, '')}::-webkit-scrollbar { height: ${isMobile ? '4px' : '0px'}; }
-        .ip-scroll-${group.ipName.replace(/[^a-zA-Z0-9]/g, '')}::-webkit-scrollbar-track { background: rgba(0,0,0,0.07); border-radius: 2px; }
-        .ip-scroll-${group.ipName.replace(/[^a-zA-Z0-9]/g, '')}::-webkit-scrollbar-thumb { background: #F2B800; border-radius: 2px; }
+        .ip-scroll-${group.ipName.replace(/[^a-zA-Z0-9]/g, '')}::-webkit-scrollbar { display: none; }
       `}</style>
       <div
         ref={scrollRef}
@@ -124,12 +126,11 @@ function IpGroup({ group, isMobile, isLast }: { group: Group; isMobile: boolean;
         style={{
           display: 'flex', gap: isMobile ? 12 : 32, overflowX: 'auto',
           paddingBottom: isMobile ? 10 : 10,
-          scrollbarWidth: isMobile ? 'thin' : 'none',
-          scrollbarColor: isMobile ? '#F2B800 rgba(0,0,0,0.07)' : undefined,
+          scrollbarWidth: 'none',
         }}
       >
         {group.gachas.map((item, rank) => (
-          <GachaCard key={item.id} gacha={item} rank={rank} showRank={false} isMobile={isMobile} />
+          <GachaCard key={item.id} gacha={item} rank={rank} showRank={false} isMobile={isMobile} narrow={narrow} />
         ))}
       </div>
 

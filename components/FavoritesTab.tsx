@@ -110,7 +110,8 @@ export function FavoritesTab({ userId, editable = true }: { userId?: string; edi
   const [loading,  setLoading]  = useState(true);
   const [editing,  setEditing]  = useState(false);
   const [deleting, setDeleting] = useState<Set<string>>(new Set());
-  const isMobile = useIsMobile();
+  const MOBILE_BREAKPOINT = 768;
+  const isMobile = useIsMobile(MOBILE_BREAKPOINT);
 
   useEffect(() => {
     // 自分＝編集可の自分用API / 他人＝公開API
