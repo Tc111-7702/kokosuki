@@ -328,6 +328,25 @@ export async function getPopularGachas(limit = 20, excludeIds: string[] = []) {
   return rows.map(({ _count, ...g }) => ({ ...flatIp(g), likeCount: _count.gachaLikes }));
 }
 
+// ホーム掲載枠（admin が手動設定）の選択中ガチャを sortOrder 順に返す。section='weekly'|'reissue'。
+export async function getHomeFeaturedGachas(section: string) {
+  const rows = await prisma.homeFeatured.findMany({
+    where: { section },
+    orderBy: { sortOrder: 'asc' },
+    select: {
+      gacha: {
+        select: {
+          id: true, seriesName: true, ...IP_NAME_SELECT,
+          imageUrl: true, gradientFrom: true, gradientTo: true,
+          status: true, releaseDate: true,
+          _count: { select: { gachaLikes: true } },
+        },
+      },
+    },
+  });
+  return rows.map(({ gacha: { _count, ...g } }) => ({ ...flatIp(g), likeCount: _count.gachaLikes }));
+}
+
 export async function getRecommendedByLikedGachas(userId: string, perIp = 10) {
   // ユーザーのハート済みガチャとその IpName を取得
   const likes = await prisma.gachaLike.findMany({
@@ -1151,25 +1170,15 @@ export const searchUsers = (q: string, excludeUserId?: string) =>
     take: 10,
   });
 
-// ─── Coming Soon（近日発売の補完取得） ──────────────────────────────────────────
+// ─── ホーム: カテゴリ別（発売中×いいね順） ────────────────────────────────────
 
-const COMING_SOON_SELECT = {
+// ホームの横スクロールカード（GachaCard）用の共通 select。
+const CARD_SELECT = {
   id: true, seriesName: true, ...IP_NAME_SELECT,
   imageUrl: true, gradientFrom: true, gradientTo: true,
   status: true, releaseDate: true,
   _count: { select: { gachaLikes: true } },
 } as const;
-
-/** 追加の where を受け取り、いいね数降順で take 件のガチャを返す（発売中のみ） */
-export const findComingSoonGachas = async (where: Prisma.GachaWhereInput, take: number) =>
-  (await prisma.gacha.findMany({
-    where: { status: 'on_sale', ...where },
-    orderBy: { gachaLikes: { _count: 'desc' } },
-    take,
-    select: COMING_SOON_SELECT,
-  })).map(flatIp);
-
-// ─── ホーム: カテゴリ別（発売中×いいね順） ────────────────────────────────────
 
 /** #19: 発売中のうち IpCategory.key が指定リストに含まれるものを、いいね数降順で take 件（excludeIds は除外）。 */
 export const getOnSaleGachasByCategoryKeys = async (keys: string[], take: number, excludeIds: string[] = []) =>
@@ -1181,7 +1190,7 @@ export const getOnSaleGachasByCategoryKeys = async (keys: string[], take: number
     },
     orderBy: { gachaLikes: { _count: 'desc' } },
     take,
-    select: COMING_SOON_SELECT,
+    select: CARD_SELECT,
   })).map(flatIp);
 
 /** #19: 発売中のうち IpCategory.key が指定リストに含まれないもの（未linkの ipNameId=null も含む）を、いいね数降順で take 件。 */
@@ -1197,7 +1206,7 @@ export const getOnSaleGachasNotInCategoryKeys = async (keys: string[], take: num
     },
     orderBy: { gachaLikes: { _count: 'desc' } },
     take,
-    select: COMING_SOON_SELECT,
+    select: CARD_SELECT,
   })).map(flatIp);
 
 // ─── #19 IP正規化（IpCategory / IpName） ─────────────────────────────────────

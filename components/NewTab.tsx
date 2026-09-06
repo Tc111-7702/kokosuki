@@ -18,14 +18,26 @@ export function NewTab() {
       />
       <OshiNewSection />
       <HorizontalGachaSection
-        title="もうすぐ発売"
-        subtitle="Coming Soon"
+        title="今週発売"
+        subtitle="This Week"
         color="#4F46E5"
         colorDark="#1E1B6B"
         colorMid="#3730A3"
-        apiUrl="/api/gacha/coming-soon"
-        scrollId="coming-soon"
+        apiUrl="/api/gacha/home-featured/weekly"
+        scrollId="home-weekly"
         showRank={false}
+        badgeLabel="今週発売"
+      />
+      <HorizontalGachaSection
+        title="再販・また引ける"
+        subtitle="Reissue"
+        color="#10B981"
+        colorDark="#064E3B"
+        colorMid="#047857"
+        apiUrl="/api/gacha/home-featured/reissue"
+        scrollId="home-reissue"
+        showRank={false}
+        badgeLabel="発売中"
       />
       <HorizontalGachaSection
         title="キャラクター・マスコット"
