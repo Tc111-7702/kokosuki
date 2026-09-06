@@ -4,10 +4,10 @@ import { syncShopGachas } from '@/lib/scrapers/gacha-island-shop-sync';
 import { syncScheduleGachas } from '@/lib/scrapers/gacha-island-schedule';
 
 // デフォルト設定（あとで start/run の引数で上書き可）
+// 発売予定ガチャを常に最新へ同期したいので既定は毎日（everyDays=1）。
 export const GACHA_DEFAULT = {
-  everyWeeks: 4,      // a: 4週間ごと
-  dayOfWeek: 0,       // 実行曜日（0=日曜）
-  atTime: '03:00',    // b: 実行時刻
+  everyDays: 1,       // 何日ごと（1〜7）。既定=毎日
+  atTime: '03:00',    // 実行時刻
 };
 
 // 実行するタスク（正しい順序: 店舗リスト → 店舗ガチャ同期 → 発売スケジュール）
@@ -21,13 +21,12 @@ const GACHA_TASKS = [
 
 /** 定期ポーリング開始（常駐プロセス用） */
 export function startGachaScraping(
-  opts: { everyWeeks?: number; dayOfWeek?: number; atTime?: string } = {},
+  opts: { everyDays?: number; atTime?: string } = {},
 ): void {
   scraperPolling({
     label: 'gacha-island',
-    everyWeeks: opts.everyWeeks ?? GACHA_DEFAULT.everyWeeks,
-    dayOfWeek:  opts.dayOfWeek  ?? GACHA_DEFAULT.dayOfWeek,
-    atTime:     opts.atTime     ?? GACHA_DEFAULT.atTime,
+    everyDays: opts.everyDays ?? GACHA_DEFAULT.everyDays,
+    atTime:    opts.atTime    ?? GACHA_DEFAULT.atTime,
     tasks: GACHA_TASKS,
   });
 }
