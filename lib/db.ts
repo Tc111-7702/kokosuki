@@ -328,9 +328,9 @@ export async function getPopularGachas(limit = 20, excludeIds: string[] = []) {
   return rows.map(({ _count, ...g }) => ({ ...flatIp(g), likeCount: _count.gachaLikes }));
 }
 
-// ホーム掲載枠（admin が手動設定）の選択中ガチャを sortOrder 順に返す。section='weekly'|'reissue'。
-export async function getHomeFeaturedGachas(section: string) {
-  const rows = await prisma.homeFeatured.findMany({
+// ホームのピックアップ枠（admin が手動設定）の選択中ガチャを sortOrder 順に返す。section='weekly'|'reissue'。
+export async function getHomePickupGachas(section: string) {
+  const rows = await prisma.homePickup.findMany({
     where: { section },
     orderBy: { sortOrder: 'asc' },
     select: {

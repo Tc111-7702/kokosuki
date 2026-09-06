@@ -3,7 +3,7 @@ import * as db from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
-// ホームの掲載枠セクション用。admin が手動設定した掲載ガチャを sortOrder 順で返す。
+// ホームのピックアップ枠セクション用。admin が手動設定した掲載ガチャを sortOrder 順で返す。
 //   section: 'weekly'（今週発売） | 'reissue'（再販・また引ける）
 const SECTIONS = ['weekly', 'reissue'] as const;
 type Section = (typeof SECTIONS)[number];
@@ -17,10 +17,10 @@ export async function GET(
     return NextResponse.json({ error: 'invalid section' }, { status: 400 });
   }
   try {
-    const gachas = await db.getHomeFeaturedGachas(section);
+    const gachas = await db.getHomePickupGachas(section);
     return NextResponse.json({ gachas });
   } catch (e) {
-    console.error('[/api/gacha/home-featured]', e);
+    console.error('[/api/gacha/home-pickup]', e);
     return NextResponse.json({ gachas: [] }, { status: 500 });
   }
 }

@@ -28,7 +28,7 @@ model Gacha {
   posts           Post[]
   stockPosts      StockPost[]
   gachaLikes      GachaLike[]
-  homeFeatured    HomeFeatured[]
+  homePickups     HomePickup[]
   ip              IpName?     @relation(fields: [ipNameId], references: [id])
 
   @@index([ipNameId])
@@ -69,9 +69,9 @@ model GachaLike {
   @@unique([userId, gachaId])
 }
 
-// ホーム掲載枠（admin と共有）。admin が手動設定して書き込み、mikke のホームが読む。
-// section='今週発売'|'再販' 等ごとに、掲載するガチャと表示順(sortOrder)を保持する。
-model HomeFeatured {
+// ホームのピックアップ枠（admin と共有）。管理者が手動で選定してホームの各セクションに掲載する。
+// section='weekly'（今週発売）|'reissue'（再販・また引ける）ごとに、掲載ガチャと表示順(sortOrder)を保持。
+model HomePickup {
   id        String   @id @default(cuid())
   section   String
   gachaId   String
