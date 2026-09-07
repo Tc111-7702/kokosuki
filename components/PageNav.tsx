@@ -21,11 +21,19 @@ export function PageNav() {
   const myId     = useCurrentUserId();
   const unread   = useUnreadNotificationCount();
 
-  // マイページは「自分のページ」のときだけアクティブ（他人のプロフィール表示中は非アクティブ）
-  const isNavActive = (path: string) =>
-    path === '/mypage'
-      ? pathname === '/mypage' || (myId != null && pathname === `/mypage/${myId}`)
-      : pathname.startsWith(path);
+  // マイページ: 自分のページ or 設定ページのときアクティブ（他人のプロフィール表示中は非アクティブ）
+  // マップ: マップ or 店舗詳細(/store/...)のときアクティブ
+  const isNavActive = (path: string) => {
+    if (path === '/mypage') {
+      return pathname === '/mypage'
+        || (myId != null && pathname === `/mypage/${myId}`)
+        || pathname.startsWith('/settings');
+    }
+    if (path === '/map') {
+      return pathname.startsWith('/map') || pathname.startsWith('/store');
+    }
+    return pathname.startsWith(path);
+  };
 
   return (
     <nav
