@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, Suspense } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { CheckCircle2 } from 'lucide-react';
 import { useIsMobile } from '@/lib/useIsMobile';
 import { NewTab }        from '@/components/NewTab';
 import { CommunityTab }  from '@/components/CommunityTab';
@@ -48,6 +49,19 @@ function HomePageInner() {
     }
   }, [rawTab]);
 
+  // 投稿直後（?posted=1）に「投稿を送信しました」トーストを上からスライド表示する。
+  // 表示後はURLからパラメータを消し、リロード/戻るで再表示されないようにする。
+  const [showPostedToast, setShowPostedToast] = useState(false);
+  useEffect(() => {
+    if (searchParams.get('posted') !== '1') return;
+    setShowPostedToast(true);
+    const url = new URL(window.location.href);
+    url.searchParams.delete('posted');
+    window.history.replaceState(null, '', url.pathname + url.search);
+    const t = setTimeout(() => setShowPostedToast(false), 2600);
+    return () => clearTimeout(t);
+  }, [searchParams]);
+
   const switchTab = (key: HomeTab) => {
     router.replace(`/home?tab=${key}`);
   };
@@ -56,6 +70,37 @@ function HomePageInner() {
 
   return (
     <div className="relative flex flex-col h-full bg-[#FFFEEF]">
+      {/* 投稿完了トースト（上からスライドイン→少し待って消える） */}
+      {showPostedToast && (
+        <>
+          <style>{`@keyframes postedToast {
+            0%   { opacity: 0; transform: translate(-50%, -16px); }
+            10%  { opacity: 1; transform: translate(-50%, 0); }
+            85%  { opacity: 1; transform: translate(-50%, 0); }
+            100% { opacity: 0; transform: translate(-50%, -10px); }
+          }`}</style>
+          <div
+            style={{
+              position: 'absolute', top: 14, left: '50%', zIndex: 50,
+              animation: 'postedToast 2.6s ease-out forwards', pointerEvents: 'none',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                background: 'rgba(28,28,30,0.92)', color: '#fff',
+                padding: '10px 18px', borderRadius: 999,
+                boxShadow: '0 6px 20px rgba(0,0,0,0.28)',
+                fontSize: 14, fontWeight: 700, whiteSpace: 'nowrap',
+              }}
+            >
+              <CheckCircle2 size={18} />
+              投稿を送信しました
+            </div>
+          </div>
+        </>
+      )}
+
       {/* 検索バー + タブバー */}
       <div className="flex-shrink-0 bg-white" style={{ borderBottom: '1.5px solid #EDE9D8' }}>
         {showSearchBar && (
