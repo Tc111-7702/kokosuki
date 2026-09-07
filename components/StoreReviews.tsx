@@ -10,7 +10,7 @@ interface ReviewReply {
   userId: string;
   text: string;
   createdAt: string;
-  user: { id: string; name: string; image: string | null };
+  user: { id: string; name: string; image: string | null; profile?: { handle: string | null } | null };
 }
 
 interface Review {
@@ -22,7 +22,7 @@ interface Review {
   likedByMe: boolean;
   _count: { likes: number };
   replies: ReviewReply[];
-  user: { id: string; name: string; image: string | null };
+  user: { id: string; name: string; image: string | null; profile?: { handle: string | null } | null };
 }
 
 export function StoreReviews({ spotId, autoOpenReviewId }: { spotId: string; autoOpenReviewId?: string | null }) {
@@ -179,16 +179,16 @@ export function StoreReviews({ spotId, autoOpenReviewId }: { spotId: string; aut
     for (const u of [review.user, ...review.replies.map(rp => rp.user)]) {
       if (u.id === currentUid || seen.has(u.id)) continue;
       seen.add(u.id);
-      if (q === '' || u.name.toLowerCase().includes(q)) out.push(u);
+      if (q === '' || u.name.toLowerCase().includes(q) || (u.profile?.handle?.toLowerCase().includes(q) ?? false)) out.push(u);
     }
     return out.slice(0, 6);
   };
 
-  // 入力欄の末尾の「@クエリ」を「@名前 」に置換して挿入
-  const insertReplyMention = (reviewId: string, name: string) => {
+  // 入力欄の末尾の「@クエリ」を「@handle 」に置換して挿入（handle が無ければ名前）
+  const insertReplyMention = (reviewId: string, token: string) => {
     setReplyTexts(prev => {
       const cur = prev[reviewId] ?? '';
-      const replaced = cur.replace(/(^|\s)@[^@\s]*$/, (m) => `${m.startsWith('@') ? '' : m[0]}@${name} `);
+      const replaced = cur.replace(/(^|\s)@[^@\s]*$/, (m) => `${m.startsWith('@') ? '' : m[0]}@${token} `);
       return { ...prev, [reviewId]: replaced };
     });
     setMention(null);
@@ -352,11 +352,14 @@ export function StoreReviews({ spotId, autoOpenReviewId }: { spotId: string; aut
                           {cands.map(u => (
                             <button
                               key={u.id}
-                              onMouseDown={e => { e.preventDefault(); insertReplyMention(review.id, u.name); }}
+                              onMouseDown={e => { e.preventDefault(); insertReplyMention(review.id, u.profile?.handle ?? u.name); }}
                               style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', padding: '8px 12px', border: 'none', background: 'none', cursor: 'pointer' }}
                             >
                               <Avatar user={u} size={22} />
-                              <span style={{ fontSize: 12, fontWeight: 600, color: '#333' }}>{u.name}</span>
+                              <span style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0 }}>
+                                <span style={{ fontSize: 12, fontWeight: 600, color: '#333' }}>{u.name}</span>
+                                {u.profile?.handle && <span style={{ fontSize: 11, color: '#AAA' }}>@{u.profile.handle}</span>}
+                              </span>
                             </button>
                           ))}
                         </div>
