@@ -203,6 +203,7 @@ function StorePosts({
                 postId={p.id}
                 postType={type}
                 currentUserId={currentUserId}
+                postOwner={p.user}
                 onCountChange={(delta) => updateReplyCount(p.id, delta)}
               />
             )}
