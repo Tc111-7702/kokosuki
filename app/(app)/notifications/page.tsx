@@ -70,7 +70,7 @@ function bodyText(n: NotificationItem): string {
   if (n.type === 'like' && n.actorCount > 1) {
     const first = n.actors[0]?.name ?? 'だれか';
     const label = n.postId ? '投稿' : n.stockPostId ? '在庫報告' : n.spotReviewId ? '口コミ' : '投稿';
-    return `${first}さん 他${n.actorCount - 1}名があなたの${label}にいいねしました`;
+    return `${first}さん他${n.actorCount - 1}人があなたの${label}にいいねしました`;
   }
   return n.body;
 }
@@ -83,22 +83,39 @@ export default function NotificationsPage() {
   useEffect(() => {
     let alive = true;
 
-    fetch('/api/notifications')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (alive) setItems(d?.notifications ?? []);
-        // 未読状態を取得・描画した後で既読化する。
-        // （GETとPATCHを同時に投げると、PATCHが先に走ってGETが全既読で返り、
-        //   未読のヒカル演出が出ないことがあるため順序を保証する）
-        fetch('/api/notifications/read', { method: 'PATCH' }).catch(() => {});
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (alive) setLoading(false);
-      });
+    // markRead=true の初回のみ既読化。ポーリング時は取得だけ行い、
+    // いいね者が付け替わった通知（未読に戻る）はヒカリ演出で気づけるようにする。
+    const load = (markRead: boolean) =>
+      fetch('/api/notifications')
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => {
+          if (!alive) return;
+          // items を丸ごと差し替え。key(id) は不変なので、いいね者が更新された
+          // 通知は actor[0]（左アバター）と下のいいね者一覧だけが差し替わる。
+          setItems(d?.notifications ?? []);
+          if (markRead) {
+            // 未読状態を取得・描画した後で既読化する。
+            // （GETとPATCHを同時に投げると、PATCHが先に走ってGETが全既読で返り、
+            //   未読のヒカル演出が出ないことがあるため順序を保証する）
+            fetch('/api/notifications/read', { method: 'PATCH' }).catch(() => {});
+          }
+        })
+        .catch(() => {})
+        .finally(() => {
+          if (alive) setLoading(false);
+        });
+
+    load(true);
+
+    // 閲覧中は一定間隔で再取得し、いいね者の更新を反映（非表示タブでは休む）
+    const POLL_MS = 12000;
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible') load(false);
+    }, POLL_MS);
 
     return () => {
       alive = false;
+      clearInterval(timer);
     };
   }, []);
 
