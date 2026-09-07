@@ -135,6 +135,69 @@ export async function removeLikeNotification(kind: NotifyTargetKind, targetId: s
   }
 }
 
+/**
+ * 在庫報告への返信で @メンションされた相手へ通知する。
+ * ・メンションは本文中の「@名前」。名前→userId は「その在庫報告の返信参加者」から解決する。
+ * ・投稿主は除外（投稿主には notifyReply で別途通知が飛ぶため重複させない）。
+ * ・自分自身（返信者）も除外。
+ * @param stockPostId 対象の在庫報告ID
+ * @param actorId     返信した人（＝メンションした人）
+ * @param text        返信本文
+ */
+export async function notifyStockReplyMentions(stockPostId: string, actorId: string, text: string) {
+  try {
+    if (!text.includes('@')) return; // メンションが無ければ何もしない
+
+    const post = await db.findPublicStockPost(stockPostId);
+    if (!post) return; // 非公開/存在しない → 対象外
+    const ownerId = post.userId;
+
+    // 返信参加者を name→userId で用意（同名は先勝ち）。名前解決はこの参加者集合で行う。
+    const replies = await db.listStockPostReplies(stockPostId);
+    const nameToUid = new Map<string, string>();
+    for (const r of replies) {
+      if (r.user?.name && r.user?.id && !nameToUid.has(r.user.name)) {
+        nameToUid.set(r.user.name, r.user.id);
+      }
+    }
+    if (nameToUid.size === 0) return;
+
+    // 本文から「@名前」を検出。長い名前を優先（renderWithMentions と同じ考え方で部分一致の誤検出を防ぐ）。
+    const escaped = [...nameToUid.keys()]
+      .filter(Boolean)
+      .sort((a, b) => b.length - a.length)
+      .map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    const re = new RegExp('@(' + escaped.join('|') + ')', 'g');
+
+    const mentioned = new Set<string>();
+    for (const m of text.matchAll(re)) {
+      const uid = nameToUid.get(m[1]);
+      if (uid) mentioned.add(uid);
+    }
+    // 投稿主・自分自身は除外
+    mentioned.delete(ownerId);
+    mentioned.delete(actorId);
+    if (mentioned.size === 0) return;
+
+    const actor = await db.getUserById(actorId);
+    const excerpt = text.length > 30 ? `${text.slice(0, 30)}…` : text;
+
+    await db.createNotificationMany(
+      [...mentioned].map((userId) => ({
+        userId,
+        type: 'mention',
+        title: 'メンションされました',
+        body: `${actor?.name ?? 'だれか'}さんが在庫報告の返信であなたをメンションしました：${excerpt}`,
+        actorId,
+        stockPostId,
+        spotId: post.spotId ?? undefined,
+      })),
+    );
+  } catch (e) {
+    console.error('[notifyStockReplyMentions]', e);
+  }
+}
+
 /** 返信 → 投稿主へ（自分の投稿への自分の返信は通知しない） */
 export async function notifyReply(kind: NotifyTargetKind, targetId: string, actorId: string, text: string) {
   try {

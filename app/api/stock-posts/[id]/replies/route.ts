@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import * as db from '@/lib/db';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
-import { notifyReply } from '@/lib/notifications';
+import { notifyReply, notifyStockReplyMentions } from '@/lib/notifications';
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id: stockPostId } = await params;
@@ -21,6 +21,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const reply = await db.createStockPostReplyWithUser(stockPostId, session.user.id, text.trim());
 
   await notifyReply('stockPost', stockPostId, session.user.id, text.trim());
+  // 返信本文でメンションされた相手（投稿主以外）へ通知
+  await notifyStockReplyMentions(stockPostId, session.user.id, text.trim());
 
   return NextResponse.json({ reply }, { status: 201 });
 }
