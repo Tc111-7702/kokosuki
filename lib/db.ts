@@ -237,6 +237,24 @@ export async function getGachaFilters() {
   return { ipNames, items };
 }
 
+/** 発売中ガチャのいいね（お気に入り）総数が多い順に IP 名を返す（投稿ページの人気IP用） */
+export async function getPopularIpsByLikes(limit = 12): Promise<string[]> {
+  const rows = await prisma.gacha.findMany({
+    where: { status: 'on_sale' },
+    select: { _count: { select: { gachaLikes: true } }, ...IP_NAME_SELECT },
+  });
+  const likeMap = new Map<string, number>();
+  for (const g of rows) {
+    const name = g.ip?.name;
+    if (!name) continue;
+    likeMap.set(name, (likeMap.get(name) ?? 0) + g._count.gachaLikes);
+  }
+  return [...likeMap.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([ip]) => ip)
+    .slice(0, limit);
+}
+
 export const findGachaByWpPostId = (wpPostId: number) =>
   prisma.gacha.findUnique({ where: { wpPostId } });
 

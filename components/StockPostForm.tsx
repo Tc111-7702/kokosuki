@@ -5,10 +5,11 @@ import { useRouter } from 'next/navigation';
 import { Search, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { StockSpotPanel } from '@/components/StockSpotPanel';
 import { SpotGachaPicker } from '@/components/SpotGachaPicker';
+import { useIsMobile } from '@/lib/useIsMobile';
 
 // ─── 型 ────────────────────────────────────────────────────────────────
 
-interface GachaSuggestion { label: string; type: 'gacha' | 'genre' }
+interface GachaSuggestion { id?: string; label: string; type: 'gacha' | 'genre'; imageUrl?: string | null }
 
 type Step = 'gacha' | 'spot' | 'stock' | 'confirm';
 
@@ -65,11 +66,14 @@ function GachaSearch({ onSelect, accentColor = ACCENT }: {
   const [resolving, setResolving]     = useState(false);
   const [ipNames, setIpNames]         = useState<string[]>([]);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isMobile = useIsMobile();
+  // 人気IPはモバイル6件・デスクトップ12件（いいね総数が多い順）
+  const shownIps = ipNames.slice(0, isMobile ? 6 : 12);
 
   useEffect(() => {
-    fetch('/api/gacha/filters')
+    fetch('/api/gacha/popular-ips')
       .then(r => r.json())
-      .then(d => setIpNames((d.ipNames ?? []).slice(0, 12)))
+      .then(d => setIpNames(d.ipNames ?? []))
       .catch(() => {});
   }, []);
 
@@ -102,23 +106,8 @@ function GachaSearch({ onSelect, accentColor = ACCENT }: {
 
   return (
     <div>
-      {ipNames.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 12 }}>
-          <span style={{ fontSize: 11, color: '#AAA', alignSelf: 'center', marginRight: 2 }}>人気のIP</span>
-          {ipNames.map(ip => (
-            <button key={ip} onMouseDown={e => { e.preventDefault(); setValue(ip); setFocused(true); fetchSuggestions(ip); }}
-              style={{
-                padding: '4px 10px', borderRadius: 99, border: `1.5px solid ${accentColor}44`,
-                background: `${accentColor}11`, fontSize: 12, color: '#555',
-                cursor: 'pointer', fontWeight: 600,
-              }}>
-              {ip}
-            </button>
-          ))}
-        </div>
-      )}
-
-      <div style={{ position: 'relative' }}>
+      {/* 検索バー（人気IPの上に配置） */}
+      <div style={{ position: 'relative', marginBottom: 12 }}>
         <div style={{
           display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px',
           background: '#F5F3ED', borderRadius: 12,
@@ -131,7 +120,7 @@ function GachaSearch({ onSelect, accentColor = ACCENT }: {
             onChange={e => { setValue(e.target.value); fetchSuggestions(e.target.value); }}
             onFocus={() => { setFocused(true); fetchSuggestions(value); }}
             onBlur={() => setTimeout(() => setFocused(false), 200)}
-            style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: 14, color: '#333' }}
+            style={{ flex: 1, minWidth: 0, background: 'none', border: 'none', outline: 'none', fontSize: 14, color: '#333' }}
           />
           {resolving ? (
             <div style={{ width: 13, height: 13, border: `2px solid ${accentColor}`, borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
@@ -152,17 +141,46 @@ function GachaSearch({ onSelect, accentColor = ACCENT }: {
             {suggestions.map((s, i) => (
               <button key={s.label} onMouseDown={e => { e.preventDefault(); handleSelect(s.label); }}
                 style={{
-                  display: 'block', width: '100%', textAlign: 'left', padding: '10px 14px',
+                  display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left',
+                  padding: isMobile ? '8px 12px' : '10px 14px', border: 'none',
                   borderBottom: i < suggestions.length - 1 ? '1px solid #f5f5f5' : 'none',
-                  background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#222',
+                  background: 'none', cursor: 'pointer',
                 }}>
-                {s.label}
+                {s.type === 'gacha' && s.imageUrl ? (
+                  // 任意ホスト画像のため img を使用
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={s.imageUrl} alt=""
+                    style={{ width: isMobile ? 30 : 34, height: isMobile ? 30 : 34, borderRadius: 8, objectFit: 'cover', flexShrink: 0, background: '#F0ECD8' }}
+                    onError={e => { (e.target as HTMLImageElement).style.visibility = 'hidden'; }} />
+                ) : (
+                  <span style={{ width: isMobile ? 30 : 34, height: isMobile ? 30 : 34, borderRadius: 8, background: '#F0ECD8', flexShrink: 0 }} />
+                )}
+                <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: isMobile ? 12.5 : 14, color: '#222' }}>
+                  {s.label}
+                </span>
               </button>
             ))}
           </div>
         )}
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
+
+      {/* 人気のIP（いいね総数が多い順 / モバイル6・デスクトップ12） */}
+      {shownIps.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, alignItems: 'center' }}>
+          <span style={{ fontSize: 11, color: '#AAA', marginRight: 2 }}>人気のIP</span>
+          {shownIps.map(ip => (
+            <button key={ip} onMouseDown={e => { e.preventDefault(); setValue(ip); setFocused(true); fetchSuggestions(ip); }}
+              style={{
+                padding: '4px 10px', borderRadius: 99, border: `1.5px solid ${accentColor}44`,
+                background: `${accentColor}11`, fontSize: 12, color: '#555',
+                cursor: 'pointer', fontWeight: 600,
+              }}>
+              {ip}
+            </button>
+          ))}
+        </div>
+      )}
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
