@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Heart, MessageCircle, Pencil, Trash2, Send, X, ChevronDown } from 'lucide-react';
+import { MessageCircle, Pencil, Trash2, Send, X, ChevronDown } from 'lucide-react';
 import { Avatar, avatarColor, timeAgo } from '@/components/ui/Avatar';
 import { renderWithMentions } from '@/components/PostCard';
 
@@ -106,15 +106,6 @@ export function StoreReviews({ spotId, autoOpenReviewId }: { spotId: string; aut
     setSubmitting(false);
   };
 
-  const toggleLike = async (reviewId: string) => {
-    const d = await fetch(`/api/spots/${spotId}/reviews/${reviewId}/like`, { method: 'POST' })
-      .then(r => r.json()).catch(() => null);
-    if (!d) return;
-    setReviews(prev => prev.map(r =>
-      r.id === reviewId ? { ...r, likedByMe: !!d.liked, _count: { ...r._count, likes: d.count } } : r
-    ));
-  };
-
   const deleteReview = async (reviewId: string) => {
     if (!confirm('この口コミを削除しますか？')) return;
     // 成功を確認してからUIを更新（失敗を握りつぶすと「消えたように見えて実際は残る」ため）
@@ -156,7 +147,7 @@ export function StoreReviews({ spotId, autoOpenReviewId }: { spotId: string; aut
           r.id === reviewId ? { ...r, replies: [...r.replies, d.reply] } : r
         ));
         setReplyTexts(prev => ({ ...prev, [reviewId]: '' }));
-        setReplyOpen(prev => ({ ...prev, [reviewId]: false }));
+        // 送信後も返信欄は開いたままにする（連続返信・投稿確認のため）
       }
     } catch {}
     setReplySubmitting(prev => ({ ...prev, [reviewId]: false }));
@@ -301,22 +292,17 @@ export function StoreReviews({ spotId, autoOpenReviewId }: { spotId: string; aut
                 </p>
               )}
 
-              {/* いいね・返信ボタン */}
+              {/* 返信ボタン（口コミにいいね機能は無し） */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <button
-                  onClick={() => toggleLike(review.id)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 3, background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: 20, color: review.likedByMe ? '#F87171' : '#AAA' }}
-                >
-                  <Heart size={13} fill={review.likedByMe ? '#F87171' : 'none'} color={review.likedByMe ? '#F87171' : '#AAA'} />
-                  <span style={{ fontSize: 11, fontWeight: 600 }}>{review._count.likes > 0 ? review._count.likes : ''}</span>
-                </button>
                 <button
                   onClick={() => setReplyOpen(prev => ({ ...prev, [review.id]: !prev[review.id] }))}
                   style={{ display: 'flex', alignItems: 'center', gap: 3, background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: 20, color: '#AAA' }}
                 >
                   <MessageCircle size={13} color="#AAA" />
                   <span style={{ fontSize: 11, fontWeight: 600, color: '#AAA' }}>
-                    {review.replies.length > 0 ? `返信 ${review.replies.length}件` : '答える'}
+                    {replyOpen[review.id]
+                      ? '返信を閉じる'
+                      : review.replies.length > 0 ? `返信 ${review.replies.length}件` : '答える'}
                   </span>
                 </button>
               </div>
