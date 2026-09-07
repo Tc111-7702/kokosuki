@@ -156,7 +156,7 @@ export function StoreReviews({ spotId, autoOpenReviewId }: { spotId: string; aut
           r.id === reviewId ? { ...r, replies: [...r.replies, d.reply] } : r
         ));
         setReplyTexts(prev => ({ ...prev, [reviewId]: '' }));
-        setReplyOpen(prev => ({ ...prev, [reviewId]: false }));
+        // 送信後も返信欄は開いたままにする（連続返信・投稿確認のため）
       }
     } catch {}
     setReplySubmitting(prev => ({ ...prev, [reviewId]: false }));
