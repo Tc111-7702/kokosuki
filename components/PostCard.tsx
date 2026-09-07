@@ -119,11 +119,6 @@ export function PostCard({
             className="object-cover"
             sizes="(max-width: 640px) 100vw, 560px"
           />
-          <div className="absolute bottom-0 left-0 right-0 px-3 py-2 bg-gradient-to-t from-black/40 to-transparent">
-            <span className="text-white text-sm font-semibold drop-shadow">
-              {post.gacha.seriesName}
-            </span>
-          </div>
         </div>
       )}
 
