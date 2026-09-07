@@ -521,6 +521,13 @@ export const markNotificationsAsRead = (userId: string) =>
 export const getUserById = (id: string) =>
   prisma.user.findUnique({ where: { id }, select: { name: true } });
 
+/** handle（@ユーザー名）の配列からユーザーを解決（メンション通知の宛先特定用） */
+export const getUsersByHandles = (handles: string[]) =>
+  prisma.user.findMany({
+    where: { profile: { handle: { in: handles } } },
+    select: { id: true, name: true, profile: { select: { handle: true } } },
+  });
+
 export const findPublicPost = (id: string) =>
   prisma.post.findFirst({ where: { id }, select: { userId: true, spotId: true } });
 
