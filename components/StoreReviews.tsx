@@ -316,7 +316,9 @@ export function StoreReviews({ spotId, autoOpenReviewId }: { spotId: string; aut
                 >
                   <MessageCircle size={13} color="#AAA" />
                   <span style={{ fontSize: 11, fontWeight: 600, color: '#AAA' }}>
-                    {review.replies.length > 0 ? `返信 ${review.replies.length}件` : '答える'}
+                    {replyOpen[review.id]
+                      ? '返信を閉じる'
+                      : review.replies.length > 0 ? `返信 ${review.replies.length}件` : '答える'}
                   </span>
                 </button>
               </div>
