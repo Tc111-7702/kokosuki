@@ -648,7 +648,11 @@ export const createNotificationMany = (data: Prisma.NotificationCreateManyInput[
   prisma.notification.createMany({ data });
 
 export const findLikeNotification = (where: Prisma.NotificationWhereInput) =>
-  prisma.notification.findFirst({ where, select: { id: true } });
+  prisma.notification.findFirst({ where, orderBy: { createdAt: 'desc' }, select: { id: true } });
+
+/** 通知を部分更新（いいね者の付け替え等） */
+export const updateNotification = (id: string, data: Prisma.NotificationUncheckedUpdateInput) =>
+  prisma.notification.update({ where: { id }, data });
 
 export const deleteLikeNotification = (where: Prisma.NotificationWhereInput) =>
   prisma.notification.deleteMany({ where });

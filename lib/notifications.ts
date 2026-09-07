@@ -93,26 +93,43 @@ function targetIdWhere(kind: NotifyTargetKind, targetId: string) {
   return { spotReviewId: targetId };
 }
 
-/** いいね → 投稿主へ（自分の投稿への自分のいいねは通知しない） */
+/**
+ * いいね → 投稿主へ（自分の投稿への自分のいいねは通知しない）。
+ * 同じ対象への既存いいね通知があれば「いいね者(actor)だけ更新」して最新化する
+ * （削除して作り直さないので通知IDは不変。閲覧中の画面が同じIDのまま差し替えできる）。
+ * 無ければ新規作成。
+ */
 export async function notifyLike(kind: NotifyTargetKind, targetId: string, actorId: string) {
   try {
     const target = await resolveTarget(kind, targetId);
     if (!target || target.ownerId === actorId) return;
 
+    const actor = await db.getUserById(actorId);
+    const body = `${actor?.name ?? 'だれか'}さんがあなたの${TARGET_LABEL[kind]}にいいねしました`;
+
+    // 対象・受信者が同じ既存いいね通知（いいね者は誰でも）を探す
     const existing = await db.findLikeNotification({
       userId: target.ownerId,
       type: 'like',
-      actorId,
       ...targetIdWhere(kind, targetId),
     });
-    if (existing) return;
 
-    const actor = await db.getUserById(actorId);
+    if (existing) {
+      // いいね者だけ差し替え、最新化（未読に戻して先頭へ）
+      await db.updateNotification(existing.id, {
+        actorId,
+        body,
+        read: false,
+        createdAt: new Date(),
+      });
+      return;
+    }
+
     await db.createNotification({
       userId: target.ownerId,
       type: 'like',
       title: 'いいねがつきました',
-      body: `${actor?.name ?? 'だれか'}さんがあなたの${TARGET_LABEL[kind]}にいいねしました`,
+      body,
       actorId,
       spotId: target.spotId ?? undefined,
       ...targetIdWhere(kind, targetId),
