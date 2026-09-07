@@ -135,6 +135,51 @@ export async function removeLikeNotification(kind: NotifyTargetKind, targetId: s
   }
 }
 
+// 本文から @handle（[A-Za-z0-9_]）を抽出（重複除去）
+function extractHandles(text: string): string[] {
+  const handles = new Set<string>();
+  for (const m of text.matchAll(/@([A-Za-z0-9_]+)/g)) handles.add(m[1]);
+  return [...handles];
+}
+
+/**
+ * 返信内のメンション → メンションされた本人へ。
+ *  - 投稿主は除外（返信通知(notifyReply)で既に届くため）。
+ *  - 返信者本人（自己メンション）も除外。
+ */
+export async function notifyMention(kind: NotifyTargetKind, targetId: string, actorId: string, text: string) {
+  try {
+    const handles = extractHandles(text);
+    if (handles.length === 0) return;
+
+    const target = await resolveTarget(kind, targetId);
+    if (!target) return;
+
+    const users = await db.getUsersByHandles(handles);
+    const recipients = users.filter(
+      (u) => u.id !== actorId && u.id !== target.ownerId,
+    );
+    if (recipients.length === 0) return;
+
+    const actor = await db.getUserById(actorId);
+    const excerpt = text.length > 30 ? `${text.slice(0, 30)}…` : text;
+
+    await db.createNotificationMany(
+      recipients.map((u) => ({
+        userId: u.id,
+        type: 'mention',
+        title: 'メンションされました',
+        body: `${actor?.name ?? 'だれか'}さんが${TARGET_LABEL[kind]}の返信であなたをメンションしました：${excerpt}`,
+        actorId,
+        spotId: target.spotId ?? undefined,
+        ...targetIdWhere(kind, targetId),
+      })),
+    );
+  } catch (e) {
+    console.error('[notifyMention]', e);
+  }
+}
+
 /** 返信 → 投稿主へ（自分の投稿への自分の返信は通知しない） */
 export async function notifyReply(kind: NotifyTargetKind, targetId: string, actorId: string, text: string) {
   try {

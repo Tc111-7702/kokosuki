@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Bell, Heart, MessageCircle, Package } from 'lucide-react';
+import { Bell, Heart, MessageCircle, Package, AtSign } from 'lucide-react';
 
 interface NotificationItem {
   id: string;
@@ -34,6 +34,7 @@ function typeIcon(type: string) {
   if (type === 'favorite_stock') return <Package size={18} color="#F2B800" />;
   if (type === 'like') return <Heart size={18} color="#E5484D" />;
   if (type === 'reply') return <MessageCircle size={18} color="#0891b2" />;
+  if (type === 'mention') return <AtSign size={18} color="#7C3AED" />;
   return <Bell size={18} color="#888" />;
 }
 

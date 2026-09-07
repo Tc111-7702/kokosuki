@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import * as db from '@/lib/db';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
-import { notifyReply } from '@/lib/notifications';
+import { notifyReply, notifyMention } from '@/lib/notifications';
 
 // GET /api/posts/[id]/replies
 export async function GET(
@@ -41,6 +41,7 @@ export async function POST(
     const reply = await db.createPostReplyWithUser(postId, userId, text);
 
     await notifyReply('post', postId, userId, text);
+    await notifyMention('post', postId, userId, text);
 
     return NextResponse.json({ reply }, { status: 201 });
   } catch (e) {
