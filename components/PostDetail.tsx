@@ -45,13 +45,13 @@ export function PostDetail({ post, onBack, onReplied, onDeleted }: { post: FeedP
     const seen = new Set<string>();
     const result: { id: string; name: string; image: string | null }[] = [];
     if (post.user.id !== currentUid) {
-      if (q === '' || post.user.name.toLowerCase().includes(q) || post.user.id.toLowerCase().includes(q)) result.push(post.user);
+      if (q === '' || post.user.name.toLowerCase().includes(q) || (post.user.profile?.handle?.toLowerCase().includes(q) ?? false)) result.push(post.user);
       seen.add(post.user.id);
     }
     for (const r of replies) {
       if (r.user.id === currentUid || seen.has(r.user.id)) continue;
       seen.add(r.user.id);
-      if (q === '' || r.user.name.toLowerCase().includes(q) || r.user.id.toLowerCase().includes(q)) result.push(r.user);
+      if (q === '' || r.user.name.toLowerCase().includes(q) || (r.user.profile?.handle?.toLowerCase().includes(q) ?? false)) result.push(r.user);
     }
     return result;
   }, [replies, mentionQuery, currentUid, post.user.id, post.user.name, post.user.image]);

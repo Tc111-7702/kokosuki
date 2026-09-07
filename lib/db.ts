@@ -562,7 +562,7 @@ export const deleteReadNotificationsBefore = (cutoff: Date) =>
 
 // ─── Post（通常投稿） ───────────────────────────────────────────────────────────
 
-const FEED_USER_SELECT  = { id: true, name: true, image: true } as const;
+const FEED_USER_SELECT  = { id: true, name: true, image: true, profile: { select: { handle: true } } } as const;
 const FEED_SPOT_SELECT  = { id: true, name: true, address: true, lat: true, lng: true } as const;
 const FEED_GACHA_SELECT = { id: true, ...IP_NAME_SELECT, seriesName: true, gradientFrom: true, gradientTo: true, imageUrl: true } as const;
 const REPLY_USER_INCLUDE = { user: { select: FEED_USER_SELECT } } as const;

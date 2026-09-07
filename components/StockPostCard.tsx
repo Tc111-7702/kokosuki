@@ -13,7 +13,7 @@ export interface StockFeedPost {
   stockStatus: string;
   createdAt: string;
   likedByMe: boolean;
-  user: { id: string; name: string; image: string | null };
+  user: { id: string; name: string; image: string | null; profile?: { handle: string | null } | null };
   spot: { id: string; name: string; address?: string | null };
   gacha: { id: string; ipName: string; seriesName: string; gradientFrom: string; gradientTo: string; imageUrl: string | null; status?: string };
   _count: { likes: number; replies: number };
