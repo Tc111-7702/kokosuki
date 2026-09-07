@@ -70,7 +70,7 @@ function bodyText(n: NotificationItem): string {
   if (n.type === 'like' && n.actorCount > 1) {
     const first = n.actors[0]?.name ?? 'だれか';
     const label = n.postId ? '投稿' : n.stockPostId ? '在庫報告' : n.spotReviewId ? '口コミ' : '投稿';
-    return `${first}さん 他${n.actorCount - 1}名があなたの${label}にいいねしました`;
+    return `${first}さん他${n.actorCount - 1}人があなたの${label}にいいねしました`;
   }
   return n.body;
 }
