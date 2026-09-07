@@ -42,13 +42,13 @@ export function StockPostDetail({ post, onBack, onReplied, onDeleted }: { post: 
     const seen = new Set<string>();
     const result: { id: string; name: string; image: string | null }[] = [];
     if (post.user.id !== currentUid) {
-      if (q === '' || post.user.name.toLowerCase().includes(q)) result.push(post.user);
+      if (q === '' || post.user.name.toLowerCase().includes(q) || q.includes(post.user.id.toLowerCase())) result.push(post.user);
       seen.add(post.user.id);
     }
     for (const r of replies) {
       if (r.user.id === currentUid || seen.has(r.user.id)) continue;
       seen.add(r.user.id);
-      if (q === '' || r.user.name.toLowerCase().includes(q)) result.push(r.user);
+      if (q === '' || r.user.name.toLowerCase().includes(q) || q.includes(r.user.id.toLowerCase())) result.push(r.user);
     }
     return result;
   }, [replies, mentionQuery, currentUid, post.user.id, post.user.name]);
