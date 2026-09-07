@@ -18,7 +18,13 @@ export default function LoginPage() {
     setError('');
     const { error: signInError } = await authClient.signIn.email({ email, password });
     if (signInError) {
-      setError('メールアドレスまたはパスワードが正しくありません');
+      // 停止(BAN)されたアカウントは認証成功後にセッション作成が 403(FORBIDDEN) で弾かれる。
+      // 通常のメール/パスワード誤り(401)とは区別して、停止を示す文言を出す。
+      if (signInError.status === 403) {
+        setError('このアカウントは停止されています。ご利用の再開についてはお問い合わせください。');
+      } else {
+        setError('メールアドレスまたはパスワードが正しくありません');
+      }
       setLoading(false);
       return;
     }
