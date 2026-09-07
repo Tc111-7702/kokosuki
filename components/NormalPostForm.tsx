@@ -280,7 +280,7 @@ function MobileForm({ onDone, initialSpotId = '', initialSpotName = '', initialF
         body: JSON.stringify({ gachaId: form.gachaId, spotId: form.spotId, result: form.result, itemName: form.itemName, imageUrl: form.imageUrl || undefined, memo: form.memo || undefined }),
       });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? '投稿に失敗しました'); }
-      if (onDone) onDone(); else router.push('/home?tab=community');
+      if (onDone) onDone(); else router.push('/home?tab=community&posted=1');
     } catch (e) {
       setError(e instanceof Error ? e.message : '投稿に失敗しました');
     } finally { setSubmitting(false); }
@@ -509,7 +509,7 @@ export function DesktopNormalForm({ onDone, initialSpotId = '', initialSpotName 
         body: JSON.stringify({ gachaId: form.gachaId, spotId: form.spotId, result: form.result, itemName: form.itemName, imageUrl: form.imageUrl || undefined, memo: form.memo || undefined }),
       });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? '投稿に失敗しました'); }
-      if (onDone) onDone(); else router.push('/home?tab=community');
+      if (onDone) onDone(); else router.push('/home?tab=community&posted=1');
     } catch (e) {
       setError(e instanceof Error ? e.message : '投稿に失敗しました');
     } finally { setSubmitting(false); }

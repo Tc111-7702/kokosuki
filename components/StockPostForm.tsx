@@ -209,7 +209,7 @@ export function DesktopStockForm({ onDone, initialSpotId = '', initialSpotName =
       });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? '投稿に失敗しました'); }
       if (onDone) onDone();
-      else router.push('/home?tab=community');
+      else router.push('/home?tab=community&posted=1');
     } catch (e) {
       setError(e instanceof Error ? e.message : '投稿に失敗しました');
     } finally {
@@ -379,7 +379,7 @@ export function StockPostForm({ onDone, initialSpotId = '', initialSpotName = ''
       });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? '投稿に失敗しました'); }
       if (onDone) onDone();
-      else router.push('/home?tab=community');
+      else router.push('/home?tab=community&posted=1');
     } catch (e) {
       setError(e instanceof Error ? e.message : '投稿に失敗しました');
     } finally {

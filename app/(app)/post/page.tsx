@@ -20,7 +20,7 @@ function DesktopPostPage({ initialMode, initialSpotId, initialSpotName, initialF
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<PostType>(initialMode === 'stock' ? 'stock' : 'normal');
-  const handleDone = () => router.push('/home?tab=community');
+  const handleDone = () => router.push('/home?tab=community&posted=1');
 
   const TABS: { key: PostType; label: string; accent: string }[] = [
     { key: 'normal', label: '引いた！',   accent: '#F2B800' },
@@ -86,7 +86,7 @@ function MobilePostPage({ initialMode, initialSpotId, initialSpotName, initialFi
   const [postType, setPostType] = useState<PostType | null>(
     initialMode === 'pull' ? 'normal' : initialMode === 'stock' ? 'stock' : null
   );
-  const handleDone = () => router.push('/home?tab=community');
+  const handleDone = () => router.push('/home?tab=community&posted=1');
 
   if (!postType) {
     return (
