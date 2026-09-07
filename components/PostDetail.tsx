@@ -43,15 +43,15 @@ export function PostDetail({ post, onBack, onReplied, onDeleted }: { post: FeedP
     if (mentionQuery === null) return [];
     const q    = mentionQuery.toLowerCase();
     const seen = new Set<string>();
-    const result: { id: string; name: string; image: string | null }[] = [];
+    const result: { id: string; name: string; image: string | null; profile?: { handle: string | null } | null }[] = [];
     if (post.user.id !== currentUid) {
-      if (q === '' || post.user.name.toLowerCase().includes(q)) result.push(post.user);
+      if (q === '' || post.user.name.toLowerCase().includes(q) || (post.user.profile?.handle?.toLowerCase().includes(q) ?? false)) result.push(post.user);
       seen.add(post.user.id);
     }
     for (const r of replies) {
       if (r.user.id === currentUid || seen.has(r.user.id)) continue;
       seen.add(r.user.id);
-      if (q === '' || r.user.name.toLowerCase().includes(q)) result.push(r.user);
+      if (q === '' || r.user.name.toLowerCase().includes(q) || (r.user.profile?.handle?.toLowerCase().includes(q) ?? false)) result.push(r.user);
     }
     return result;
   }, [replies, mentionQuery, currentUid, post.user.id, post.user.name, post.user.image]);
@@ -218,11 +218,14 @@ export function PostDetail({ post, onBack, onReplied, onDeleted }: { post: FeedP
             {mentionCandidates.map((u) => (
               <button
                 key={u.id}
-                onMouseDown={(e) => { e.preventDefault(); insertMention(u.name); }}
+                onMouseDown={(e) => { e.preventDefault(); insertMention(u.profile?.handle ?? u.name); }}
                 className="flex items-center gap-3 w-full px-4 py-2.5 hover:bg-gray-50 text-left"
               >
                 <Avatar user={u} size={28} />
-                <span className="text-sm font-medium text-gray-800">{u.name}</span>
+                <span className="flex items-baseline gap-1.5 min-w-0">
+                  <span className="text-sm font-medium text-gray-800 truncate">{u.name}</span>
+                  {u.profile?.handle && <span className="text-xs text-gray-400 truncate">@{u.profile.handle}</span>}
+                </span>
               </button>
             ))}
           </div>

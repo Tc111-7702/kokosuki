@@ -10,7 +10,7 @@ export interface FeedPost {
   memo: string | null;
   createdAt: string;
   likedByMe: boolean;
-  user: { id: string; name: string; image: string | null };
+  user: { id: string; name: string; image: string | null; profile?: { handle: string | null } | null };
   spot: { id: string; name: string };
   postType: 'post';
   gacha: { id: string; ipName: string; seriesName: string; gradientFrom: string; gradientTo: string; imageUrl: string | null; status?: string };
@@ -23,7 +23,7 @@ export interface Reply {
   id: string;
   text: string;
   createdAt: string;
-  user: { id: string; name: string; image: string | null };
+  user: { id: string; name: string; image: string | null; profile?: { handle: string | null } | null };
 }
 
 export interface UserResult {
