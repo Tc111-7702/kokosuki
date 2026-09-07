@@ -93,11 +93,13 @@ function targetIdWhere(kind: NotifyTargetKind, targetId: string) {
   return { spotReviewId: targetId };
 }
 
+// 1件の通知に保持するいいね者IDの上限（実人数カウントもここで頭打ち）
+const LIKE_ACTOR_STORE_CAP = 50;
+
 /**
  * いいね → 投稿主へ（自分の投稿への自分のいいねは通知しない）。
- * 同じ対象への既存いいね通知があれば「いいね者(actor)だけ更新」して最新化する
+ * 1投稿につき通知は1件に保ち、いいね者を actorIds 配列に蓄積して update する
  * （削除して作り直さないので通知IDは不変。閲覧中の画面が同じIDのまま差し替えできる）。
- * 無ければ新規作成。
  */
 export async function notifyLike(kind: NotifyTargetKind, targetId: string, actorId: string) {
   try {
@@ -115,9 +117,14 @@ export async function notifyLike(kind: NotifyTargetKind, targetId: string, actor
     });
 
     if (existing) {
-      // いいね者だけ差し替え、最新化（未読に戻して先頭へ）
+      // 既存のいいね者一覧（actorIds 無しの旧データは actorId で補完）に今回の人を先頭追加
+      const prev = existing.actorIds.length
+        ? existing.actorIds
+        : (existing.actorId ? [existing.actorId] : []);
+      const actorIds = [actorId, ...prev.filter((a) => a !== actorId)].slice(0, LIKE_ACTOR_STORE_CAP);
       await db.updateNotification(existing.id, {
-        actorId,
+        actorId,       // 最新のいいね者（左アバター用）
+        actorIds,      // いいね者一覧（新しい順）
         body,
         read: false,
         createdAt: new Date(),
@@ -131,6 +138,7 @@ export async function notifyLike(kind: NotifyTargetKind, targetId: string, actor
       title: 'いいねがつきました',
       body,
       actorId,
+      actorIds: [actorId],
       spotId: target.spotId ?? undefined,
       ...targetIdWhere(kind, targetId),
     });
@@ -139,14 +147,36 @@ export async function notifyLike(kind: NotifyTargetKind, targetId: string, actor
   }
 }
 
-/** いいね取り消し → 対応する既存のいいね通知を削除（type/actor/対象で一意に特定） */
+/**
+ * いいね取り消し → その対象のいいね通知から当該ユーザーを外す。
+ *  - 残りが 0 人になったら通知ごと削除。
+ *  - 残っていれば actorIds を更新し、先頭（=左アバター）と本文も最新の残存者に合わせる。
+ * （過去の「1いいね1行」データにも対応するため対象の全いいね通知を走査する）
+ */
 export async function removeLikeNotification(kind: NotifyTargetKind, targetId: string, actorId: string) {
   try {
-    await db.deleteLikeNotification({
+    const notifs = await db.listLikeNotifications({
       type: 'like',
-      actorId,
       ...targetIdWhere(kind, targetId),
     });
+
+    for (const n of notifs) {
+      const list = n.actorIds.length ? n.actorIds : (n.actorId ? [n.actorId] : []);
+      if (!list.includes(actorId)) continue; // この通知には含まれない
+
+      const remaining = list.filter((a) => a !== actorId);
+      if (remaining.length === 0) {
+        await db.deleteLikeNotification({ id: n.id });
+        continue;
+      }
+      const head = remaining[0];
+      const headUser = await db.getUserById(head);
+      await db.updateNotification(n.id, {
+        actorId: head,
+        actorIds: remaining,
+        body: `${headUser?.name ?? 'だれか'}さんがあなたの${TARGET_LABEL[kind]}にいいねしました`,
+      });
+    }
   } catch (e) {
     console.error('[removeLikeNotification]', e);
   }

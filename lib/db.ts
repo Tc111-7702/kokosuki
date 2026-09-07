@@ -511,7 +511,11 @@ export const getNotificationsByUserId = async (userId: string, take = 50): Promi
   const postIds   = [...new Set(rows.map(r => r.postId).filter((v): v is string => !!v))];
   const stockIds  = [...new Set(rows.map(r => r.stockPostId).filter((v): v is string => !!v))];
   const reviewIds = [...new Set(rows.map(r => r.spotReviewId).filter((v): v is string => !!v))];
-  const actorIds  = [...new Set(rows.map(r => r.actorId).filter((v): v is string => !!v))];
+  // like は actorIds（複数）を、それ以外は actorId（単数）をいいね者/行為者として使う
+  const actorIds  = [...new Set([
+    ...rows.map(r => r.actorId).filter((v): v is string => !!v),
+    ...rows.flatMap(r => r.actorIds),
+  ])];
 
   const [posts, stocks, reviews, actors] = await Promise.all([
     postIds.length   ? prisma.post.findMany({      where: { id: { in: postIds } },   select: { id: true, imageUrl: true, gachaId: true } }) : [],
@@ -571,7 +575,8 @@ export const getNotificationsByUserId = async (userId: string, take = 50): Promi
   const likeAgg = new Map<string, { view: NotificationView; ids: Set<string> }>();
 
   for (const n of alive) {
-    const actor = n.actorId ? actorMap.get(n.actorId) ?? null : null;
+    // その行のいいね者/行為者ID一覧（新しい順）。actorIds があればそれを、無ければ actorId を使う
+    const rowActorIds = n.actorIds.length ? n.actorIds : (n.actorId ? [n.actorId] : []);
     if (n.type === 'like') {
       const key = n.postId ?? n.stockPostId ?? n.spotReviewId ?? n.id;
       let agg = likeAgg.get(key);
@@ -581,15 +586,19 @@ export const getNotificationsByUserId = async (userId: string, take = 50): Promi
         likeAgg.set(key, agg);
         out.push(view);
       }
-      if (actor && !agg.ids.has(actor.id)) {
-        agg.ids.add(actor.id);
+      for (const aid of rowActorIds) {
+        if (agg.ids.has(aid)) continue;
+        const au = actorMap.get(aid);
+        if (!au) continue;
+        agg.ids.add(aid);
         agg.view.actorCount = agg.ids.size;
-        if (agg.view.actors.length < NOTIF_ACTOR_CAP) agg.view.actors.push(actor);
+        if (agg.view.actors.length < NOTIF_ACTOR_CAP) agg.view.actors.push(au);
       }
       if (!n.read) agg.view.read = false; // どれか未読なら未読扱い
     } else {
       const view = base(n);
-      if (actor) { view.actors = [actor]; view.actorCount = 1; }
+      const first = rowActorIds[0] ? actorMap.get(rowActorIds[0]) ?? null : null;
+      if (first) { view.actors = [first]; view.actorCount = 1; }
       out.push(view);
     }
   }
@@ -648,7 +657,18 @@ export const createNotificationMany = (data: Prisma.NotificationCreateManyInput[
   prisma.notification.createMany({ data });
 
 export const findLikeNotification = (where: Prisma.NotificationWhereInput) =>
-  prisma.notification.findFirst({ where, orderBy: { createdAt: 'desc' }, select: { id: true } });
+  prisma.notification.findFirst({
+    where,
+    orderBy: { createdAt: 'desc' },
+    select: { id: true, actorId: true, actorIds: true },
+  });
+
+/** 対象のいいね通知を全件（過去の1いいね1行の名残も含めて）取得 */
+export const listLikeNotifications = (where: Prisma.NotificationWhereInput) =>
+  prisma.notification.findMany({
+    where,
+    select: { id: true, actorId: true, actorIds: true },
+  });
 
 /** 通知を部分更新（いいね者の付け替え等） */
 export const updateNotification = (id: string, data: Prisma.NotificationUncheckedUpdateInput) =>
