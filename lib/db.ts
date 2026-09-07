@@ -478,33 +478,123 @@ export const upsertMachine = (spotId: string, gachaId: string) =>
 
 // ─── Notification ─────────────────────────────────────────────────────────────
 
-export const getNotificationsByUserId = async (userId: string, take = 50) => {
+// 通知一覧の1件（表示用に整形済み）。actors[0] を左アバターに、
+// like は同一対象へのいいねを集約して actors を下に並べる。
+export interface NotificationActor { id: string; name: string; image: string | null }
+export interface NotificationView {
+  id: string;
+  type: string;
+  title: string;
+  body: string;
+  gachaId: string | null;
+  spotId: string | null;
+  postId: string | null;
+  stockPostId: string | null;
+  spotReviewId: string | null;
+  read: boolean;
+  createdAt: Date;
+  actors: NotificationActor[]; // 表示用（上限あり）。like は集約後の重複なし
+  actorCount: number;          // 集約後の実人数（+N 表示用）
+  thumbnailUrl: string | null; // 右サムネ（投稿写真/ガチャ画像）
+}
+
+// 集約時に下へ並べるアバターの保持上限（表示制限）
+const NOTIF_ACTOR_CAP = 8;
+
+export const getNotificationsByUserId = async (userId: string, take = 50): Promise<NotificationView[]> => {
   const rows = await prisma.notification.findMany({
     where: { userId },
     orderBy: { createdAt: 'desc' },
     take,
   });
 
-  // 参照先（投稿/在庫報告/口コミ）が削除済みの通知は一覧に出さない
   const postIds   = [...new Set(rows.map(r => r.postId).filter((v): v is string => !!v))];
   const stockIds  = [...new Set(rows.map(r => r.stockPostId).filter((v): v is string => !!v))];
   const reviewIds = [...new Set(rows.map(r => r.spotReviewId).filter((v): v is string => !!v))];
+  const actorIds  = [...new Set(rows.map(r => r.actorId).filter((v): v is string => !!v))];
 
-  const [posts, stocks, reviews] = await Promise.all([
-    postIds.length   ? prisma.post.findMany({      where: { id: { in: postIds } },   select: { id: true } }) : [],
-    stockIds.length  ? prisma.stockPost.findMany({ where: { id: { in: stockIds } },  select: { id: true } }) : [],
+  const [posts, stocks, reviews, actors] = await Promise.all([
+    postIds.length   ? prisma.post.findMany({      where: { id: { in: postIds } },   select: { id: true, imageUrl: true, gachaId: true } }) : [],
+    stockIds.length  ? prisma.stockPost.findMany({ where: { id: { in: stockIds } },  select: { id: true, gachaId: true } }) : [],
     reviewIds.length ? prisma.spotReview.findMany({where: { id: { in: reviewIds } }, select: { id: true } }) : [],
+    actorIds.length  ? prisma.user.findMany({      where: { id: { in: actorIds } },  select: { id: true, name: true, image: true } }) : [],
   ]);
-  const postSet   = new Set(posts.map(p => p.id));
-  const stockSet  = new Set(stocks.map(s => s.id));
+  const postMap   = new Map(posts.map(p => [p.id, p]));
+  const stockMap  = new Map(stocks.map(s => [s.id, s]));
   const reviewSet = new Set(reviews.map(r => r.id));
+  const actorMap  = new Map(actors.map(a => [a.id, a]));
 
-  return rows.filter(n => {
-    if (n.postId       && !postSet.has(n.postId))       return false;
-    if (n.stockPostId  && !stockSet.has(n.stockPostId)) return false;
+  // ガチャ画像（在庫報告/お気に入りのサムネ・投稿写真が無い場合のフォールバック）
+  const gachaIds = [...new Set([
+    ...rows.map(r => r.gachaId).filter((v): v is string => !!v),
+    ...posts.map(p => p.gachaId),
+    ...stocks.map(s => s.gachaId),
+  ])];
+  const gachas = gachaIds.length
+    ? await prisma.gacha.findMany({ where: { id: { in: gachaIds } }, select: { id: true, imageUrl: true } })
+    : [];
+  const gachaImg = new Map(gachas.map(g => [g.id, g.imageUrl]));
+
+  const thumbnailFor = (n: (typeof rows)[number]): string | null => {
+    if (n.postId) {
+      const p = postMap.get(n.postId);
+      if (p?.imageUrl) return p.imageUrl;              // 投稿写真を優先
+      if (p?.gachaId) return gachaImg.get(p.gachaId) ?? null; // 無ければ対象ガチャ画像
+      return null;
+    }
+    if (n.stockPostId) {
+      const s = stockMap.get(n.stockPostId);
+      return s?.gachaId ? gachaImg.get(s.gachaId) ?? null : null;
+    }
+    if (n.gachaId) return gachaImg.get(n.gachaId) ?? null; // favorite_stock
+    return null;
+  };
+
+  // 参照先（投稿/在庫報告/口コミ）が削除済みの通知は一覧に出さない
+  const alive = rows.filter(n => {
+    if (n.postId       && !postMap.has(n.postId))         return false;
+    if (n.stockPostId  && !stockMap.has(n.stockPostId))   return false;
     if (n.spotReviewId && !reviewSet.has(n.spotReviewId)) return false;
     return true;
   });
+
+  const base = (n: (typeof rows)[number]): NotificationView => ({
+    id: n.id, type: n.type, title: n.title, body: n.body,
+    gachaId: n.gachaId, spotId: n.spotId, postId: n.postId,
+    stockPostId: n.stockPostId, spotReviewId: n.spotReviewId,
+    read: n.read, createdAt: n.createdAt,
+    actors: [], actorCount: 0, thumbnailUrl: thumbnailFor(n),
+  });
+
+  const out: NotificationView[] = [];
+  // like は「対象」ごとに集約（新しい順で最初に出現した位置を保持）
+  const likeAgg = new Map<string, { view: NotificationView; ids: Set<string> }>();
+
+  for (const n of alive) {
+    const actor = n.actorId ? actorMap.get(n.actorId) ?? null : null;
+    if (n.type === 'like') {
+      const key = n.postId ?? n.stockPostId ?? n.spotReviewId ?? n.id;
+      let agg = likeAgg.get(key);
+      if (!agg) {
+        const view = base(n);
+        agg = { view, ids: new Set() };
+        likeAgg.set(key, agg);
+        out.push(view);
+      }
+      if (actor && !agg.ids.has(actor.id)) {
+        agg.ids.add(actor.id);
+        agg.view.actorCount = agg.ids.size;
+        if (agg.view.actors.length < NOTIF_ACTOR_CAP) agg.view.actors.push(actor);
+      }
+      if (!n.read) agg.view.read = false; // どれか未読なら未読扱い
+    } else {
+      const view = base(n);
+      if (actor) { view.actors = [actor]; view.actorCount = 1; }
+      out.push(view);
+    }
+  }
+
+  return out;
 };
 
 export const getUnreadNotificationCount = (userId: string) =>

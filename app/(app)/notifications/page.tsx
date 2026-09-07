@@ -3,10 +3,13 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Bell, Heart, MessageCircle, Package, AtSign } from 'lucide-react';
+import { Avatar } from '@/components/ui/Avatar';
+
+interface NotifActor { id: string; name: string; image: string | null }
 
 interface NotificationItem {
   id: string;
-  type: string; // favorite_stock / like / reply
+  type: string; // favorite_stock / like / reply / mention
   title: string;
   body: string;
   gachaId: string | null;
@@ -16,7 +19,13 @@ interface NotificationItem {
   spotReviewId: string | null;
   read: boolean;
   createdAt: string;
+  actors: NotifActor[];
+  actorCount: number;
+  thumbnailUrl: string | null;
 }
+
+// いいねアバターを下に並べる際の表示上限（超過分は +N 表示）
+const LIKE_AVATAR_SHOWN = 5;
 
 function timeAgo(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime();
@@ -30,12 +39,13 @@ function timeAgo(iso: string): string {
   return new Date(iso).toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' });
 }
 
+// タイトル行に文字と同じ大きさで並べるアイコン
 function typeIcon(type: string) {
-  if (type === 'favorite_stock') return <Package size={18} color="#F2B800" />;
-  if (type === 'like') return <Heart size={18} color="#E5484D" />;
-  if (type === 'reply') return <MessageCircle size={18} color="#0891b2" />;
-  if (type === 'mention') return <AtSign size={18} color="#7C3AED" />;
-  return <Bell size={18} color="#888" />;
+  if (type === 'favorite_stock') return <Package size={14} color="#F2B800" />;
+  if (type === 'like') return <Heart size={14} color="#E5484D" fill="#E5484D" />;
+  if (type === 'reply') return <MessageCircle size={14} color="#0891b2" />;
+  if (type === 'mention') return <AtSign size={14} color="#7C3AED" />;
+  return <Bell size={14} color="#888" />;
 }
 
 // 通知の遷移先URL
@@ -53,6 +63,16 @@ function destinationUrl(n: NotificationItem): string | null {
   }
   if (n.spotId) return `/store/${n.spotId}`;
   return null;
+}
+
+// 集約されたいいねの本文（他N名）。それ以外は保存済み本文をそのまま使う。
+function bodyText(n: NotificationItem): string {
+  if (n.type === 'like' && n.actorCount > 1) {
+    const first = n.actors[0]?.name ?? 'だれか';
+    const label = n.postId ? '投稿' : n.stockPostId ? '在庫報告' : n.spotReviewId ? '口コミ' : '投稿';
+    return `${first}さん 他${n.actorCount - 1}名があなたの${label}にいいねしました`;
+  }
+  return n.body;
 }
 
 export default function NotificationsPage() {
@@ -128,6 +148,8 @@ export default function NotificationsPage() {
         ) : (
           items.map((n) => {
             const dest = destinationUrl(n);
+            const actor = n.actors[0] ?? null;
+            const showLikeRow = n.type === 'like' && n.actors.length > 0;
             return (
               <button
                 key={n.id}
@@ -139,19 +161,66 @@ export default function NotificationsPage() {
                   cursor: dest ? 'pointer' : 'default',
                 }}
               >
-                <div
-                  className="flex-shrink-0 flex items-center justify-center"
-                  style={{ width: 36, height: 36, borderRadius: 18, background: 'white', border: '1.5px solid #EDE9D8' }}
-                >
-                  {typeIcon(n.type)}
+                {/* 左: 相手ユーザーのアイコン（アクター不明時は種別アイコンにフォールバック） */}
+                <div className="flex-shrink-0">
+                  {actor ? (
+                    <Avatar user={actor} size={36} />
+                  ) : (
+                    <div
+                      className="flex items-center justify-center"
+                      style={{ width: 36, height: 36, borderRadius: 18, background: 'white', border: '1.5px solid #EDE9D8' }}
+                    >
+                      {typeIcon(n.type)}
+                    </div>
+                  )}
                 </div>
+
+                {/* 中央: タイトル(アイコン+文字)・本文・(いいね時)アバター列・日時 */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-bold" style={{ color: '#111' }}>{n.title}</p>
-                  <p className="text-[12px] mt-0.5 leading-relaxed" style={{ color: '#666' }}>{n.body}</p>
+                  <p className="flex items-center gap-1 text-[13px] font-bold" style={{ color: '#111' }}>
+                    <span className="inline-flex flex-shrink-0">{typeIcon(n.type)}</span>
+                    <span className="truncate">{n.title}</span>
+                  </p>
+                  <p
+                    className="text-[12px] mt-0.5 leading-relaxed"
+                    style={{ color: '#666', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
+                  >
+                    {bodyText(n)}
+                  </p>
+
+                  {showLikeRow && (
+                    <div className="flex items-center mt-1.5">
+                      {n.actors.slice(0, LIKE_AVATAR_SHOWN).map((a, i) => (
+                        <span
+                          key={a.id}
+                          className="inline-flex rounded-full"
+                          style={{ marginLeft: i === 0 ? 0 : -6, border: '2px solid #FFFEEF', borderRadius: 999 }}
+                        >
+                          <Avatar user={a} size={22} />
+                        </span>
+                      ))}
+                      {n.actorCount > LIKE_AVATAR_SHOWN && (
+                        <span className="ml-1.5 text-[11px] font-bold" style={{ color: '#888' }}>
+                          +{n.actorCount - LIKE_AVATAR_SHOWN}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
                   <p className="text-[11px] mt-1" style={{ color: '#AAA' }}>{timeAgo(n.createdAt)}</p>
                 </div>
-                {!n.read && (
-                  <span className="flex-shrink-0 mt-1" style={{ width: 8, height: 8, borderRadius: 4, background: '#F2B800' }} />
+
+                {/* 右: 投稿写真 / ガチャ画像のサムネ */}
+                {n.thumbnailUrl && (
+                  // 任意ホストの画像に対応するため next/image ではなく img を使用
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={n.thumbnailUrl}
+                    alt=""
+                    className="flex-shrink-0 object-cover"
+                    style={{ width: 52, height: 52, borderRadius: 10, background: '#F0ECD8' }}
+                    referrerPolicy="no-referrer"
+                  />
                 )}
               </button>
             );
