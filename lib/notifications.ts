@@ -93,19 +93,22 @@ function targetIdWhere(kind: NotifyTargetKind, targetId: string) {
   return { spotReviewId: targetId };
 }
 
-/** いいね → 投稿主へ（自分の投稿への自分のいいねは通知しない） */
+/**
+ * いいね → 投稿主へ（自分の投稿への自分のいいねは通知しない）。
+ * 同じ対象への「1つ前の人のいいね通知」は削除し、最新のいいね1件だけを残す
+ * （通知欄が同一投稿のいいねで埋まらないようにするため）。
+ */
 export async function notifyLike(kind: NotifyTargetKind, targetId: string, actorId: string) {
   try {
     const target = await resolveTarget(kind, targetId);
     if (!target || target.ownerId === actorId) return;
 
-    const existing = await db.findLikeNotification({
+    // 同一対象・同一受信者への既存いいね通知（誰のものでも）を削除してから作り直す
+    await db.deleteLikeNotification({
       userId: target.ownerId,
       type: 'like',
-      actorId,
       ...targetIdWhere(kind, targetId),
     });
-    if (existing) return;
 
     const actor = await db.getUserById(actorId);
     await db.createNotification({

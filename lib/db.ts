@@ -647,9 +647,6 @@ export const createNotification = (data: Prisma.NotificationUncheckedCreateInput
 export const createNotificationMany = (data: Prisma.NotificationCreateManyInput[]) =>
   prisma.notification.createMany({ data });
 
-export const findLikeNotification = (where: Prisma.NotificationWhereInput) =>
-  prisma.notification.findFirst({ where, select: { id: true } });
-
 export const deleteLikeNotification = (where: Prisma.NotificationWhereInput) =>
   prisma.notification.deleteMany({ where });
 
