@@ -142,7 +142,7 @@ export function PostCard({
         )}
       </div>
 
-      {post.memo && <p className="text-sm text-gray-700 mb-2 leading-relaxed">{post.memo}</p>}
+      {post.memo && <p className="text-sm text-gray-700 mb-2 leading-relaxed whitespace-pre-wrap break-words">{post.memo}</p>}
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-2 gap-1.5">
         <div className="flex items-center gap-1 text-sm text-gray-500">
