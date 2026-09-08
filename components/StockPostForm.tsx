@@ -164,20 +164,24 @@ function GachaSearch({ onSelect, accentColor = ACCENT }: {
         )}
       </div>
 
-      {/* 人気のIP（いいね総数が多い順 / モバイル6・デスクトップ12） */}
+      {/* 人気のIP（いいね総数が多い順 / モバイル6・デスクトップ12）: 通常投稿とUIを統一 */}
       {shownIps.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, alignItems: 'center' }}>
-          <span style={{ fontSize: 11, color: '#AAA', marginRight: 2 }}>人気のIP</span>
-          {shownIps.map(ip => (
-            <button key={ip} onMouseDown={e => { e.preventDefault(); setValue(ip); setFocused(true); fetchSuggestions(ip); }}
-              style={{
-                padding: '4px 10px', borderRadius: 99, border: `1.5px solid ${accentColor}44`,
-                background: `${accentColor}11`, fontSize: 12, color: '#555',
-                cursor: 'pointer', fontWeight: 600,
-              }}>
-              {ip}
-            </button>
-          ))}
+        <div>
+          <p style={{ fontSize: 11, color: '#AAA', fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>人気のIP</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+            {shownIps.map(ip => (
+              <button key={ip} onMouseDown={e => { e.preventDefault(); setValue(ip); setFocused(true); fetchSuggestions(ip); }}
+                style={{
+                  padding: '5px 13px', borderRadius: 99, fontSize: 13, fontWeight: 600,
+                  border: '1.5px solid #EDE9D8',
+                  background: value === ip ? '#F2B800' : 'white',
+                  color: value === ip ? '#1A1A1A' : '#555',
+                  cursor: 'pointer', transition: 'all 0.15s',
+                }}>
+                {ip}
+              </button>
+            ))}
+          </div>
         </div>
       )}
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
