@@ -89,8 +89,23 @@ export function GachaCard({ gacha, rank, showRank, isMobile, narrow = false, onC
       <div onClick={go} style={{ flexShrink: 0, width: favW, cursor: 'pointer' }}>
         {/* カードの上に小さくIP名（無い場合も1行分の高さを確保して揃える） */}
         <p className="px-0.5 mb-1 truncate" style={{ fontSize: 10, color: '#999', fontWeight: 700 }}>{gacha.ipName || ' '}</p>
+        {/* isolation: カード内の z-index を封じ込め、sticky ヘッダー等の外側に影響させない */}
+        <div className="relative" style={{ isolation: 'isolate' }}>
+          {/* ランキング数字（カード背面・話題のガチャのみ） */}
+          {showRank && (
+            <span
+              aria-hidden
+              style={{
+                position: 'absolute', zIndex: 0, left: -Math.round(favW * 0.26), bottom: 0,
+                fontSize: Math.round(favW * 0.95), fontWeight: 900, color: '#F2B800',
+                lineHeight: 1, pointerEvents: 'none', whiteSpace: 'nowrap',
+              }}
+            >
+              {rank + 1}
+            </span>
+          )}
         <div
-          className="flex flex-col rounded-2xl overflow-hidden w-full transition-transform"
+          className="relative z-10 flex flex-col rounded-2xl overflow-hidden w-full transition-transform"
           style={{ background: 'white', boxShadow: '0 2px 12px rgba(0,0,0,0.07)' }}
           onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-3px)')}
           onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}
@@ -119,6 +134,7 @@ export function GachaCard({ gacha, rank, showRank, isMobile, narrow = false, onC
               {gacha.seriesName}
             </p>
           </div>
+        </div>
         </div>
       </div>
     );
