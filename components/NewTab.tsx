@@ -12,7 +12,7 @@ export function NewTab() {
         color="#E53E6A"
         colorDark="#7B003A"
         colorMid="#C8004A"
-        apiUrl="/api/gacha/popular?limit=10"
+        apiUrl="/api/gacha/popular?limit=9"
         scrollId="trending"
         showRank
       />
