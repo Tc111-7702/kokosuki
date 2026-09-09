@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { ChevronLeft } from 'lucide-react';
 import { type UserResult } from '@/components/community-types';
 
 export function UserAvatar({ user, size }: { user: { name: string; image: string | null }; size: number }) {
@@ -76,10 +77,21 @@ export function CommunitySearchBar({
   const showDrop = focused && (gachaSug.length > 0 || userSug.length > 0);
 
   return (
-    <div className="relative">
+    <div className="flex items-center gap-1.5 min-w-0">
+      {searchActive && (
+        <button
+          type="button"
+          onClick={handleClear}
+          className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full text-gray-500 hover:bg-gray-100 active:opacity-70 transition-colors"
+          aria-label="検索を解除"
+        >
+          <ChevronLeft size={22} />
+        </button>
+      )}
+      <div className="relative flex-1 min-w-0">
       <div
-        className="flex items-center gap-2 px-3 py-2.5 rounded-full transition-all"
-        style={{ background: '#F3F4F6', outline: focused ? '2px solid #FBBF24' : '2px solid transparent' }}
+        className="flex items-center gap-2 px-3 py-1.5 lg:py-2.5 rounded-full"
+        style={{ background: '#F3F4F6' }}
       >
         {busy ? (
           <div className="animate-spin rounded-full border-2 border-t-transparent" style={{ width: 15, height: 15, borderColor: '#F2B800', borderTopColor: 'transparent', flexShrink: 0 }} />
@@ -100,13 +112,6 @@ export function CommunitySearchBar({
           className="flex-1 bg-transparent text-sm outline-none"
           style={{ color: '#111', fontSize: 13, textAlign: 'left' }}
         />
-        {(value || searchActive) && (
-          <button onMouseDown={e => { e.preventDefault(); handleClear(); }} style={{ lineHeight: 0 }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2.5">
-              <path d="M18 6 6 18M6 6l12 12" />
-            </svg>
-          </button>
-        )}
       </div>
       {showDrop && (
         <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden" style={{ maxHeight: 300, overflowY: 'auto' }}>
@@ -145,6 +150,7 @@ export function CommunitySearchBar({
           )}
         </div>
       )}
+      </div>
     </div>
   );
 }
