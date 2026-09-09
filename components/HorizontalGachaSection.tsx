@@ -42,7 +42,12 @@ export function HorizontalGachaSection({ title, color, apiUrl, scrollId, showRan
     setScrollRatio(max > 0 ? el.scrollLeft / max : 0);
   }, []);
 
-  const cardGap = showRank ? (isMobile ? 54 : 100) : (isMobile ? 12 : 32);
+  // paddingLeft = inset + ヘッダー余白(4/8) で 1位の数字左端が「あ」(20/24px) と縦に揃う
+  const rankNumberInset = showRank ? (isMobile ? (isNarrow ? 48 : 64) : 112) : undefined;
+  // gap >= inset + 余白 で左隣カードと数字が重ならない
+  const cardGap = rankNumberInset != null
+    ? rankNumberInset + (isMobile ? (isNarrow ? 8 : 16) : 28)
+    : (isMobile ? 12 : 32);
   const cardW = isMobile ? (isNarrow ? 118 : 150) : 270;
 
   const slide = (dir: 'left' | 'right') => {
@@ -57,8 +62,6 @@ export function HorizontalGachaSection({ title, color, apiUrl, scrollId, showRan
   if (gachas.length === 0) return null;
 
   const cls = scrollClass;
-  // paddingLeft = inset + ヘッダー余白(4/8) で 1位の数字左端が「あ」(20/24px) と縦に揃う
-  const rankNumberInset = showRank ? (isMobile ? (isNarrow ? 48 : 64) : 112) : undefined;
   const rankScrollPaddingLeft = rankNumberInset != null ? rankNumberInset + (isMobile ? 4 : 8) : 0;
 
   return (
