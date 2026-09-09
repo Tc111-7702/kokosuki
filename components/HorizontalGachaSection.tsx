@@ -55,6 +55,9 @@ export function HorizontalGachaSection({ title, color, apiUrl, scrollId, showRan
   if (gachas.length === 0) return null;
 
   const cls = scrollClass;
+  // paddingLeft = inset + ヘッダー余白(4/8) で 1位の数字左端が「あ」(20/24px) と縦に揃う
+  const rankNumberInset = showRank ? (isMobile ? (isNarrow ? 48 : 64) : 92) : undefined;
+  const rankScrollPaddingLeft = rankNumberInset != null ? rankNumberInset + (isMobile ? 4 : 8) : 0;
 
   return (
     <div style={{ marginLeft: 16, marginRight: isMobile ? 0 : 16 }}>
@@ -73,17 +76,17 @@ export function HorizontalGachaSection({ title, color, apiUrl, scrollId, showRan
         className={cls}
         style={{
           display: 'flex',
-          // ランキング数字が左にはみ出す分、話題のガチャ(showRank)は gap と左余白を広げてカードを右へ寄せる
+          // ランキング数字が左にはみ出す分、showRank 時は gap と左余白を広げる
           gap: showRank ? (isMobile ? 54 : 74) : (isMobile ? 12 : 32),
           overflowX: 'auto',
           overflowY: 'hidden', // 上下方向のスクロールを出さない
           paddingBottom: 10,
-          paddingLeft: showRank ? (isMobile ? 50 : 76) : 0,
+          paddingLeft: rankScrollPaddingLeft,
           scrollbarWidth: 'none',
         }}
       >
         {gachas.map((item, rank) => (
-          <GachaCard key={item.id} gacha={item} rank={rank} showRank={showRank} isMobile={isMobile} narrow={isNarrow} badgeLabel={badgeLabel} variant="favorite" />
+          <GachaCard key={item.id} gacha={item} rank={rank} showRank={showRank} rankNumberInset={rankNumberInset} isMobile={isMobile} narrow={isNarrow} badgeLabel={badgeLabel} variant="favorite" />
         ))}
       </div>
 

@@ -215,12 +215,12 @@ export default function ProfilePage() {
         <>
           <TabButton active={tab === 'posts'} label="投稿" onClick={() => setTab('posts')} />
           <TabButton active={tab === 'reports'} label="報告" onClick={() => setTab('reports')} />
-          <TabButton active={tab === 'favorites'} label="おきにいり" onClick={() => setTab('favorites')} />
+          <TabButton active={tab === 'favorites'} label="お気に入り" onClick={() => setTab('favorites')} />
         </>
       ) : (
         <>
           <TabButton active={feedActive} label="投稿 / 報告" onClick={() => setTab('posts')} />
-          <TabButton active={tab === 'favorites'} label="おきにいり" onClick={() => setTab('favorites')} />
+          <TabButton active={tab === 'favorites'} label="お気に入り" onClick={() => setTab('favorites')} />
         </>
       )}
     </div>

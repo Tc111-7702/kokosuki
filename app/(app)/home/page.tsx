@@ -17,7 +17,7 @@ const VALID_TABS = new Set<HomeTab>(['new', 'community', 'favorites']);
 const TAB_LABELS: { key: HomeTab; label: string }[] = [
   { key: 'new',       label: '新着' },
   { key: 'community', label: 'みんな' },
-  { key: 'favorites', label: 'おきにいり' },
+  { key: 'favorites', label: 'お気に入り' },
 ];
 
 function HomePageInner() {
