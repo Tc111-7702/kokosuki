@@ -1,6 +1,25 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { Heart } from 'lucide-react';
+import { useLikedGachas } from '@/lib/useLikedGachas';
+
+// カード用のいいね（ハート）ボタン。タップでいいねトグル（カード遷移はしない）。
+function GachaLikeButton({ gachaId }: { gachaId: string }) {
+  const { isLiked, toggle } = useLikedGachas();
+  const liked = isLiked(gachaId);
+  return (
+    <button
+      type="button"
+      onClick={e => { e.stopPropagation(); toggle(gachaId); }}
+      aria-label={liked ? 'いいねを取り消す' : 'いいね'}
+      className="flex items-center justify-center rounded-full active:scale-90"
+      style={{ width: 30, height: 30, background: 'rgba(255,255,255,0.92)', boxShadow: '0 1px 4px rgba(0,0,0,0.18)', transition: 'transform 0.1s' }}
+    >
+      <Heart size={16} fill={liked ? '#FF4D4D' : 'none'} color={liked ? '#FF4D4D' : '#999'} strokeWidth={2.2} />
+    </button>
+  );
+}
 
 export type GachaItem = {
   id: string;
@@ -86,9 +105,13 @@ export function GachaCard({ gacha, rank, showRank, isMobile, narrow = false, onC
                 onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
               />
             )}
-            {/* 発売状況タグ（ホームと同じデザイン・右上） */}
-            <div style={{ position: 'absolute', top: 8, right: 8 }}>
+            {/* 発売状況タグ（左上） */}
+            <div style={{ position: 'absolute', top: 8, left: 8 }}>
               <GachaStatusBadge status={gacha.status} badgeLabel={badgeLabel} isMobile={isMobile} />
+            </div>
+            {/* いいねボタン（右上） */}
+            <div style={{ position: 'absolute', top: 6, right: 6 }}>
+              <GachaLikeButton gachaId={gacha.id} />
             </div>
           </div>
           <div className="px-2 py-1.5">

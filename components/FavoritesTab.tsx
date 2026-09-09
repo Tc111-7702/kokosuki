@@ -63,8 +63,8 @@ function FavoriteCard({
                 className="absolute inset-0 w-full h-full object-cover"
               />
             )}
-            {/* 発売状況タグ（ホームと同じデザイン・右上） */}
-            <div className="absolute top-1.5 right-1.5">
+            {/* 発売状況タグ（左上） */}
+            <div className="absolute top-1.5 left-1.5">
               <GachaStatusBadge status={gacha.status} isMobile />
             </div>
           </div>
