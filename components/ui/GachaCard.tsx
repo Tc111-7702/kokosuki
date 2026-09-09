@@ -77,17 +77,19 @@ interface GachaCardProps {
   onClick?: () => void;    // 指定時は詳細遷移の代わりにこれを呼ぶ（掲載ピッカー等で使用）
   badgeLabel?: string;     // 指定時はステータスバッジの代わりに固定ラベルを表示（例: 今秋発売）
   variant?: 'default' | 'favorite'; // favorite: おきにいりカードと同じ見た目（正方形画像・順位なし）
+  fullWidth?: boolean;    // favorite 時にグリッド等で幅100%にする
 }
 
-export function GachaCard({ gacha, rank, showRank, rankNumberInset, isMobile, narrow = false, onClick, badgeLabel, variant = 'default' }: GachaCardProps) {
+export function GachaCard({ gacha, rank, showRank, rankNumberInset, isMobile, narrow = false, onClick, badgeLabel, variant = 'default', fullWidth = false }: GachaCardProps) {
   const router = useRouter();
   const go = onClick ?? (() => router.push(`/gacha/${gacha.id}`));
 
   // おきにいりタブと同じ見た目のカード（正方形画像・左上バッジ・順位番号なし）
   if (variant === 'favorite') {
-    const favW = isMobile ? (narrow ? 118 : 150) : 270;
+    const favWNum = isMobile ? (narrow ? 118 : 150) : 270;
+    const favW = fullWidth ? '100%' : favWNum;
     return (
-      <div onClick={go} style={{ flexShrink: 0, width: favW, cursor: 'pointer' }}>
+      <div onClick={go} style={{ flexShrink: fullWidth ? undefined : 0, width: favW, cursor: 'pointer' }}>
         {/* カードの上に小さくIP名（無い場合も1行分の高さを確保して揃える） */}
         <p className="px-0.5 mb-1 truncate" style={{ fontSize: 10, color: '#999', fontWeight: 700 }}>{gacha.ipName || ' '}</p>
         {/* isolation: カード内の z-index を封じ込め、sticky ヘッダー等の外側に影響させない */}
@@ -97,8 +99,8 @@ export function GachaCard({ gacha, rank, showRank, rankNumberInset, isMobile, na
             <span
               aria-hidden
               style={{
-                position: 'absolute', zIndex: 0, left: -(rankNumberInset ?? Math.min(Math.round(favW * 0.34), isMobile ? 56 : 84)), bottom: 0,
-                fontSize: Math.round(favW * 0.95), fontWeight: 900, color: '#F2B800',
+                position: 'absolute', zIndex: 0, left: -(rankNumberInset ?? Math.min(Math.round(favWNum * 0.34), isMobile ? 56 : 84)), bottom: 0,
+                fontSize: Math.round(favWNum * 0.95), fontWeight: 900, color: '#F2B800',
                 lineHeight: 1, pointerEvents: 'none', whiteSpace: 'nowrap',
               }}
             >

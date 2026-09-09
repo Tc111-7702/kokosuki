@@ -4,65 +4,8 @@ import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { HomeSearchBar } from '@/components/HomeSearchBar';
+import { GachaCard, type GachaItem } from '@/components/ui/GachaCard';
 import { useIsMobile } from '@/lib/useIsMobile';
-
-// ─── 型 ──────────────────────────────────────────────────────────────────────
-
-interface GachaItem {
-  id: string;
-  seriesName: string;
-  ipName: string;
-  imageUrl: string | null;
-  gradientFrom: string;
-  gradientTo: string;
-  status: string;
-  releaseDate: string | null;
-  likeCount: number;
-}
-
-// ─── カード ───────────────────────────────────────────────────────────────────
-
-function GachaGridCard({ gacha }: { gacha: GachaItem }) {
-  const router = useRouter();
-  const isNew = gacha.status === 'new';
-  const isSoon = gacha.status === 'coming_soon';
-
-  return (
-    <button
-      onClick={() => router.push(`/gacha/${gacha.id}`)}
-      className="flex flex-col rounded-2xl overflow-hidden active:scale-95 transition-transform text-left"
-      style={{ background: 'white', boxShadow: '0 2px 12px rgba(0,0,0,0.07)' }}
-    >
-      <div className="relative w-full" style={{ paddingBottom: '100%' }}>
-        <div
-          className="absolute inset-0"
-          style={{ background: `linear-gradient(135deg, ${gacha.gradientFrom}, ${gacha.gradientTo})` }}
-        />
-        {gacha.imageUrl && (
-          <img
-            src={gacha.imageUrl}
-            alt={gacha.seriesName}
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-        )}
-        {(isNew || isSoon) && (
-          <div
-            className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-full text-white"
-            style={{ fontSize: 9, fontWeight: 700, background: isNew ? '#F2B800' : '#aaa' }}
-          >
-            {isNew ? 'NEW' : 'SOON'}
-          </div>
-        )}
-      </div>
-      <div className="px-2 py-1.5">
-        <p style={{ fontSize: 9, color: '#aaa', fontWeight: 600, marginBottom: 2 }}>{gacha.ipName}</p>
-        <p style={{ fontSize: 11, color: '#222', fontWeight: 700, lineHeight: 1.3 }} className="line-clamp-2">
-          {gacha.seriesName}
-        </p>
-      </div>
-    </button>
-  );
-}
 
 // ─── 人気IP（投稿サジェストと同じ取得・件数） ─────────────────────────────────
 
@@ -115,6 +58,7 @@ function SearchPageInner() {
   const [gachas, setGachas]   = useState<GachaItem[]>([]);
   const [loading, setLoading] = useState(false);
   const isMobile = useIsMobile();
+  const cols = isMobile ? 2 : 4;
 
   useEffect(() => {
     if (!hasIpSearch) {
@@ -156,7 +100,7 @@ function SearchPageInner() {
             {hasIpSearch ? label : 'さがす'}
           </h1>
         </div>
-        <HomeSearchBar placeholder="別のガチャ名・ジャンルを検索…" />
+        <HomeSearchBar />
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-4">
@@ -176,11 +120,21 @@ function SearchPageInner() {
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+                gridTemplateColumns: `repeat(${cols}, 1fr)`,
                 gap: 12,
               }}
             >
-              {gachas.map(g => <GachaGridCard key={g.id} gacha={g} />)}
+              {gachas.map((g, rank) => (
+                <GachaCard
+                  key={g.id}
+                  gacha={g}
+                  rank={rank}
+                  showRank={false}
+                  isMobile={isMobile}
+                  variant="favorite"
+                  fullWidth
+                />
+              ))}
             </div>
           </>
         )}

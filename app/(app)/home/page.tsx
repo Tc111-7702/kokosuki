@@ -2,12 +2,13 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, Search } from 'lucide-react';
 import { useIsMobile } from '@/lib/useIsMobile';
 import { NewTab }        from '@/components/NewTab';
 import { CommunityTab }  from '@/components/CommunityTab';
 import { FavoritesTab }  from '@/components/FavoritesTab';
 import { HomeSearchBar } from '@/components/HomeSearchBar';
+import { KokosukiHomeLogo } from '@/components/ui/KokosukiHomeLogo';
 
 type HomeTab = 'new' | 'community' | 'favorites';
 
@@ -100,11 +101,24 @@ function HomePageInner() {
         </>
       )}
 
-      {/* 検索バー + タブバー */}
-      <div className="flex-shrink-0 bg-white" style={{ borderBottom: '1.5px solid #EDE9D8' }}>
-        {showSearchBar && (
-          <div style={{ paddingTop: 12 }}>
-            <HomeSearchBar />
+      {/* 検索バー + タブバー（モバイルは検索ボタンのみ / paddingTop は /home/search と揃える） */}
+      <div
+        className="flex-shrink-0 bg-white"
+        style={{ borderBottom: '1.5px solid #EDE9D8', paddingTop: isMobile ? 48 : 16 }}
+      >
+        {showSearchBar && !isMobile && <HomeSearchBar />}
+        {isMobile && showSearchBar && (
+          <div className="flex items-center justify-between px-4 pb-2" style={{ height: 36 }}>
+            <KokosukiHomeLogo height={36} />
+            <button
+              type="button"
+              onClick={() => router.push('/home/search')}
+              aria-label="検索"
+              className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90 transition-transform flex-shrink-0"
+              style={{ background: '#F2B800' }}
+            >
+              <Search size={14} color="white" />
+            </button>
           </div>
         )}
         <div className="flex">
