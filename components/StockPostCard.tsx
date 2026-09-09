@@ -133,7 +133,7 @@ export function StockPostCard({
               {status.label}
             </span>
             <button
-              onClick={e => { e.stopPropagation(); router.push('/search/genre?ipName=' + encodeURIComponent(post.gacha.ipName) + '&label=' + encodeURIComponent(post.gacha.ipName)); }}
+              onClick={e => { e.stopPropagation(); router.push('/home/search?ipName=' + encodeURIComponent(post.gacha.ipName) + '&label=' + encodeURIComponent(post.gacha.ipName)); }}
               className="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 font-medium hover:bg-yellow-200 transition-colors"
             >
               {post.gacha.ipName}

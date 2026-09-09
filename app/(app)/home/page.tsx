@@ -2,12 +2,19 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, Search } from 'lucide-react';
 import { useIsMobile } from '@/lib/useIsMobile';
+import {
+  MOBILE_HEADER_PADDING_TOP,
+  MOBILE_HEADER_CONTENT_HEIGHT,
+  MOBILE_HOME_TAB_ROW_HEIGHT,
+  MOBILE_HOME_LOGO_ZONE_HEIGHT,
+} from '@/lib/mobileHeaderLayout';
 import { NewTab }        from '@/components/NewTab';
 import { CommunityTab }  from '@/components/CommunityTab';
 import { FavoritesTab }  from '@/components/FavoritesTab';
 import { HomeSearchBar } from '@/components/HomeSearchBar';
+import { KokosukiHomeLogo } from '@/components/ui/KokosukiHomeLogo';
 
 type HomeTab = 'new' | 'community' | 'favorites';
 
@@ -67,6 +74,27 @@ function HomePageInner() {
 
   const showSearchBar = tab === 'new' || tab === 'community' || tab === 'favorites';
 
+  const tabBar = (fixedHeight?: number) => (
+    <div className="flex" style={fixedHeight != null ? { height: fixedHeight } : undefined}>
+      {TAB_LABELS.map(({ key, label }) => (
+        <button
+          key={key}
+          onClick={() => switchTab(key)}
+          className={`flex-1 relative text-[13px] font-bold ${fixedHeight != null ? 'flex items-center justify-center' : 'py-3'}`}
+          style={{ color: tab === key ? '#F2B800' : '#AAA' }}
+        >
+          {label}
+          {tab === key && (
+            <div
+              className="absolute bottom-0 left-1/2 -translate-x-1/2"
+              style={{ width: 20, height: 2.5, background: '#FFCD31', borderRadius: 99 }}
+            />
+          )}
+        </button>
+      ))}
+    </div>
+  );
+
   return (
     <div className="relative flex flex-col h-full bg-[#FFFFFF]">
       {/* 投稿完了トースト（上からスライドイン→少し待って消える） */}
@@ -100,31 +128,38 @@ function HomePageInner() {
         </>
       )}
 
-      {/* 検索バー + タブバー */}
-      <div className="flex-shrink-0 bg-white" style={{ borderBottom: '1.5px solid #EDE9D8' }}>
-        {showSearchBar && (
-          <div style={{ paddingTop: 12 }}>
-            <HomeSearchBar />
-          </div>
-        )}
-        <div className="flex">
-          {TAB_LABELS.map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => switchTab(key)}
-              className="flex-1 py-3 text-[13px] font-bold relative"
-              style={{ color: tab === key ? '#F2B800' : '#AAA' }}
+      <div
+        className="flex-shrink-0 bg-white"
+        style={{ borderBottom: '1.5px solid #EDE9D8', paddingTop: isMobile ? MOBILE_HEADER_PADDING_TOP : 16 }}
+      >
+        {isMobile && showSearchBar ? (
+          <div className="overflow-visible" style={{ height: MOBILE_HEADER_CONTENT_HEIGHT }}>
+            <div
+              className="relative overflow-visible"
+              style={{ height: MOBILE_HOME_LOGO_ZONE_HEIGHT }}
             >
-              {label}
-              {tab === key && (
-                <div
-                  className="absolute bottom-0 left-1/2 -translate-x-1/2"
-                  style={{ width: 20, height: 2.5, background: '#FFCD31', borderRadius: 99 }}
-                />
-              )}
-            </button>
-          ))}
-        </div>
+              {/* 見本通り「見つける」タブ上・左寄せ（60px ゾーン内に収める） */}
+              <div className="absolute z-[1] left-2" style={{ bottom: -2 }}>
+                <KokosukiHomeLogo height={56} />
+              </div>
+              <button
+                type="button"
+                onClick={() => router.push('/home/search')}
+                aria-label="検索"
+                className="absolute right-4 top-1/2 w-9 h-9 rounded-full flex items-center justify-center active:scale-90 transition-transform z-[1]"
+                style={{ background: '#F2B800', transform: 'translateY(-50%)' }}
+              >
+                <Search size={14} color="white" />
+              </button>
+            </div>
+            {tabBar(MOBILE_HOME_TAB_ROW_HEIGHT)}
+          </div>
+        ) : (
+          <>
+            {showSearchBar && <HomeSearchBar />}
+            {tabBar()}
+          </>
+        )}
       </div>
 
       {/* タブコンテンツ */}
