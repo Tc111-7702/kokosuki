@@ -51,7 +51,7 @@ export function BottomNav() {
                 className="flex flex-col items-center justify-center rounded-full"
                 style={{ width: 54, height: 54, background: POST_BG, gap: 1 }}
               >
-                <Plus size={18} color="white" strokeWidth={2.75} />
+                <Plus size={26} color="white" strokeWidth={2.75} />
                 <span style={{ color: 'white', fontSize: 9, fontWeight: 700, lineHeight: 1, whiteSpace: 'nowrap' }}>{item.label}</span>
               </span>
             </button>
