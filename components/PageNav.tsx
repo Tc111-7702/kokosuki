@@ -7,8 +7,8 @@ import { useUnreadNotificationCount } from '@/lib/useUnreadNotificationCount';
 
 const NAV_ITEMS = [
   { path: '/home',          label: 'ホーム',     icon: <Home size={20} /> },
-  { path: '/map',           label: 'マップ',     icon: <Map  size={20} /> },
-  { path: '/post',          label: '投稿',       icon: null },
+  { path: '/map',           label: 'さがす',     icon: <Map  size={20} /> },
+  { path: '/post',          label: '投稿する',   icon: null },
   { path: '/notifications', label: '通知',       icon: <Bell size={20} /> },
   { path: '/mypage',        label: 'マイページ', icon: <User size={20} /> },
 ];
