@@ -19,7 +19,7 @@ interface Props {
 const MOBILE_BREAKPOINT = 768;
 const NARROW_BREAKPOINT = 341; // 340px以下でカードを縮小して3枚目を覗かせる
 
-export function HorizontalGachaSection({ title, subtitle, color, colorDark, colorMid, apiUrl, scrollId, showRank = true, badgeLabel }: Props) {
+export function HorizontalGachaSection({ title, color, apiUrl, scrollId, showRank = true, badgeLabel }: Props) {
   const [gachas, setGachas] = useState<Gacha[]>([]);
   const [loading, setLoading] = useState(true);
   const isMobile = useIsMobile(MOBILE_BREAKPOINT);
@@ -45,7 +45,7 @@ export function HorizontalGachaSection({ title, subtitle, color, colorDark, colo
   const slide = (dir: 'left' | 'right') => {
     const el = scrollRef.current;
     if (!el) return;
-    const cardW = isMobile ? 160 + 12 : 320 + 32;
+    const cardW = isMobile ? 150 + 12 : 270 + 32;
     el.scrollBy({ left: dir === 'right' ? cardW * 2 : -cardW * 2, behavior: 'smooth' });
   };
 
@@ -58,17 +58,9 @@ export function HorizontalGachaSection({ title, subtitle, color, colorDark, colo
 
   return (
     <div style={{ marginLeft: 16, marginRight: isMobile ? 0 : 16 }}>
-      {/* ヘッダー */}
-      <div style={{ paddingTop: isMobile ? 24 : 34, paddingBottom: isMobile ? 16 : 24, paddingLeft: isMobile ? 4 : 8 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-          <span style={{ display: 'block', width: 20, height: 3, borderRadius: 2, background: color }} />
-          <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.22em', textTransform: 'uppercase',
-            color, margin: 0 }}>{subtitle}</p>
-        </div>
-        <p style={{ fontSize: isMobile ? 24 : 34, fontWeight: 900, lineHeight: 1, margin: 0, letterSpacing: '-0.03em',
-          background: `linear-gradient(135deg, ${colorDark} 0%, ${colorMid} 55%, ${color} 100%)`,
-          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text', display: 'inline-block' }}>{title}</p>
+      {/* ヘッダー（簡素な黒文字タイトル） */}
+      <div style={{ paddingTop: isMobile ? 12 : 16, paddingBottom: isMobile ? 6 : 8, paddingLeft: isMobile ? 4 : 8 }}>
+        <p style={{ fontSize: isMobile ? 15 : 18, fontWeight: 700, color: '#111', margin: 0, letterSpacing: '-0.01em' }}>{title}</p>
       </div>
 
       {/* 横スクロールグリッド（スクロールバーは常に非表示・スワイプ/矢印で操作） */}
@@ -86,7 +78,7 @@ export function HorizontalGachaSection({ title, subtitle, color, colorDark, colo
         }}
       >
         {gachas.map((item, rank) => (
-          <GachaCard key={item.id} gacha={item} rank={rank} showRank={showRank} isMobile={isMobile} narrow={isNarrow} badgeLabel={badgeLabel} />
+          <GachaCard key={item.id} gacha={item} rank={rank} showRank={showRank} isMobile={isMobile} narrow={isNarrow} badgeLabel={badgeLabel} variant="favorite" />
         ))}
       </div>
 
