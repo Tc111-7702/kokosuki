@@ -60,8 +60,11 @@ export function OshiNewSection() {
 
   return (
     <div>
-      {/* セクションヘッダー（簡素な黒文字タイトル） */}
-      <div style={{ padding: `${isMobile ? 18 : 22}px 0 ${isMobile ? 6 : 8}px ${isMobile ? 20 : 24}px` }}>
+      {/* セクションヘッダー（簡素な黒文字タイトル・スクロール時は固定） */}
+      <div style={{
+        position: 'sticky', top: 0, zIndex: 10, background: '#FFFFFF',
+        padding: `${isMobile ? 12 : 16}px 0 ${isMobile ? 6 : 8}px ${isMobile ? 20 : 24}px`,
+      }}>
         <p style={{ fontSize: isMobile ? 15 : 18, fontWeight: 700, color: '#111', margin: 0, letterSpacing: '-0.01em' }}>あなたへのおすすめ</p>
       </div>
 
@@ -94,7 +97,7 @@ function IpGroup({ group, isMobile, narrow, isLast }: { group: Group; isMobile: 
   };
 
   return (
-    <div style={{ marginBottom: isLast ? 0 : (isMobile ? 20 : 28) }}>
+    <div style={{ marginBottom: isLast ? 0 : (isMobile ? 12 : 16) }}>
       {/* 横スクロール（スクロールバーは常に非表示・スワイプ/矢印で操作） */}
       <style>{`
         .ip-scroll-${group.ipName.replace(/[^a-zA-Z0-9]/g, '')}::-webkit-scrollbar { display: none; }

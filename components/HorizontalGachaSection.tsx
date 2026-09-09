@@ -59,7 +59,7 @@ export function HorizontalGachaSection({ title, color, apiUrl, scrollId, showRan
   return (
     <div style={{ marginLeft: 16, marginRight: isMobile ? 0 : 16 }}>
       {/* ヘッダー（簡素な黒文字タイトル） */}
-      <div style={{ paddingTop: isMobile ? 18 : 22, paddingBottom: isMobile ? 6 : 8, paddingLeft: isMobile ? 4 : 8 }}>
+      <div style={{ paddingTop: isMobile ? 12 : 16, paddingBottom: isMobile ? 6 : 8, paddingLeft: isMobile ? 4 : 8 }}>
         <p style={{ fontSize: isMobile ? 15 : 18, fontWeight: 700, color: '#111', margin: 0, letterSpacing: '-0.01em' }}>{title}</p>
       </div>
 
