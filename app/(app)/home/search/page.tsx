@@ -6,6 +6,11 @@ import { ArrowLeft } from 'lucide-react';
 import { HomeSearchBar } from '@/components/HomeSearchBar';
 import { GachaCard, type GachaItem } from '@/components/ui/GachaCard';
 import { useIsMobile } from '@/lib/useIsMobile';
+import {
+  MOBILE_HEADER_PADDING_TOP,
+  MOBILE_HEADER_TITLE_ROW_HEIGHT,
+  MOBILE_HEADER_SEARCH_BAR_HEIGHT,
+} from '@/lib/mobileHeaderLayout';
 
 // ─── 人気IP（投稿サジェストと同じ取得・件数） ─────────────────────────────────
 
@@ -85,22 +90,48 @@ function SearchPageInner() {
     <div className="flex flex-col h-full bg-[#FFFFFF]">
       <div
         className="flex-shrink-0 bg-white"
-        style={{ borderBottom: '1.5px solid #EDE9D8', paddingTop: isMobile ? 48 : 16 }}
+        style={{ borderBottom: '1.5px solid #EDE9D8', paddingTop: isMobile ? MOBILE_HEADER_PADDING_TOP : 16 }}
       >
-        <div className="flex items-center gap-2 px-4 pb-2">
-          <button
-            type="button"
-            onClick={handleBack}
-            className="w-8 h-8 rounded-full flex items-center justify-center active:bg-gray-100"
-            style={{ flexShrink: 0 }}
-          >
-            <ArrowLeft size={18} color="#555" />
-          </button>
-          <h1 style={{ fontSize: 15, fontWeight: 700, color: '#222' }}>
-            {hasIpSearch ? label : 'さがす'}
-          </h1>
-        </div>
-        <HomeSearchBar />
+        {isMobile ? (
+          <>
+            <div
+              className="flex items-center gap-2 px-4"
+              style={{ height: MOBILE_HEADER_TITLE_ROW_HEIGHT }}
+            >
+              <button
+                type="button"
+                onClick={handleBack}
+                className="w-8 h-8 rounded-full flex items-center justify-center active:bg-gray-100"
+                style={{ flexShrink: 0 }}
+              >
+                <ArrowLeft size={18} color="#555" />
+              </button>
+              <h1 style={{ fontSize: 15, fontWeight: 700, color: '#222', lineHeight: 1 }}>
+                {hasIpSearch ? label : 'さがす'}
+              </h1>
+            </div>
+            <div style={{ height: MOBILE_HEADER_SEARCH_BAR_HEIGHT }}>
+              <HomeSearchBar />
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex items-center gap-2 px-4 pb-2">
+              <button
+                type="button"
+                onClick={handleBack}
+                className="w-8 h-8 rounded-full flex items-center justify-center active:bg-gray-100"
+                style={{ flexShrink: 0 }}
+              >
+                <ArrowLeft size={18} color="#555" />
+              </button>
+              <h1 style={{ fontSize: 15, fontWeight: 700, color: '#222' }}>
+                {hasIpSearch ? label : 'さがす'}
+              </h1>
+            </div>
+            <HomeSearchBar />
+          </>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-4">
