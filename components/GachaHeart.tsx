@@ -58,7 +58,7 @@ export function GachaHeart({ liked, selectedIps, onToggle, onNext, onBack, onPru
   const canProceed = !loading && groups.length > 0 && unmetGroups.length === 0;
 
   return (
-    <div className="flex flex-col h-screen bg-[#FFFEEF]">
+    <div className="flex flex-col h-screen bg-[#FFFFFF]">
       {/* ヘッダー（固定） */}
       <div className="shrink-0 px-6 pt-6 sm:pt-12 pb-2">
         <button

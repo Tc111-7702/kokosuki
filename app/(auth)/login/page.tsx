@@ -32,7 +32,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-[#FFFEEF] px-6">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-[#FFFFFF] px-6">
       <h1 className="text-3xl font-black text-[#F2B800] mb-2" style={{ letterSpacing: '-0.5px' }}>Mikke！</h1>
       <p className="text-[#AAA] text-[13px] mb-10">ログインして続ける</p>
       <form onSubmit={handleSubmit} className="w-full max-w-sm flex flex-col gap-4">

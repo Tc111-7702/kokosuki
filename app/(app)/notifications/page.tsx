@@ -120,7 +120,7 @@ export default function NotificationsPage() {
   }, []);
 
   return (
-    <div className="flex flex-col h-full bg-[#FFFEEF]">
+    <div className="flex flex-col h-full bg-[#FFFFFF]">
       {/* 未読通知に、表示時一度だけ光が走る演出 */}
       <style>{`
         .notif-shine { position: relative; overflow: hidden; animation: notifFlashBg 1.2s ease-out; }
@@ -211,7 +211,7 @@ export default function NotificationsPage() {
                         <span
                           key={a.id}
                           className="inline-flex rounded-full"
-                          style={{ marginLeft: i === 0 ? 0 : -6, border: '2px solid #FFFEEF', borderRadius: 999 }}
+                          style={{ marginLeft: i === 0 ? 0 : -6, border: '2px solid #FFFFFF', borderRadius: 999 }}
                         >
                           <Avatar user={a} size={22} />
                         </span>

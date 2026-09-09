@@ -91,7 +91,7 @@ function GenrePageInner() {
   }, [ipName]);
 
   return (
-    <div className="flex flex-col h-full bg-[#FFFEEF]">
+    <div className="flex flex-col h-full bg-[#FFFFFF]">
       {/* ヘッダー */}
       <div
         className="flex-shrink-0 bg-white"

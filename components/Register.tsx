@@ -150,7 +150,7 @@ export function Register({ likedGachaIds, onBack }: Props) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col h-screen bg-[#FFFEEF]">
+    <form onSubmit={handleSubmit} className="flex flex-col h-screen bg-[#FFFFFF]">
       <div className="flex-1 overflow-y-auto px-6 pt-12 pb-4">
         <button type="button" onClick={onBack} className="mb-6 w-9 h-9 rounded-full flex items-center justify-center" style={{ background: '#F0ECD8' }}>
           <ArrowLeft size={18} color="#555" />
@@ -173,7 +173,7 @@ export function Register({ likedGachaIds, onBack }: Props) {
                 (name || '?').charAt(0)
               )}
             </div>
-            <span className="absolute flex items-center justify-center" style={{ bottom: 0, right: 0, width: 28, height: 28, borderRadius: 14, background: '#F2B800', border: '2.5px solid #FFFEEF' }}>
+            <span className="absolute flex items-center justify-center" style={{ bottom: 0, right: 0, width: 28, height: 28, borderRadius: 14, background: '#F2B800', border: '2.5px solid #FFFFFF' }}>
               <Camera size={14} color="white" />
             </span>
           </button>
@@ -272,7 +272,7 @@ export function Register({ likedGachaIds, onBack }: Props) {
       {/* 固定フッター: はじめる */}
       <div
         className="flex-shrink-0 px-6 pt-4"
-        style={{ background: '#FFFEEF', borderTop: '1.5px solid #EDE9D8', paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}
+        style={{ background: '#FFFFFF', borderTop: '1.5px solid #EDE9D8', paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}
       >
         <button
           type="submit"

@@ -63,7 +63,7 @@ export function OshiNewSection() {
       {/* セクションヘッダー（固定） */}
       <div style={{
         position: 'sticky', top: 0, zIndex: 10,
-        background: '#FFFEEF',
+        background: '#FFFFFF',
         padding: `${isMobile ? 24 : 34}px 0 ${isMobile ? 16 : 24}px ${isMobile ? 16 : 24}px`,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>

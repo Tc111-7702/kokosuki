@@ -99,7 +99,7 @@ export default function ProfilePage() {
 
   if (notFound) {
     return (
-      <div className="flex items-center justify-center h-full bg-[#FFFEEF]">
+      <div className="flex items-center justify-center h-full bg-[#FFFFFF]">
         <p className="text-[14px]" style={{ color: '#AAA' }}>ユーザーが見つかりません</p>
       </div>
     );
@@ -243,7 +243,7 @@ export default function ProfilePage() {
   const stockDetailEl = selectedStock ? <StockPostDetail post={selectedStock} onBack={() => setSelectedStock(null)} onReplied={bumpStockReplies} /> : null;
 
   return (
-    <div className="relative flex flex-col h-full bg-[#FFFEEF] overflow-hidden">
+    <div className="relative flex flex-col h-full bg-[#FFFFFF] overflow-hidden">
       {/* ヘッダー: 自分＝タイトル＋設定 / 他人＝左上の戻るボタンのみ */}
       {isOwn ? (
         <div className="flex-shrink-0 bg-white flex items-center justify-between px-4" style={{ height: 52, borderBottom: '1.5px solid #EDE9D8' }}>
@@ -280,7 +280,7 @@ export default function ProfilePage() {
               <div className="flex-1 min-w-0 flex flex-col overflow-hidden" style={{ borderRight: '1.5px solid #EDE9D8' }}>
                 {selectedPost ? postDetailEl : (
                   <div className="flex-1 min-h-0 overflow-y-auto">
-                    <div className="sticky top-0 z-10 bg-[#FFFEEF] px-4 py-2 text-[12px] font-bold" style={{ color: '#888', borderBottom: '1px solid #EDE9D8' }}>投稿</div>
+                    <div className="sticky top-0 z-10 bg-[#FFFFFF] px-4 py-2 text-[12px] font-bold" style={{ color: '#888', borderBottom: '1px solid #EDE9D8' }}>投稿</div>
                     {PostsList}
                   </div>
                 )}
@@ -289,7 +289,7 @@ export default function ProfilePage() {
               <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
                 {selectedStock ? stockDetailEl : (
                   <div className="flex-1 min-h-0 overflow-y-auto">
-                    <div className="sticky top-0 z-10 bg-[#FFFEEF] px-4 py-2 text-[12px] font-bold" style={{ color: '#888', borderBottom: '1px solid #EDE9D8' }}>報告</div>
+                    <div className="sticky top-0 z-10 bg-[#FFFFFF] px-4 py-2 text-[12px] font-bold" style={{ color: '#888', borderBottom: '1px solid #EDE9D8' }}>報告</div>
                     {ReportsList}
                   </div>
                 )}
