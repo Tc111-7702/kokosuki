@@ -45,7 +45,7 @@ export function HorizontalGachaSection({ title, subtitle, color, colorDark, colo
   const slide = (dir: 'left' | 'right') => {
     const el = scrollRef.current;
     if (!el) return;
-    const cardW = isMobile ? 168 + 12 : 300 + 32;
+    const cardW = isMobile ? 150 + 12 : 270 + 32;
     el.scrollBy({ left: dir === 'right' ? cardW * 2 : -cardW * 2, behavior: 'smooth' });
   };
 

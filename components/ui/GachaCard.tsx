@@ -14,12 +14,48 @@ export type GachaItem = {
   releaseDate: string | null;
 };
 
-const STATUS_LABEL: Record<string, string> = { on_sale: '発売中', coming_soon: 'もうすぐ', ended: '終了' };
+const STATUS_LABEL: Record<string, string> = { on_sale: '発売中', coming_soon: 'もうすぐ', ended: '終了', new: 'NEW' };
 const STATUS_STYLE: Record<string, { bg: string; text: string }> = {
   on_sale:     { bg: '#E8F5E9', text: '#2E7D32' },
   coming_soon: { bg: '#FFF8E1', text: '#F57F17' },
   ended:       { bg: '#EEEEEE', text: '#757575' },
+  new:         { bg: '#FFF8E1', text: '#F2B800' },
 };
+
+// ホームのガチャカードと同じ発売状況タグ（ホーム・おきにいり共通で使う）
+export function GachaStatusBadge({
+  status,
+  releaseDate,
+  badgeLabel,
+  isMobile = true,
+}: {
+  status: string;
+  releaseDate?: string | null;
+  badgeLabel?: string;
+  isMobile?: boolean;
+}) {
+  const st = STATUS_STYLE[status] ?? STATUS_STYLE.ended;
+  const isBlue = !!badgeLabel || status === 'coming_soon';
+  const label = badgeLabel
+    ? badgeLabel
+    : releaseDate
+    ? `${new Date(releaseDate).getMonth() + 1}/${new Date(releaseDate).getDate()}発売予定`
+    : status === 'coming_soon'
+    ? '発売予定'
+    : STATUS_LABEL[status] ?? status;
+  return (
+    <span
+      style={{
+        padding: isMobile ? '3px 7px' : '4px 10px', borderRadius: 99,
+        fontSize: isMobile ? 10 : 11, fontWeight: 800, whiteSpace: 'nowrap', display: 'inline-block',
+        background: isBlue ? '#EEF2FF' : st.bg,
+        color: isBlue ? '#4F46E5' : st.text,
+      }}
+    >
+      {label}
+    </span>
+  );
+}
 
 interface GachaCardProps {
   gacha: GachaItem;
@@ -32,24 +68,13 @@ interface GachaCardProps {
   variant?: 'default' | 'favorite'; // favorite: おきにいりカードと同じ見た目（正方形画像・順位なし）
 }
 
-// おきにいりカード風バッジの色
-function favoriteBadge(status: string, badgeLabel?: string): { label: string; bg: string } {
-  const isSale = status === 'on_sale' || (badgeLabel ? badgeLabel.includes('発売') && !badgeLabel.includes('予定') : false);
-  const isSoon = status === 'coming_soon' || (badgeLabel ? badgeLabel.includes('予定') : false);
-  return {
-    label: badgeLabel ?? (STATUS_LABEL[status] ?? status),
-    bg: isSale ? '#22c55e' : isSoon ? '#F2B800' : '#aaa',
-  };
-}
-
 export function GachaCard({ gacha, rank, showRank, isMobile, narrow = false, onClick, badgeLabel, variant = 'default' }: GachaCardProps) {
   const router = useRouter();
   const go = onClick ?? (() => router.push(`/gacha/${gacha.id}`));
 
   // おきにいりタブと同じ見た目のカード（正方形画像・左上バッジ・順位番号なし）
   if (variant === 'favorite') {
-    const favW = isMobile ? (narrow ? 132 : 168) : 300;
-    const fav = favoriteBadge(gacha.status, badgeLabel);
+    const favW = isMobile ? (narrow ? 118 : 150) : 270;
     return (
       <div onClick={go} style={{ flexShrink: 0, width: favW, cursor: 'pointer' }}>
         <div
@@ -68,8 +93,9 @@ export function GachaCard({ gacha, rank, showRank, isMobile, narrow = false, onC
                 onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
               />
             )}
-            <div className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-full text-white" style={{ fontSize: 9, fontWeight: 700, background: fav.bg }}>
-              {fav.label}
+            {/* 発売状況タグ（ホームと同じデザイン・右上） */}
+            <div style={{ position: 'absolute', top: 8, right: 8 }}>
+              <GachaStatusBadge status={gacha.status} releaseDate={gacha.releaseDate} badgeLabel={badgeLabel} isMobile={isMobile} />
             </div>
           </div>
           <div className="px-2 py-1.5">
@@ -87,7 +113,6 @@ export function GachaCard({ gacha, rank, showRank, isMobile, narrow = false, onC
   const cardW  = isMobile ? (narrow ? 116 : 140) : 320;
   const imgH   = isMobile ? (narrow ? 130 : 158) : 320;
   const radius = isMobile ? 16 : 10;
-  const st = STATUS_STYLE[gacha.status] ?? STATUS_STYLE.ended;
 
   return (
     <div
@@ -126,18 +151,7 @@ export function GachaCard({ gacha, rank, showRank, isMobile, narrow = false, onC
           </div>
         )}
         <div style={{ position: 'absolute', top: 10, right: 10 }}>
-          <span style={{
-            padding: isMobile ? '3px 7px' : '4px 10px', borderRadius: 99,
-            fontSize: isMobile ? 10 : 11, fontWeight: 800,
-            background: badgeLabel || gacha.status === 'coming_soon' ? '#EEF2FF' : st.bg,
-            color: badgeLabel || gacha.status === 'coming_soon' ? '#4F46E5' : st.text,
-          }}>
-            {badgeLabel
-              ? badgeLabel
-              : gacha.releaseDate
-              ? `${new Date(gacha.releaseDate).getMonth() + 1}/${new Date(gacha.releaseDate).getDate()}発売予定`
-              : gacha.status === 'coming_soon' ? '発売予定' : STATUS_LABEL[gacha.status] ?? gacha.status}
-          </span>
+          <GachaStatusBadge status={gacha.status} releaseDate={gacha.releaseDate} badgeLabel={badgeLabel} isMobile={isMobile} />
         </div>
       </div>
       <div style={{ padding: isMobile ? '8px 10px 10px' : '10px 14px 12px' }}>

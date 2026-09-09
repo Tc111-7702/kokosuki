@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { X } from 'lucide-react';
 import { useIsMobile } from '@/lib/useIsMobile';
+import { GachaStatusBadge } from '@/components/ui/GachaCard';
 
 interface FavoriteGacha {
   favoriteId: string;
@@ -32,17 +33,6 @@ function FavoriteCard({
 }) {
   const router = useRouter();
 
-  const statusLabel =
-    gacha.status === 'on_sale'        ? '発売中'
-    : gacha.status === 'new'          ? 'NEW'
-    : gacha.status === 'coming_soon'  ? 'SOON'
-    : null;
-
-  const statusColor =
-    gacha.status === 'on_sale'        ? '#22c55e'
-    : gacha.status === 'new'          ? '#F2B800'
-    : '#aaa';
-
   return (
     <div className="relative">
       <button
@@ -70,14 +60,10 @@ function FavoriteCard({
               className="absolute inset-0 w-full h-full object-cover"
             />
           )}
-          {statusLabel && (
-            <div
-              className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-full text-white"
-              style={{ fontSize: 9, fontWeight: 700, background: statusColor }}
-            >
-              {statusLabel}
-            </div>
-          )}
+          {/* 発売状況タグ（ホームと同じデザイン・右上） */}
+          <div className="absolute top-1.5 right-1.5">
+            <GachaStatusBadge status={gacha.status} releaseDate={gacha.releaseDate} isMobile />
+          </div>
         </div>
         {/* テキスト */}
         <div className="px-2 py-1.5">

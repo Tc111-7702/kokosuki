@@ -101,7 +101,7 @@ function IpGroup({ group, isMobile, narrow, isLast }: { group: Group; isMobile: 
   const slide = (dir: 'left' | 'right') => {
     const el = scrollRef.current;
     if (!el) return;
-    const cardW = isMobile ? 160 + 12 : 320 + 32;
+    const cardW = isMobile ? 150 + 12 : 270 + 32;
     el.scrollBy({ left: dir === 'right' ? cardW * 2 : -cardW * 2, behavior: 'smooth' });
   };
 
@@ -130,7 +130,7 @@ function IpGroup({ group, isMobile, narrow, isLast }: { group: Group; isMobile: 
         }}
       >
         {group.gachas.map((item, rank) => (
-          <GachaCard key={item.id} gacha={item} rank={rank} showRank={false} isMobile={isMobile} narrow={narrow} />
+          <GachaCard key={item.id} gacha={item} rank={rank} showRank={false} isMobile={isMobile} narrow={narrow} variant="favorite" />
         ))}
       </div>
 
