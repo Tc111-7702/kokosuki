@@ -33,11 +33,11 @@ export function PageNav() {
   return (
     <nav
       className="flex-shrink-0 flex flex-col bg-white h-screen sticky top-0"
-      style={{ width: 80, borderRight: '1.5px solid #EDE9D8' }}
+      style={{ width: 88, borderRight: '1.5px solid #EDE9D8' }}
     >
       {/* ロゴ */}
       <div className="flex items-center justify-center pt-6 pb-4 px-2">
-        <KokosugiLogo width={64} />
+        <KokosugiLogo width={72} />
       </div>
 
       {/* ナビアイテム */}
