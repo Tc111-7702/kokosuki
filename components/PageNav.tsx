@@ -47,21 +47,21 @@ export function PageNav() {
       {/* ナビアイテム */}
       <div className="flex flex-col items-center gap-1 px-2">
         {NAV_ITEMS.map((item) => {
-          // 投稿ボタン: 黄色い丸＋白い＋（アクティブ配色の対象外）
+          // 投稿ボタン: ＋と「投稿する」を黄色い丸で囲む（アクティブ配色の対象外）
           if (item.path === '/post') {
             return (
               <button
                 key={item.path}
                 onClick={() => router.push(item.path)}
-                className="w-full flex flex-col items-center justify-center gap-1 py-2 rounded-xl active:opacity-60"
+                className="w-full flex items-center justify-center py-2 active:opacity-60"
               >
                 <span
-                  className="flex items-center justify-center rounded-full"
-                  style={{ width: 44, height: 44, background: POST_BG }}
+                  className="flex flex-col items-center justify-center rounded-full"
+                  style={{ width: 56, height: 56, background: POST_BG, gap: 1 }}
                 >
-                  <Plus size={26} color="white" strokeWidth={2.75} />
+                  <Plus size={18} color="white" strokeWidth={2.75} />
+                  <span style={{ color: 'white', fontSize: 9, fontWeight: 700, lineHeight: 1, whiteSpace: 'nowrap' }}>{item.label}</span>
                 </span>
-                <span className="text-[10px] font-bold" style={{ color: INACTIVE_COLOR }}>{item.label}</span>
               </button>
             );
           }

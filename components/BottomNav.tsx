@@ -39,21 +39,21 @@ export function BottomNav() {
       }}
     >
       {NAV_ITEMS.map((item) => {
-        // 投稿ボタン: 黄色い丸＋白い＋（アクティブ配色の対象外）
+        // 投稿ボタン: ＋と「投稿する」を黄色い丸で囲む（アクティブ配色の対象外）
         if (item.path === '/post') {
           return (
             <button
               key={item.path}
               onClick={() => router.push(item.path)}
-              className="flex-1 flex flex-col items-center justify-center gap-0.5 transition-opacity active:opacity-60"
+              className="flex-1 flex items-center justify-center transition-opacity active:opacity-60"
             >
               <span
-                className="flex items-center justify-center rounded-full"
-                style={{ width: 40, height: 40, background: POST_BG }}
+                className="flex flex-col items-center justify-center rounded-full"
+                style={{ width: 54, height: 54, background: POST_BG, gap: 1 }}
               >
-                <Plus size={24} color="white" strokeWidth={2.75} />
+                <Plus size={18} color="white" strokeWidth={2.75} />
+                <span style={{ color: 'white', fontSize: 9, fontWeight: 700, lineHeight: 1, whiteSpace: 'nowrap' }}>{item.label}</span>
               </span>
-              <span className="font-bold" style={{ color: INACTIVE_COLOR, fontSize: 10, whiteSpace: 'nowrap' }}>{item.label}</span>
             </button>
           );
         }
