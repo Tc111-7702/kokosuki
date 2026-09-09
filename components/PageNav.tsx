@@ -1,19 +1,21 @@
 'use client';
 
-import { Home, Map, User, PlusSquare, Bell } from 'lucide-react';
+import { Home, MapPin, User, Plus, Bell } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useCurrentUserId } from '@/lib/useCurrentUserId';
 import { useUnreadNotificationCount } from '@/lib/useUnreadNotificationCount';
 
 const NAV_ITEMS = [
-  { path: '/home',          label: 'ホーム',     icon: <Home       size={20} /> },
-  { path: '/map',           label: 'マップ',     icon: <Map        size={20} /> },
-  { path: '/post',          label: '＋投稿',     icon: <PlusSquare size={20} /> },
-  { path: '/notifications', label: '通知',       icon: <Bell       size={20} /> },
-  { path: '/mypage',        label: 'マイページ', icon: <User       size={20} /> },
+  { path: '/home',          label: 'ホーム',     icon: <Home size={20} /> },
+  { path: '/map',           label: 'さがす',     icon: <MapPin size={20} /> },
+  { path: '/post',          label: '投稿する',   icon: null },
+  { path: '/notifications', label: '通知',       icon: <Bell size={20} /> },
+  { path: '/mypage',        label: 'マイページ', icon: <User size={20} /> },
 ];
 
-const ACTIVE_COLOR = '#F2B800';
+const ACTIVE_COLOR = '#1A1A1A';   // アクティブ＝黒
+const INACTIVE_COLOR = '#C4C3C0'; // 非アクティブ＝グレー
+const POST_BG = '#FFCD31';        // 投稿ボタンの黄色
 
 export function PageNav() {
   const router   = useRouter();
@@ -45,15 +47,34 @@ export function PageNav() {
       {/* ナビアイテム */}
       <div className="flex flex-col items-center gap-1 px-2">
         {NAV_ITEMS.map((item) => {
+          // 投稿ボタン: ＋と「投稿する」を黄色い丸で囲む（アクティブ配色の対象外）
+          if (item.path === '/post') {
+            return (
+              <button
+                key={item.path}
+                onClick={() => router.push(item.path)}
+                className="w-full flex items-center justify-center py-2 active:opacity-60"
+              >
+                <span
+                  className="flex flex-col items-center justify-center rounded-full"
+                  style={{ width: 56, height: 56, background: POST_BG, gap: 1, paddingBottom: 5 }}
+                >
+                  <Plus size={26} color="white" strokeWidth={2.75} />
+                  <span style={{ color: 'white', fontSize: 9, fontWeight: 700, lineHeight: 1, whiteSpace: 'nowrap' }}>{item.label}</span>
+                </span>
+              </button>
+            );
+          }
+
           const isActive = isNavActive(item.path);
+          const color = isActive ? ACTIVE_COLOR : INACTIVE_COLOR;
           return (
             <button
               key={item.path}
               onClick={() => router.push(item.path)}
               className="w-full flex flex-col items-center justify-center gap-1 py-3 rounded-xl transition-all duration-200 active:opacity-60"
-              style={{ background: isActive ? '#FFF8D0' : 'transparent' }}
             >
-              <span className="relative" style={{ color: isActive ? ACTIVE_COLOR : '#C4C3C0' }}>
+              <span className="relative" style={{ color }}>
                 {item.icon}
                 {item.path === '/notifications' && unread > 0 && (
                   <span
@@ -64,10 +85,7 @@ export function PageNav() {
                   </span>
                 )}
               </span>
-              <span
-                className="text-[10px] font-bold"
-                style={{ color: isActive ? ACTIVE_COLOR : '#C4C3C0' }}
-              >
+              <span className="text-[10px] font-bold" style={{ color }}>
                 {item.label}
               </span>
             </button>
