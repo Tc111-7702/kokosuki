@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Send } from 'lucide-react';
+import { ReplyComposerField } from '@/components/ReplyComposerField';
 import { ReplyCard } from '@/components/ReplyCard';
 import { Avatar } from '@/components/ui/Avatar';
 import { type Reply } from '@/components/community-types';
@@ -70,8 +70,7 @@ export function InlineReplies({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (mentionQuery !== null && e.key === 'Escape') { e.preventDefault(); closeMention(); return; }
-    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); handleSubmit(); }
+    if (mentionQuery !== null && e.key === 'Escape') { e.preventDefault(); closeMention(); }
   };
 
   // 保存済みメンション(@handle)は renderWithMentions の @\S+ フォールバックで着色されるため名前一覧のみでよい。
@@ -120,33 +119,18 @@ export function InlineReplies({
             ))}
           </div>
         )}
-        <div className="flex items-end gap-2 px-3 py-2.5">
-          <div className="relative flex-1 rounded-xl border border-gray-200 focus-within:border-yellow-400 focus-within:ring-1 focus-within:ring-yellow-400 bg-white transition-colors overflow-hidden">
-            <div aria-hidden className="absolute inset-0 px-3 py-2 text-sm whitespace-pre-wrap break-words pointer-events-none text-gray-800 overflow-hidden" style={{ lineHeight: '1.5', fontFamily: 'inherit' }}>
-              {renderMentionText(text)}
-            </div>
-            <textarea
-              ref={textareaRef}
-              value={text}
-              onChange={handleTextChange}
-              onSelect={handleSelect}
-              onKeyDown={handleKeyDown}
-              placeholder="返信する…"
-              rows={1}
-              className="relative w-full resize-none bg-transparent px-3 py-2 text-sm placeholder-gray-400 focus:outline-none"
-              style={{ lineHeight: '1.5', color: 'transparent', caretColor: '#374151' }}
-            />
-          </div>
-          <button
-            onClick={handleSubmit}
-            disabled={!text.trim() || submitting}
-            className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-yellow-400 text-white disabled:opacity-40 hover:bg-yellow-500 transition-colors"
-          >
-            {submitting
-              ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              : <Send size={14} />
-            }
-          </button>
+        <div className="px-3 py-2">
+          <ReplyComposerField
+            text={text}
+            textareaRef={textareaRef}
+            onChange={handleTextChange}
+            onSelect={handleSelect}
+            onKeyDown={handleKeyDown}
+            renderMentionText={renderMentionText}
+            onSubmit={handleSubmit}
+            submitting={submitting}
+            variant="inline"
+          />
         </div>
       </div>
     </div>

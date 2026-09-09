@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { MapPin, Heart, MessageCircle, Trash2 } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { MapPin, Heart, MessageCircle, MoreHorizontal } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useInteraction } from '@/components/InteractionStore';
 
@@ -43,10 +43,9 @@ function Avatar({ user, size }: { user: { name: string; image: string | null }; 
 }
 
 
-function extractCity(address: string | undefined | null): string {
-  if (!address) return '';
-  const m = address.match(/^(.{2,4}[都道府県])(.{2,6}[市区町村])/);
-  return m ? m[1] + m[2] : address.slice(0, 8);
+function hasDisplayIpName(name: string): boolean {
+  const n = name.trim();
+  return n.length > 0 && n !== '不明';
 }
 
 const STATUS_CONFIG: Record<string, { label: string; bg: string; color: string }> = {
@@ -84,11 +83,25 @@ export function StockPostCard({
     likedByMe: post.likedByMe, likeCount: post._count.likes, replyCount: post._count.replies,
   });
   const [deleting, setDeleting] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const isOwner = !!currentUserId && post.user.id === currentUserId;
 
-  const handleDelete = async (e: React.MouseEvent) => {
-    e.stopPropagation();
+  useEffect(() => {
+    if (!showMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showMenu]);
+
+  const handleDelete = async (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setShowMenu(false);
     if (!window.confirm('この在庫報告を削除しますか？')) return;
     setDeleting(true);
     try {
@@ -103,6 +116,7 @@ export function StockPostCard({
 
   const status = STATUS_CONFIG[post.stockStatus] ?? STATUS_CONFIG.in_stock;
   const gradient = 'linear-gradient(135deg, ' + post.gacha.gradientFrom + ', ' + post.gacha.gradientTo + ')';
+  const showIpButton = hasDisplayIpName(post.gacha.ipName);
 
   function handleLike(e: React.MouseEvent) { e.stopPropagation(); toggleLike(); }
 
@@ -124,41 +138,65 @@ export function StockPostCard({
         </div>
 
         {/* テキスト情報 */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap mb-0.5">
+        <div className="flex-1 min-w-0 relative">
+          <div className="absolute -top-1 right-0 z-10 flex items-center gap-0.5" ref={menuRef}>
+            {isOwner && showMenu && (
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="text-[10px] leading-none px-2 py-1 rounded-full bg-gray-200 text-red-500 font-medium hover:bg-gray-100 transition-colors whitespace-nowrap"
+              >
+                {deleting ? '削除中…' : '削除'}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={e => {
+                e.stopPropagation();
+                if (isOwner) setShowMenu(v => !v);
+              }}
+              className="p-0.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors"
+              aria-label="投稿メニュー"
+            >
+              <MoreHorizontal size={16} />
+            </button>
+          </div>
+          <div className={"flex items-center gap-1.5 flex-nowrap min-w-0 overflow-hidden " + (isOwner && showMenu ? 'pr-[72px]' : 'pr-5')}>
             <span
-              className="text-xs px-2 py-0.5 rounded-full font-semibold"
+              className="text-[10px] lg:text-xs leading-none px-1.5 py-0.5 lg:px-2 lg:py-1 rounded-full font-semibold flex-shrink-0"
               style={{ background: status.bg, color: status.color }}
             >
               {status.label}
             </span>
-            <button
-              onClick={e => { e.stopPropagation(); router.push('/home/search?ipName=' + encodeURIComponent(post.gacha.ipName) + '&label=' + encodeURIComponent(post.gacha.ipName)); }}
-              className="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 font-medium hover:bg-yellow-200 transition-colors"
-            >
-              {post.gacha.ipName}
-            </button>
+            {showIpButton && (
+              <button
+                onClick={e => { e.stopPropagation(); router.push('/home/search?ipName=' + encodeURIComponent(post.gacha.ipName) + '&label=' + encodeURIComponent(post.gacha.ipName)); }}
+                className="text-[10px] lg:text-xs leading-none px-1.5 py-0.5 lg:px-2 lg:py-1 rounded-full bg-yellow-100 text-yellow-700 font-medium hover:bg-yellow-200 transition-colors flex-shrink-0 whitespace-nowrap"
+              >
+                {post.gacha.ipName}
+              </button>
+            )}
             {post.gacha.status != null && post.gacha.status !== 'on_sale' && (
-              <span className="text-xs px-2 py-0.5 rounded-full font-semibold border border-red-200 text-red-500 bg-red-50">発売中止</span>
+              <span className="text-[10px] lg:text-xs leading-none px-1.5 py-0.5 lg:px-2 lg:py-1 rounded-full font-semibold border border-red-200 text-red-500 bg-red-50 flex-shrink-0">発売中止</span>
             )}
           </div>
           <button
             onClick={e => { e.stopPropagation(); router.push('/gacha/' + post.gacha.id); }}
-            className="text-sm font-bold text-gray-900 hover:text-blue-600 transition-colors text-left leading-tight line-clamp-2"
+            className="group text-xs lg:text-sm font-bold text-gray-900 hover:text-blue-600 transition-colors text-left leading-snug line-clamp-2 pb-1 w-full"
           >
-            {post.gacha.seriesName}
+            <span className="underline underline-offset-[3px] decoration-gray-900 group-hover:decoration-blue-600 box-decoration-clone">
+              {post.gacha.seriesName}
+            </span>
           </button>
-          <div className="mt-1.5">
-            <div className="flex items-center gap-1 text-sm font-bold text-gray-800">
-              <MapPin size={13} className="text-gray-500 flex-shrink-0" />
-              <button
-                onClick={e => { e.stopPropagation(); router.push('/map?spotId=' + post.spot.id); }}
-                className="hover:text-yellow-600 hover:underline transition-colors text-left font-bold"
-              >
-                {post.spot.name}
-              </button>
-            </div>
-            <p className="text-xs text-gray-400 ml-[18px] mt-0.5">{extractCity(post.spot.address)}</p>
+          <div className="flex items-center gap-1 mt-1">
+            <MapPin size={11} className="text-gray-400 flex-shrink-0 lg:w-[13px] lg:h-[13px]" />
+            <button
+              onClick={e => { e.stopPropagation(); router.push('/map?spotId=' + post.spot.id); }}
+              className="text-[10px] lg:text-xs text-gray-400 font-normal hover:text-yellow-600 transition-colors text-left leading-tight"
+            >
+              {post.spot.name}
+            </button>
           </div>
         </div>
       </div>
@@ -174,16 +212,6 @@ export function StockPostCard({
           <span className="text-xs text-gray-400 flex-shrink-0">{timeAgo(post.createdAt)}</span>
         </button>
         <div className="flex items-center gap-4">
-          {isOwner && (
-            <button
-              onClick={handleDelete}
-              disabled={deleting}
-              className="flex items-center p-1 rounded-full text-gray-400 hover:text-red-400 transition-colors"
-              aria-label="削除"
-            >
-              <Trash2 size={18} />
-            </button>
-          )}
           <button
             onClick={(e) => { if (onReplyClick) { e.stopPropagation(); onReplyClick(); } }}
             className={"flex items-center gap-1.5 transition-colors " + (replyOpen ? "text-yellow-500" : "text-gray-400") + (onReplyClick ? " hover:text-yellow-500" : " cursor-default")}

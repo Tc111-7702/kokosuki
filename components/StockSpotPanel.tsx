@@ -22,12 +22,15 @@ export function StockSpotPanel({
   gachaName,
   gachaImageUrl,
   onSelect,
+  largeText = false,
 }: {
   gachaId: string;
   gachaName: string;
   gachaImageUrl: string | null;
   onSelect: (id: string, name: string) => void;
+  largeText?: boolean;
 }) {
+  const fs = (base: number) => largeText ? base + 2 : base;
   const [state, setState] = useState<'locating' | 'loading' | 'done' | 'geo-error' | 'denied'>('locating');
   const [spots, setSpots] = useState<SpotResult[]>([]);
   const [message, setMessage] = useState<string | null>(null);
@@ -95,7 +98,7 @@ export function StockSpotPanel({
           border: '3px solid #60A5FA', borderTopColor: 'transparent',
           borderRadius: '50%', animation: 'spin 0.7s linear infinite',
         }} />
-        <p style={{ fontSize: 13, color: '#888', margin: 0 }}>
+        <p style={{ fontSize: fs(13), color: '#888', margin: 0 }}>
           {state === 'locating' ? '現在地を取得中…' : '近くの店舗を検索中…'}
         </p>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
@@ -108,13 +111,13 @@ export function StockSpotPanel({
     return (
       <div style={{ padding: '16px', background: '#FEF2F2', borderRadius: 12, textAlign: 'center' }}>
         <AlertCircle size={20} color="#EF4444" style={{ margin: '0 auto 8px' }} />
-        <p style={{ fontSize: 13, color: '#DC2626', margin: '0 0 12px', lineHeight: 1.5 }}>{message}</p>
+        <p style={{ fontSize: fs(13), color: '#DC2626', margin: '0 0 12px', lineHeight: 1.5 }}>{message}</p>
         {state === 'geo-error' && (
           <button onClick={load}
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
               padding: '8px 16px', borderRadius: 8, border: 'none',
-              background: '#EF4444', color: 'white', fontSize: 13,
+              background: '#EF4444', color: 'white', fontSize: fs(13),
               fontWeight: 700, cursor: 'pointer',
             }}>
             <RefreshCw size={13} />再試行
@@ -129,15 +132,15 @@ export function StockSpotPanel({
     return (
       <div style={{ textAlign: 'center', padding: '16px 0' }}>
         <MapPin size={20} color="#D1D5DB" style={{ margin: '0 auto 8px' }} />
-        <p style={{ fontSize: 13, color: '#9CA3AF', margin: '0 0 4px', lineHeight: 1.5 }}>{message}</p>
-        <p style={{ fontSize: 11, color: '#C4C4C4', margin: 0 }}>
+        <p style={{ fontSize: fs(13), color: '#9CA3AF', margin: '0 0 4px', lineHeight: 1.5 }}>{message}</p>
+        <p style={{ fontSize: fs(11), color: '#C4C4C4', margin: 0 }}>
           ※ 在庫報告は現在地{STOCK_RADIUS}m以内の店舗のみ対象です
         </p>
         <button onClick={load}
           style={{
             marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 6,
             padding: '8px 16px', borderRadius: 8, border: '1.5px solid #D1D5DB',
-            background: 'white', color: '#6B7280', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+            background: 'white', color: '#6B7280', fontSize: fs(13), fontWeight: 700, cursor: 'pointer',
           }}>
           <RefreshCw size={13} />再検索
         </button>
@@ -153,7 +156,7 @@ export function StockSpotPanel({
         padding: '6px 10px', background: '#EFF6FF', borderRadius: 8,
       }}>
         <MapPin size={12} color="#3B82F6" />
-        <span style={{ fontSize: 11, color: '#3B82F6', fontWeight: 700 }}>
+        <span style={{ fontSize: fs(11), color: '#3B82F6', fontWeight: 700 }}>
           現在地{STOCK_RADIUS}m以内 &middot; {gachaName}取扱店舗
         </span>
         <button onClick={load}
@@ -173,8 +176,8 @@ export function StockSpotPanel({
             }}
             onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = '#F0F9FF'; }}
             onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'white'; }}>
-            <p style={{ margin: '0 0 2px', fontSize: 13, fontWeight: 700, color: '#1A1A1A' }}>{sp.name}</p>
-            <p style={{ margin: 0, fontSize: 11, color: '#999' }}>
+            <p style={{ margin: '0 0 2px', fontSize: fs(13), fontWeight: 700, color: '#1A1A1A' }}>{sp.name}</p>
+            <p style={{ margin: 0, fontSize: fs(11), color: '#999' }}>
               {sp.address}
               <span style={{ marginLeft: 6, fontWeight: 700, color: '#60A5FA' }}>
                 {fmtDist(sp.distance)}

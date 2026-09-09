@@ -56,8 +56,9 @@ function StepHeader({ step, onBack }: { step: Step; onBack?: () => void }) {
 
 // ─── ガチャ検索 (共通) ────────────────────────────────────────────────
 
-function GachaSearch({ onSelect, accentColor = ACCENT }: {
+function GachaSearch({ onSelect, accentColor = ACCENT, largeText = false }: {
   accentColor?: string;
+  largeText?: boolean;
   onSelect: (id: string, name: string, imageUrl: string | null) => void;
 }) {
   const [value, setValue]             = useState('');
@@ -120,7 +121,7 @@ function GachaSearch({ onSelect, accentColor = ACCENT }: {
             onChange={e => { setValue(e.target.value); fetchSuggestions(e.target.value); }}
             onFocus={() => { setFocused(true); fetchSuggestions(value); }}
             onBlur={() => setTimeout(() => setFocused(false), 200)}
-            style={{ flex: 1, minWidth: 0, background: 'none', border: 'none', outline: 'none', fontSize: 14, color: '#333' }}
+            style={{ flex: 1, minWidth: 0, background: 'none', border: 'none', outline: 'none', fontSize: largeText ? 15 : 14, color: '#333' }}
           />
           {resolving ? (
             <div style={{ width: 13, height: 13, border: `2px solid ${accentColor}`, borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
@@ -155,7 +156,7 @@ function GachaSearch({ onSelect, accentColor = ACCENT }: {
                 ) : (
                   <span style={{ width: isMobile ? 30 : 34, height: isMobile ? 30 : 34, borderRadius: 8, background: '#F0ECD8', flexShrink: 0 }} />
                 )}
-                <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: isMobile ? 12.5 : 14, color: '#222' }}>
+                <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: largeText ? 15 : (isMobile ? 12.5 : 14), color: '#222' }}>
                   {s.label}
                 </span>
               </button>
@@ -167,12 +168,12 @@ function GachaSearch({ onSelect, accentColor = ACCENT }: {
       {/* 人気のIP（いいね総数が多い順 / モバイル6・デスクトップ12）: 通常投稿とUIを統一 */}
       {shownIps.length > 0 && (
         <div>
-          <p style={{ fontSize: 11, color: '#AAA', fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>人気のIP</p>
+          <p style={{ fontSize: largeText ? 12 : 11, color: '#AAA', fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>人気のIP</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
             {shownIps.map(ip => (
               <button key={ip} onMouseDown={e => { e.preventDefault(); setValue(ip); setFocused(true); fetchSuggestions(ip); }}
                 style={{
-                  padding: '5px 13px', borderRadius: 99, fontSize: 13, fontWeight: 600,
+                  padding: '5px 13px', borderRadius: 99, fontSize: largeText ? 14 : 13, fontWeight: 600,
                   border: '1.5px solid #EDE9D8',
                   background: value === ip ? '#F2B800' : 'white',
                   color: value === ip ? '#1A1A1A' : '#555',
@@ -248,10 +249,10 @@ export function DesktopStockForm({ onDone, initialSpotId = '', initialSpotName =
       transition: 'opacity 0.2s, box-shadow 0.2s',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-        <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: errMsg ? '#EF4444' : '#AAA', textTransform: 'uppercase', letterSpacing: 0.8 }}>
+        <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: errMsg ? '#EF4444' : '#AAA', textTransform: 'uppercase', letterSpacing: 0.8 }}>
           {title}
         </p>
-        {errMsg && <span style={{ fontSize: 12, color: '#EF4444', fontWeight: 600 }}>⚠ {errMsg}</span>}
+        {errMsg && <span style={{ fontSize: 13, color: '#EF4444', fontWeight: 600 }}>⚠ {errMsg}</span>}
       </div>
       {content}
     </section>
@@ -267,20 +268,20 @@ export function DesktopStockForm({ onDone, initialSpotId = '', initialSpotName =
               <img src={gachaImageUrl} alt={gachaName}
                 style={{ width: 40, height: 40, borderRadius: 10, objectFit: 'cover' }} />
             )}
-            <span style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1A', flex: 1 }}>{gachaName}</span>
+            <span style={{ fontSize: 16, fontWeight: 700, color: '#1A1A1A', flex: 1 }}>{gachaName}</span>
             <button onClick={() => { setGachaId(''); setGachaName(''); setGachaImageUrl(null); if (!initialSpotId) { setSpotId(''); setSpotName(''); } setVErr(v => ({ ...v, gacha: undefined })); }}
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
               <X size={15} color="#bbb" />
             </button>
           </div>
         ) : initialSpotId ? (
-          <SpotGachaPicker spotId={initialSpotId} filterGachaIds={initialFilterGachaIds} initialQuery={initialSearch}
+          <SpotGachaPicker spotId={initialSpotId} filterGachaIds={initialFilterGachaIds} initialQuery={initialSearch} largeText
             onSelect={(id, name, imgUrl) => {
               setGachaId(id); setGachaName(name); setGachaImageUrl(imgUrl);
               setVErr(v => ({ ...v, gacha: undefined }));
             }} />
         ) : (
-          <GachaSearch accentColor={ACCENT} onSelect={(id, name, imgUrl) => {
+          <GachaSearch accentColor={ACCENT} largeText onSelect={(id, name, imgUrl) => {
             setGachaId(id); setGachaName(name); setGachaImageUrl(imgUrl);
             setVErr(v => ({ ...v, gacha: undefined }));
           }} />
@@ -291,7 +292,7 @@ export function DesktopStockForm({ onDone, initialSpotId = '', initialSpotName =
       {sec('お店を選ぶ *',
         spotId ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1A', flex: 1 }}>🏪 {spotName}</span>
+            <span style={{ fontSize: 16, fontWeight: 700, color: '#1A1A1A', flex: 1 }}>🏪 {spotName}</span>
             <button onClick={() => { setSpotId(''); setSpotName(''); setVErr(v => ({ ...v, spot: undefined })); }}
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
               <X size={15} color="#bbb" />
@@ -299,11 +300,11 @@ export function DesktopStockForm({ onDone, initialSpotId = '', initialSpotName =
           </div>
         ) : hasGacha ? (
           <StockSpotPanel
-            gachaId={gachaId} gachaName={gachaName} gachaImageUrl={gachaImageUrl}
+            gachaId={gachaId} gachaName={gachaName} gachaImageUrl={gachaImageUrl} largeText
             onSelect={(id, name) => { setSpotId(id); setSpotName(name); setVErr(v => ({ ...v, spot: undefined })); }}
           />
         ) : (
-          <p style={{ margin: 0, fontSize: 13, color: '#CCC' }}>先にガチャを選んでください</p>
+          <p style={{ margin: 0, fontSize: 15, color: '#CCC' }}>先にガチャを選んでください</p>
         ),
         !hasGacha, vErr.spot
       )}
@@ -314,10 +315,10 @@ export function DesktopStockForm({ onDone, initialSpotId = '', initialSpotName =
             <button key={opt.value}
               onClick={() => { setStockStatus(opt.value); setVErr(v => ({ ...v, stock: undefined })); }}
               style={{
-                padding: '12px 16px', borderRadius: 12, border: '2px solid',
+                padding: '14px 18px', borderRadius: 12, border: '2px solid',
                 borderColor: stockStatus === opt.value ? opt.color : '#EDE9D8',
                 background: stockStatus === opt.value ? opt.color + '18' : '#FAFAF6',
-                fontSize: 14, fontWeight: 700,
+                fontSize: 16, fontWeight: 700,
                 color: stockStatus === opt.value ? opt.color : '#555',
                 cursor: 'pointer', textAlign: 'center', transition: 'all 0.15s',
               }}>
@@ -328,13 +329,13 @@ export function DesktopStockForm({ onDone, initialSpotId = '', initialSpotName =
         !spotId, vErr.stock
       )}
 
-      {error && <p style={{ color: '#E53E3E', fontSize: 13, margin: 0 }}>{error}</p>}
+      {error && <p style={{ color: '#E53E3E', fontSize: 15, margin: 0 }}>{error}</p>}
 
       <button onClick={submit} disabled={submitting || !spotId}
         style={{
-          padding: '15px 0', borderRadius: 14, border: 'none',
+          padding: '16px 0', borderRadius: 14, border: 'none',
           background: submitting || !spotId ? '#ccc' : ACCENT,
-          color: 'white', fontSize: 16, fontWeight: 800,
+          color: 'white', fontSize: 18, fontWeight: 800,
           cursor: submitting || !spotId ? 'not-allowed' : 'pointer',
           opacity: !spotId ? 0.45 : 1,
           transition: 'all 0.2s',

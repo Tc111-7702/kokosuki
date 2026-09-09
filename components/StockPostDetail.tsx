@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { ArrowLeft, Send } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
+import { ReplyComposerField } from '@/components/ReplyComposerField';
 import { Avatar } from '@/components/ui/Avatar';
 import { StockPostCard, type StockFeedPost } from '@/components/StockPostCard';
 import { ReplyCard } from '@/components/ReplyCard';
@@ -91,8 +92,7 @@ export function StockPostDetail({ post, onBack, onReplied, onDeleted }: { post: 
   }, [insertedMentions]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (mentionQuery !== null && e.key === 'Escape') { e.preventDefault(); closeMention(); return; }
-    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); handleSubmit(); }
+    if (mentionQuery !== null && e.key === 'Escape') { e.preventDefault(); closeMention(); }
   };
 
   const handleSubmit = async () => {
@@ -165,20 +165,17 @@ export function StockPostDetail({ post, onBack, onReplied, onDeleted }: { post: 
             ))}
           </div>
         )}
-        <div className="bg-white border-t border-gray-100 px-4 py-3 flex items-end gap-3">
-          <div className="relative flex-1 rounded-2xl border border-gray-200 focus-within:border-yellow-400 focus-within:ring-1 focus-within:ring-yellow-400 bg-white transition-colors overflow-hidden">
-            <div aria-hidden className="absolute inset-0 px-4 py-2.5 text-sm whitespace-pre-wrap break-words pointer-events-none text-gray-800 overflow-hidden" style={{ lineHeight: '1.5', fontFamily: 'inherit' }}>
-              {renderMentionText(text)}
-            </div>
-            <textarea ref={textareaRef} value={text} onChange={handleTextChange} onSelect={handleSelect} onKeyDown={handleKeyDown}
-              placeholder={'返信する…'} rows={2}
-              className="relative w-full resize-none bg-transparent px-4 py-2.5 text-sm placeholder-gray-400 focus:outline-none"
-              style={{ lineHeight: '1.5', color: 'transparent', caretColor: '#374151' }} />
-          </div>
-          <button onClick={handleSubmit} disabled={!text.trim() || submitting}
-            className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-yellow-400 text-white disabled:opacity-40 hover:bg-yellow-500 transition-colors">
-            {submitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Send size={18} />}
-          </button>
+        <div className="bg-white border-t border-gray-100 px-4 py-2">
+          <ReplyComposerField
+            text={text}
+            textareaRef={textareaRef}
+            onChange={handleTextChange}
+            onSelect={handleSelect}
+            onKeyDown={handleKeyDown}
+            renderMentionText={renderMentionText}
+            onSubmit={handleSubmit}
+            submitting={submitting}
+          />
         </div>
       </div>
     </div>

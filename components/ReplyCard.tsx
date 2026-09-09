@@ -53,33 +53,31 @@ export function ReplyCard({
     <div className="flex gap-3 px-4 py-3 border-b border-gray-100 last:border-0">
       <Avatar user={reply.user} size={36} />
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-sm font-semibold text-gray-900">{reply.user.name}</span>
-          <span className="text-xs text-gray-400">{timeAgo(reply.createdAt)}</span>
-          {isOwn && (
-            <div className="ml-auto flex items-center gap-1" ref={menuRef}>
-              {showMenu && (
-                <button
-                  onClick={handleDelete}
-                  disabled={deleting}
-                  className="text-xs text-red-400 hover:text-red-500 transition-colors px-1 py-0.5 rounded"
-                >
-                  {deleting
-                    ? <div className="inline-block w-3 h-3 border border-red-300 border-t-transparent rounded-full animate-spin" />
-                    : '削除'
-                  }
-                </button>
-              )}
+        <div className="flex items-center gap-2 mb-1 min-w-0">
+          <span className="text-sm font-semibold text-gray-900 truncate">{reply.user.name}</span>
+          <span className="text-xs text-gray-400 flex-shrink-0">{timeAgo(reply.createdAt)}</span>
+          <div className="ml-auto flex items-center gap-0.5 flex-shrink-0" ref={menuRef}>
+            {isOwn && showMenu && (
               <button
-                onClick={() => setShowMenu((p) => !p)}
-                className="p-1 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="text-[10px] leading-none px-2 py-1 rounded-full bg-gray-200 text-red-500 font-medium hover:bg-gray-100 transition-colors whitespace-nowrap"
               >
-                <MoreHorizontal size={16} />
+                {deleting ? '削除中…' : '削除'}
               </button>
-            </div>
-          )}
+            )}
+            <button
+              type="button"
+              onClick={() => { if (isOwn) setShowMenu(v => !v); }}
+              className="p-0.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors"
+              aria-label="返信メニュー"
+            >
+              <MoreHorizontal size={16} />
+            </button>
+          </div>
         </div>
-        <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
+        <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] max-w-full">
           {renderWithMentions(reply.text, mentionNames)}
         </p>
       </div>

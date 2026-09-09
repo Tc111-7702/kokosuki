@@ -432,10 +432,12 @@ function MobileForm({ onDone, initialSpotId = '', initialSpotName = '', initialF
 
 // ─── 画像アップロード共通コンポーネント ─────────────────────────────────
 
-function ImageUploader({ value, onChange, accentColor = '#F2B800' }: {
+function ImageUploader({ value, onChange, accentColor = '#F2B800', previewMaxHeight = 160, previewMaxWidth }: {
   value: string;
   onChange: (url: string) => void;
   accentColor?: string;
+  previewMaxHeight?: number;
+  previewMaxWidth?: number;
 }) {
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -460,9 +462,16 @@ function ImageUploader({ value, onChange, accentColor = '#F2B800' }: {
       <input ref={fileRef} type="file" accept="image/*" onChange={handleFile}
         style={{ display: 'none' }} />
       {value ? (
-        <div style={{ position: 'relative', display: 'inline-block' }}>
+        <div style={{
+          position: 'relative',
+          width: previewMaxWidth ?? '100%',
+          maxWidth: '100%',
+          height: previewMaxHeight,
+          borderRadius: 10,
+          overflow: 'hidden',
+        }}>
           <img src={value} alt="preview"
-            style={{ maxHeight: 160, maxWidth: '100%', borderRadius: 10, objectFit: 'cover', display: 'block' }} />
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
           <button onClick={() => onChange('')}
             style={{
               position: 'absolute', top: 6, right: 6,
@@ -608,7 +617,7 @@ export function DesktopNormalForm({ onDone, initialSpotId = '', initialSpotName 
       )}
 
       {sec('写真（任意）',
-        <ImageUploader value={form.imageUrl} onChange={url => set({ imageUrl: url })} accentColor="#F2B800" />
+        <ImageUploader value={form.imageUrl} onChange={url => set({ imageUrl: url })} accentColor="#F2B800" previewMaxHeight={40} previewMaxWidth={140} />
       )}
 
       {sec('メモ（任意）',
