@@ -19,7 +19,7 @@ interface Props {
 const MOBILE_BREAKPOINT = 768;
 const NARROW_BREAKPOINT = 341; // 340px以下でカードを縮小して3枚目を覗かせる
 
-export function HorizontalGachaSection({ title, subtitle, color, colorDark, colorMid, apiUrl, scrollId, showRank = true, badgeLabel }: Props) {
+export function HorizontalGachaSection({ title, color, apiUrl, scrollId, showRank = true, badgeLabel }: Props) {
   const [gachas, setGachas] = useState<Gacha[]>([]);
   const [loading, setLoading] = useState(true);
   const isMobile = useIsMobile(MOBILE_BREAKPOINT);
@@ -58,17 +58,9 @@ export function HorizontalGachaSection({ title, subtitle, color, colorDark, colo
 
   return (
     <div style={{ marginLeft: 16, marginRight: isMobile ? 0 : 16 }}>
-      {/* ヘッダー */}
-      <div style={{ paddingTop: isMobile ? 24 : 34, paddingBottom: isMobile ? 16 : 24, paddingLeft: isMobile ? 4 : 8 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-          <span style={{ display: 'block', width: 20, height: 3, borderRadius: 2, background: color }} />
-          <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.22em', textTransform: 'uppercase',
-            color, margin: 0 }}>{subtitle}</p>
-        </div>
-        <p style={{ fontSize: isMobile ? 24 : 34, fontWeight: 900, lineHeight: 1, margin: 0, letterSpacing: '-0.03em',
-          background: `linear-gradient(135deg, ${colorDark} 0%, ${colorMid} 55%, ${color} 100%)`,
-          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text', display: 'inline-block' }}>{title}</p>
+      {/* ヘッダー（簡素な黒文字タイトル） */}
+      <div style={{ paddingTop: isMobile ? 20 : 26, paddingBottom: isMobile ? 12 : 16, paddingLeft: isMobile ? 4 : 8 }}>
+        <p style={{ fontSize: isMobile ? 18 : 22, fontWeight: 800, color: '#111', margin: 0, letterSpacing: '-0.01em' }}>{title}</p>
       </div>
 
       {/* 横スクロールグリッド（スクロールバーは常に非表示・スワイプ/矢印で操作） */}

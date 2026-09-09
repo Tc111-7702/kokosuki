@@ -60,21 +60,9 @@ export function OshiNewSection() {
 
   return (
     <div>
-      {/* セクションヘッダー（固定） */}
-      <div style={{
-        position: 'sticky', top: 0, zIndex: 10,
-        background: '#FFFFFF',
-        padding: `${isMobile ? 24 : 34}px 0 ${isMobile ? 16 : 24}px ${isMobile ? 16 : 24}px`,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-          <span style={{ display: 'block', width: 20, height: 3, borderRadius: 2, background: '#F2B800' }} />
-          <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.22em', textTransform: 'uppercase',
-            color: '#F2B800', margin: 0 }}>Recommended for you</p>
-        </div>
-        <p style={{ fontSize: isMobile ? 24 : 34, fontWeight: 900, lineHeight: 1, margin: 0, letterSpacing: '-0.03em',
-          background: 'linear-gradient(135deg, #7B3F00 0%, #C8780A 55%, #F2B800 100%)',
-          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text', display: 'inline-block' }}>あなたへのおすすめ</p>
+      {/* セクションヘッダー（簡素な黒文字タイトル） */}
+      <div style={{ padding: `${isMobile ? 20 : 26}px 0 ${isMobile ? 12 : 16}px ${isMobile ? 20 : 24}px` }}>
+        <p style={{ fontSize: isMobile ? 18 : 22, fontWeight: 800, color: '#111', margin: 0, letterSpacing: '-0.01em' }}>あなたへのおすすめ</p>
       </div>
 
       {/* IP別セクション（モバイルは右marginを除去して横スクロールを右端まで見切れさせる） */}
@@ -106,15 +94,7 @@ function IpGroup({ group, isMobile, narrow, isLast }: { group: Group; isMobile: 
   };
 
   return (
-    <div style={{ marginBottom: isLast ? 0 : (isMobile ? 28 : 40) }}>
-      {/* IPヘッダー */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: isMobile ? 16 : 20 }}>
-        <span style={{ fontSize: 13, fontWeight: 900, color: '#F2B800', whiteSpace: 'nowrap' }}>
-          {group.ipName}
-        </span>
-        <div style={{ flex: 1, height: 1, background: '#EDE9D8' }} />
-      </div>
-
+    <div style={{ marginBottom: isLast ? 0 : (isMobile ? 20 : 28) }}>
       {/* 横スクロール（スクロールバーは常に非表示・スワイプ/矢印で操作） */}
       <style>{`
         .ip-scroll-${group.ipName.replace(/[^a-zA-Z0-9]/g, '')}::-webkit-scrollbar { display: none; }
