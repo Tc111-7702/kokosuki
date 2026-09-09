@@ -365,7 +365,7 @@ export async function getHomePickupGachas(section: string) {
   return rows.map(({ gacha: { _count, ...g } }) => ({ ...flatIp(g), likeCount: _count.gachaLikes }));
 }
 
-export async function getRecommendedByLikedGachas(userId: string, perIp = 10) {
+export async function getRecommendedByLikedGachas(userId: string, perIp = 10, maxIps = 5) {
   // ユーザーのハート済みガチャとその IpName を取得
   const likes = await prisma.gachaLike.findMany({
     where: { userId },
@@ -374,7 +374,17 @@ export async function getRecommendedByLikedGachas(userId: string, perIp = 10) {
   if (likes.length === 0) return [];
 
   const likedIds = likes.map((l) => l.gachaId);
-  const ipNames = [...new Set(likes.map((l) => l.gacha.ip?.name).filter((n): n is string => !!n))];
+
+  // IP別に「ユーザーがいいねしたガチャ数」を集計し、多い順に並べて上位 maxIps 件へ絞る
+  const likeCountByIp = new Map<string, number>();
+  for (const l of likes) {
+    const name = l.gacha.ip?.name;
+    if (name) likeCountByIp.set(name, (likeCountByIp.get(name) ?? 0) + 1);
+  }
+  const ipNames = [...likeCountByIp.entries()]
+    .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
+    .slice(0, maxIps)
+    .map(([name]) => name);
 
   // IP別に並列取得（ハート済みを除く・ハート数降順）
   const results = await Promise.all(
