@@ -42,11 +42,18 @@ export function HorizontalGachaSection({ title, color, apiUrl, scrollId, showRan
     setScrollRatio(max > 0 ? el.scrollLeft / max : 0);
   }, []);
 
+  // paddingLeft = inset + ヘッダー余白(4/8) で 1位の数字左端が「あ」(20/24px) と縦に揃う
+  const rankNumberInset = showRank ? (isMobile ? (isNarrow ? 48 : 64) : 112) : undefined;
+  // gap >= inset + 余白 で左隣カードと数字が重ならない
+  const cardGap = rankNumberInset != null
+    ? rankNumberInset + (isMobile ? (isNarrow ? 8 : 16) : 28)
+    : (isMobile ? 12 : 32);
+  const cardW = isMobile ? (isNarrow ? 118 : 150) : 270;
+
   const slide = (dir: 'left' | 'right') => {
     const el = scrollRef.current;
     if (!el) return;
-    const cardW = isMobile ? 150 + 12 : 270 + 32;
-    el.scrollBy({ left: dir === 'right' ? cardW * 2 : -cardW * 2, behavior: 'smooth' });
+    el.scrollBy({ left: dir === 'right' ? (cardW + cardGap) * 2 : -(cardW + cardGap) * 2, behavior: 'smooth' });
   };
 
   if (loading) return (
@@ -55,8 +62,6 @@ export function HorizontalGachaSection({ title, color, apiUrl, scrollId, showRan
   if (gachas.length === 0) return null;
 
   const cls = scrollClass;
-  // paddingLeft = inset + ヘッダー余白(4/8) で 1位の数字左端が「あ」(20/24px) と縦に揃う
-  const rankNumberInset = showRank ? (isMobile ? (isNarrow ? 48 : 64) : 92) : undefined;
   const rankScrollPaddingLeft = rankNumberInset != null ? rankNumberInset + (isMobile ? 4 : 8) : 0;
 
   return (
@@ -77,7 +82,7 @@ export function HorizontalGachaSection({ title, color, apiUrl, scrollId, showRan
         style={{
           display: 'flex',
           // ランキング数字が左にはみ出す分、showRank 時は gap と左余白を広げる
-          gap: showRank ? (isMobile ? 54 : 74) : (isMobile ? 12 : 32),
+          gap: cardGap,
           overflowX: 'auto',
           overflowY: 'hidden', // 上下方向のスクロールを出さない
           paddingBottom: 10,
