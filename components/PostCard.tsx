@@ -96,7 +96,7 @@ export function PostCard({
         <div className="flex items-center gap-2 flex-shrink-0">
           {/* ipName: デスクトップのみヘッダーに表示 */}
           <button
-            onClick={e => { e.stopPropagation(); router.push('/search/genre?ipName=' + encodeURIComponent(post.gacha.ipName) + '&label=' + encodeURIComponent(post.gacha.ipName)); }}
+            onClick={e => { e.stopPropagation(); router.push('/home/search?ipName=' + encodeURIComponent(post.gacha.ipName) + '&label=' + encodeURIComponent(post.gacha.ipName)); }}
             className="hidden sm:inline-flex text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 font-medium hover:bg-yellow-200 transition-colors"
           >
             {post.gacha.ipName}
@@ -179,7 +179,7 @@ export function PostCard({
       {/* モバイルのみ: ipName左端・返信数いいね右端を同じ行に */}
       <div className="sm:hidden flex items-center justify-between mt-1.5">
         <button
-          onClick={e => { e.stopPropagation(); router.push('/search/genre?ipName=' + encodeURIComponent(post.gacha.ipName) + '&label=' + encodeURIComponent(post.gacha.ipName)); }}
+          onClick={e => { e.stopPropagation(); router.push('/home/search?ipName=' + encodeURIComponent(post.gacha.ipName) + '&label=' + encodeURIComponent(post.gacha.ipName)); }}
           className="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 font-medium hover:bg-yellow-200 transition-colors"
         >
           {post.gacha.ipName}

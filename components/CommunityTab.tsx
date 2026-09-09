@@ -61,7 +61,7 @@ function RightSidebar({
                 }
                 title={ip.ipName}
                 likeCount={ip.likeCount}
-                onClick={() => router.push(`/search/genre?ipName=${encodeURIComponent(ip.ipName)}&label=${encodeURIComponent(ip.ipName)}`)}
+                onClick={() => router.push(`/home/search?ipName=${encodeURIComponent(ip.ipName)}&label=${encodeURIComponent(ip.ipName)}`)}
               />
             ))}
           </TrendingSection>

@@ -38,7 +38,7 @@ export function HomeSearchBar({ placeholder = 'IP・ガチャを検索' }: HomeS
     setValue(s.label);
     setSuggestions([]);
     if (s.type === 'genre') {
-      router.push(`/search/genre?ipName=${encodeURIComponent(s.label)}&label=${encodeURIComponent(s.label)}`);
+      router.push(`/home/search?ipName=${encodeURIComponent(s.label)}&label=${encodeURIComponent(s.label)}`);
     } else if (s.id) {
       router.push(`/gacha/${s.id}`);   // gacha候補は id を持つので直接遷移（2回目のAPI解決が不要）
     } else {
@@ -56,7 +56,7 @@ export function HomeSearchBar({ placeholder = 'IP・ガチャを検索' }: HomeS
         router.push(`/gacha/${data.gachaIds[0]}`);
       } else if (data.type === 'genre' && data.ipName) {
         const lbl = data.label ?? data.ipName;
-        router.push(`/search/genre?ipName=${encodeURIComponent(data.ipName)}&label=${encodeURIComponent(lbl)}`);
+        router.push(`/home/search?ipName=${encodeURIComponent(data.ipName)}&label=${encodeURIComponent(lbl)}`);
       }
     } catch {}
     setNavigating(false);
