@@ -71,7 +71,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="relative flex flex-col h-full bg-[#FFFEEF] overflow-hidden">
+    <div className="relative flex flex-col h-full bg-[#FFFFFF] overflow-hidden">
       <div className="flex-shrink-0 bg-white flex items-center gap-2 px-3" style={{ height: 52, borderBottom: '1.5px solid #EDE9D8' }}>
         <button onClick={() => router.back()} className="p-2 active:opacity-60" aria-label="戻る">
           <ArrowLeft size={20} color="#555" />

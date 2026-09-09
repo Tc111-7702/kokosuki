@@ -25,7 +25,7 @@ export function IpChoose({ selected, onToggle, onNext, onBack }: Props) {
   }, []);
 
   return (
-    <div className="flex flex-col h-screen bg-[#FFFEEF]">
+    <div className="flex flex-col h-screen bg-[#FFFFFF]">
       {/* ヘッダー（固定） */}
       <div className="shrink-0 px-6 pt-6 sm:pt-12 pb-2">
         <button onClick={onBack} className="self-start mb-3 sm:mb-6 w-9 h-9 rounded-full flex items-center justify-center sm:hidden" style={{ background: '#F0ECD8' }}>

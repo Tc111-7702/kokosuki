@@ -129,7 +129,7 @@ export function ProfileSettingsSheet({ open, onClose }: { open: boolean; onClose
                 (name || '?').charAt(0)
               )}
             </div>
-            <span className="absolute flex items-center justify-center" style={{ bottom: 0, right: 0, width: 28, height: 28, borderRadius: 14, background: '#F2B800', border: '2.5px solid #FFFEEF' }}>
+            <span className="absolute flex items-center justify-center" style={{ bottom: 0, right: 0, width: 28, height: 28, borderRadius: 14, background: '#F2B800', border: '2.5px solid #FFFFFF' }}>
               <Camera size={14} color="white" />
             </span>
           </button>

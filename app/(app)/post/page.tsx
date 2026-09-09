@@ -27,7 +27,7 @@ function DesktopPostPage({ initialMode, initialSpotId, initialSpotName, initialF
     { key: 'stock',  label: '在庫を報告', accent: '#60A5FA' },
   ];
 
-  const bg = tab === 'stock' ? '#F3F4F6' : '#FFFEEF';
+  const bg = tab === 'stock' ? '#F3F4F6' : '#FFFFFF';
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: bg }}>
       <div style={{
@@ -90,7 +90,7 @@ function MobilePostPage({ initialMode, initialSpotId, initialSpotName, initialFi
 
   if (!postType) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#FFFEEF' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#FFFFFF' }}>
         <div style={{
           flexShrink: 0, background: 'white', borderBottom: '1.5px solid #EDE9D8',
           padding: '14px 16px', display: 'flex', alignItems: 'center',
@@ -130,7 +130,7 @@ function MobilePostPage({ initialMode, initialSpotId, initialSpotName, initialFi
 
   const isNormal = postType === 'normal';
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: isNormal ? '#FFFEEF' : '#F3F4F6' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: isNormal ? '#FFFFFF' : '#F3F4F6' }}>
       <div style={{
         flexShrink: 0, background: 'white', borderBottom: '1.5px solid #EDE9D8',
         padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10,

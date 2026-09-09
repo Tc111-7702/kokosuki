@@ -302,14 +302,14 @@ export default function GachaDetailPage() {
 
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center',
-      height: '100%', background: '#FFFEEF' }}>
+      height: '100%', background: '#FFFFFF' }}>
       <p style={{ color: '#C8780A', fontWeight: 700, fontSize: 14 }}>読み込み中...</p>
     </div>
   );
 
   if (!gacha) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center',
-      height: '100%', background: '#FFFEEF' }}>
+      height: '100%', background: '#FFFFFF' }}>
       <p style={{ color: '#999', fontSize: 14 }}>ガチャが見つかりません</p>
     </div>
   );
@@ -351,7 +351,7 @@ export default function GachaDetailPage() {
   );
 
   return (
-    <div style={{ height: '100%', background: '#FFFEEF', overflowY: 'auto' }}>
+    <div style={{ height: '100%', background: '#FFFFFF', overflowY: 'auto' }}>
 
       {/* topbar */}
       <div style={{

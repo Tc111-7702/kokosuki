@@ -14,7 +14,7 @@ export function Location({ onAllow, onSkip, onBack }: Props) {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#FFFEEF] px-6 pt-12 pb-8">
+    <div className="flex flex-col min-h-screen bg-[#FFFFFF] px-6 pt-12 pb-8">
       <button onClick={onBack} className="self-start mb-6 w-9 h-9 rounded-full flex items-center justify-center sm:hidden" style={{ background: '#F0ECD8' }}>
         <ArrowLeft size={18} color="#555" />
       </button>

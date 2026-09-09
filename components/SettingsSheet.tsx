@@ -21,7 +21,7 @@ export function SettingsSheet({
 }) {
   return (
     <div
-      className="absolute inset-0 z-40 bg-[#FFFEEF] flex flex-col transition-transform duration-300 ease-out"
+      className="absolute inset-0 z-40 bg-[#FFFFFF] flex flex-col transition-transform duration-300 ease-out"
       style={{
         transform: open ? 'translateX(0)' : 'translateX(100%)',
         pointerEvents: open ? 'auto' : 'none',

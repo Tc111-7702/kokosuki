@@ -69,7 +69,7 @@ function HomePageInner() {
   const showSearchBar = tab === 'new' || tab === 'community' || tab === 'favorites';
 
   return (
-    <div className="relative flex flex-col h-full bg-[#FFFEEF]">
+    <div className="relative flex flex-col h-full bg-[#FFFFFF]">
       {/* 投稿完了トースト（上からスライドイン→少し待って消える） */}
       {showPostedToast && (
         <>

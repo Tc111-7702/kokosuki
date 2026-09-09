@@ -18,7 +18,7 @@ export default function MyPageRedirect() {
   }, [router]);
 
   return (
-    <div className="flex items-center justify-center h-full bg-[#FFFEEF]">
+    <div className="flex items-center justify-center h-full bg-[#FFFFFF]">
       <p className="text-[13px]" style={{ color: '#AAA' }}>読み込み中…</p>
     </div>
   );
