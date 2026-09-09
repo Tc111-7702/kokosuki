@@ -68,8 +68,8 @@ export function GachaCard({ gacha, rank, showRank, isMobile, narrow = false, onC
     const favW = isMobile ? (narrow ? 118 : 150) : 270;
     return (
       <div onClick={go} style={{ flexShrink: 0, width: favW, cursor: 'pointer' }}>
-        {/* カードの上に小さくIP名 */}
-        <p className="px-0.5 mb-1 truncate" style={{ fontSize: 10, color: '#999', fontWeight: 700 }}>{gacha.ipName}</p>
+        {/* カードの上に小さくIP名（無い場合も1行分の高さを確保して揃える） */}
+        <p className="px-0.5 mb-1 truncate" style={{ fontSize: 10, color: '#999', fontWeight: 700 }}>{gacha.ipName || ' '}</p>
         <div
           className="flex flex-col rounded-2xl overflow-hidden w-full transition-transform"
           style={{ background: 'white', boxShadow: '0 2px 12px rgba(0,0,0,0.07)' }}

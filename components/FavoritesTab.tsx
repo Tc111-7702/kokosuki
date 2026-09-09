@@ -35,8 +35,8 @@ function FavoriteCard({
 
   return (
     <div>
-      {/* カードの上に小さくIP名 */}
-      <p className="px-0.5 mb-1 truncate" style={{ fontSize: 10, color: '#999', fontWeight: 700 }}>{gacha.ipName}</p>
+      {/* カードの上に小さくIP名（無い場合も1行分の高さを確保して揃える） */}
+      <p className="px-0.5 mb-1 truncate" style={{ fontSize: 10, color: '#999', fontWeight: 700 }}>{gacha.ipName || ' '}</p>
       <div className="relative">
         <button
           onClick={() => !editing && router.push(`/gacha/${gacha.id}`)}
