@@ -365,7 +365,7 @@ export async function getHomePickupGachas(section: string) {
   return rows.map(({ gacha: { _count, ...g } }) => ({ ...flatIp(g), likeCount: _count.gachaLikes }));
 }
 
-export async function getRecommendedByLikedGachas(userId: string, perIp = 10, maxIps = 5) {
+export async function getRecommendedByLikedGachas(userId: string, perIp = 9, maxIps = 5) {
   // ユーザーのハート済みガチャとその IpName を取得
   const likes = await prisma.gachaLike.findMany({
     where: { userId },
