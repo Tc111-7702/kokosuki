@@ -73,12 +73,13 @@ export function HorizontalGachaSection({ title, color, apiUrl, scrollId, showRan
         className={cls}
         style={{
           display: 'flex',
-          // ランキング数字が左にはみ出す分、話題のガチャ(showRank)は gap と左余白を広げてカードを右へ寄せる
+          // ランキング数字が左にはみ出す分、showRank 時は gap と左余白を広げる
           gap: showRank ? (isMobile ? 54 : 74) : (isMobile ? 12 : 32),
           overflowX: 'auto',
           overflowY: 'hidden', // 上下方向のスクロールを出さない
           paddingBottom: 10,
-          paddingLeft: showRank ? (isMobile ? 50 : 76) : 0,
+          // 数字の left オフセットと一致させ、1位の数字がおすすめ1枚目(左16px)と縦に揃う
+          paddingLeft: showRank ? (isMobile ? (isNarrow ? 48 : 56) : 84) : 0,
           scrollbarWidth: 'none',
         }}
       >

@@ -135,7 +135,7 @@ export function FavoritesTab({ userId, editable = true }: { userId?: string; edi
       {/* ヘッダー行 */}
       <div className="flex items-center justify-between px-4 py-3">
         <span style={{ fontSize: 13, fontWeight: 700, color: '#555' }}>
-          {editable ? '引きたいもの' : 'おきにいり'} {loading ? '…' : `${gachas.length}件`}
+          {editable ? '引きたいもの' : 'お気に入り'} {loading ? '…' : `${gachas.length}件`}
         </span>
         {editable && !loading && gachas.length > 0 && (
           <button
@@ -162,7 +162,7 @@ export function FavoritesTab({ userId, editable = true }: { userId?: string; edi
                 <p style={{ fontSize: 12, color: '#ccc' }}>ガチャ詳細ページからハートで追加できます</p>
               </>
             ) : (
-              <p style={{ fontSize: 14, color: '#aaa', fontWeight: 600 }}>おきにいりはまだありません</p>
+              <p style={{ fontSize: 14, color: '#aaa', fontWeight: 600 }}>お気に入りはまだありません</p>
             )}
           </div>
         ) : (
