@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, X, Gamepad2 } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 
 interface Suggestion {
   id?: string;              // gacha候補はガチャIDを持つ（直接遷移用）
@@ -75,7 +75,6 @@ export function HomeSearchBar({ placeholder = 'IP・ガチャを検索' }: HomeS
             transition: 'border-color 0.15s',
           }}
         >
-          <Gamepad2 size={13} color="#aaa" className="flex-shrink-0" />
           <input
             type="text"
             value={value}
