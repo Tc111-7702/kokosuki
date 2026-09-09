@@ -1,19 +1,21 @@
 'use client';
 
-import { Home, Map, User, PlusSquare, Bell } from 'lucide-react';
+import { Home, Map, User, Plus, Bell } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useCurrentUserId } from '@/lib/useCurrentUserId';
 import { useUnreadNotificationCount } from '@/lib/useUnreadNotificationCount';
 
 const NAV_ITEMS = [
-  { path: '/home',          label: 'ホーム',     icon: <Home       size={20} /> },
-  { path: '/map',           label: 'マップ',     icon: <Map        size={20} /> },
-  { path: '/post',          label: '＋投稿',     icon: <PlusSquare size={20} /> },
-  { path: '/notifications', label: '通知',       icon: <Bell       size={20} /> },
-  { path: '/mypage',        label: 'マイページ', icon: <User       size={20} /> },
+  { path: '/home',          label: 'ホーム',     icon: <Home size={20} /> },
+  { path: '/map',           label: 'マップ',     icon: <Map  size={20} /> },
+  { path: '/post',          label: '投稿',       icon: null },
+  { path: '/notifications', label: '通知',       icon: <Bell size={20} /> },
+  { path: '/mypage',        label: 'マイページ', icon: <User size={20} /> },
 ];
 
-const ACTIVE_COLOR = '#F2B800';
+const ACTIVE_COLOR = '#1A1A1A';   // アクティブ＝黒
+const INACTIVE_COLOR = '#C4C3C0'; // 非アクティブ＝グレー
+const POST_BG = '#FFCD31';        // 投稿ボタンの黄色
 
 export function BottomNav() {
   const router   = useRouter();
@@ -37,18 +39,35 @@ export function BottomNav() {
       }}
     >
       {NAV_ITEMS.map((item) => {
+        // 投稿ボタン: 黄色い丸＋白い＋（アクティブ配色の対象外）
+        if (item.path === '/post') {
+          return (
+            <button
+              key={item.path}
+              onClick={() => router.push(item.path)}
+              className="flex-1 flex flex-col items-center justify-center gap-0.5 transition-opacity active:opacity-60"
+            >
+              <span
+                className="flex items-center justify-center rounded-full"
+                style={{ width: 40, height: 40, background: POST_BG }}
+              >
+                <Plus size={24} color="white" strokeWidth={2.75} />
+              </span>
+              <span className="font-bold" style={{ color: INACTIVE_COLOR, fontSize: 10, whiteSpace: 'nowrap' }}>{item.label}</span>
+            </button>
+          );
+        }
+
         const isActive = isNavActive(item.path);
+        const color = isActive ? ACTIVE_COLOR : INACTIVE_COLOR;
         return (
           <button
             key={item.path}
             onClick={() => router.push(item.path)}
             className="flex-1 flex flex-col items-center justify-center transition-opacity active:opacity-60"
           >
-            <div
-              className="flex flex-col items-center justify-center gap-0.5 px-4 py-1.5 rounded-xl transition-all duration-200"
-              style={{ background: isActive ? '#FFF8D0' : 'transparent' }}
-            >
-              <span className="relative" style={{ color: isActive ? ACTIVE_COLOR : '#C4C3C0' }}>
+            <div className="flex flex-col items-center justify-center gap-0.5 px-4 py-1.5">
+              <span className="relative" style={{ color }}>
                 {item.icon}
                 {item.path === '/notifications' && unread > 0 && (
                   <span
@@ -59,7 +78,7 @@ export function BottomNav() {
                   </span>
                 )}
               </span>
-              <span className="font-bold" style={{ color: isActive ? ACTIVE_COLOR : '#C4C3C0', fontSize: item.path === '/mypage' ? 9 : 10, whiteSpace: 'nowrap' }}>
+              <span className="font-bold" style={{ color, fontSize: item.path === '/mypage' ? 9 : 10, whiteSpace: 'nowrap' }}>
                 {item.label}
               </span>
             </div>
