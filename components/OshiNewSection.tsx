@@ -97,7 +97,7 @@ function IpGroup({ group, isMobile, narrow, isLast }: { group: Group; isMobile: 
   };
 
   return (
-    <div style={{ marginBottom: isLast ? 0 : (isMobile ? 12 : 16) }}>
+    <div style={{ marginBottom: isLast ? 0 : (isMobile ? 6 : 10) }}>
       {/* 横スクロール（スクロールバーは常に非表示・スワイプ/矢印で操作） */}
       <style>{`
         .ip-scroll-${group.ipName.replace(/[^a-zA-Z0-9]/g, '')}::-webkit-scrollbar { display: none; }
