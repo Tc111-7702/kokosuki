@@ -61,12 +61,12 @@ export function OshiNewSection() {
   return (
     <div>
       {/* セクションヘッダー（簡素な黒文字タイトル） */}
-      <div style={{ padding: `${isMobile ? 20 : 26}px 0 ${isMobile ? 12 : 16}px ${isMobile ? 20 : 24}px` }}>
-        <p style={{ fontSize: isMobile ? 18 : 22, fontWeight: 800, color: '#111', margin: 0, letterSpacing: '-0.01em' }}>あなたへのおすすめ</p>
+      <div style={{ padding: `${isMobile ? 18 : 22}px 0 ${isMobile ? 6 : 8}px ${isMobile ? 20 : 24}px` }}>
+        <p style={{ fontSize: isMobile ? 15 : 18, fontWeight: 700, color: '#111', margin: 0, letterSpacing: '-0.01em' }}>あなたへのおすすめ</p>
       </div>
 
       {/* IP別セクション（モバイルは右marginを除去して横スクロールを右端まで見切れさせる） */}
-      <div style={{ margin: isMobile ? '0 0 0 16px' : '0 16px', paddingTop: isMobile ? 16 : 32 }}>
+      <div style={{ margin: isMobile ? '0 0 0 16px' : '0 16px', paddingTop: 0 }}>
         {groups.map((group, i) => (
           <IpGroup key={group.ipName} group={group} isMobile={isMobile} narrow={isNarrow} isLast={i === groups.length - 1} />
         ))}

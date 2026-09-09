@@ -59,8 +59,8 @@ export function HorizontalGachaSection({ title, color, apiUrl, scrollId, showRan
   return (
     <div style={{ marginLeft: 16, marginRight: isMobile ? 0 : 16 }}>
       {/* ヘッダー（簡素な黒文字タイトル） */}
-      <div style={{ paddingTop: isMobile ? 20 : 26, paddingBottom: isMobile ? 12 : 16, paddingLeft: isMobile ? 4 : 8 }}>
-        <p style={{ fontSize: isMobile ? 18 : 22, fontWeight: 800, color: '#111', margin: 0, letterSpacing: '-0.01em' }}>{title}</p>
+      <div style={{ paddingTop: isMobile ? 18 : 22, paddingBottom: isMobile ? 6 : 8, paddingLeft: isMobile ? 4 : 8 }}>
+        <p style={{ fontSize: isMobile ? 15 : 18, fontWeight: 700, color: '#111', margin: 0, letterSpacing: '-0.01em' }}>{title}</p>
       </div>
 
       {/* 横スクロールグリッド（スクロールバーは常に非表示・スワイプ/矢印で操作） */}
