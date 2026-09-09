@@ -4,6 +4,7 @@ import { Home, MapPin, User, Plus, Bell } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useCurrentUserId } from '@/lib/useCurrentUserId';
 import { useUnreadNotificationCount } from '@/lib/useUnreadNotificationCount';
+import { KokosugiLogo } from '@/components/ui/KokosugiLogo';
 
 const NAV_ITEMS = [
   { path: '/home',          label: 'ホーム',     icon: <Home size={20} /> },
@@ -36,12 +37,7 @@ export function PageNav() {
     >
       {/* ロゴ */}
       <div className="flex items-center justify-center pt-6 pb-4 px-2">
-        <span
-          className="font-black text-[#F2B800]"
-          style={{ fontSize: 16, letterSpacing: '-0.5px', whiteSpace: 'nowrap' }}
-        >
-          Mikke!
-        </span>
+        <KokosugiLogo width={64} />
       </div>
 
       {/* ナビアイテム */}
