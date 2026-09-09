@@ -71,6 +71,7 @@ interface GachaCardProps {
   gacha: GachaItem;
   rank: number;
   showRank: boolean;
+  rankNumberInset?: number; // showRank 時の数字 left オフセット（HorizontalGachaSection と paddingLeft を同期）
   isMobile: boolean;
   narrow?: boolean;        // 極小画面(≤340px)。3枚目が見えるようカードを縮小する
   onClick?: () => void;    // 指定時は詳細遷移の代わりにこれを呼ぶ（掲載ピッカー等で使用）
@@ -78,7 +79,7 @@ interface GachaCardProps {
   variant?: 'default' | 'favorite'; // favorite: おきにいりカードと同じ見た目（正方形画像・順位なし）
 }
 
-export function GachaCard({ gacha, rank, showRank, isMobile, narrow = false, onClick, badgeLabel, variant = 'default' }: GachaCardProps) {
+export function GachaCard({ gacha, rank, showRank, rankNumberInset, isMobile, narrow = false, onClick, badgeLabel, variant = 'default' }: GachaCardProps) {
   const router = useRouter();
   const go = onClick ?? (() => router.push(`/gacha/${gacha.id}`));
 
@@ -96,8 +97,7 @@ export function GachaCard({ gacha, rank, showRank, isMobile, narrow = false, onC
             <span
               aria-hidden
               style={{
-                // 左paddingとgapの範囲内で最大まで左へずらして数字をはっきり見せる
-                position: 'absolute', zIndex: 0, left: -Math.min(Math.round(favW * 0.34), isMobile ? 56 : 84), bottom: 0,
+                position: 'absolute', zIndex: 0, left: -(rankNumberInset ?? Math.min(Math.round(favW * 0.34), isMobile ? 56 : 84)), bottom: 0,
                 fontSize: Math.round(favW * 0.95), fontWeight: 900, color: '#F2B800',
                 lineHeight: 1, pointerEvents: 'none', whiteSpace: 'nowrap',
               }}

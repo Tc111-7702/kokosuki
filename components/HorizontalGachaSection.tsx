@@ -55,6 +55,9 @@ export function HorizontalGachaSection({ title, color, apiUrl, scrollId, showRan
   if (gachas.length === 0) return null;
 
   const cls = scrollClass;
+  // paddingLeft = inset + ヘッダー余白(4/8) で 1位の数字左端が「あ」(20/24px) と縦に揃う
+  const rankNumberInset = showRank ? (isMobile ? (isNarrow ? 48 : 64) : 92) : undefined;
+  const rankScrollPaddingLeft = rankNumberInset != null ? rankNumberInset + (isMobile ? 4 : 8) : 0;
 
   return (
     <div style={{ marginLeft: 16, marginRight: isMobile ? 0 : 16 }}>
@@ -78,13 +81,12 @@ export function HorizontalGachaSection({ title, color, apiUrl, scrollId, showRan
           overflowX: 'auto',
           overflowY: 'hidden', // 上下方向のスクロールを出さない
           paddingBottom: 10,
-          // 数字の left オフセットと一致させ、1位の数字がおすすめ1枚目(左16px)と縦に揃う
-          paddingLeft: showRank ? (isMobile ? (isNarrow ? 48 : 56) : 84) : 0,
+          paddingLeft: rankScrollPaddingLeft,
           scrollbarWidth: 'none',
         }}
       >
         {gachas.map((item, rank) => (
-          <GachaCard key={item.id} gacha={item} rank={rank} showRank={showRank} isMobile={isMobile} narrow={isNarrow} badgeLabel={badgeLabel} variant="favorite" />
+          <GachaCard key={item.id} gacha={item} rank={rank} showRank={showRank} rankNumberInset={rankNumberInset} isMobile={isMobile} narrow={isNarrow} badgeLabel={badgeLabel} variant="favorite" />
         ))}
       </div>
 
