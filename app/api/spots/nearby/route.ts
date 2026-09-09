@@ -21,6 +21,7 @@ export async function GET(request: Request) {
   const radius          = Number(searchParams.get('radius') ?? '20000');
   const addressContains = searchParams.get('addressContains') ?? undefined;
   const gachaId         = searchParams.get('gachaId') ?? undefined;
+  const limitParam        = searchParams.get('limit');
 
   if (!lat || !lng) {
     return NextResponse.json({ error: 'lat と lng は必須です' }, { status: 400 });
@@ -45,7 +46,8 @@ export async function GET(request: Request) {
     )
     .sort((a, b) => a.distance - b.distance);
 
-  if (gachaId) spots = spots.slice(0, 7);
+  const limit = limitParam ? Number(limitParam) : (gachaId ? 7 : undefined);
+  if (limit && limit > 0) spots = spots.slice(0, limit);
 
   return NextResponse.json({ spots });
 }
