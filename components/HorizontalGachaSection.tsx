@@ -45,7 +45,7 @@ export function HorizontalGachaSection({ title, subtitle, color, colorDark, colo
   const slide = (dir: 'left' | 'right') => {
     const el = scrollRef.current;
     if (!el) return;
-    const cardW = isMobile ? 160 + 12 : 320 + 32;
+    const cardW = isMobile ? 168 + 12 : 300 + 32;
     el.scrollBy({ left: dir === 'right' ? cardW * 2 : -cardW * 2, behavior: 'smooth' });
   };
 
@@ -86,7 +86,7 @@ export function HorizontalGachaSection({ title, subtitle, color, colorDark, colo
         }}
       >
         {gachas.map((item, rank) => (
-          <GachaCard key={item.id} gacha={item} rank={rank} showRank={showRank} isMobile={isMobile} narrow={isNarrow} badgeLabel={badgeLabel} />
+          <GachaCard key={item.id} gacha={item} rank={rank} showRank={showRank} isMobile={isMobile} narrow={isNarrow} badgeLabel={badgeLabel} variant="favorite" />
         ))}
       </div>
 

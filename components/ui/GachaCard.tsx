@@ -29,10 +29,60 @@ interface GachaCardProps {
   narrow?: boolean;        // 極小画面(≤340px)。3枚目が見えるようカードを縮小する
   onClick?: () => void;    // 指定時は詳細遷移の代わりにこれを呼ぶ（掲載ピッカー等で使用）
   badgeLabel?: string;     // 指定時はステータスバッジの代わりに固定ラベルを表示（例: 今秋発売）
+  variant?: 'default' | 'favorite'; // favorite: おきにいりカードと同じ見た目（正方形画像・順位なし）
 }
 
-export function GachaCard({ gacha, rank, showRank, isMobile, narrow = false, onClick, badgeLabel }: GachaCardProps) {
+// おきにいりカード風バッジの色
+function favoriteBadge(status: string, badgeLabel?: string): { label: string; bg: string } {
+  const isSale = status === 'on_sale' || (badgeLabel ? badgeLabel.includes('発売') && !badgeLabel.includes('予定') : false);
+  const isSoon = status === 'coming_soon' || (badgeLabel ? badgeLabel.includes('予定') : false);
+  return {
+    label: badgeLabel ?? (STATUS_LABEL[status] ?? status),
+    bg: isSale ? '#22c55e' : isSoon ? '#F2B800' : '#aaa',
+  };
+}
+
+export function GachaCard({ gacha, rank, showRank, isMobile, narrow = false, onClick, badgeLabel, variant = 'default' }: GachaCardProps) {
   const router = useRouter();
+  const go = onClick ?? (() => router.push(`/gacha/${gacha.id}`));
+
+  // おきにいりタブと同じ見た目のカード（正方形画像・左上バッジ・順位番号なし）
+  if (variant === 'favorite') {
+    const favW = isMobile ? (narrow ? 132 : 168) : 300;
+    const fav = favoriteBadge(gacha.status, badgeLabel);
+    return (
+      <div onClick={go} style={{ flexShrink: 0, width: favW, cursor: 'pointer' }}>
+        <div
+          className="flex flex-col rounded-2xl overflow-hidden w-full transition-transform"
+          style={{ background: 'white', boxShadow: '0 2px 12px rgba(0,0,0,0.07)' }}
+          onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-3px)')}
+          onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}
+        >
+          <div className="relative w-full" style={{ paddingBottom: '100%' }}>
+            <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, ${gacha.gradientFrom}, ${gacha.gradientTo})` }} />
+            {gacha.imageUrl && (
+              <img
+                src={gacha.imageUrl}
+                alt={gacha.seriesName}
+                className="absolute inset-0 w-full h-full object-cover"
+                onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+              />
+            )}
+            <div className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-full text-white" style={{ fontSize: 9, fontWeight: 700, background: fav.bg }}>
+              {fav.label}
+            </div>
+          </div>
+          <div className="px-2 py-1.5">
+            <p style={{ fontSize: 9, color: '#aaa', fontWeight: 600, marginBottom: 2 }}>{gacha.ipName}</p>
+            <p style={{ fontSize: 11, color: '#222', fontWeight: 700, lineHeight: 1.3 }} className="line-clamp-2">
+              {gacha.seriesName}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // narrow は極小画面用の縮小サイズ（モバイル時のみ有効）。3枚目が少し覗く幅にする。
   const cardW  = isMobile ? (narrow ? 116 : 140) : 320;
   const imgH   = isMobile ? (narrow ? 130 : 158) : 320;
