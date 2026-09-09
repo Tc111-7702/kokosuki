@@ -96,9 +96,9 @@ export function GachaCard({ gacha, rank, showRank, isMobile, narrow = false, onC
             <span
               aria-hidden
               style={{
-                position: 'absolute', zIndex: 0, left: -Math.round(favW * 0.18), bottom: -8,
-                fontSize: Math.round(favW * 0.92), fontWeight: 900, color: '#F2B800',
-                lineHeight: 1, pointerEvents: 'none',
+                position: 'absolute', zIndex: 0, left: -Math.round(favW * 0.22), bottom: 0,
+                fontSize: Math.round(favW * 0.95), fontWeight: 900, color: '#F2B800',
+                lineHeight: 1, pointerEvents: 'none', whiteSpace: 'nowrap',
               }}
             >
               {rank + 1}
