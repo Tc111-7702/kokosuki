@@ -89,7 +89,8 @@ export function GachaCard({ gacha, rank, showRank, isMobile, narrow = false, onC
       <div onClick={go} style={{ flexShrink: 0, width: favW, cursor: 'pointer' }}>
         {/* カードの上に小さくIP名（無い場合も1行分の高さを確保して揃える） */}
         <p className="px-0.5 mb-1 truncate" style={{ fontSize: 10, color: '#999', fontWeight: 700 }}>{gacha.ipName || ' '}</p>
-        <div className="relative">
+        {/* isolation: カード内の z-index を封じ込め、sticky ヘッダー等の外側に影響させない */}
+        <div className="relative" style={{ isolation: 'isolate' }}>
           {/* ランキング数字（カード背面・話題のガチャのみ） */}
           {showRank && (
             <span
