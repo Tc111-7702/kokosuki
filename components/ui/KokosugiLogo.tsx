@@ -1,12 +1,10 @@
 import kokosugiLogo from './assets/kokosugi-logo.svg';
 
-const ASPECT = 645 / 813;
-
 export function KokosugiLogo({ width = 64 }: { width?: number }) {
-  const height = Math.round(width * ASPECT);
+  const height = Math.round(width * (kokosugiLogo.height / kokosugiLogo.width));
   return (
     <img
-      src={kokosugiLogo}
+      src={kokosugiLogo.src}
       alt="ココスギ"
       width={width}
       height={height}
