@@ -73,11 +73,12 @@ export function HorizontalGachaSection({ title, color, apiUrl, scrollId, showRan
         className={cls}
         style={{
           display: 'flex',
-          // ランキング数字が左にはみ出す分、話題のガチャ(showRank)は gap と左余白を広げる
-          gap: showRank ? (isMobile ? 46 : 66) : (isMobile ? 12 : 32),
+          // ランキング数字が左にはみ出す分、話題のガチャ(showRank)は gap と左余白を広げてカードを右へ寄せる
+          gap: showRank ? (isMobile ? 54 : 74) : (isMobile ? 12 : 32),
           overflowX: 'auto',
+          overflowY: 'hidden', // 上下方向のスクロールを出さない
           paddingBottom: 10,
-          paddingLeft: showRank ? (isMobile ? 38 : 64) : 0,
+          paddingLeft: showRank ? (isMobile ? 50 : 76) : 0,
           scrollbarWidth: 'none',
         }}
       >
