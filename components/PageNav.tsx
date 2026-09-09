@@ -57,7 +57,7 @@ export function PageNav() {
               >
                 <span
                   className="flex flex-col items-center justify-center rounded-full"
-                  style={{ width: 56, height: 56, background: POST_BG, gap: 1 }}
+                  style={{ width: 56, height: 56, background: POST_BG, gap: 1, paddingBottom: 5 }}
                 >
                   <Plus size={26} color="white" strokeWidth={2.75} />
                   <span style={{ color: 'white', fontSize: 9, fontWeight: 700, lineHeight: 1, whiteSpace: 'nowrap' }}>{item.label}</span>
