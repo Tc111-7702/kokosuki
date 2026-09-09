@@ -156,7 +156,7 @@ export function CommunityTab() {
         {/* フィード — 常時マウント、detail open 中は背面に隠す */}
         <div className="absolute inset-0 overflow-y-auto flex flex-col" style={{ visibility: detailOpen ? 'hidden' : 'visible' }}>
           {/* モバイルのみ: 検索バー */}
-          <div className="lg:hidden sticky top-0 z-10 bg-white/90 backdrop-blur-sm border-b border-gray-100 px-3 py-1">
+          <div className="lg:hidden sticky top-0 z-30 bg-white/90 backdrop-blur-sm border-b border-gray-100 px-3 py-2.5">
             <CommunitySearchBar onSearch={handleSearch} onClear={handleClearSearch} searchActive={searchActive} initialValue={initLabel} />
           </div>
 
