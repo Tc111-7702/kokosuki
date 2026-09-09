@@ -11,6 +11,7 @@ import {
   MOBILE_HEADER_TITLE_ROW_HEIGHT,
   MOBILE_HEADER_SEARCH_BAR_HEIGHT,
 } from '@/lib/mobileHeaderLayout';
+import { PopularIpTagList } from '@/components/PopularIpTagList';
 
 // ─── 人気IP（投稿サジェストと同じ取得・件数） ─────────────────────────────────
 
@@ -26,28 +27,11 @@ function PopularIpButtons({ isMobile }: { isMobile: boolean }) {
       .catch(() => {});
   }, []);
 
-  if (shownIps.length === 0) return null;
-
   return (
-    <div>
-      <p style={{ fontSize: 11, color: '#AAA', fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>人気のIP</p>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-        {shownIps.map(ip => (
-          <button
-            key={ip}
-            type="button"
-            onClick={() => router.push(`/home/search?ipName=${encodeURIComponent(ip)}&label=${encodeURIComponent(ip)}`)}
-            style={{
-              padding: '5px 13px', borderRadius: 99, fontSize: 13, fontWeight: 600,
-              border: '1.5px solid #EDE9D8', background: 'white', color: '#555',
-              cursor: 'pointer', transition: 'all 0.15s',
-            }}
-          >
-            {ip}
-          </button>
-        ))}
-      </div>
-    </div>
+    <PopularIpTagList
+      ips={shownIps}
+      onIpClick={ip => router.push(`/home/search?ipName=${encodeURIComponent(ip)}&label=${encodeURIComponent(ip)}`)}
+    />
   );
 }
 

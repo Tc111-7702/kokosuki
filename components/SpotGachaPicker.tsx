@@ -123,14 +123,14 @@ export function SpotGachaPicker({ spotId, filterGachaIds, onSelect, selectedId, 
   return (
     <div>
       {/* 検索バー */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: '#F5F3ED', borderRadius: 10, marginBottom: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: isMobile ? '6px 12px' : '8px 12px', background: '#F5F3ED', borderRadius: 10, marginBottom: 8 }}>
         <Search size={14} color="#aaa" />
         <input
           type="text"
           value={query}
           onChange={e => setQuery(e.target.value)}
           placeholder="ガチャ名・IPで検索…"
-          style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: fs(13), color: '#333', minWidth: 0 }}
+          style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: isMobile ? 12 : fs(13), color: '#333', minWidth: 0 }}
         />
         {query && (
           <button onClick={() => setQuery('')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>

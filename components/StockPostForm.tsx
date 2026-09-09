@@ -2,7 +2,8 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { PopularIpTagList, SearchTagsDivider } from '@/components/PopularIpTagList';
 import { StockSpotPanel } from '@/components/StockSpotPanel';
 import { SpotGachaPicker } from '@/components/SpotGachaPicker';
 import { useIsMobile } from '@/lib/useIsMobile';
@@ -67,6 +68,7 @@ function GachaSearch({ onSelect, accentColor = ACCENT, largeText = false }: {
   const [resolving, setResolving]     = useState(false);
   const [ipNames, setIpNames]         = useState<string[]>([]);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
   // 人気IPはモバイル6件・デスクトップ12件（いいね総数が多い順）
   const shownIps = ipNames.slice(0, isMobile ? 6 : 12);
@@ -77,6 +79,20 @@ function GachaSearch({ onSelect, accentColor = ACCENT, largeText = false }: {
       .then(d => setIpNames(d.ipNames ?? []))
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!focused || suggestions.length === 0) return;
+    const onOutside = (e: MouseEvent | TouchEvent) => {
+      if (searchRef.current?.contains(e.target as Node)) return;
+      setFocused(false);
+    };
+    document.addEventListener('mousedown', onOutside);
+    document.addEventListener('touchstart', onOutside);
+    return () => {
+      document.removeEventListener('mousedown', onOutside);
+      document.removeEventListener('touchstart', onOutside);
+    };
+  }, [focused, suggestions.length]);
 
   const fetchSuggestions = (v: string) => {
     if (timer.current) clearTimeout(timer.current);
@@ -105,86 +121,80 @@ function GachaSearch({ onSelect, accentColor = ACCENT, largeText = false }: {
     setResolving(false);
   };
 
+  const hasPopularIps = shownIps.length > 0;
+  const dividerBleed = isMobile ? 12 : 0;
+
   return (
     <div>
-      {/* 検索バー（人気IPの上に配置） */}
-      <div style={{ position: 'relative', marginBottom: 12 }}>
+      {/* 検索バー（home/search と同じUI） */}
+      <div ref={searchRef} style={{ position: 'relative' }}>
+        <div style={{ paddingTop: isMobile ? 6 : 8 }}>
         <div style={{
-          display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px',
-          background: '#F5F3ED', borderRadius: 12,
-          border: focused ? `1.5px solid ${accentColor}` : '1.5px solid transparent',
-          transition: 'border-color 0.15s',
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: isMobile ? '6px 12px' : '10px 14px',
+          background: '#F5F3ED', borderRadius: 16,
         }}>
-          <Search size={14} color="#aaa" />
           <input
-            type="text" value={value} placeholder="ガチャ名で検索…"
+            type="text" value={value} placeholder="気になっているガチャをさがす"
             onChange={e => { setValue(e.target.value); fetchSuggestions(e.target.value); }}
             onFocus={() => { setFocused(true); fetchSuggestions(value); }}
             onBlur={() => setTimeout(() => setFocused(false), 200)}
-            style={{ flex: 1, minWidth: 0, background: 'none', border: 'none', outline: 'none', fontSize: largeText ? 15 : 14, color: '#333' }}
+            style={{ flex: 1, minWidth: 0, background: 'none', border: 'none', outline: 'none', fontSize: isMobile ? 12 : (largeText ? 15 : 14), color: '#333' }}
           />
           {resolving ? (
             <div style={{ width: 13, height: 13, border: `2px solid ${accentColor}`, borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
           ) : value ? (
             <button onMouseDown={e => { e.preventDefault(); setValue(''); setSuggestions([]); }}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 0 }}>
               <X size={13} color="#bbb" />
             </button>
           ) : null}
         </div>
+        </div>
 
         {focused && suggestions.length > 0 && (
           <div style={{
-            position: 'absolute', zIndex: 50, top: 'calc(100% + 4px)', left: 0, right: 0,
-            background: 'white', borderRadius: 12, boxShadow: '0 6px 24px rgba(0,0,0,0.12)',
-            border: '1px solid #f0f0f0', maxHeight: 260, overflowY: 'auto',
+            position: 'absolute', zIndex: 50, top: 'calc(100% - 4px)', left: 0, right: 0,
+            background: 'white', borderRadius: 12, boxShadow: '0 6px 24px rgba(0,0,0,0.14)',
+            border: '1px solid #f0f0f0', maxHeight: 280, overflow: 'hidden',
           }}>
-            {suggestions.map((s, i) => (
-              <button key={s.label} onMouseDown={e => { e.preventDefault(); handleSelect(s.label); }}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left',
-                  padding: isMobile ? '8px 12px' : '10px 14px', border: 'none',
-                  borderBottom: i < suggestions.length - 1 ? '1px solid #f5f5f5' : 'none',
-                  background: 'none', cursor: 'pointer',
-                }}>
-                {s.type === 'gacha' && s.imageUrl ? (
-                  // 任意ホスト画像のため img を使用
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={s.imageUrl} alt=""
-                    style={{ width: isMobile ? 30 : 34, height: isMobile ? 30 : 34, borderRadius: 8, objectFit: 'cover', flexShrink: 0, background: '#F0ECD8' }}
-                    onError={e => { (e.target as HTMLImageElement).style.visibility = 'hidden'; }} />
-                ) : (
-                  <span style={{ width: isMobile ? 30 : 34, height: isMobile ? 30 : 34, borderRadius: 8, background: '#F0ECD8', flexShrink: 0 }} />
-                )}
-                <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: largeText ? 15 : (isMobile ? 12.5 : 14), color: '#222' }}>
-                  {s.label}
-                </span>
-              </button>
-            ))}
+            <div style={{ maxHeight: 280, overflowY: 'auto' }}>
+              <div style={{ padding: '4px 12px', fontSize: isMobile ? 10 : 12, fontWeight: 700, color: '#9CA3AF', background: '#F9FAFB', borderBottom: '1px solid #F3F4F6' }}>ガチャ・IP</div>
+              {suggestions.map((s, i) => (
+                <button key={`${s.type}-${s.label}`} onMouseDown={e => { e.preventDefault(); handleSelect(s.label); }}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', textAlign: 'left',
+                    padding: isMobile ? '8px 12px' : '10px 14px', border: 'none',
+                    borderBottom: i < suggestions.length - 1 ? '1px solid #F3F4F6' : 'none',
+                    background: 'none', cursor: 'pointer',
+                  }}>
+                  <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: isMobile ? 12 : (largeText ? 15 : 14), fontWeight: 500, color: '#1F2937', paddingRight: 8 }}>
+                    {s.label}
+                  </span>
+                  {s.type === 'genre' ? (
+                    <span style={{ fontSize: isMobile ? 9 : 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99, flexShrink: 0, background: '#DBEAFE', color: '#1D4ED8' }}>IP</span>
+                  ) : s.imageUrl ? (
+                    // 任意ホスト画像のため img を使用
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={s.imageUrl} alt=""
+                      style={{ width: isMobile ? 24 : 28, height: isMobile ? 24 : 28, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }}
+                      onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                  ) : null}
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>
 
-      {/* 人気のIP（いいね総数が多い順 / モバイル6・デスクトップ12）: 通常投稿とUIを統一 */}
-      {shownIps.length > 0 && (
-        <div>
-          <p style={{ fontSize: largeText ? 12 : 11, color: '#AAA', fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>人気のIP</p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-            {shownIps.map(ip => (
-              <button key={ip} onMouseDown={e => { e.preventDefault(); setValue(ip); setFocused(true); fetchSuggestions(ip); }}
-                style={{
-                  padding: '5px 13px', borderRadius: 99, fontSize: largeText ? 14 : 13, fontWeight: 600,
-                  border: '1.5px solid #EDE9D8',
-                  background: value === ip ? '#F2B800' : 'white',
-                  color: value === ip ? '#1A1A1A' : '#555',
-                  cursor: 'pointer', transition: 'all 0.15s',
-                }}>
-                {ip}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      {hasPopularIps && <SearchTagsDivider bleed={dividerBleed} />}
+
+      <PopularIpTagList
+        ips={shownIps}
+        largeText={largeText}
+        marginBottom={48}
+        onIpClick={ip => { setValue(ip); setFocused(true); fetchSuggestions(ip); }}
+      />
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
@@ -292,7 +302,7 @@ export function DesktopStockForm({ onDone, initialSpotId = '', initialSpotName =
       {sec('お店を選ぶ *',
         spotId ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 16, fontWeight: 700, color: '#1A1A1A', flex: 1 }}>🏪 {spotName}</span>
+            <span style={{ fontSize: 16, fontWeight: 700, color: '#1A1A1A', flex: 1 }}>{spotName}</span>
             <button onClick={() => { setSpotId(''); setSpotName(''); setVErr(v => ({ ...v, spot: undefined })); }}
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
               <X size={15} color="#bbb" />
@@ -411,13 +421,13 @@ export function StockPostForm({ onDone, initialSpotId = '', initialSpotName = ''
   };
 
   const card = (content: React.ReactNode) => (
-    <div style={{ background: 'white', borderRadius: 20, padding: 24, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+    <div style={{ background: 'white', borderRadius: 20, padding: '16px 12px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
       {content}
     </div>
   );
 
   return (
-    <div style={{ padding: '20px 16px', maxWidth: 480, margin: '0 auto' }}>
+    <div style={{ padding: '12px 10px', maxWidth: 480, margin: '0 auto' }}>
 
       {step === 'gacha' && card(
         <>
@@ -430,7 +440,7 @@ export function StockPostForm({ onDone, initialSpotId = '', initialSpotName = ''
                   setGachaId(id); setGachaName(name); setGachaImageUrl(imgUrl);
                 }} />
               <button onClick={goNext} disabled={!gachaId}
-                style={{ ...nextBtnStyle(!!gachaId), marginTop: 16, width: '100%' }}>
+                style={{ ...nextBtnStyle(!!gachaId), marginTop: 32, width: '100%' }}>
                 次へ <ChevronRight size={14} />
               </button>
             </>
@@ -440,7 +450,7 @@ export function StockPostForm({ onDone, initialSpotId = '', initialSpotName = ''
                 setGachaId(id); setGachaName(name); setGachaImageUrl(imgUrl);
               }} />
               <button onClick={goNext} disabled={!gachaId}
-                style={{ ...nextBtnStyle(!!gachaId), marginTop: 16, width: '100%' }}>
+                style={{ ...nextBtnStyle(!!gachaId), width: '100%' }}>
                 次へ <ChevronRight size={14} />
               </button>
             </>
@@ -453,7 +463,7 @@ export function StockPostForm({ onDone, initialSpotId = '', initialSpotName = ''
           <StepHeader step="spot" onBack={goBack} />
           {spotId ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', background: '#EFF6FF', borderRadius: 12, marginBottom: 4 }}>
-              <span style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1A', flex: 1 }}>🏪 {spotName}</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1A', flex: 1 }}>{spotName}</span>
               <button onClick={() => { setSpotId(''); setSpotName(''); }}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: '#3B82F6', fontWeight: 700 }}>
                 変更

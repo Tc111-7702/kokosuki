@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { PostImageFrame } from '@/components/PostImageFrame';
 import { MapPin, Heart, MessageCircle, MoreHorizontal } from 'lucide-react';
 import { type FeedPost } from '@/components/community-types';
 import { useInteraction } from '@/components/InteractionStore';
@@ -161,18 +161,12 @@ export function PostCard({
       )}
 
       {post.imageUrl && (
-        <div
-          className="relative w-full aspect-[3/2] lg:aspect-[2/1] rounded-2xl overflow-hidden mb-2"
-          style={{ background: gradient }}
-        >
-          <Image
-            src={post.imageUrl}
-            alt={post.gacha.seriesName}
-            fill
-            className="object-cover"
-            sizes="(max-width: 1024px) 100vw, 480px"
-          />
-        </div>
+        <PostImageFrame
+          src={post.imageUrl}
+          alt={post.gacha.seriesName}
+          background={gradient}
+          className="mb-2"
+        />
       )}
 
       <div className="flex items-center justify-between pt-2 border-t border-gray-100">
