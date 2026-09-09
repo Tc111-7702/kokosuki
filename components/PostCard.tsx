@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { MapPin, Heart, MessageCircle, Trash2 } from 'lucide-react';
-import { Avatar, timeAgo } from '@/components/ui/Avatar';
+import { MapPin, Heart, MessageCircle, MoreHorizontal } from 'lucide-react';
 import { type FeedPost } from '@/components/community-types';
 import { useInteraction } from '@/components/InteractionStore';
+import { Avatar, timeAgo } from '@/components/ui/Avatar';
 
 export const RESULT_BADGE: Record<string, { label: string; cls: string }> = {
   '神引き': { label: '● 神引き', cls: 'border border-yellow-400 text-yellow-600 bg-yellow-50'   },
@@ -15,8 +15,6 @@ export const RESULT_BADGE: Record<string, { label: string; cls: string }> = {
 };
 
 export function renderWithMentions(text: string, names: string[] = []) {
-  // 参加者名（スペースを含む場合あり）を長い順に「@名前」として優先マッチ。
-  // 未知のメンションは従来どおり @非空白 にフォールバック。
   const escaped = [...new Set(names)]
     .filter(Boolean)
     .sort((a, b) => b.length - a.length)
@@ -49,20 +47,31 @@ export function PostCard({
   replyOpen?: boolean;
 }) {
   const router = useRouter();
-  const badge    = RESULT_BADGE[post.result];
   const gradient = 'linear-gradient(135deg, ' + post.gacha.gradientFrom + ', ' + post.gacha.gradientTo + ')';
 
-  // いいね・返信数はインタラクションストアで一元管理（一覧↔詳細で同期）。
-  // Provider が無い画面ではフック内部でローカルstateにフォールバックする。
   const { liked, likeCount, replyCount, toggleLike } = useInteraction('post', post.id, {
     likedByMe: post.likedByMe, likeCount: post._count.likes, replyCount: post._count.replies,
   });
   const [deleting, setDeleting] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const isOwner = !!currentUserId && post.user.id === currentUserId;
 
-  const handleDelete = async (e: React.MouseEvent) => {
-    e.stopPropagation();
+  useEffect(() => {
+    if (!showMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showMenu]);
+
+  const handleDelete = async (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setShowMenu(false);
     if (!window.confirm('この投稿を削除しますか？')) return;
     setDeleting(true);
     try {
@@ -79,135 +88,121 @@ export function PostCard({
 
   return (
     <article
-      className={'mx-3 my-2.5 px-4 py-4 bg-white rounded-2xl shadow-sm transition-shadow ' + (interactive ? 'hover:shadow-md cursor-pointer' : '')}
+      className={'mx-3 my-2.5 px-4 py-3 bg-white rounded-2xl shadow-sm transition-shadow ' + (interactive ? 'hover:shadow-md cursor-pointer' : '')}
       onClick={() => interactive && onSelect?.(post)}
     >
-      <div className="flex items-center gap-3 mb-3">
-        <button
-          onClick={e => { e.stopPropagation(); router.push('/mypage/' + post.user.id); }}
-          className="flex items-center gap-3 flex-1 min-w-0 text-left active:opacity-70"
-        >
-          <Avatar user={post.user} size={40} />
-          <div className="min-w-0">
-            <span className="font-semibold text-sm text-gray-900 truncate hover:text-blue-600 transition-colors">{post.user.name}</span>
-            <span className="text-xs text-gray-400 ml-2">{timeAgo(post.createdAt)}</span>
-          </div>
-        </button>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {/* ipName: デスクトップのみヘッダーに表示 */}
+      <div className="relative mb-2">
+        <div className="flex items-start gap-2.5 min-w-0 pr-5">
           <button
-            onClick={e => { e.stopPropagation(); router.push('/home/search?ipName=' + encodeURIComponent(post.gacha.ipName) + '&label=' + encodeURIComponent(post.gacha.ipName)); }}
-            className="hidden sm:inline-flex text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 font-medium hover:bg-yellow-200 transition-colors"
+            type="button"
+            onClick={e => { e.stopPropagation(); router.push('/mypage/' + post.user.id); }}
+            className="flex-shrink-0 active:opacity-70"
+            aria-label={post.user.name + 'のマイページ'}
           >
-            {post.gacha.ipName}
+            <Avatar user={post.user} size={32} />
           </button>
-          {/* 結果バッジ: 常時表示 */}
-          {badge && (
-            <span className={'text-xs px-2 py-1 rounded-full font-semibold ' + badge.cls}>
-              {badge.label}
-            </span>
+          <div className="flex-1 min-w-0 pt-0.5">
+            <div className="flex items-center gap-1.5 min-w-0 mb-0.5">
+              <button
+                type="button"
+                onClick={e => { e.stopPropagation(); router.push('/mypage/' + post.user.id); }}
+                className="text-xs lg:text-sm font-bold text-gray-900 hover:text-blue-600 transition-colors text-left truncate"
+              >
+                {post.user.name}
+              </button>
+              <span className="text-[10px] lg:text-xs text-gray-400 flex-shrink-0">{timeAgo(post.createdAt)}</span>
+            </div>
+            <button
+              type="button"
+              onClick={e => { e.stopPropagation(); router.push('/gacha/' + post.gacha.id); }}
+              className="group text-xs lg:text-sm font-bold text-gray-900 hover:text-blue-600 transition-colors text-left leading-snug line-clamp-2 pb-1 w-full"
+            >
+              <span className="underline underline-offset-[3px] decoration-gray-900 group-hover:decoration-blue-600 box-decoration-clone">
+                {post.gacha.seriesName}
+              </span>
+            </button>
+            {post.itemName && (
+              <p className="text-[10px] lg:text-xs text-gray-400 mt-0.5 leading-tight">{post.itemName}</p>
+            )}
+            {post.gacha.status != null && post.gacha.status !== 'on_sale' && (
+              <span className="inline-block mt-1 text-[10px] lg:text-xs px-1.5 py-0.5 lg:px-2 lg:py-1 rounded-full font-semibold border border-red-200 text-red-500 bg-red-50">発売中止</span>
+            )}
+          </div>
+        </div>
+        <div className="absolute top-0.5 right-0 z-20 flex items-center gap-0.5 flex-row-reverse pointer-events-none" ref={menuRef}>
+          <button
+            type="button"
+            onClick={e => {
+              e.stopPropagation();
+              if (isOwner) setShowMenu(v => !v);
+            }}
+            className="p-0.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors pointer-events-auto"
+            aria-label="投稿メニュー"
+          >
+            <MoreHorizontal size={16} />
+          </button>
+          {isOwner && showMenu && (
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={deleting}
+              className="text-[10px] leading-none px-2 py-1 rounded-full bg-gray-200 text-red-500 font-medium hover:bg-gray-100 transition-colors whitespace-nowrap pointer-events-auto shadow-sm"
+            >
+              {deleting ? '削除中…' : '削除'}
+            </button>
           )}
         </div>
       </div>
 
+      {post.memo && (
+        <p className="text-xs lg:text-sm text-gray-800 mb-2 leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+          {post.memo}
+        </p>
+      )}
+
       {post.imageUrl && (
-        <div className="relative w-full aspect-[4/3] sm:aspect-[2/1] rounded-2xl overflow-hidden mb-3" style={{ background: gradient }}>
+        <div
+          className="relative w-full aspect-[3/2] lg:aspect-[2/1] rounded-2xl overflow-hidden mb-2"
+          style={{ background: gradient }}
+        >
           <Image
             src={post.imageUrl}
             alt={post.gacha.seriesName}
             fill
             className="object-cover"
-            sizes="(max-width: 640px) 100vw, 560px"
+            sizes="(max-width: 1024px) 100vw, 480px"
           />
         </div>
       )}
 
-      <div className="mb-1">
-        <button
-          onClick={e => { e.stopPropagation(); router.push('/gacha/' + post.gacha.id); }}
-          className="text-sm font-bold text-gray-900 hover:text-blue-600 transition-colors text-left"
-        >
-          {post.gacha.seriesName}
-        </button>
-        {post.gacha.status != null && post.gacha.status !== 'on_sale' && (
-          <span className="ml-1.5 text-xs px-2 py-0.5 rounded-full font-semibold border border-red-200 text-red-500 bg-red-50">発売中止</span>
-        )}
-        {post.itemName && (
-          <span className="block sm:inline mt-0.5 sm:mt-0 sm:ml-1.5 text-xs text-gray-500">{post.itemName}</span>
-        )}
-      </div>
-
-      {post.memo && <p className="text-sm text-gray-700 mb-2 leading-relaxed whitespace-pre-wrap break-words">{post.memo}</p>}
-
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-2 gap-1.5">
-        <div className="flex items-center gap-1 text-sm text-gray-500">
-          <MapPin size={14} />
+      <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+        <div className="flex items-center gap-1 min-w-0">
+          <MapPin size={11} className="text-gray-400 flex-shrink-0 lg:w-[13px] lg:h-[13px]" />
           <button
             onClick={e => { e.stopPropagation(); router.push('/map?spotId=' + post.spot.id); }}
-            className="hover:text-yellow-600 hover:underline transition-colors text-left"
+            className="text-[10px] lg:text-xs text-gray-400 font-normal hover:text-yellow-600 transition-colors text-left leading-tight truncate"
           >
             {post.spot.name}
           </button>
         </div>
-        <div className="hidden sm:flex items-center gap-3 self-end sm:self-auto">
-          {isOwner && (
-            <button
-              onClick={handleDelete}
-              disabled={deleting}
-              className="flex items-center p-1 rounded-full text-gray-400 hover:text-red-400 transition-colors"
-              aria-label="削除"
-            >
-              <Trash2 size={20} />
-            </button>
-          )}
+        <div className="flex items-center gap-3 flex-shrink-0">
           <button
-            onClick={(e) => { if (onReplyClick) { e.stopPropagation(); onReplyClick(); } }}
-            className={"flex items-center gap-1 text-sm transition-colors " + (replyOpen ? "text-yellow-500" : "text-gray-400") + (onReplyClick ? " hover:text-yellow-500" : " cursor-default")}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onReplyClick) onReplyClick();
+              else if (onSelect) onSelect(post);
+            }}
+            className={'flex items-center gap-1 transition-colors ' + (replyOpen ? 'text-yellow-500' : 'text-gray-400 hover:text-yellow-500')}
           >
-            <MessageCircle size={20} />
-            <span className="font-medium">{replyCount}</span>
+            <MessageCircle size={18} />
+            <span className="text-xs lg:text-sm font-medium">{replyCount}</span>
           </button>
           <button
             onClick={handleLike}
-            className={'flex items-center gap-1.5 text-sm px-2 py-1 -mr-2 rounded-full transition-colors ' + (liked ? 'text-red-500 hover:text-red-400' : 'text-gray-400 hover:text-red-400')}
+            className={'flex items-center gap-1 transition-colors ' + (liked ? 'text-red-500' : 'text-gray-400 hover:text-red-400')}
           >
-            <Heart size={24} fill={liked ? 'currentColor' : 'none'} />
-            <span className="font-medium">{likeCount}</span>
-          </button>
-        </div>
-      </div>
-      {/* モバイルのみ: ipName左端・返信数いいね右端を同じ行に */}
-      <div className="sm:hidden flex items-center justify-between mt-1.5">
-        <button
-          onClick={e => { e.stopPropagation(); router.push('/home/search?ipName=' + encodeURIComponent(post.gacha.ipName) + '&label=' + encodeURIComponent(post.gacha.ipName)); }}
-          className="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 font-medium hover:bg-yellow-200 transition-colors"
-        >
-          {post.gacha.ipName}
-        </button>
-        <div className="flex items-center gap-3">
-          {isOwner && (
-            <button
-              onClick={handleDelete}
-              disabled={deleting}
-              className="flex items-center p-1 rounded-full text-gray-400 hover:text-red-400 transition-colors"
-              aria-label="削除"
-            >
-              <Trash2 size={20} />
-            </button>
-          )}
-          <button
-            onClick={(e) => { if (onReplyClick) { e.stopPropagation(); onReplyClick(); } }}
-            className={"flex items-center gap-1 text-sm transition-colors " + (replyOpen ? "text-yellow-500" : "text-gray-400") + (onReplyClick ? " hover:text-yellow-500" : " cursor-default")}
-          >
-            <MessageCircle size={20} />
-            <span className="font-medium">{replyCount}</span>
-          </button>
-          <button
-            onClick={handleLike}
-            className={'flex items-center gap-1.5 text-sm px-2 py-1 -mr-2 rounded-full transition-colors ' + (liked ? 'text-red-500 hover:text-red-400' : 'text-gray-400 hover:text-red-400')}
-          >
-            <Heart size={24} fill={liked ? 'currentColor' : 'none'} />
-            <span className="font-medium">{likeCount}</span>
+            <Heart size={18} fill={liked ? 'currentColor' : 'none'} />
+            <span className="text-xs lg:text-sm font-medium">{likeCount}</span>
           </button>
         </div>
       </div>

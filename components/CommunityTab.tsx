@@ -98,7 +98,6 @@ function RightSidebar({
 // ─── CommunityTab ─────────────────────────────────────────────────────────────
 
 export function CommunityTab() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   // ガチャページの「みんなで見る」等から ?gachaId=&label= 付きで来たら、その検索状態で開く
   const initGachaId = searchParams.get('gachaId');
@@ -157,7 +156,7 @@ export function CommunityTab() {
         {/* フィード — 常時マウント、detail open 中は背面に隠す */}
         <div className="absolute inset-0 overflow-y-auto flex flex-col" style={{ visibility: detailOpen ? 'hidden' : 'visible' }}>
           {/* モバイルのみ: 検索バー */}
-          <div className="lg:hidden sticky top-0 z-10 bg-white/90 backdrop-blur-sm border-b border-gray-100 px-3 py-2">
+          <div className="lg:hidden sticky top-0 z-30 bg-white/90 backdrop-blur-sm border-b border-gray-100 px-3 py-2.5">
             <CommunitySearchBar onSearch={handleSearch} onClear={handleClearSearch} searchActive={searchActive} initialValue={initLabel} />
           </div>
 
@@ -199,21 +198,6 @@ export function CommunityTab() {
       </div>
 
       <RightSidebar onSearch={handleSearch} onClear={handleClearSearch} searchActive={searchActive} initialValue={initLabel} />
-
-      {/* 投稿ボタン（返信詳細を開いている間は非表示） */}
-      {!detailOpen && (
-      <button
-        className="fixed bottom-20 right-6 sm:bottom-8 sm:right-10 lg:right-[540px] xl:right-[620px] z-50 flex items-center justify-center rounded-full shadow-lg active:scale-95 transition-transform"
-        style={{ width: 56, height: 56, background: '#F2B800' }}
-        aria-label="投稿する"
-        onClick={() => router.push('/post')}
-      >
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
-          <line x1="12" y1="5" x2="12" y2="19" />
-          <line x1="5" y1="12" x2="19" y2="12" />
-        </svg>
-      </button>
-      )}
     </div>
     </InteractionProvider>
   );

@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { ChevronLeft } from 'lucide-react';
 import { type UserResult } from '@/components/community-types';
 
 export function UserAvatar({ user, size }: { user: { name: string; image: string | null }; size: number }) {
@@ -76,48 +77,58 @@ export function CommunitySearchBar({
   const showDrop = focused && (gachaSug.length > 0 || userSug.length > 0);
 
   return (
-    <div className="relative">
-      <div
-        className="flex items-center gap-2 px-3 py-2.5 rounded-full transition-all"
-        style={{ background: '#F3F4F6', outline: focused ? '2px solid #FBBF24' : '2px solid transparent' }}
-      >
-        {busy ? (
-          <div className="animate-spin rounded-full border-2 border-t-transparent" style={{ width: 15, height: 15, borderColor: '#F2B800', borderTopColor: 'transparent', flexShrink: 0 }} />
-        ) : (
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2.5" style={{ flexShrink: 0 }}>
-            <circle cx="11" cy="11" r="8" />
-            <line x1="16.65" y1="16.65" x2="21" y2="21" />
-          </svg>
-        )}
-        <input
-          type="text"
-          value={value}
-          onChange={e => { setValue(e.target.value); fetchSuggestions(e.target.value); }}
-          onFocus={() => { setFocused(true); if (value) fetchSuggestions(value); }}
-          onBlur={() => setTimeout(() => setFocused(false), 200)}
-          onKeyDown={e => e.key === 'Enter' && runSearch(value)}
-          placeholder="アカウント / IP・ガチャの投稿を検索"
-          className="flex-1 bg-transparent text-sm outline-none"
-          style={{ color: '#111', fontSize: 13, textAlign: 'left' }}
-        />
-        {(value || searchActive) && (
-          <button onMouseDown={e => { e.preventDefault(); handleClear(); }} style={{ lineHeight: 0 }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2.5">
-              <path d="M18 6 6 18M6 6l12 12" />
+    <div className="relative flex items-center gap-1.5 min-w-0">
+      {searchActive && (
+        <button
+          type="button"
+          onClick={handleClear}
+          className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full text-gray-500 hover:bg-gray-100 active:opacity-70 transition-colors"
+          aria-label="検索を解除"
+        >
+          <ChevronLeft size={22} />
+        </button>
+      )}
+      <div className="flex-1 min-w-0">
+        <div
+          className="flex items-center gap-2 px-3 py-1.5 lg:py-2.5 rounded-full"
+          style={{ background: '#F3F4F6' }}
+        >
+          {busy ? (
+            <div className="animate-spin rounded-full border-2 border-t-transparent" style={{ width: 15, height: 15, borderColor: '#F2B800', borderTopColor: 'transparent', flexShrink: 0 }} />
+          ) : (
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2.5" style={{ flexShrink: 0 }}>
+              <circle cx="11" cy="11" r="8" />
+              <line x1="16.65" y1="16.65" x2="21" y2="21" />
             </svg>
-          </button>
-        )}
+          )}
+          <input
+            type="text"
+            value={value}
+            onChange={e => { setValue(e.target.value); fetchSuggestions(e.target.value); }}
+            onFocus={() => { setFocused(true); if (value) fetchSuggestions(value); }}
+            onBlur={() => setTimeout(() => setFocused(false), 200)}
+            onKeyDown={e => e.key === 'Enter' && runSearch(value)}
+            placeholder="アカウント / IP・ガチャの投稿を検索"
+            className="flex-1 bg-transparent text-sm outline-none"
+            style={{ color: '#111', fontSize: 13, textAlign: 'left' }}
+          />
+        </div>
       </div>
       {showDrop && (
-        <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden" style={{ maxHeight: 300, overflowY: 'auto' }}>
+        <div className="absolute top-full left-0 right-0 z-[100] mt-1 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden" style={{ maxHeight: 300, overflowY: 'auto' }}>
           {userSug.length > 0 && (
             <>
-              <div className="px-3 py-1.5 text-xs font-bold text-gray-400 bg-gray-50 border-b border-gray-100">{'アカウント'}</div>
+              <div className="px-3 py-1 lg:py-1.5 text-[10px] lg:text-xs font-bold text-gray-400 bg-gray-50 border-b border-gray-100">{'アカウント'}</div>
               {userSug.slice(0, 4).map(u => (
-                <button key={u.id} className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 text-left border-b border-gray-50"
+                <button key={u.id} className="w-full flex items-center gap-2.5 lg:gap-3 px-3 py-2 lg:py-2.5 hover:bg-gray-50 text-left border-b border-gray-50"
                   onMouseDown={e => { e.preventDefault(); openProfile(u); }}>
-                  <UserAvatar user={u} size={32} />
-                  <div className="min-w-0">
+                  <span className="lg:hidden flex-shrink-0"><UserAvatar user={u} size={28} /></span>
+                  <span className="hidden lg:inline flex-shrink-0"><UserAvatar user={u} size={32} /></span>
+                  <div className="min-w-0 lg:hidden">
+                    <p className="text-xs font-semibold text-gray-900 truncate">{u.name}</p>
+                    {u.handle && <p className="text-[10px] text-gray-400">@{u.handle}</p>}
+                  </div>
+                  <div className="min-w-0 hidden lg:block">
                     <p className="text-sm font-semibold text-gray-900 truncate">{u.name}</p>
                     {u.handle && <p className="text-xs text-gray-400">@{u.handle}</p>}
                   </div>
@@ -127,16 +138,16 @@ export function CommunitySearchBar({
           )}
           {gachaSug.length > 0 && (
             <>
-              <div className="px-3 py-1.5 text-xs font-bold text-gray-400 bg-gray-50 border-b border-gray-100">{'ガチャ・IP'}</div>
+              <div className="px-3 py-1 lg:py-1.5 text-[10px] lg:text-xs font-bold text-gray-400 bg-gray-50 border-b border-gray-100">{'ガチャ・IP'}</div>
               {gachaSug.map((s, i) => (
-                <button key={i} className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-gray-50 border-b border-gray-50 last:border-0 text-left"
+                <button key={i} className="w-full flex items-center justify-between px-3 py-2 lg:py-2.5 hover:bg-gray-50 border-b border-gray-50 last:border-0 text-left"
                   onMouseDown={e => { e.preventDefault(); runSearch(s.label); }}>
-                  <span className="text-sm font-medium text-gray-800">{s.label}</span>
+                  <span className="text-xs lg:text-sm font-medium text-gray-800">{s.label}</span>
                   {s.type === 'genre' ? (
                     <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: '#DBEAFE', color: '#1D4ED8' }}>IP</span>
                   ) : s.imageUrl ? (
                     <img src={s.imageUrl} alt={s.label}
-                      style={{ width: 28, height: 28, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }}
+                      className="w-6 h-6 lg:w-7 lg:h-7 rounded-md object-cover flex-shrink-0"
                       onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                   ) : null}
                 </button>

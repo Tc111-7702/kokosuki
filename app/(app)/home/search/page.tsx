@@ -107,7 +107,7 @@ function SearchPageInner() {
                 <ArrowLeft size={18} color="#555" />
               </button>
               <h1 style={{ fontSize: 15, fontWeight: 700, color: '#222', lineHeight: 1 }}>
-                {hasIpSearch ? label : 'さがす'}
+                {hasIpSearch ? label : 'ガチャ・IPをしらべる'}
               </h1>
             </div>
             <div style={{ height: MOBILE_HEADER_SEARCH_BAR_HEIGHT }}>
@@ -126,7 +126,7 @@ function SearchPageInner() {
                 <ArrowLeft size={18} color="#555" />
               </button>
               <h1 style={{ fontSize: 15, fontWeight: 700, color: '#222' }}>
-                {hasIpSearch ? label : 'さがす'}
+                {hasIpSearch ? label : 'ガチャ・IPをしらべる'}
               </h1>
             </div>
             <HomeSearchBar />

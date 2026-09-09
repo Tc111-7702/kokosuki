@@ -65,14 +65,10 @@ export function HomeSearchBar({ placeholder = '気になっているガチャを
   const showDrop = focused && suggestions.length > 0;
 
   return (
-    <div className="relative px-4 py-2">
+    <div className="relative px-4 py-1.5 lg:py-2">
       <div
-        className="flex items-center gap-2 px-3 py-2.5 rounded-2xl"
-        style={{
-          background: '#F5F3ED',
-          border: focused ? '1.5px solid #F2B800' : '1.5px solid transparent',
-          transition: 'border-color 0.15s',
-        }}
+        className="flex items-center gap-2 px-3 py-1.5 lg:py-2.5 rounded-2xl"
+        style={{ background: '#F5F3ED' }}
       >
         <input
           type="text"
@@ -83,7 +79,7 @@ export function HomeSearchBar({ placeholder = '気になっているガチャを
           onKeyDown={e => e.key === 'Enter' && navigateByQuery(value)}
           placeholder={placeholder}
           disabled={navigating}
-          style={{ background: 'transparent', border: 'none', outline: 'none', fontSize: 13, width: '100%', color: '#333' }}
+          className="flex-1 bg-transparent border-none outline-none text-xs lg:text-sm text-gray-800"
         />
         {value && (
           <button
@@ -99,29 +95,21 @@ export function HomeSearchBar({ placeholder = '気になっているガチャを
           className="absolute z-50 rounded-xl overflow-hidden"
           style={{ top: 'calc(100% - 4px)', left: 16, right: 16, background: 'white', boxShadow: '0 6px 24px rgba(0,0,0,0.14)', border: '1px solid #f0f0f0', maxHeight: 280, overflowY: 'auto' }}
         >
+          <div className="px-3 py-1 lg:py-1.5 text-[10px] lg:text-xs font-bold text-gray-400 bg-gray-50 border-b border-gray-100">ガチャ・IP</div>
           {suggestions.map((s, i) => (
             <button
               key={i}
-              className="w-full text-left px-3 py-2.5 active:bg-amber-50"
-              style={{ display: 'block', borderBottom: i < suggestions.length - 1 ? '1px solid #f5f5f5' : 'none' }}
+              className={'w-full flex items-center justify-between px-3 py-2 lg:py-2.5 active:bg-amber-50 text-left ' + (i < suggestions.length - 1 ? 'border-b border-gray-100' : '')}
               onMouseDown={e => { e.preventDefault(); navigateBySuggestion(s); }}
             >
-              <div className="flex items-center gap-2">
-                {s.type === 'gacha' && s.imageUrl ? (
-                  <img src={s.imageUrl} alt={s.label}
-                    style={{ width: 28, height: 28, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }}
-                    onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                ) : (
-                  <div style={{ width: 28, height: 28, flexShrink: 0 }} />
-                )}
-                <span style={{ fontSize: 13, fontWeight: 600, color: '#222', flex: 1, textAlign: 'left' }}>{s.label}</span>
-                {s.type === 'genre' && (
-                  <span style={{
-                    fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 10, flexShrink: 0,
-                    background: '#e0f2fe', color: '#0369a1',
-                  }}>ジャンル</span>
-                )}
-              </div>
+              <span className="text-xs lg:text-sm font-medium text-gray-800 min-w-0 pr-2">{s.label}</span>
+              {s.type === 'genre' ? (
+                <span className="text-[9px] lg:text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 bg-blue-100 text-blue-700">IP</span>
+              ) : s.imageUrl ? (
+                <img src={s.imageUrl} alt={s.label}
+                  className="w-6 h-6 lg:w-7 lg:h-7 rounded-md object-cover flex-shrink-0"
+                  onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+              ) : null}
             </button>
           ))}
         </div>

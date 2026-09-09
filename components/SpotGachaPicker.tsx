@@ -20,15 +20,17 @@ function groupByIp(items: GachaItem[]): [string, GachaItem[]][] {
 }
 
 // 店舗に置いてあるガチャから選ぶピッカー（検索バー＋IPごとのグループ表示）
-export function SpotGachaPicker({ spotId, filterGachaIds, onSelect, selectedId, initialQuery = '' }: {
+export function SpotGachaPicker({ spotId, filterGachaIds, onSelect, selectedId, initialQuery = '', largeText = false }: {
   spotId: string;
   filterGachaIds: string[];
   onSelect: (id: string, name: string, imageUrl: string | null, lineup: string[]) => void;
   selectedId?: string;
   initialQuery?: string;
+  largeText?: boolean;
 }) {
   const MOBILE_BREAKPOINT = 768;
   const isMobile = useIsMobile(MOBILE_BREAKPOINT);
+  const fs = (base: number) => largeText ? base + 2 : base;
   const [allGachas,       setAllGachas]       = useState<GachaItem[]>([]);
   const [loading,         setLoading]         = useState(true);
   const [resolving,       setResolving]       = useState<string | null>(null);
@@ -95,7 +97,7 @@ export function SpotGachaPicker({ spotId, filterGachaIds, onSelect, selectedId, 
     return (
       <button key={g.id} onClick={() => handleSelect(g)} disabled={!!resolving}
         style={{
-          padding: isMobile ? '6px 8px' : '6px 13px', borderRadius: 99, fontSize: 12, fontWeight: 600,
+          padding: isMobile ? '6px 8px' : '6px 13px', borderRadius: 99, fontSize: fs(12), fontWeight: 600,
           border: active ? '2px solid #F2B800' : '1.5px solid #EDE9D8',
           background: active ? '#FFF8D0' : 'white',
           color: active ? '#8A6800' : '#555',
@@ -128,7 +130,7 @@ export function SpotGachaPicker({ spotId, filterGachaIds, onSelect, selectedId, 
           value={query}
           onChange={e => setQuery(e.target.value)}
           placeholder="ガチャ名・IPで検索…"
-          style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: 13, color: '#333', minWidth: 0 }}
+          style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: fs(13), color: '#333', minWidth: 0 }}
         />
         {query && (
           <button onClick={() => setQuery('')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
@@ -144,23 +146,23 @@ export function SpotGachaPicker({ spotId, filterGachaIds, onSelect, selectedId, 
             display: 'flex', alignItems: 'center', gap: 6,
             padding: '6px 16px', borderRadius: 9999, border: 'none', cursor: 'pointer',
             background: isFiltered ? '#F2B800' : '#F5F3ED', color: isFiltered ? 'white' : '#888',
-            fontSize: 13, fontWeight: 700,
+            fontSize: fs(13), fontWeight: 700,
           }}>
           <SlidersHorizontal size={13} />
           {isFiltered ? `フィルター中 (${activeFilterIds.length})` : 'フィルター'}
         </button>
         {isFiltered && (
           <button onClick={() => setActiveFilterIds([])}
-            style={{ fontSize: 12, padding: '6px 12px', borderRadius: 9999, border: 'none', cursor: 'pointer', background: '#FFF0C0', color: '#B8860B', fontWeight: 700 }}>
+            style={{ fontSize: fs(12), padding: '6px 12px', borderRadius: 9999, border: 'none', cursor: 'pointer', background: '#FFF0C0', color: '#B8860B', fontWeight: 700 }}>
             解除
           </button>
         )}
-        <span style={{ fontSize: 11, color: '#aaa', marginLeft: 'auto' }}>{totalCount}件</span>
+        <span style={{ fontSize: fs(11), color: '#aaa', marginLeft: 'auto' }}>{totalCount}件</span>
       </div>
 
       {/* 一覧（セクション → IPグループ → ピル） */}
       {totalCount === 0 ? (
-        <p style={{ color: '#aaa', fontSize: 13, textAlign: 'center', padding: '20px 0' }}>
+        <p style={{ color: '#aaa', fontSize: fs(13), textAlign: 'center', padding: '20px 0' }}>
           該当するガチャがありません
         </p>
       ) : (
@@ -170,22 +172,22 @@ export function SpotGachaPicker({ spotId, filterGachaIds, onSelect, selectedId, 
               {sec.label && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                   <span style={{
-                    fontSize: 12, fontWeight: 800, padding: '3px 12px', borderRadius: 99,
+                    fontSize: fs(12), fontWeight: 800, padding: '3px 12px', borderRadius: 99,
                     color: sec.label === '検索中' ? '#0891b2' : '#B8860B',
                     background: sec.label === '検索中' ? '#E0F2FE' : '#FFF0C0',
                   }}>
                     {sec.label}
                   </span>
-                  <span style={{ fontSize: 11, color: '#bbb' }}>{sec.items.length}件</span>
+                  <span style={{ fontSize: fs(11), color: '#bbb' }}>{sec.items.length}件</span>
                 </div>
               )}
               {sec.items.length === 0 ? (
-                <p style={{ color: '#ccc', fontSize: 12, padding: '2px 0 4px' }}>該当なし</p>
+                <p style={{ color: '#ccc', fontSize: fs(12), padding: '2px 0 4px' }}>該当なし</p>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {groupByIp(sec.items).map(([ip, items]) => (
                     <div key={ip}>
-                      <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 800, color: '#888', letterSpacing: 0.3 }}>
+                      <p style={{ margin: '0 0 6px', fontSize: fs(11), fontWeight: 800, color: '#888', letterSpacing: 0.3 }}>
                         {ip} <span style={{ color: '#ccc', fontWeight: 600 }}>({items.length})</span>
                       </p>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
