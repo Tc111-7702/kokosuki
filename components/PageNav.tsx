@@ -1,13 +1,13 @@
 'use client';
 
-import { Home, Map, User, Plus, Bell } from 'lucide-react';
+import { Home, MapPin, User, Plus, Bell } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useCurrentUserId } from '@/lib/useCurrentUserId';
 import { useUnreadNotificationCount } from '@/lib/useUnreadNotificationCount';
 
 const NAV_ITEMS = [
   { path: '/home',          label: 'ホーム',     icon: <Home size={20} /> },
-  { path: '/map',           label: 'さがす',     icon: <Map  size={20} /> },
+  { path: '/map',           label: 'さがす',     icon: <MapPin size={20} /> },
   { path: '/post',          label: '投稿する',   icon: null },
   { path: '/notifications', label: '通知',       icon: <Bell size={20} /> },
   { path: '/mypage',        label: 'マイページ', icon: <User size={20} /> },
