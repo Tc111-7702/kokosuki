@@ -62,7 +62,7 @@ function FavoriteCard({
           )}
           {/* 発売状況タグ（ホームと同じデザイン・右上） */}
           <div className="absolute top-1.5 right-1.5">
-            <GachaStatusBadge status={gacha.status} releaseDate={gacha.releaseDate} isMobile />
+            <GachaStatusBadge status={gacha.status} isMobile />
           </div>
         </div>
         {/* テキスト */}

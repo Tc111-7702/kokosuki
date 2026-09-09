@@ -14,42 +14,33 @@ export type GachaItem = {
   releaseDate: string | null;
 };
 
-const STATUS_LABEL: Record<string, string> = { on_sale: '発売中', coming_soon: 'もうすぐ', ended: '終了', new: 'NEW' };
-const STATUS_STYLE: Record<string, { bg: string; text: string }> = {
-  on_sale:     { bg: '#E8F5E9', text: '#2E7D32' },
-  coming_soon: { bg: '#FFF8E1', text: '#F57F17' },
-  ended:       { bg: '#EEEEEE', text: '#757575' },
-  new:         { bg: '#FFF8E1', text: '#F2B800' },
-};
+// 発売状況ラベル（status 由来。発売中 / 発売予定 / 終了 のみ）
+const STATUS_LABEL: Record<string, string> = { on_sale: '発売中', coming_soon: '発売予定', ended: '終了' };
 
-// ホームのガチャカードと同じ発売状況タグ（ホーム・おきにいり共通で使う）
+// ホームのガチャカードと同じ発売状況タグ（ホーム・おきにいり共通で使う）。
+// タグは status から決まる「発売中 / 発売予定 / 終了」のみ。日付表示はしない。
+// badgeLabel を渡した場合のみ、その固定ラベル（例: 今週発売）を表示する。
 export function GachaStatusBadge({
   status,
-  releaseDate,
   badgeLabel,
   isMobile = true,
 }: {
   status: string;
-  releaseDate?: string | null;
   badgeLabel?: string;
   isMobile?: boolean;
 }) {
-  const st = STATUS_STYLE[status] ?? STATUS_STYLE.ended;
-  const isBlue = !!badgeLabel || status === 'coming_soon';
-  const label = badgeLabel
-    ? badgeLabel
-    : releaseDate
-    ? `${new Date(releaseDate).getMonth() + 1}/${new Date(releaseDate).getDate()}発売予定`
-    : status === 'coming_soon'
-    ? '発売予定'
-    : STATUS_LABEL[status] ?? status;
+  const label = badgeLabel ?? STATUS_LABEL[status] ?? '発売中';
+  const tone =
+    label === '終了'   ? { bg: '#EEEEEE', text: '#757575' }
+    : label === '発売中' ? { bg: '#E8F5E9', text: '#2E7D32' }
+    : { bg: '#EEF2FF', text: '#4F46E5' }; // 発売予定・今週発売 など
   return (
     <span
       style={{
         padding: isMobile ? '3px 7px' : '4px 10px', borderRadius: 99,
         fontSize: isMobile ? 10 : 11, fontWeight: 800, whiteSpace: 'nowrap', display: 'inline-block',
-        background: isBlue ? '#EEF2FF' : st.bg,
-        color: isBlue ? '#4F46E5' : st.text,
+        background: tone.bg,
+        color: tone.text,
       }}
     >
       {label}
@@ -95,7 +86,7 @@ export function GachaCard({ gacha, rank, showRank, isMobile, narrow = false, onC
             )}
             {/* 発売状況タグ（ホームと同じデザイン・右上） */}
             <div style={{ position: 'absolute', top: 8, right: 8 }}>
-              <GachaStatusBadge status={gacha.status} releaseDate={gacha.releaseDate} badgeLabel={badgeLabel} isMobile={isMobile} />
+              <GachaStatusBadge status={gacha.status} badgeLabel={badgeLabel} isMobile={isMobile} />
             </div>
           </div>
           <div className="px-2 py-1.5">
@@ -151,7 +142,7 @@ export function GachaCard({ gacha, rank, showRank, isMobile, narrow = false, onC
           </div>
         )}
         <div style={{ position: 'absolute', top: 10, right: 10 }}>
-          <GachaStatusBadge status={gacha.status} releaseDate={gacha.releaseDate} badgeLabel={badgeLabel} isMobile={isMobile} />
+          <GachaStatusBadge status={gacha.status} badgeLabel={badgeLabel} isMobile={isMobile} />
         </div>
       </div>
       <div style={{ padding: isMobile ? '8px 10px 10px' : '10px 14px 12px' }}>
