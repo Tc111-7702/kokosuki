@@ -228,11 +228,14 @@ export async function getGachaFilters() {
     },
     orderBy: [{ ip: { name: 'asc' } }, { seriesName: 'asc' }],
   });
-  const items = rows.map(row => flatIp({
-    id: row.id,
-    seriesName: row.seriesName,
-    imageUrl: row.imageUrl,
-    ip: row.ip,
+  const items = rows.map(row => ({
+    ...flatIp({
+      id: row.id,
+      seriesName: row.seriesName,
+      imageUrl: row.imageUrl,
+      ip: row.ip,
+    }),
+    likeCount: row._count.gachaLikes,
   }));
   // 総いいね数が多い順に IP を並べる（未 link のガチャは IP 一覧に出さない）
   const likeMap = new Map<string, number>();

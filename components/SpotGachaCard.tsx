@@ -9,6 +9,7 @@ export interface SpotGachaInfo {
   seriesName: string;
   ipName: string;
   imageUrl: string | null;
+  likeCount?: number;
 }
 
 // ─── ユーティリティ ───────────────────────────────────────────────────────────

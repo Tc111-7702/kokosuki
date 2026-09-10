@@ -30,7 +30,10 @@ export function SpotGachaPicker({ spotId, filterGachaIds, onSelect, selectedId, 
 }) {
   const MOBILE_BREAKPOINT = 768;
   const isMobile = useIsMobile(MOBILE_BREAKPOINT);
-  const fs = (base: number) => largeText ? base + 2 : base;
+  const fs = (base: number) => {
+    if (isMobile) return largeText ? base : base - 1;
+    return largeText ? base + 2 : base;
+  };
   const [allGachas,       setAllGachas]       = useState<GachaItem[]>([]);
   const [loading,         setLoading]         = useState(true);
   const [resolving,       setResolving]       = useState<string | null>(null);
@@ -97,8 +100,10 @@ export function SpotGachaPicker({ spotId, filterGachaIds, onSelect, selectedId, 
     return (
       <button key={g.id} onClick={() => handleSelect(g)} disabled={!!resolving}
         style={{
-          padding: isMobile ? '6px 8px' : '6px 13px', borderRadius: 99, fontSize: fs(12), fontWeight: 600,
-          border: active ? '2px solid #F2B800' : '1.5px solid #EDE9D8',
+          padding: isMobile ? '4px 7px' : '6px 13px', borderRadius: 99, fontSize: fs(12), fontWeight: 600,
+          border: active ? `${isMobile ? 1.5 : 2}px solid #F2B800` : '1.5px solid #EDE9D8',
+          lineHeight: isMobile ? 1.3 : 1.4,
+          textAlign: 'left',
           background: active ? '#FFF8D0' : 'white',
           color: active ? '#8A6800' : '#555',
           cursor: resolving ? 'wait' : 'pointer', transition: 'all 0.12s',
@@ -123,14 +128,14 @@ export function SpotGachaPicker({ spotId, filterGachaIds, onSelect, selectedId, 
   return (
     <div>
       {/* 検索バー */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: isMobile ? '6px 12px' : '8px 12px', background: '#F5F3ED', borderRadius: 10, marginBottom: 8 }}>
-        <Search size={14} color="#aaa" />
+      <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 8, padding: isMobile ? '5px 10px' : '8px 12px', background: '#F5F3ED', borderRadius: 10, marginBottom: isMobile ? 6 : 8 }}>
+        <Search size={isMobile ? 12 : 14} color="#aaa" />
         <input
           type="text"
           value={query}
           onChange={e => setQuery(e.target.value)}
           placeholder="ガチャ名・IPで検索…"
-          style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: isMobile ? 12 : fs(13), color: '#333', minWidth: 0 }}
+          style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: isMobile ? 11 : fs(13), color: '#333', minWidth: 0 }}
         />
         {query && (
           <button onClick={() => setQuery('')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
@@ -140,20 +145,20 @@ export function SpotGachaPicker({ spotId, filterGachaIds, onSelect, selectedId, 
       </div>
 
       {/* フィルター行（マップと同じUI） */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 8, marginBottom: isMobile ? 8 : 12 }}>
         <button onClick={() => setFilterOpen(true)}
           style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            padding: '6px 16px', borderRadius: 9999, border: 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: isMobile ? 4 : 6,
+            padding: isMobile ? '4px 10px' : '6px 16px', borderRadius: 9999, border: 'none', cursor: 'pointer',
             background: isFiltered ? '#F2B800' : '#F5F3ED', color: isFiltered ? 'white' : '#888',
             fontSize: fs(13), fontWeight: 700,
           }}>
-          <SlidersHorizontal size={13} />
+          <SlidersHorizontal size={isMobile ? 11 : 13} />
           {isFiltered ? `フィルター中 (${activeFilterIds.length})` : 'フィルター'}
         </button>
         {isFiltered && (
           <button onClick={() => setActiveFilterIds([])}
-            style={{ fontSize: fs(12), padding: '6px 12px', borderRadius: 9999, border: 'none', cursor: 'pointer', background: '#FFF0C0', color: '#B8860B', fontWeight: 700 }}>
+            style={{ fontSize: fs(12), padding: isMobile ? '4px 8px' : '6px 12px', borderRadius: 9999, border: 'none', cursor: 'pointer', background: '#FFF0C0', color: '#B8860B', fontWeight: 700 }}>
             解除
           </button>
         )}
@@ -166,13 +171,13 @@ export function SpotGachaPicker({ spotId, filterGachaIds, onSelect, selectedId, 
           該当するガチャがありません
         </p>
       ) : (
-        <div style={{ maxHeight: 320, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16, paddingRight: 2 }}>
+        <div style={{ maxHeight: isMobile ? 300 : 320, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: isMobile ? 10 : 16, paddingRight: 2 }}>
           {sections.map((sec) => (
             <div key={sec.label ?? 'all'}>
               {sec.label && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 8, marginBottom: isMobile ? 6 : 10 }}>
                   <span style={{
-                    fontSize: fs(12), fontWeight: 800, padding: '3px 12px', borderRadius: 99,
+                    fontSize: fs(12), fontWeight: 800, padding: isMobile ? '2px 8px' : '3px 12px', borderRadius: 99,
                     color: sec.label === '検索中' ? '#0891b2' : '#B8860B',
                     background: sec.label === '検索中' ? '#E0F2FE' : '#FFF0C0',
                   }}>
@@ -184,13 +189,13 @@ export function SpotGachaPicker({ spotId, filterGachaIds, onSelect, selectedId, 
               {sec.items.length === 0 ? (
                 <p style={{ color: '#ccc', fontSize: fs(12), padding: '2px 0 4px' }}>該当なし</p>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 8 : 12 }}>
                   {groupByIp(sec.items).map(([ip, items]) => (
                     <div key={ip}>
-                      <p style={{ margin: '0 0 6px', fontSize: fs(11), fontWeight: 800, color: '#888', letterSpacing: 0.3 }}>
+                      <p style={{ margin: isMobile ? '0 0 4px' : '0 0 6px', fontSize: fs(11), fontWeight: 800, color: '#888', letterSpacing: 0.3 }}>
                         {ip} <span style={{ color: '#ccc', fontWeight: 600 }}>({items.length})</span>
                       </p>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: isMobile ? 5 : 7 }}>
                         {items.map(renderPill)}
                       </div>
                     </div>

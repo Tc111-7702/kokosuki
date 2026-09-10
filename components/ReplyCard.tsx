@@ -10,16 +10,21 @@ export function ReplyCard({
   reply,
   postId,
   postType = 'post',
+  spotId,
   isOwn,
   onDelete,
   mentionNames,
+  compact = false,
 }: {
   reply: Reply;
   postId: string;
-  postType?: 'post' | 'stock';
+  postType?: 'post' | 'stock' | 'review';
+  spotId?: string;
   isOwn: boolean;
   onDelete: (id: string) => void;
   mentionNames?: string[];
+  /** 口コミ返信など: 本文サイズに合わせた小さめ表示 */
+  compact?: boolean;
 }) {
   const [deleting, setDeleting] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
@@ -41,8 +46,10 @@ export function ReplyCard({
     setShowMenu(false);
     setDeleting(true);
     try {
-      const base = postType === 'stock' ? '/api/stock-posts/' : '/api/posts/';
-      const res = await fetch(base + postId + '/replies/' + reply.id, { method: 'DELETE' });
+      const url = postType === 'review'
+        ? `/api/spots/${spotId}/reviews/${postId}/replies/${reply.id}`
+        : `${postType === 'stock' ? '/api/stock-posts/' : '/api/posts/'}${postId}/replies/${reply.id}`;
+      const res = await fetch(url, { method: 'DELETE' });
       if (res.ok) onDelete(reply.id);
     } finally {
       setDeleting(false);
@@ -50,12 +57,12 @@ export function ReplyCard({
   };
 
   return (
-    <div className="flex gap-3 px-4 py-3 border-b border-gray-100 last:border-0">
-      <Avatar user={reply.user} size={36} />
+    <div className={`flex border-b border-gray-100 last:border-0 ${compact ? 'gap-2 px-3 py-2' : 'gap-3 px-4 py-3'}`}>
+      <Avatar user={reply.user} size={compact ? 28 : 36} />
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1 min-w-0">
-          <span className="text-sm font-semibold text-gray-900 truncate">{reply.user.name}</span>
-          <span className="text-xs text-gray-400 flex-shrink-0">{timeAgo(reply.createdAt)}</span>
+        <div className={`flex items-center min-w-0 ${compact ? 'gap-1.5 mb-0.5' : 'gap-2 mb-1'}`}>
+          <span className={`font-bold truncate ${compact ? 'text-[12px] text-[#333]' : 'text-sm font-semibold text-gray-900'}`}>{reply.user.name}</span>
+          <span className={`text-gray-400 flex-shrink-0 ${compact ? 'text-[11px]' : 'text-xs'}`}>{timeAgo(reply.createdAt)}</span>
           <div className="ml-auto flex items-center gap-0.5 flex-shrink-0" ref={menuRef}>
             {isOwn && showMenu && (
               <button
@@ -73,11 +80,11 @@ export function ReplyCard({
               className="p-0.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors"
               aria-label="返信メニュー"
             >
-              <MoreHorizontal size={16} />
+              <MoreHorizontal size={compact ? 14 : 16} />
             </button>
           </div>
         </div>
-        <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] max-w-full">
+        <p className={`whitespace-pre-wrap break-words [overflow-wrap:anywhere] max-w-full ${compact ? 'text-[13px] leading-[1.7] text-[#333]' : 'text-sm text-gray-800 leading-relaxed'}`}>
           {renderWithMentions(reply.text, mentionNames)}
         </p>
       </div>
