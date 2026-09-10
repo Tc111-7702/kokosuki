@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { MessageCircle, Pencil, Trash2, Send, X, ChevronDown } from 'lucide-react';
-import { Avatar, avatarColor, timeAgo } from '@/components/ui/Avatar';
-import { renderWithMentions } from '@/components/PostCard';
+import { MessageCircle, MoreHorizontal, Pencil, X, ChevronDown } from 'lucide-react';
+import { Avatar, timeAgo } from '@/components/ui/Avatar';
+import { ReplyComposerField } from '@/components/ReplyComposerField';
+import { ReviewRepliesPanel } from '@/components/ReviewRepliesPanel';
 
 interface ReviewReply {
   id: string;
@@ -37,11 +38,22 @@ export function StoreReviews({ spotId, autoOpenReviewId }: { spotId: string; aut
   const [submitting,   setSubmitting]   = useState(false);
   const [editingId,    setEditingId]    = useState<string | null>(null);
   const [editText,     setEditText]     = useState('');
-  const [replyOpen,    setReplyOpen]    = useState<Record<string, boolean>>({});
-  const [replyTexts,   setReplyTexts]   = useState<Record<string, string>>({});
-  const [replySubmitting, setReplySubmitting] = useState<Record<string, boolean>>({});
-  const [mention, setMention] = useState<{ reviewId: string; query: string } | null>(null);
+  const [replyOpen, setReplyOpen] = useState<Record<string, boolean>>({});
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const newTextRef = useRef<HTMLTextAreaElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpenId) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpenId(null);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [menuOpenId]);
 
   useEffect(() => {
     fetch('/api/me').then(r => r.json())
@@ -106,14 +118,20 @@ export function StoreReviews({ spotId, autoOpenReviewId }: { spotId: string; aut
     setSubmitting(false);
   };
 
-  const deleteReview = async (reviewId: string) => {
-    if (!confirm('この口コミを削除しますか？')) return;
-    // 成功を確認してからUIを更新（失敗を握りつぶすと「消えたように見えて実際は残る」ため）
-    const res = await fetch(`/api/spots/${spotId}/reviews/${reviewId}`, { method: 'DELETE' }).catch(() => null);
-    if (!res || !res.ok) { alert('削除に失敗しました。時間をおいて再度お試しください。'); return; }
-    setReviews(prev => prev.filter(r => r.id !== reviewId));
-    setTotal(t => t - 1);
-    setShown(s => s - 1);
+  const deleteReview = async (reviewId: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setMenuOpenId(null);
+    if (!window.confirm('この口コミを削除しますか？')) return;
+    setDeletingId(reviewId);
+    try {
+      const res = await fetch(`/api/spots/${spotId}/reviews/${reviewId}`, { method: 'DELETE' }).catch(() => null);
+      if (!res || !res.ok) { alert('削除に失敗しました。時間をおいて再度お試しください。'); return; }
+      setReviews(prev => prev.filter(r => r.id !== reviewId));
+      setTotal(t => t - 1);
+      setShown(s => s - 1);
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   const startEdit = (r: Review) => { setEditingId(r.id); setEditText(r.text); };
@@ -132,59 +150,6 @@ export function StoreReviews({ spotId, autoOpenReviewId }: { spotId: string; aut
     }
   };
 
-  const submitReply = async (reviewId: string) => {
-    const text = (replyTexts[reviewId] ?? '').trim();
-    if (!text || replySubmitting[reviewId]) return;
-    setReplySubmitting(prev => ({ ...prev, [reviewId]: true }));
-    try {
-      const d = await fetch(`/api/spots/${spotId}/reviews/${reviewId}/replies`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
-      }).then(r => r.json());
-      if (d.reply) {
-        setReviews(prev => prev.map(r =>
-          r.id === reviewId ? { ...r, replies: [...r.replies, d.reply] } : r
-        ));
-        setReplyTexts(prev => ({ ...prev, [reviewId]: '' }));
-        // 送信後も返信欄は開いたままにする（連続返信・投稿確認のため）
-      }
-    } catch {}
-    setReplySubmitting(prev => ({ ...prev, [reviewId]: false }));
-  };
-
-  const deleteReply = async (reviewId: string, replyId: string) => {
-    const res = await fetch(`/api/spots/${spotId}/reviews/${reviewId}/replies/${replyId}`, { method: 'DELETE' }).catch(() => null);
-    if (!res || !res.ok) { alert('削除に失敗しました。時間をおいて再度お試しください。'); return; }
-    setReviews(prev => prev.map(r =>
-      r.id === reviewId ? { ...r, replies: r.replies.filter(rp => rp.id !== replyId) } : r
-    ));
-  };
-
-  // メンション候補（その口コミの投稿者＋返信者。自分は除外・クエリで絞り込み）
-  const mentionCandidatesFor = (review: Review) => {
-    if (mention?.reviewId !== review.id) return [];
-    const q = mention.query.toLowerCase();
-    const seen = new Set<string>();
-    const out: ReviewReply['user'][] = [];
-    for (const u of [review.user, ...review.replies.map(rp => rp.user)]) {
-      if (u.id === currentUid || seen.has(u.id)) continue;
-      seen.add(u.id);
-      if (q === '' || u.name.toLowerCase().includes(q) || (u.profile?.handle?.toLowerCase().includes(q) ?? false)) out.push(u);
-    }
-    return out.slice(0, 6);
-  };
-
-  // 入力欄の末尾の「@クエリ」を「@handle 」に置換して挿入（handle が無ければ名前）
-  const insertReplyMention = (reviewId: string, token: string) => {
-    setReplyTexts(prev => {
-      const cur = prev[reviewId] ?? '';
-      const replaced = cur.replace(/(^|\s)@[^@\s]*$/, (m) => `${m.startsWith('@') ? '' : m[0]}@${token} `);
-      return { ...prev, [reviewId]: replaced };
-    });
-    setMention(null);
-  };
-
   const remaining = total - shown;
 
   return (
@@ -199,40 +164,21 @@ export function StoreReviews({ spotId, autoOpenReviewId }: { spotId: string; aut
         )}
       </div>
 
-      {/* 投稿入力エリア */}
-      <div style={{ background: 'white', borderRadius: 14, padding: '10px 12px', marginBottom: 12, border: '1.5px solid #E0E0E0', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-        <textarea
-          ref={newTextRef}
-          value={newText}
+      {/* 投稿入力エリア（マップ SpotDetailSheet と同仕様） */}
+      <div style={{ marginBottom: 12 }}>
+        <ReplyComposerField
+          text={newText}
+          textareaRef={newTextRef}
           onChange={e => setNewText(e.target.value)}
+          onSelect={() => {}}
           onKeyDown={e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); submitReview(); } }}
+          renderMentionText={t => t}
+          onSubmit={submitReview}
+          submitting={submitting}
           placeholder="この店舗の口コミ・質問を書く..."
-          rows={2}
-          style={{
-            width: '100%', resize: 'none', border: 'none', background: 'transparent',
-            fontSize: 13, outline: 'none', color: '#222', lineHeight: 1.6,
-            fontFamily: 'inherit', boxSizing: 'border-box',
-          }}
+          variant="inline"
+          plainText
         />
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
-          <button
-            onClick={submitReview}
-            disabled={!newText.trim() || submitting}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 4,
-              padding: '5px 14px', borderRadius: 20, border: 'none', cursor: 'pointer',
-              background: newText.trim() ? '#F2B800' : '#E8E8E8',
-              color: newText.trim() ? 'white' : '#BBB',
-              fontSize: 12, fontWeight: 700, transition: 'background 0.15s',
-            }}
-          >
-            {submitting
-              ? <div style={{ width: 12, height: 12, border: '2px solid #fff', borderTopColor: 'transparent', borderRadius: '50%' }} />
-              : <Send size={12} />
-            }
-            投稿
-          </button>
-        </div>
       </div>
 
       {/* 口コミリスト */}
@@ -246,23 +192,54 @@ export function StoreReviews({ spotId, autoOpenReviewId }: { spotId: string; aut
             <div key={review.id} id={`review-${review.id}`} style={{ background: 'white', borderRadius: 14, padding: '12px 14px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
 
               {/* 投稿者行 */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                <Avatar user={review.user} size={28} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: '#333' }}>{review.user.name}</span>
-                  <span style={{ fontSize: 11, color: '#AAA', marginLeft: 6 }}>{timeAgo(review.createdAt)}</span>
-                  {review.updatedAt !== review.createdAt && (
-                    <span style={{ fontSize: 10, color: '#CCC', marginLeft: 4 }}>（編集済）</span>
+              <div style={{ position: 'relative', marginBottom: 8 }}>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 8, minWidth: 0,
+                  paddingRight: review.userId === currentUid && editingId !== review.id
+                    ? (menuOpenId === review.id ? 72 : 28)
+                    : 0,
+                }}>
+                  <Avatar user={review.user} size={28} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#333' }}>{review.user.name}</span>
+                    <span style={{ fontSize: 11, color: '#AAA', marginLeft: 6 }}>{timeAgo(review.createdAt)}</span>
+                    {review.updatedAt !== review.createdAt && (
+                      <span style={{ fontSize: 10, color: '#CCC', marginLeft: 4 }}>（編集済）</span>
+                    )}
+                  </div>
+                  {review.userId === currentUid && editingId !== review.id && (
+                    <button
+                      type="button"
+                      onClick={() => startEdit(review)}
+                      style={{ padding: 4, background: 'none', border: 'none', cursor: 'pointer', borderRadius: 6, color: '#AAA', flexShrink: 0 }}
+                    >
+                      <Pencil size={13} />
+                    </button>
                   )}
                 </div>
                 {review.userId === currentUid && editingId !== review.id && (
-                  <div style={{ display: 'flex', gap: 4 }}>
-                    <button onClick={() => startEdit(review)} style={{ padding: 4, background: 'none', border: 'none', cursor: 'pointer', borderRadius: 6, color: '#AAA' }}>
-                      <Pencil size={13} />
+                  <div
+                    ref={menuOpenId === review.id ? menuRef : undefined}
+                    className="absolute top-0 right-0 z-20 flex items-center gap-0.5 flex-row-reverse"
+                  >
+                    <button
+                      type="button"
+                      onClick={e => { e.stopPropagation(); setMenuOpenId(id => id === review.id ? null : review.id); }}
+                      className="p-0.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors"
+                      aria-label="口コミメニュー"
+                    >
+                      <MoreHorizontal size={16} />
                     </button>
-                    <button onClick={() => deleteReview(review.id)} style={{ padding: 4, background: 'none', border: 'none', cursor: 'pointer', borderRadius: 6, color: '#F87171' }}>
-                      <Trash2 size={13} />
-                    </button>
+                    {menuOpenId === review.id && (
+                      <button
+                        type="button"
+                        onClick={e => deleteReview(review.id, e)}
+                        disabled={deletingId === review.id}
+                        className="text-[10px] leading-none px-2 py-1 rounded-full bg-gray-200 text-red-500 font-medium hover:bg-gray-100 transition-colors whitespace-nowrap shadow-sm"
+                      >
+                        {deletingId === review.id ? '削除中…' : '削除'}
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -307,73 +284,24 @@ export function StoreReviews({ spotId, autoOpenReviewId }: { spotId: string; aut
                 </button>
               </div>
 
-              {/* 返信リスト + 入力: ボタンを押したときだけ開く */}
               {replyOpen[review.id] && (
-                <div style={{ marginTop: 10, borderLeft: '2px solid #F0F0F0', paddingLeft: 12 }}>
-                  {review.replies.map(rp => (
-                    <div key={rp.id} style={{ display: 'flex', gap: 6, alignItems: 'flex-start', marginBottom: 8 }}>
-                      <Avatar user={rp.user} size={22} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ fontSize: 11, fontWeight: 700, color: '#555' }}>{rp.user.name}</span>
-                          <span style={{ fontSize: 10, color: '#BBB' }}>{timeAgo(rp.createdAt)}</span>
-                          {rp.userId === currentUid && (
-                            <button onClick={() => deleteReply(review.id, rp.id)} style={{ marginLeft: 'auto', padding: 2, background: 'none', border: 'none', cursor: 'pointer', color: '#F87171' }}>
-                              <Trash2 size={11} />
-                            </button>
-                          )}
-                        </div>
-                        <p style={{ margin: '2px 0 0', fontSize: 12, color: '#444', lineHeight: 1.5, wordBreak: 'break-word' }}>
-                          {renderWithMentions(rp.text, [review.user.name, ...review.replies.map(x => x.user.name)])}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                  <div style={{ position: 'relative', display: 'flex', gap: 6, alignItems: 'flex-end', marginTop: 6 }}>
-                    {(() => {
-                      const cands = mentionCandidatesFor(review);
-                      if (cands.length === 0) return null;
-                      return (
-                        <div style={{ position: 'absolute', bottom: '100%', left: 0, right: 40, marginBottom: 4, background: 'white', borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.14)', border: '1px solid #F0F0F0', overflow: 'hidden', zIndex: 20, maxHeight: 160, overflowY: 'auto' }}>
-                          {cands.map(u => (
-                            <button
-                              key={u.id}
-                              onMouseDown={e => { e.preventDefault(); insertReplyMention(review.id, u.profile?.handle ?? u.name); }}
-                              style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', padding: '8px 12px', border: 'none', background: 'none', cursor: 'pointer' }}
-                            >
-                              <Avatar user={u} size={22} />
-                              <span style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0 }}>
-                                <span style={{ fontSize: 12, fontWeight: 600, color: '#333' }}>{u.name}</span>
-                                {u.profile?.handle && <span style={{ fontSize: 11, color: '#AAA' }}>@{u.profile.handle}</span>}
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                      );
-                    })()}
-                    <input
-                      type="text"
-                      value={replyTexts[review.id] ?? ''}
-                      onChange={e => {
-                        const v = e.target.value;
-                        setReplyTexts(prev => ({ ...prev, [review.id]: v }));
-                        const m = /(^|\s)@([^@\s]*)$/.exec(v);
-                        setMention(m ? { reviewId: review.id, query: m[2] } : null);
-                      }}
-                      onBlur={() => setTimeout(() => setMention(null), 150)}
-                      onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitReply(review.id); } }}
-                      placeholder="返信を入力…（@でメンション）"
-                      style={{ flex: 1, border: '1px solid #E8E8E8', borderRadius: 20, padding: '6px 12px', fontSize: 12, outline: 'none' }}
-                    />
-                    <button
-                      onClick={() => submitReply(review.id)}
-                      disabled={!(replyTexts[review.id] ?? '').trim() || !!replySubmitting[review.id]}
-                      style={{ flexShrink: 0, width: 30, height: 30, borderRadius: '50%', border: 'none', cursor: 'pointer', background: (replyTexts[review.id] ?? '').trim() ? '#F2B800' : '#E8E8E8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                    >
-                      <Send size={13} color={(replyTexts[review.id] ?? '').trim() ? 'white' : '#BBB'} />
-                    </button>
-                  </div>
-                </div>
+                <ReviewRepliesPanel
+                  spotId={spotId}
+                  reviewId={review.id}
+                  reviewAuthor={review.user}
+                  replies={review.replies}
+                  currentUserId={currentUid}
+                  onReplyAdded={reply => {
+                    setReviews(prev => prev.map(r =>
+                      r.id === review.id ? { ...r, replies: [...r.replies, reply] } : r
+                    ));
+                  }}
+                  onReplyDeleted={replyId => {
+                    setReviews(prev => prev.map(r =>
+                      r.id === review.id ? { ...r, replies: r.replies.filter(rp => rp.id !== replyId) } : r
+                    ));
+                  }}
+                />
               )}
             </div>
           ))}

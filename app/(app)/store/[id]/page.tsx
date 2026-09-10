@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
-import { ArrowLeft, MapPin, Navigation, Phone, SlidersHorizontal, Search, X, Gamepad2 } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, MapPin, Navigation, Phone, SlidersHorizontal, Gamepad2 } from 'lucide-react';
+import { HomeSearchBar } from '@/components/HomeSearchBar';
 import FilterDrawer, { loadStoredGachaIds } from '@/components/FilterDrawer';
-import { SpotGachaCard, type SpotGachaInfo } from '@/components/SpotGachaCard';
+import { ipGradient, type SpotGachaInfo } from '@/components/SpotGachaCard';
+import { GachaCard, type GachaItem } from '@/components/ui/GachaCard';
 import NavPickerModal from '@/components/NavPickerModal';
 import { StockPostCard, type StockFeedPost } from '@/components/StockPostCard';
 import { PostCard } from '@/components/PostCard';
@@ -21,11 +23,6 @@ interface SpotData {
   phone?: string | null; googleMapsUrl: string | null;
   gachaIds: string[];
   stockMap: Record<string, string>;
-}
-
-interface Suggestion {
-  label: string;
-  type: 'gacha' | 'genre';
 }
 
 const STORAGE_KEY = 'mikke_filter_gacha_ids';
@@ -45,6 +42,21 @@ function fmtDistance(m: number): string {
   return m < 1000 ? `${m}m` : `${(m / 1000).toFixed(1)}km`;
 }
 
+function toGachaItem(g: SpotGachaInfo): GachaItem {
+  const [gradientFrom, gradientTo] = ipGradient(g.ipName);
+  return {
+    id: g.id,
+    seriesName: g.seriesName,
+    ipName: g.ipName,
+    imageUrl: g.imageUrl,
+    gradientFrom,
+    gradientTo,
+    likeCount: 0,
+    status: 'on_sale',
+    releaseDate: null,
+  };
+}
+
 // ─── StorePosts コンポーネント ─────────────────────────────────
 
 type OpenReply = { id: string; type: 'post' | 'stock' } | null;
@@ -53,10 +65,12 @@ function StorePosts({
   spotId,
   filterGachaIds,
   autoOpen,
+  flushX = false,
 }: {
   spotId: string;
   filterGachaIds: string[];
   autoOpen?: { id: string; type: 'post' | 'stock' } | null;
+  flushX?: boolean;
 }) {
   const [posts,         setPosts]         = useState<FeedItem[]>([]);
   const [loading,       setLoading]       = useState(true);
@@ -188,6 +202,7 @@ function StorePosts({
                   onDelete={handleDelete}
                   onReplyClick={() => toggleReply(p.id, type)}
                   replyOpen={isOpen}
+                  flushX={flushX}
                 />
               : <PostCard
                   post={p as FeedPost}
@@ -196,6 +211,7 @@ function StorePosts({
                   onDelete={handleDelete}
                   onReplyClick={() => toggleReply(p.id, type)}
                   replyOpen={isOpen}
+                  flushX={flushX}
                 />
             }
             {isOpen && (
@@ -205,6 +221,7 @@ function StorePosts({
                 currentUserId={currentUserId}
                 postOwner={p.user}
                 onCountChange={(delta) => updateReplyCount(p.id, delta)}
+                flushX={flushX}
               />
             )}
           </div>
@@ -242,13 +259,8 @@ export default function StorePage() {
   // 通知から来たとき（返信欄を開く指定あり）は「口コミ・投稿」タブを初期表示に
   const [activeTab,     setActiveTab]     = useState<'products' | 'posts'>(openReplyId || openReviewId ? 'posts' : 'products');
 
-  // コンテンツ検索
-  const [contentQuery,     setContentQuery]     = useState('');
-  const [searchGachaIds,   setSearchGachaIds]   = useState<string[]>([]);
-  const [activeSearchLabel,setActiveSearchLabel]= useState('');
-  const [suggestions,      setSuggestions]      = useState<Suggestion[]>([]);
-  const [inputFocused,     setInputFocused]     = useState(false);
-  const suggTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // コンテンツ検索（店舗内ガチャのみ）
+  const [searchGachaIds, setSearchGachaIds] = useState<string[] | null>(null);
 
   // データ取得
   useEffect(() => {
@@ -291,49 +303,45 @@ export default function StorePage() {
     );
   }, []);
 
-  // URL引き継ぎ: マップの検索を店舗ページに引き継ぐ
+  const gachaIpById = useMemo(() => {
+    const map = new Map<string, string>();
+    gachaMap.forEach((g, id) => map.set(id, g.ipName));
+    return map;
+  }, [gachaMap]);
+
+  const storeIpSuggestions = useMemo(() => {
+    if (!spot) return [];
+    const likeByIp = new Map<string, number>();
+    for (const id of spot.gachaIds) {
+      const g = gachaMap.get(id);
+      if (!g?.ipName) continue;
+      likeByIp.set(g.ipName, (likeByIp.get(g.ipName) ?? 0) + (g.likeCount ?? 0));
+    }
+    return [...likeByIp.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([label]) => ({ label, type: 'genre' as const, imageUrl: null }));
+  }, [spot, gachaMap]);
+
+  // URL引き継ぎ: マップの検索を店舗ページに引き継ぐ（店舗内のみ）
   useEffect(() => {
-    if (!contentSearchParam) return;
+    if (!contentSearchParam || !spot) return;
     fetch(`/api/gacha/search?q=${encodeURIComponent(contentSearchParam)}`)
       .then(r => r.json())
       .then(data => {
-        if (Array.isArray(data.gachaIds) && data.gachaIds.length > 0) {
-          setSearchGachaIds(data.gachaIds);
-          setActiveSearchLabel(contentSearchParam);
-        }
+        if (!Array.isArray(data.gachaIds)) return;
+        const storeSet = new Set(spot.gachaIds);
+        const ids = data.gachaIds.filter((id: string) => storeSet.has(id));
+        if (ids.length > 0) setSearchGachaIds(ids);
       })
       .catch(() => {});
-  }, [contentSearchParam]);
+  }, [contentSearchParam, spot]);
 
-  const fetchSuggestions = (v: string) => {
-    if (suggTimer.current) clearTimeout(suggTimer.current);
-    if (!v.trim()) { setSuggestions([]); return; }
-    suggTimer.current = setTimeout(async () => {
-      try {
-        const data = await fetch(`/api/gacha/search?q=${encodeURIComponent(v)}&suggest=1`).then(r => r.json());
-        setSuggestions(data.suggestions ?? []);
-      } catch {}
-    }, 150);
-  };
-
-  const runSearch = useCallback(async (q: string) => {
-    if (!q.trim()) return;
-    setSuggestions([]);
-    try {
-      const data = await fetch(`/api/gacha/search?q=${encodeURIComponent(q)}`).then(r => r.json());
-      if (Array.isArray(data.gachaIds) && data.gachaIds.length > 0) {
-        setSearchGachaIds(data.gachaIds);
-        setActiveSearchLabel(q.trim());
-        setContentQuery('');
-      }
-    } catch {}
+  const applySearchFilter = useCallback((ids: string[], _label: string) => {
+    setSearchGachaIds(ids);
   }, []);
 
   const clearSearch = useCallback(() => {
-    setSearchGachaIds([]);
-    setActiveSearchLabel('');
-    setContentQuery('');
-    setSuggestions([]);
+    setSearchGachaIds(null);
   }, []);
 
   const handleFilterApply = useCallback((ids: string[]) => {
@@ -358,14 +366,15 @@ export default function StorePage() {
   );
 
   // ─── 表示商品の計算 ──────────────────────────────────────────────────
-  const searchSet      = searchGachaIds.length > 0 ? new Set(searchGachaIds) : null;
-  const isSearchActive = searchSet != null;
+  const isSearchActive = searchGachaIds !== null;
+  const searchSet      = isSearchActive ? new Set(searchGachaIds) : null;
   const isFiltered     = filterGachaIds.length > 0;
 
   const visibleGachas = spot.gachaIds
     .filter(id => {
-      if (searchSet != null) return searchSet.has(id) || filterGachaIds.length === 0 || filterGachaIds.includes(id);
-      return filterGachaIds.length === 0 || filterGachaIds.includes(id);
+      const matchesFilter = filterGachaIds.length === 0 || filterGachaIds.includes(id);
+      if (searchSet != null) return searchSet.has(id) && matchesFilter;
+      return matchesFilter;
     })
     .map(id => gachaMap.get(id))
     .filter((g): g is SpotGachaInfo => g !== undefined)
@@ -379,66 +388,34 @@ export default function StorePage() {
     });
 
   const distance = currentPos ? haversineM(currentPos.lat, currentPos.lng, spot.lat, spot.lng) : null;
-  const showSuggestions = inputFocused && suggestions.length > 0;
 
-  // 検索ヒット件数（フィルターオフ時は visibleGachas = 全件なので別途カウント）
+  // 検索ヒット件数
   const searchMatchCount = searchSet != null
     ? visibleGachas.filter(g => searchSet.has(g.id)).length
     : 0;
 
   const productCountLabel = isSearchActive && !isFiltered
-    ? `取扱商品 ${visibleGachas.length}件 うち検索結果 ${searchMatchCount}件`
+    ? `ガチャ ${visibleGachas.length}件 うち検索結果 ${searchMatchCount}件`
     : isSearchActive && isFiltered
     ? `フィルター結果 ${visibleGachas.length}件 うち検索結果 ${searchMatchCount}件`
     : isFiltered
     ? `フィルター結果 ${visibleGachas.length}件`
-    : `取扱商品 ${visibleGachas.length}件`;
+    : `ガチャ ${visibleGachas.length}件`;
 
-  // ─── 商品一覧エリア ────────────────────────────────────────────────────
+  // ─── ガチャ一覧エリア ────────────────────────────────────────────────────
   const ProductsArea = (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* 商品検索バー */}
-      <div style={{ padding: '10px 16px 6px', position: 'relative', flexShrink: 0 }}>
-        {isSearchActive ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 99, background: '#E8F0FE', flex: 1, minWidth: 0 }}>
-              <Gamepad2 size={14} color="#0891b2" />
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#0891b2', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{activeSearchLabel}</span>
-            </div>
-            <button onClick={clearSearch} style={{ padding: 4, background: 'none', border: 'none', cursor: 'pointer' }}>
-              <X size={18} color="#888" />
-            </button>
-          </div>
-        ) : (
-          <div style={{ position: 'relative' }}>
-            <Search size={15} color="#aaa" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-            <input
-              type="text"
-              placeholder="コンテンツ検索..."
-              value={contentQuery}
-              onChange={e => { setContentQuery(e.target.value); fetchSuggestions(e.target.value); }}
-              onFocus={() => setInputFocused(true)}
-              onBlur={() => setTimeout(() => setInputFocused(false), 150)}
-              onKeyDown={e => { if (e.key === 'Enter') runSearch(contentQuery); }}
-              style={{ width: '100%', paddingLeft: 36, paddingRight: contentQuery ? 36 : 12, paddingTop: 8, paddingBottom: 8, borderRadius: 20, border: '1px solid #E8E8E8', background: '#F5F5F5', outline: 'none', fontSize: 13, boxSizing: 'border-box' }}
-            />
-            {contentQuery && (
-              <button onClick={() => { setContentQuery(''); setSuggestions([]); }} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
-                <X size={14} color="#aaa" />
-              </button>
-            )}
-          </div>
-        )}
-        {showSuggestions && (
-          <div style={{ position: 'absolute', left: 16, right: 16, top: '100%', zIndex: 10, borderRadius: 12, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', overflow: 'hidden', background: 'white', border: '1px solid #F0F0F0' }}>
-            {suggestions.map((s, i) => (
-              <button key={i} onMouseDown={() => runSearch(s.label)}
-                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', padding: '10px 16px', fontSize: 13, border: 'none', background: 'none', cursor: 'pointer' }}>
-                <Gamepad2 size={13} color="#aaa" />{s.label}
-              </button>
-            ))}
-          </div>
-        )}
+      <div style={{ position: 'relative', flexShrink: 0, zIndex: 20 }}>
+        <HomeSearchBar
+          placeholder="取り扱っているガチャをさがす"
+          focusSuggestions={storeIpSuggestions}
+          scopeGachaIds={spot.gachaIds}
+          gachaIpById={gachaIpById}
+          onApplyFilter={applySearchFilter}
+          filterActive={isSearchActive}
+          onDismissFilter={clearSearch}
+          wrapperClassName={isMobile ? 'pt-2.5 pb-1' : 'pb-0.5'}
+        />
       </div>
       <div style={{ padding: '0 16px 8px', flexShrink: 0 }}>
         <span style={{ fontSize: 12, fontWeight: 600, color: '#888' }}>{productCountLabel}</span>
@@ -451,9 +428,19 @@ export default function StorePage() {
             <p style={{ fontSize: 14, marginTop: 12 }}>該当するガチャがありません</p>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
-            {visibleGachas.map(g => (
-              <SpotGachaCard key={g.id} gacha={g} stockStatus={spot.stockMap[g.id]} highlight={searchSet != null && searchSet.has(g.id)} mode="grid" isMobile={isMobile} />
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(200px, 1fr))', gap: isMobile ? 12 : 16 }}>
+            {visibleGachas.map((g, rank) => (
+              <GachaCard
+                key={g.id}
+                gacha={toGachaItem(g)}
+                rank={rank}
+                showRank={false}
+                isMobile={isMobile}
+                variant="favorite"
+                fullWidth
+                stockStatus={spot.stockMap[g.id] ?? null}
+                highlight={searchSet != null && searchSet.has(g.id)}
+              />
             ))}
           </div>
         )}
@@ -479,7 +466,7 @@ export default function StorePage() {
           <span style={{ fontSize: 11, color: '#AAA', marginLeft: 6 }}>フィルター中 {filterGachaIds.length}件</span>
         )}
       </div>
-      <StorePosts spotId={spotId} filterGachaIds={filterGachaIds} autoOpen={autoOpenPost} />
+      <StorePosts spotId={spotId} filterGachaIds={filterGachaIds} autoOpen={autoOpenPost} flushX={isMobile} />
     </div>
   );
 
@@ -488,54 +475,96 @@ export default function StorePage() {
 
       {/* ─── ヘッダー ─── */}
       <div style={{ background: 'white', borderBottom: '1px solid #F0F0F0', flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isMobile ? '10px 16px 6px' : '14px 16px 8px' }}>
-          <button onClick={() => router.back()}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#0891b2', fontSize: 14, fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-            <ArrowLeft size={18} />戻る
-          </button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {isFiltered && (
-              <button onClick={handleClearFilter}
-                style={{ fontSize: 12, padding: '6px 12px', borderRadius: 20, border: 'none', cursor: 'pointer', background: '#FFF0C0', color: '#B8860B', fontWeight: 700 }}>
-                解除
+        {isMobile ? (
+          <>
+            {/* モバイル: 戻る + 解除・フィルター・電話・経路 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '8px 16px 0', flexWrap: 'nowrap' }}>
+              <button onClick={() => router.back()} aria-label="戻る"
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', padding: 2, marginRight: 2, flexShrink: 0 }}>
+                <ChevronLeft size={22} color="#888" strokeWidth={2} />
               </button>
-            )}
-            <button onClick={() => setFilterOpen(true)}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 20, border: 'none', cursor: 'pointer', background: isFiltered ? '#F2B800' : '#F5F3ED', color: isFiltered ? 'white' : '#555', fontSize: 13, fontWeight: 700 }}>
-              <SlidersHorizontal size={14} />
-              フィルター{isFiltered ? ` (${filterGachaIds.length})` : ''}
-            </button>
-          </div>
-        </div>
-
-        {/* 店舗名 + 住所/距離 + 電話・経路ボタン
-            PC: 店名の横に住所・距離を小さく横並び / モバイル: 店名の下に住所・距離を縦積み */}
-        <div style={{ display: 'flex', alignItems: isMobile ? 'flex-start' : 'center', justifyContent: 'space-between', gap: 10, padding: isMobile ? '0 16px 8px' : '0 16px 12px' }}>
-          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'baseline', gap: isMobile ? 3 : 10 }}>
-            <h1 style={{ fontSize: 17, fontWeight: 900, color: '#1a1a1a', margin: 0, lineHeight: 1.2, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{spot.name}</h1>
-            <div style={{ minWidth: 0, display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', gap: isMobile ? 1 : 8 }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, color: '#888', minWidth: 0, maxWidth: '100%' }}>
-                <MapPin size={11} color="#aaa" style={{ flexShrink: 0 }} />
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{spot.address}</span>
-              </span>
+              {isFiltered && (
+                <button onClick={handleClearFilter}
+                  style={{ flexShrink: 0, fontSize: 12, padding: '6px 10px', borderRadius: 20, border: 'none', cursor: 'pointer', background: '#FFF0C0', color: '#B8860B', fontWeight: 700 }}>
+                  解除
+                </button>
+              )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, marginLeft: 'auto', flexWrap: 'nowrap' }}>
+                <button onClick={() => setFilterOpen(true)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 20, border: 'none', cursor: 'pointer', background: isFiltered ? '#F2B800' : '#F5F3ED', color: isFiltered ? 'white' : '#555', fontSize: 12, fontWeight: 700 }}>
+                  <SlidersHorizontal size={13} />
+                  フィルター{isFiltered ? ` (${filterGachaIds.length})` : ''}
+                </button>
+                {spot.phone && (
+                  <a href={`tel:${spot.phone.replace(/[^\d+]/g, '')}`}
+                    aria-label="電話"
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '7px 12px', borderRadius: 12, background: '#E8F5E9', color: '#16a34a', textDecoration: 'none' }}>
+                    <Phone size={17} />
+                  </a>
+                )}
+                <button onClick={() => setNavOpen(true)} aria-label="経路"
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '7px 12px', borderRadius: 12, background: '#E8F4FD', color: '#0891b2', border: 'none', cursor: 'pointer' }}>
+                  <Navigation size={17} />
+                </button>
+              </div>
+            </div>
+            {/* モバイル: 店舗名 */}
+            <div style={{ padding: '4px 16px 8px', minWidth: 0 }}>
+              <h1 style={{ fontSize: 17, fontWeight: 900, color: '#1a1a1a', margin: 0, lineHeight: 1.2, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{spot.name}</h1>
               {distance !== null && (
-                <span style={{ fontSize: 11, fontWeight: 600, color: '#0891b2', whiteSpace: 'nowrap', flexShrink: 0 }}>現在地から {fmtDistance(distance)}</span>
+                <span style={{ display: 'block', marginTop: 3, fontSize: 11, fontWeight: 600, color: '#0891b2' }}>現在地から {fmtDistance(distance)}</span>
               )}
             </div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-            {spot.phone && (
-              <a href={`tel:${spot.phone.replace(/[^\d+]/g, '')}`}
-                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '7px 12px', borderRadius: 12, background: '#E8F5E9', color: '#16a34a', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
-                <Phone size={14} />電話
-              </a>
-            )}
-            <button onClick={() => setNavOpen(true)}
-              style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '7px 12px', borderRadius: 12, background: '#E8F4FD', color: '#0891b2', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>
-              <Navigation size={14} />経路
-            </button>
-          </div>
-        </div>
+          </>
+        ) : (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px 8px' }}>
+              <button onClick={() => router.back()}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#0891b2', fontSize: 14, fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                <ArrowLeft size={18} />戻る
+              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {isFiltered && (
+                  <button onClick={handleClearFilter}
+                    style={{ fontSize: 12, padding: '6px 12px', borderRadius: 20, border: 'none', cursor: 'pointer', background: '#FFF0C0', color: '#B8860B', fontWeight: 700 }}>
+                    解除
+                  </button>
+                )}
+                <button onClick={() => setFilterOpen(true)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 20, border: 'none', cursor: 'pointer', background: isFiltered ? '#F2B800' : '#F5F3ED', color: isFiltered ? 'white' : '#555', fontSize: 13, fontWeight: 700 }}>
+                  <SlidersHorizontal size={14} />
+                  フィルター{isFiltered ? ` (${filterGachaIds.length})` : ''}
+                </button>
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '0 16px 12px' }}>
+              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'row', alignItems: 'baseline', gap: 10 }}>
+                <h1 style={{ fontSize: 17, fontWeight: 900, color: '#1a1a1a', margin: 0, lineHeight: 1.2, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{spot.name}</h1>
+                <div style={{ minWidth: 0, display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, color: '#888', minWidth: 0, maxWidth: '100%' }}>
+                    <MapPin size={11} color="#aaa" style={{ flexShrink: 0 }} />
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{spot.address}</span>
+                  </span>
+                  {distance !== null && (
+                    <span style={{ fontSize: 11, fontWeight: 600, color: '#0891b2', whiteSpace: 'nowrap', flexShrink: 0 }}>現在地から {fmtDistance(distance)}</span>
+                  )}
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                {spot.phone && (
+                  <a href={`tel:${spot.phone.replace(/[^\d+]/g, '')}`}
+                    style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '7px 12px', borderRadius: 12, background: '#E8F5E9', color: '#16a34a', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+                    <Phone size={14} />電話
+                  </a>
+                )}
+                <button onClick={() => setNavOpen(true)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '7px 12px', borderRadius: 12, background: '#E8F4FD', color: '#0891b2', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>
+                  <Navigation size={14} />経路
+                </button>
+              </div>
+            </div>
+          </>
+        )}
 
         {/* モバイル: タブ切り替え */}
         {isMobile && (
@@ -543,7 +572,7 @@ export default function StorePage() {
             {(['products', 'posts'] as const).map(tab => (
               <button key={tab} onClick={() => setActiveTab(tab)}
                 style={{ flex: 1, padding: '10px 0', fontSize: 13, fontWeight: 700, border: 'none', cursor: 'pointer', background: 'none', borderBottom: activeTab === tab ? '2px solid #F2B800' : '2px solid transparent', color: activeTab === tab ? '#F2B800' : '#888' }}>
-                {tab === 'products' ? '商品一覧' : '口コミ / 投稿'}
+                {tab === 'products' ? 'ガチャ一覧' : '口コミ / 投稿'}
               </button>
             ))}
           </div>
@@ -559,7 +588,7 @@ export default function StorePage() {
       ) : (
         // デスクトップ: 左右2列
         <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-          {/* 左: 商品一覧 */}
+          {/* 左: ガチャ一覧 */}
           <div style={{ flex: '0 0 55%', borderRight: '1px solid #F0F0F0', overflow: 'hidden' }}>
             {ProductsArea}
           </div>

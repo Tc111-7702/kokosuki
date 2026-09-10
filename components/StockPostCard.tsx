@@ -68,6 +68,7 @@ export function StockPostCard({
   onDelete,
   onReplyClick,
   replyOpen,
+  flushX = false,
 }: {
   post: StockFeedPost;
   interactive?: boolean;
@@ -76,6 +77,7 @@ export function StockPostCard({
   onDelete?: (id: string) => void;
   onReplyClick?: () => void;
   replyOpen?: boolean;
+  flushX?: boolean;
 }) {
   const router = useRouter();
   // いいね・返信数はインタラクションストアで一元管理（一覧↔詳細で同期）。
@@ -122,7 +124,7 @@ export function StockPostCard({
 
   return (
     <article
-      className={"mx-3 my-2.5 px-4 py-3 bg-white rounded-2xl shadow-sm transition-shadow " + (interactive && onSelect ? "hover:shadow-md cursor-pointer" : "")}
+      className={(flushX ? "mx-0" : "mx-3") + " my-2.5 px-4 py-3 bg-white rounded-2xl shadow-sm transition-shadow " + (interactive && onSelect ? "hover:shadow-md cursor-pointer" : "")}
       onClick={() => interactive && onSelect?.(post)}
     >
       {/* 上段: 画像 + メイン情報 */}
