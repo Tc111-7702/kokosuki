@@ -1465,3 +1465,24 @@ export const upsertScrapeSchedule = (type: string, everyDays: number, atTime: st
     update: { everyDays, atTime },
     create: { type, everyDays, atTime },
   });
+
+// ─── 通報 ─────────────────────────────────────────────────────────────────────
+
+export const createReport = (data: {
+  reporterId: string;
+  targetType: string;
+  targetId: string;
+  reportedUserId: string;
+  reasonKeys: string[];
+  detail?: string | null;
+}) =>
+  prisma.report.create({
+    data: {
+      reporterId: data.reporterId,
+      targetType: data.targetType,
+      targetId: data.targetId,
+      reportedUserId: data.reportedUserId,
+      reasonKeys: data.reasonKeys,
+      detail: data.detail?.trim() || null,
+    },
+  });
