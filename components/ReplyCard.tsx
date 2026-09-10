@@ -66,17 +66,30 @@ export function ReplyCard({
     <div className={`flex border-b border-gray-100 last:border-0 ${compact ? 'gap-2 px-3 py-2' : 'gap-3 px-4 py-3'}`}>
       <Avatar user={reply.user} size={compact ? 28 : 36} />
       <div className="flex-1 min-w-0">
-        <div className={`flex items-center min-w-0 ${compact ? 'gap-1.5 mb-0.5' : 'gap-2 mb-1'}`}>
-          <span className={`font-bold truncate ${compact ? 'text-[12px] text-[#333]' : 'text-sm font-semibold text-gray-900'}`}>{reply.user.name}</span>
-          <span className={`text-gray-400 flex-shrink-0 ${compact ? 'text-[11px]' : 'text-xs'}`}>{timeAgo(reply.createdAt)}</span>
-          <div className="ml-auto flex items-center gap-0.5 flex-shrink-0" ref={menuRef}>
+        <div className={`relative ${compact ? 'mb-0.5' : 'mb-1'}`}>
+          <div className={`flex items-center min-w-0 pr-5 ${compact ? 'gap-1.5' : 'gap-2'}`}>
+            <span className={`font-bold truncate ${compact ? 'text-[12px] text-[#333]' : 'text-sm font-semibold text-gray-900'}`}>{reply.user.name}</span>
+            <span className={`text-gray-400 flex-shrink-0 ${compact ? 'text-[11px]' : 'text-xs'}`}>{timeAgo(reply.createdAt)}</span>
+          </div>
+          <div
+            className="absolute top-0 right-0 z-20 flex items-center gap-0.5 flex-row-reverse pointer-events-none"
+            ref={menuRef}
+          >
+            <button
+              type="button"
+              onClick={() => { if (canUseMenu) setShowMenu(v => !v); }}
+              className="p-0.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors pointer-events-auto"
+              aria-label="返信メニュー"
+            >
+              <MoreHorizontal size={compact ? 14 : 16} />
+            </button>
             {canUseMenu && showMenu && (
               isOwn ? (
                 <button
                   type="button"
                   onClick={handleDelete}
                   disabled={deleting}
-                  className="text-[10px] leading-none px-2 py-1 rounded-full bg-gray-200 text-red-500 font-medium hover:bg-gray-100 transition-colors whitespace-nowrap"
+                  className="text-[10px] leading-none px-2 py-1 rounded-full bg-gray-200 text-red-500 font-medium hover:bg-gray-100 transition-colors whitespace-nowrap pointer-events-auto shadow-sm"
                 >
                   {deleting ? '削除中…' : '削除'}
                 </button>
@@ -87,20 +100,12 @@ export function ReplyCard({
                     setShowMenu(false);
                     router.push(reportPath(replyReportTargetType(postType), reply.id));
                   }}
-                  className="text-[10px] leading-none px-2 py-1 rounded-full bg-gray-200 text-gray-700 font-medium hover:bg-gray-100 transition-colors whitespace-nowrap"
+                  className="text-[10px] leading-none px-2 py-1 rounded-full bg-gray-200 text-gray-700 font-medium hover:bg-gray-100 transition-colors whitespace-nowrap pointer-events-auto shadow-sm"
                 >
                   この投稿を報告する
                 </button>
               )
             )}
-            <button
-              type="button"
-              onClick={() => { if (canUseMenu) setShowMenu(v => !v); }}
-              className="p-0.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors"
-              aria-label="返信メニュー"
-            >
-              <MoreHorizontal size={compact ? 14 : 16} />
-            </button>
           </div>
         </div>
         <p className={`whitespace-pre-wrap break-words [overflow-wrap:anywhere] max-w-full ${compact ? 'text-[13px] leading-[1.7] text-[#333]' : 'text-sm text-gray-800 leading-relaxed'}`}>

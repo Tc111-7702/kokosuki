@@ -199,12 +199,15 @@ export function StoreReviews({ spotId, autoOpenReviewId }: { spotId: string; aut
 
               {/* 投稿者行 */}
               <div style={{ position: 'relative', marginBottom: 8 }}>
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: 8, minWidth: 0,
-                  paddingRight: canShowMenu
-                    ? (menuOpenId === review.id ? 120 : 28)
-                    : 0,
-                }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    minWidth: 0,
+                    paddingRight: canShowMenu ? 20 : (isOwnReview && editingId !== review.id ? 24 : 0),
+                  }}
+                >
                   <Avatar user={review.user} size={28} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <span style={{ fontSize: 12, fontWeight: 700, color: '#333' }}>{review.user.name}</span>
@@ -213,25 +216,36 @@ export function StoreReviews({ spotId, autoOpenReviewId }: { spotId: string; aut
                       <span style={{ fontSize: 10, color: '#CCC', marginLeft: 4 }}>（編集済）</span>
                     )}
                   </div>
-                  {isOwnReview && editingId !== review.id && (
-                    <button
-                      type="button"
-                      onClick={() => startEdit(review)}
-                      style={{ padding: 4, background: 'none', border: 'none', cursor: 'pointer', borderRadius: 6, color: '#AAA', flexShrink: 0 }}
-                    >
-                      <Pencil size={13} />
-                    </button>
-                  )}
                 </div>
+                {isOwnReview && editingId !== review.id && (
+                  <button
+                    type="button"
+                    onClick={() => startEdit(review)}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      right: canShowMenu ? 20 : 0,
+                      padding: 4,
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      borderRadius: 6,
+                      color: '#AAA',
+                      zIndex: 10,
+                    }}
+                  >
+                    <Pencil size={13} />
+                  </button>
+                )}
                 {canShowMenu && (
                   <div
                     ref={menuOpenId === review.id ? menuRef : undefined}
-                    className="absolute top-0 right-0 z-20 flex items-center gap-0.5 flex-row-reverse"
+                    className="absolute top-0 right-0 z-20 flex items-center gap-0.5 flex-row-reverse pointer-events-none"
                   >
                     <button
                       type="button"
                       onClick={e => { e.stopPropagation(); setMenuOpenId(id => id === review.id ? null : review.id); }}
-                      className="p-0.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors"
+                      className="p-0.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors pointer-events-auto"
                       aria-label="口コミメニュー"
                     >
                       <MoreHorizontal size={16} />
@@ -242,7 +256,7 @@ export function StoreReviews({ spotId, autoOpenReviewId }: { spotId: string; aut
                           type="button"
                           onClick={e => deleteReview(review.id, e)}
                           disabled={deletingId === review.id}
-                          className="text-[10px] leading-none px-2 py-1 rounded-full bg-gray-200 text-red-500 font-medium hover:bg-gray-100 transition-colors whitespace-nowrap shadow-sm"
+                          className="text-[10px] leading-none px-2 py-1 rounded-full bg-gray-200 text-red-500 font-medium hover:bg-gray-100 transition-colors whitespace-nowrap shadow-sm pointer-events-auto"
                         >
                           {deletingId === review.id ? '削除中…' : '削除'}
                         </button>
@@ -254,7 +268,7 @@ export function StoreReviews({ spotId, autoOpenReviewId }: { spotId: string; aut
                             setMenuOpenId(null);
                             router.push(reportPath('spot_review', review.id));
                           }}
-                          className="text-[10px] leading-none px-2 py-1 rounded-full bg-gray-200 text-gray-700 font-medium hover:bg-gray-100 transition-colors whitespace-nowrap shadow-sm"
+                          className="text-[10px] leading-none px-2 py-1 rounded-full bg-gray-200 text-gray-700 font-medium hover:bg-gray-100 transition-colors whitespace-nowrap shadow-sm pointer-events-auto"
                         >
                           この投稿を報告する
                         </button>
