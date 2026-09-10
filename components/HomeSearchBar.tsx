@@ -129,7 +129,7 @@ export function HomeSearchBar({
     setNavigating(true);
     try {
       const data = await fetch(`/api/gacha/search?q=${encodeURIComponent(q)}`).then(r => r.json());
-      if (isScopeMode && scopeSet && onApplyFilter) {
+      if (isScopeMode && scopeSet) {
         let ids: string[] = [];
         let label = q.trim();
         if (Array.isArray(data.gachaIds) && data.gachaIds.length > 0) {
