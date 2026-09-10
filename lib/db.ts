@@ -1020,9 +1020,51 @@ export async function toggleSpotReviewLike(userId: string, reviewId: string) {
 
 // ─── マイページ / アカウント ────────────────────────────────────────────────────
 
-/** 退会（関連データは onDelete: Cascade で連鎖削除） */
-export const deleteUser = (id: string) =>
-  prisma.user.delete({ where: { id } });
+const LIKE_NOTIF_TARGET_LABEL = (n: { postId: string | null; stockPostId: string | null; spotReviewId: string | null }) =>
+  n.postId ? '投稿' : n.stockPostId ? '在庫報告' : n.spotReviewId ? '口コミ' : '投稿';
+
+/** 退会（関連データは onDelete: Cascade。通知は退会前に明示クリーンアップ） */
+export async function deleteUser(id: string) {
+  await prisma.$transaction(async (tx) => {
+    // 1. 投稿主（受信者）として届いている通知をすべて削除
+    await tx.notification.deleteMany({ where: { userId: id } });
+
+    // 2. 返信・メンション等: 行為者が退会者のみ → 通知ごと削除
+    await tx.notification.deleteMany({
+      where: { actorId: id, type: { not: 'like' } },
+    });
+
+    // 3. いいね: actorIds から退会者を除去（actorId が退会者なら次の人を actor に）
+    const likeNotifs = await tx.notification.findMany({
+      where: {
+        type: 'like',
+        OR: [{ actorId: id }, { actorIds: { has: id } }],
+      },
+    });
+
+    for (const n of likeNotifs) {
+      const list = n.actorIds.length ? n.actorIds : (n.actorId ? [n.actorId] : []);
+      const remaining = list.filter((a) => a !== id);
+      if (remaining.length === 0) {
+        await tx.notification.delete({ where: { id: n.id } });
+        continue;
+      }
+      const head = remaining[0];
+      const headUser = await tx.user.findUnique({ where: { id: head }, select: { name: true } });
+      const label = LIKE_NOTIF_TARGET_LABEL(n);
+      await tx.notification.update({
+        where: { id: n.id },
+        data: {
+          actorId: head,
+          actorIds: remaining,
+          body: `${headUser?.name ?? 'だれか'}さんがあなたの${label}にいいねしました`,
+        },
+      });
+    }
+
+    await tx.user.delete({ where: { id } });
+  });
+}
 
 /** ユーザー名を更新 */
 export const updateUserName = (id: string, name: string) =>
