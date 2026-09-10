@@ -172,8 +172,7 @@ export function CommunityTab() {
               {searchGachaIds.length > 0
                 ? <Feed key={`search-${searchLabel}`} feedType="search" searchGachaIds={searchGachaIds} onSelect={setSelectedPost} onSelectStock={setSelectedStock} excludeIds={deletedIds} />
                 : (
-                  <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-                    <span className="text-4xl mb-3">🔍</span>
+                  <div className="flex items-center justify-center py-20 text-gray-400">
                     <p className="text-sm">検索結果が見つかりませんでした</p>
                   </div>
                 )

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
-import { ArrowLeft, ChevronLeft, MapPin, Navigation, Phone, SlidersHorizontal, Gamepad2 } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, MapPin, Navigation, Phone, SlidersHorizontal } from 'lucide-react';
 import { HomeSearchBar } from '@/components/HomeSearchBar';
 import FilterDrawer, { loadStoredGachaIds } from '@/components/FilterDrawer';
 import { ipGradient, type SpotGachaInfo } from '@/components/SpotGachaCard';
@@ -171,7 +171,6 @@ function StorePosts({
   );
   if (posts.length === 0) return (
     <div style={{ textAlign: 'center', padding: '40px 0' }}>
-      <Gamepad2 size={36} color="#DDD" style={{ margin: '0 auto 8px', display: 'block' }} />
       <p style={{ color: '#BBB', fontSize: 13, margin: 0 }}>この店舗の投稿はまだありません</p>
     </div>
   );
@@ -423,9 +422,8 @@ export default function StorePage() {
       {/* ガチャグリッド */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '4px 16px 32px' }}>
         {visibleGachas.length === 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 60, color: '#BBB' }}>
-            <Gamepad2 size={40} color="#DDD" />
-            <p style={{ fontSize: 14, marginTop: 12 }}>該当するガチャがありません</p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: 60, color: '#BBB' }}>
+            <p style={{ fontSize: 14, margin: 0 }}>該当するガチャがありません</p>
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(200px, 1fr))', gap: isMobile ? 12 : 16 }}>

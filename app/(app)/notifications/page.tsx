@@ -156,8 +156,7 @@ export default function NotificationsPage() {
           <p className="py-16 text-center text-[13px]" style={{ color: '#AAA' }}>読み込み中...</p>
         ) : items.length === 0 ? (
           <div className="flex flex-col items-center py-20 px-6 text-center">
-            <Bell size={36} color="#DDD" />
-            <p className="mt-4 text-[14px] font-bold" style={{ color: '#888' }}>まだ通知はありません</p>
+            <p className="text-[14px] font-bold" style={{ color: '#888' }}>まだ通知はありません</p>
             <p className="mt-1 text-[12px] leading-relaxed" style={{ color: '#AAA' }}>
               お気に入りのガチャに在庫情報が届いたり、<br />あなたの投稿に反応があるとここに表示されます
             </p>

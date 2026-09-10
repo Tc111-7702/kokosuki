@@ -123,8 +123,7 @@ export function Feed({
 
   if (initialLoaded && posts.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-        <span className="text-4xl mb-3">&#127920;</span>
+      <div className="flex items-center justify-center py-20 text-gray-400">
         <p className="text-sm">{'まだ投稿がありません'}</p>
       </div>
     );

@@ -136,8 +136,7 @@ export default function SpotListPanel({
       style={{ background: '#F8F8F8', zIndex: 5 }}
     >
       {isEmpty ? (
-        <div className="flex flex-col items-center justify-center h-full gap-2">
-          <MapPin size={32} color="#ddd" />
+        <div className="flex items-center justify-center h-full">
           <p style={{ color: '#aaa', fontSize: 14 }}>近くに店舗が見つかりません</p>
         </div>
       ) : (
