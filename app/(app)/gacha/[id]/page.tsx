@@ -89,7 +89,7 @@ function GachaPostsSection({ gachaId, seriesName, isMobile }: { gachaId: string;
             const type = p.postType as 'post' | 'stock';
             const isOpen = openReply?.id === p.id;
             return (
-              <div key={p.id} style={{ marginBottom: isOpen ? 0 : 10 }}>
+              <div key={p.id} style={{ marginBottom: isOpen ? 0 : 4 }}>
                 {type === 'post'
                   ? <PostCard
                       post={p as FeedPost}
@@ -98,6 +98,8 @@ function GachaPostsSection({ gachaId, seriesName, isMobile }: { gachaId: string;
                       onDelete={handleDelete}
                       onReplyClick={() => toggleReply(p.id, type)}
                       replyOpen={isOpen}
+                      flushX
+                      compactY
                     />
                   : <StockPostCard
                       post={p as StockFeedPost}
@@ -106,6 +108,8 @@ function GachaPostsSection({ gachaId, seriesName, isMobile }: { gachaId: string;
                       onDelete={handleDelete}
                       onReplyClick={() => toggleReply(p.id, type)}
                       replyOpen={isOpen}
+                      flushX
+                      compactY
                     />
                 }
                 {isOpen && (
@@ -115,6 +119,8 @@ function GachaPostsSection({ gachaId, seriesName, isMobile }: { gachaId: string;
                     currentUserId={currentUserId}
                     postOwner={p.user}
                     onCountChange={(delta) => updateReplyCount(p.id, delta)}
+                    flushX
+                    compactY
                   />
                 )}
               </div>
@@ -395,7 +401,7 @@ export default function GachaDetailPage() {
             }
           </div>
           {tags}
-          {titleBlock(22)}
+          {titleBlock(20)}
           <NearbyButton gacha={gacha} nearbyOpen={nearbyOpen} nearbyLoading={nearbyLoading}
             nearbyError={nearbyError} nearbySpots={nearbySpots}
             onToggle={handleNearby} onSpotClick={handleSpotClick} isMobile={true} />
