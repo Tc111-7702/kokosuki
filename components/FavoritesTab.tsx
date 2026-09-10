@@ -155,7 +155,6 @@ export function FavoritesTab({ userId, editable = true }: { userId?: string; edi
           </div>
         ) : gachas.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3">
-            <p style={{ fontSize: 22 }}>🎰</p>
             {editable ? (
               <>
                 <p style={{ fontSize: 14, color: '#aaa', fontWeight: 600 }}>引きたいガチャを登録しよう</p>

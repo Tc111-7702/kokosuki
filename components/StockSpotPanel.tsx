@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MapPin, AlertCircle, RefreshCw } from 'lucide-react';
+import { MapPin, RefreshCw } from 'lucide-react';
 
 // 在庫報告専用：現在地500m以内 & gachaId一致のスポットのみ表示
 const STOCK_RADIUS = 500; // メートル
@@ -110,7 +110,6 @@ export function StockSpotPanel({
   if (state === 'geo-error' || state === 'denied') {
     return (
       <div style={{ padding: '16px', background: '#FEF2F2', borderRadius: 12, textAlign: 'center' }}>
-        <AlertCircle size={20} color="#EF4444" style={{ margin: '0 auto 8px' }} />
         <p style={{ fontSize: fs(13), color: '#DC2626', margin: '0 0 12px', lineHeight: 1.5 }}>{message}</p>
         {state === 'geo-error' && (
           <button onClick={load}
@@ -131,11 +130,7 @@ export function StockSpotPanel({
   if (state === 'done' && spots.length === 0) {
     return (
       <div style={{ textAlign: 'center', padding: '16px 0' }}>
-        <MapPin size={20} color="#D1D5DB" style={{ margin: '0 auto 8px' }} />
-        <p style={{ fontSize: fs(13), color: '#9CA3AF', margin: '0 0 4px', lineHeight: 1.5 }}>{message}</p>
-        <p style={{ fontSize: fs(11), color: '#C4C4C4', margin: 0 }}>
-          ※ 在庫報告は現在地{STOCK_RADIUS}m以内の店舗のみ対象です
-        </p>
+        <p style={{ fontSize: fs(13), color: '#9CA3AF', margin: '0 0 12px', lineHeight: 1.5 }}>{message}</p>
         <button onClick={load}
           style={{
             marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 6,
