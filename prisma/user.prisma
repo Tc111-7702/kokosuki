@@ -1,37 +1,37 @@
 // ─── Better Auth ──────────────────────────────────────────────────────────────
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  emailVerified Boolean   @default(false)
+  id            String   @id @default(cuid())
+  email         String   @unique
+  emailVerified Boolean  @default(false)
   name          String
   image         String?
-  role          String    @default("user") // 権限（既定 'user'）。20260810 の add_user_role で追加。
-  isActive      Boolean   @default(true)    // アカウント有効/無効（false = BAN・凍結）。既定は有効。
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  role          String   @default("user") // 権限（既定 'user'）。20260810 の add_user_role で追加。
+  isActive      Boolean  @default(true) // アカウント有効/無効（false = BAN・凍結）。既定は有効。
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  sessions         Session[]
-  accounts         Account[]
-  profile          UserProfile?
-  posts            Post[]
-  likes            Like[]
-  gachaLikes       GachaLike[]
-  postReplies      PostReply[]
-  postReplyLikes   PostReplyLike[]
-  stockPosts       StockPost[]
-  stockPostLikes   StockPostLike[]
-  stockPostReplies StockPostReply[]
-  qaItems          QA[]
-  qaAnswers        QAAnswer[]
-  notifications    Notification[]
-  spotReviews        SpotReview[]
-  spotReviewReplies  SpotReviewReply[]
-  spotReviewLikes    SpotReviewLike[]
-  following          Follow[] @relation("Following")  // 自分がフォローしている
-  followers          Follow[] @relation("Followers")  // 自分をフォローしている
-  reportsMade        Report[] @relation("ReportsMade")
-  reportsReceived    Report[] @relation("ReportsReceived")
+  sessions          Session[]
+  accounts          Account[]
+  profile           UserProfile?
+  posts             Post[]
+  likes             Like[]
+  gachaLikes        GachaLike[]
+  postReplies       PostReply[]
+  postReplyLikes    PostReplyLike[]
+  stockPosts        StockPost[]
+  stockPostLikes    StockPostLike[]
+  stockPostReplies  StockPostReply[]
+  qaItems           QA[]
+  qaAnswers         QAAnswer[]
+  notifications     Notification[]
+  spotReviews       SpotReview[]
+  spotReviewReplies SpotReviewReply[]
+  spotReviewLikes   SpotReviewLike[]
+  following         Follow[]          @relation("Following") // 自分がフォローしている
+  followers         Follow[]          @relation("Followers") // 自分をフォローしている
+  reportsMade       Report[]          @relation("ReportsMade")
+  reportsReceived   Report[]          @relation("ReportsReceived")
 }
 
 model Session {
@@ -79,16 +79,16 @@ model Verification {
 // ─── ユーザープロフィール ──────────────────────────────────────────────────────
 
 model UserProfile {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  handle    String?  @unique
-  bio       String?
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  handle      String?  @unique
+  bio         String?
   // 好きIP（お気に入りガチャのIPから選択・プロフィールに表示）
   favoriteIps String[] @default([])
   // 地図の検索範囲（メートル）
-  mapRadiusM Int @default(20000)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  mapRadiusM  Int      @default(20000)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -97,8 +97,8 @@ model UserProfile {
 
 model Follow {
   id          String   @id @default(cuid())
-  followerId  String   // フォローする側
-  followingId String   // フォローされる側
+  followerId  String // フォローする側
+  followingId String // フォローされる側
   createdAt   DateTime @default(now())
 
   follower  User @relation("Following", fields: [followerId], references: [id], onDelete: Cascade)
