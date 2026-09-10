@@ -25,6 +25,10 @@ export default function SearchBar({ onSearch, onClear, hasSearchResult, currentP
   const [focused, setFocused]         = useState(false);
   const selectedCoordsRef = useRef<{ lat: number; lng: number } | undefined>(undefined);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const currentPosRef = useRef(currentPos);
+  useEffect(() => {
+    currentPosRef.current = currentPos;
+  }, [currentPos]);
 
   const fetchSuggestions = useCallback((v: string) => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -33,9 +37,10 @@ export default function SearchBar({ onSearch, onClear, hasSearchResult, currentP
       try {
         const enc = encodeURIComponent(v);
         const spotParams = new URLSearchParams({ name: v, suggest: '1' });
-        if (currentPos) {
-          spotParams.set('lat', String(currentPos.lat));
-          spotParams.set('lng', String(currentPos.lng));
+        const pos = currentPosRef.current;
+        if (pos) {
+          spotParams.set('lat', String(pos.lat));
+          spotParams.set('lng', String(pos.lng));
         }
         const [spotsRes, areaRes, stationRes, contentRes] = await Promise.all([
           fetch(`/api/spots/search?${spotParams}`),
@@ -79,11 +84,7 @@ export default function SearchBar({ onSearch, onClear, hasSearchResult, currentP
         setSuggestions([...locSugg, ...contents]);
       } catch {}
     }, 150);
-  }, [currentPos]);
-
-  useEffect(() => {
-    if (value.trim() && currentPos) fetchSuggestions(value);
-  }, [currentPos, value, fetchSuggestions]);
+  }, []);
 
   const isContentType = (type?: string) => type === 'gacha' || type === 'genre';
 

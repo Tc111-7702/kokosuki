@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { List, Map as MapIcon, Navigation, SlidersHorizontal, MapPin } from 'lucide-react';
-import FilterDrawer, { loadStoredGachaIds } from '@/components/FilterDrawer';
+import FilterDrawer from '@/components/FilterDrawer';
 import SpotDetailSheet, { type SpotDetail, type GachaInfo } from '@/components/SpotDetailSheet';
 import SearchBar from '@/components/SearchBar';
 import {
@@ -366,7 +366,6 @@ export default function MapPage() {
     // rawFilter が '[]' → ユーザーが意図的に解除 → お気に入り自動適用しない
     const rawFilter = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
     const stored = rawFilter ? (JSON.parse(rawFilter) as string[]) : [];
-    const isExplicitlyClear = rawFilter !== null && stored.length === 0;
     if (!skipFilter && stored.length > 0) { setFilterGachaIds(stored); filterRef.current = stored; }
     // Supabase コールドスタート対策: 失敗時は最大3回リトライ
     const loadFilters = async (retries = 3): Promise<void> => {
@@ -724,7 +723,6 @@ export default function MapPage() {
             contentSearchLabel={contentSearchLabel}
             searchGachaIds={searchContentGachaIds}
             filterGachaIds={filterGachaIds}
-            currentPos={currentPos}
           />
         )}
 

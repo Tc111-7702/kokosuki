@@ -14,7 +14,6 @@ interface SpotListPanelProps {
   contentSearchLabel: string | null;
   searchGachaIds: string[];      // コンテンツ検索でヒットしたガチャID群
   filterGachaIds: string[];      // フィルター中のガチャID群
-  currentPos: { lat: number; lng: number } | null;
 }
 
 // ─── ユーティリティ ────────────────────────────────────────────────────────────
@@ -107,7 +106,7 @@ function SectionHeader({
 
 export default function SpotListPanel({
   searchSpots, filterSpots, hasSearchResult, isFiltered,
-  contentSearchLabel, searchGachaIds, filterGachaIds, currentPos,
+  contentSearchLabel, searchGachaIds, filterGachaIds,
 }: SpotListPanelProps) {
   const router = useRouter();
 
