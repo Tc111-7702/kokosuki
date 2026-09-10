@@ -1,8 +1,8 @@
 'use client';
 
 import { Home, MapPin, User, Plus, Bell } from 'lucide-react';
-import { useRouter, usePathname } from 'next/navigation';
-import { useCurrentUserId } from '@/lib/useCurrentUserId';
+import { useRouter } from 'next/navigation';
+import { useNavActive } from '@/lib/useNavActive';
 import { useUnreadNotificationCount } from '@/lib/useUnreadNotificationCount';
 
 const NAV_ITEMS = [
@@ -19,15 +19,8 @@ const POST_BG = '#FFCD31';        // 投稿ボタンの黄色
 
 export function BottomNav() {
   const router   = useRouter();
-  const pathname = usePathname();
-  const myId     = useCurrentUserId();
-  const unread   = useUnreadNotificationCount();
-
-  // マイページは「自分のページ」のときだけアクティブ（他人のプロフィール表示中は非アクティブ）
-  const isNavActive = (path: string) =>
-    path === '/mypage'
-      ? pathname === '/mypage' || (myId != null && pathname === `/mypage/${myId}`)
-      : pathname.startsWith(path);
+  const unread = useUnreadNotificationCount();
+  const isNavActive = useNavActive();
 
   return (
     <nav
