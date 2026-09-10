@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useMemo, useEffect } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, X } from 'lucide-react';
 
@@ -67,10 +67,17 @@ export function HomeSearchBar({
   const isScopeMode = scopeSet != null && onApplyFilter != null;
 
   const [value, setValue] = useState('');
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [searchSuggestions, setSearchSuggestions] = useState<Suggestion[]>([]);
   const [focused, setFocused] = useState(false);
   const [navigating, setNavigating] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const suggestions = useMemo(() => {
+    if (focused && !value.trim()) {
+      return focusSuggestions?.length ? [...focusSuggestions] : [];
+    }
+    return searchSuggestions;
+  }, [focused, value, focusSuggestions, searchSuggestions]);
 
   const applyFilter = (gachaIds: string[], label: string) => {
     if (!scopeSet || !onApplyFilter) return;
@@ -78,19 +85,9 @@ export function HomeSearchBar({
     onApplyFilter(scoped, label);
   };
 
-  const showFocusSuggestions = () => {
-    setSuggestions(focusSuggestions?.length ? [...focusSuggestions] : []);
-  };
-
-  useEffect(() => {
-    if (focused && !value.trim()) {
-      setSuggestions(focusSuggestions?.length ? [...focusSuggestions] : []);
-    }
-  }, [focusSuggestions, focused, value]);
-
   const fetchSuggestions = (v: string) => {
     if (timer.current) clearTimeout(timer.current);
-    if (!v.trim()) { showFocusSuggestions(); return; }
+    if (!v.trim()) { setSearchSuggestions([]); return; }
     timer.current = setTimeout(async () => {
       try {
         const data = await fetch(`/api/gacha/search?q=${encodeURIComponent(v)}&suggest=1`).then(r => r.json());
@@ -98,14 +95,14 @@ export function HomeSearchBar({
         if (isScopeMode && scopeSet && gachaIpById) {
           items = filterSuggestionsForScope(items, scopeSet, gachaIpById);
         }
-        setSuggestions(items);
+        setSearchSuggestions(items);
       } catch {}
     }, 150);
   };
 
   const resolveBySuggestion = (s: Suggestion) => {
     setValue(s.label);
-    setSuggestions([]);
+    setSearchSuggestions([]);
     if (isScopeMode && scopeSet && gachaIpById) {
       if (s.type === 'genre') {
         const ids = [...scopeSet].filter(id => gachaIpById.get(id) === s.label);
@@ -128,7 +125,7 @@ export function HomeSearchBar({
 
   const resolveByQuery = async (q: string) => {
     if (!q.trim() || navigating) return;
-    setSuggestions([]);
+    setSearchSuggestions([]);
     setNavigating(true);
     try {
       const data = await fetch(`/api/gacha/search?q=${encodeURIComponent(q)}`).then(r => r.json());
@@ -152,13 +149,12 @@ export function HomeSearchBar({
 
   const clearInput = () => {
     setValue('');
-    if (focused) showFocusSuggestions();
-    else setSuggestions([]);
+    setSearchSuggestions([]);
   };
 
   const dismissFilter = () => {
     setValue('');
-    setSuggestions([]);
+    setSearchSuggestions([]);
     onDismissFilter?.();
   };
 
