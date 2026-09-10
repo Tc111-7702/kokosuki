@@ -13,11 +13,11 @@ model Spot {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  machines    Machine[]
-  posts       Post[]
-  stockPosts  StockPost[]
-  qaItems  QA[]
-  reviews     SpotReview[]
+  machines   Machine[]
+  posts      Post[]
+  stockPosts StockPost[]
+  qaItems    QA[]
+  reviews    SpotReview[]
 }
 
 model Machine {
@@ -29,10 +29,10 @@ model Machine {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  spot  Spot  @relation(fields: [spotId], references: [id], onDelete: Cascade)
-  gacha Gacha @relation(fields: [gachaId], references: [id], onDelete: Cascade)
-  posts       Post[]
-  stockPosts  StockPost[]
+  spot       Spot        @relation(fields: [spotId], references: [id], onDelete: Cascade)
+  gacha      Gacha       @relation(fields: [gachaId], references: [id], onDelete: Cascade)
+  posts      Post[]
+  stockPosts StockPost[]
 
   @@unique([spotId, gachaId])
 }
@@ -75,7 +75,7 @@ model SpotReviewLike {
   userId   String
   reviewId String
 
-  user   User       @relation(fields: [userId],   references: [id], onDelete: Cascade)
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   review SpotReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
 
   @@unique([userId, reviewId])

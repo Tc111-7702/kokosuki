@@ -12,10 +12,10 @@ model Post {
   memo      String?
   createdAt DateTime @default(now())
 
-  machine Machine    @relation(fields: [machineId], references: [id], onDelete: Cascade)
-  spot    Spot       @relation(fields: [spotId],    references: [id], onDelete: Cascade)
-  user    User       @relation(fields: [userId],    references: [id], onDelete: Cascade)
-  gacha   Gacha      @relation(fields: [gachaId],   references: [id], onDelete: Cascade)
+  machine Machine     @relation(fields: [machineId], references: [id], onDelete: Cascade)
+  spot    Spot        @relation(fields: [spotId], references: [id], onDelete: Cascade)
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gacha   Gacha       @relation(fields: [gachaId], references: [id], onDelete: Cascade)
   likes   Like[]
   replies PostReply[]
 }
@@ -42,8 +42,8 @@ model PostReply {
   text      String
   createdAt DateTime @default(now())
 
-  post     Post            @relation(fields: [postId],   references: [id], onDelete: Cascade)
-  user     User            @relation(fields: [userId],   references: [id], onDelete: Cascade)
+  post     Post            @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   parent   PostReply?      @relation("ReplyTree", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   children PostReply[]     @relation("ReplyTree")
   likes    PostReplyLike[]
@@ -55,7 +55,7 @@ model PostReplyLike {
   replyId   String
   createdAt DateTime @default(now())
 
-  user  User      @relation(fields: [userId],  references: [id], onDelete: Cascade)
+  user  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   reply PostReply @relation(fields: [replyId], references: [id], onDelete: Cascade)
 
   @@unique([userId, replyId])
@@ -80,8 +80,8 @@ model QAAnswer {
   text      String
   createdAt DateTime @default(now())
 
-  qa   QA   @relation(fields: [qaId],    references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId],  references: [id], onDelete: Cascade)
+  qa   QA   @relation(fields: [qaId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // ─── 在庫ポスト ───────────────────────────────────────────────────────────────────────────────────
@@ -96,9 +96,9 @@ model StockPost {
   createdAt   DateTime @default(now())
 
   machine Machine          @relation(fields: [machineId], references: [id], onDelete: Cascade)
-  spot    Spot             @relation(fields: [spotId],    references: [id], onDelete: Cascade)
-  gacha   Gacha            @relation(fields: [gachaId],   references: [id], onDelete: Cascade)
-  user    User             @relation(fields: [userId],    references: [id], onDelete: Cascade)
+  spot    Spot             @relation(fields: [spotId], references: [id], onDelete: Cascade)
+  gacha   Gacha            @relation(fields: [gachaId], references: [id], onDelete: Cascade)
+  user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   likes   StockPostLike[]
   replies StockPostReply[]
 }
@@ -109,7 +109,7 @@ model StockPostLike {
   stockPostId String
   createdAt   DateTime @default(now())
 
-  user      User      @relation(fields: [userId],      references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   stockPost StockPost @relation(fields: [stockPostId], references: [id], onDelete: Cascade)
 
   @@unique([userId, stockPostId])
@@ -123,5 +123,5 @@ model StockPostReply {
   createdAt   DateTime @default(now())
 
   stockPost StockPost @relation(fields: [stockPostId], references: [id], onDelete: Cascade)
-  user      User      @relation(fields: [userId],      references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

@@ -5,6 +5,38 @@ import * as db from '@/lib/db';
 import { isReportTargetType, validateReportReasonKeys } from '@/lib/reportReasons';
 import { resolveReportedUserId } from '@/lib/reportTarget';
 
+export async function GET(req: Request) {
+  try {
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const targetType = searchParams.get('targetType') ?? '';
+    const targetId = searchParams.get('targetId')?.trim() ?? '';
+
+    if (!isReportTargetType(targetType) || !targetId) {
+      return NextResponse.json({ error: 'Invalid target' }, { status: 400 });
+    }
+
+    const report = await db.findReportByReporterAndTarget(
+      session.user.id,
+      targetType,
+      targetId,
+    );
+
+    return NextResponse.json({
+      report: report
+        ? { reasonKeys: report.reasonKeys, detail: report.detail }
+        : null,
+    });
+  } catch (e) {
+    console.error('[reports GET]', e);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
@@ -35,7 +67,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Cannot report yourself' }, { status: 400 });
     }
 
-    const report = await db.createReport({
+    const existing = await db.findReportByReporterAndTarget(
+      session.user.id,
+      targetType,
+      targetId,
+    );
+
+    const report = await db.upsertReport({
       reporterId: session.user.id,
       targetType,
       targetId,
@@ -44,11 +82,11 @@ export async function POST(req: Request) {
       detail,
     });
 
-    return NextResponse.json({ report: { id: report.id } }, { status: 201 });
-  } catch (e: unknown) {
-    if (e && typeof e === 'object' && 'code' in e && e.code === 'P2002') {
-      return NextResponse.json({ error: 'Already reported' }, { status: 409 });
-    }
+    return NextResponse.json(
+      { report: { id: report.id }, updated: !!existing },
+      { status: existing ? 200 : 201 },
+    );
+  } catch (e) {
     console.error('[reports POST]', e);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

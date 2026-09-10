@@ -1,35 +1,35 @@
 // ─── ガチャシリーズ ────────────────────────────────────────────────────────────
 
 model Gacha {
-  id             String   @id @default(cuid())
-  seriesName     String
+  id           String    @id @default(cuid())
+  seriesName   String
   // #19 正規化: IP は IpName リレーション(ipNameId)で参照する。
   // 除外 ipName（ジャンル名/不明）のガチャは ipNameId=null のため nullable のまま。
-  ipNameId       String?
-  category       String
-  status         String   @default("on_sale")
-  price          Int
-  gradientFrom   String
-  gradientTo     String
-  lineup         String[] @default([])
-  isReissue      Boolean  @default(false)
-  postCount      Int      @default(0)
+  ipNameId     String?
+  category     String
+  status       String    @default("on_sale")
+  price        Int
+  gradientFrom String
+  gradientTo   String
+  lineup       String[]  @default([])
+  isReissue    Boolean   @default(false)
+  postCount    Int       @default(0)
   // スクレイパー由来フィールド
-  genre          String?
-  imageUrl       String?
-  releaseDate    DateTime?
-  maker          String?
-  sourceUrl      String?
-  wpPostId       Int?     @unique
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  genre        String?
+  imageUrl     String?
+  releaseDate  DateTime?
+  maker        String?
+  sourceUrl    String?
+  wpPostId     Int?      @unique
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  machines        Machine[]
-  posts           Post[]
-  stockPosts      StockPost[]
-  gachaLikes      GachaLike[]
-  homePickups     HomePickup[]
-  ip              IpName?     @relation(fields: [ipNameId], references: [id])
+  machines    Machine[]
+  posts       Post[]
+  stockPosts  StockPost[]
+  gachaLikes  GachaLike[]
+  homePickups HomePickup[]
+  ip          IpName?      @relation(fields: [ipNameId], references: [id])
 
   @@index([ipNameId])
   @@index([status])
@@ -41,8 +41,8 @@ model Gacha {
 
 model IpCategory {
   id        String   @id @default(cuid())
-  key       String   @unique   // 安定slug: 'anime' | 'character' | 'other' 等
-  name      String             // 表示名（例: アニメ・漫画・ゲーム）
+  key       String   @unique // 安定slug: 'anime' | 'character' | 'other' 等
+  name      String // 表示名（例: アニメ・漫画・ゲーム）
   sortOrder Int      @default(0)
   ipNames   IpName[]
 }
