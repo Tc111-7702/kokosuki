@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { usePathname } from 'next/navigation';
 import { useCurrentUserId } from '@/lib/useCurrentUserId';
 import {
@@ -18,18 +18,19 @@ import {
 export function useNavActive() {
   const pathname = usePathname();
   const myId = useCurrentUserId();
-  const [section, setSection] = useState<NavSection>(() =>
-    typeof window !== 'undefined' ? getNavSection() : 'home',
-  );
+
+  const section = useMemo((): NavSection => {
+    const next = navSectionForPathname(pathname, myId);
+    if (next != null) return next;
+    if (isContextualNavPage(pathname, myId)) {
+      return typeof window !== 'undefined' ? getNavSection() : 'home';
+    }
+    return 'home';
+  }, [pathname, myId]);
 
   useEffect(() => {
     const next = navSectionForPathname(pathname, myId);
-    if (next != null) {
-      setNavSection(next);
-      setSection(next);
-    } else if (isContextualNavPage(pathname, myId)) {
-      setSection(getNavSection());
-    }
+    if (next != null) setNavSection(next);
   }, [pathname, myId]);
 
   const isNavActive = useCallback(
