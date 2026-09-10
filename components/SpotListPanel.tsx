@@ -35,33 +35,33 @@ function SpotRow({
   return (
     <button
       onClick={onClick}
-      className="w-full text-left px-4 py-3 flex items-center gap-3 active:bg-amber-50"
+      className="w-full text-left px-4 py-2 md:py-3 flex items-center gap-2 md:gap-3 active:bg-amber-50"
       style={{ borderBottom: '1px solid #F5F5F5', background: 'white' }}
     >
       <div className="flex-1 min-w-0">
-        <p className="text-[14px] font-bold truncate" style={{ color: '#1a1a1a', margin: 0 }}>
+        <p className="text-[12px] md:text-[14px] font-bold truncate" style={{ color: '#1a1a1a', margin: 0 }}>
           {spot.name}
         </p>
         <div className="flex items-center gap-1 mt-0.5">
-          <MapPin size={10} color="#ccc" />
-          <p className="text-[11px] truncate" style={{ color: '#aaa', margin: 0 }}>
+          <MapPin color="#ccc" className="w-[9px] h-[9px] md:w-[10px] md:h-[10px] flex-shrink-0" />
+          <p className="text-[10px] md:text-[11px] truncate" style={{ color: '#aaa', margin: 0 }}>
             {spot.address}
           </p>
         </div>
       </div>
-      <div className="flex items-center gap-2 flex-shrink-0">
+      <div className="flex items-center gap-1.5 md:gap-2 flex-shrink-0">
         {matchCount !== null && (
           <span
-            className="text-[11px] font-bold px-2 py-0.5 rounded-full"
+            className="text-[10px] md:text-[11px] font-bold px-1.5 md:px-2 py-0 rounded-full"
             style={{ background: '#FEF3C7', color: '#B8860B' }}
           >
             {matchCount}件
           </span>
         )}
-        <span className="text-[12px] font-semibold" style={{ color: '#0891b2' }}>
+        <span className="text-[11px] md:text-[12px] font-semibold" style={{ color: '#0891b2' }}>
           {fmtDistance(spot.distance)}
         </span>
-        <ChevronRight size={14} color="#ddd" />
+        <ChevronRight color="#ddd" className="w-3 h-3 md:w-[14px] md:h-[14px]" />
       </div>
     </button>
   );
@@ -79,7 +79,7 @@ function SectionHeader({
 }) {
   return (
     <div
-      className="px-4 py-2.5 flex items-center gap-2 sticky top-0 z-10"
+      className="px-4 py-2 md:py-2.5 flex items-center gap-2 sticky top-0 z-10"
       style={{
         background: accent ? '#FFFBEB' : '#FAFAFA',
         borderBottom: '1px solid #F0F0F0',
@@ -87,11 +87,11 @@ function SectionHeader({
       }}
     >
       {icon}
-      <span className="text-[13px] font-bold flex-1" style={{ color: accent ? '#B8860B' : '#555' }}>
+      <span className="text-[11px] md:text-[13px] font-bold flex-1" style={{ color: accent ? '#B8860B' : '#555' }}>
         {title}
       </span>
       <span
-        className="text-[11px] font-bold px-2 py-0.5 rounded-full"
+        className="text-[10px] md:text-[11px] font-bold px-1.5 md:px-2 py-0 rounded-full"
         style={{
           background: accent ? '#FEF3C7' : '#F0F0F0',
           color: accent ? '#B8860B' : '#888',

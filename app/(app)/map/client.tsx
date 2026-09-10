@@ -10,6 +10,7 @@ import SpotDetailSheet, { type SpotDetail, type GachaInfo } from '@/components/S
 import SearchBar from '@/components/SearchBar';
 import {
   suppressDblclick as _suppressDblclick,
+  closeAllMarkerPopups,
   createRedPinEl,
   loadNearbySpots,
   loadSearchContentMarkers,
@@ -73,9 +74,15 @@ export default function MapPage() {
   const [searchSpotList, setSearchSpotList]         = useState<NearbySpot[]>([]);
   const [searchContentGachaIds, setSearchContentGachaIds] = useState<string[]>([]);
   const [currentAddress, setCurrentAddress]       = useState<string | null>(null);
+  const [currentPos, setCurrentPos]               = useState<{ lat: number; lng: number } | null>(null);
 
   filterRef.current          = filterGachaIds;
   hasSearchResultRef.current = hasSearchResult;
+
+  const updateCurrentPos = useCallback((lat: number, lng: number) => {
+    currentPosRef.current = { lat, lng };
+    setCurrentPos({ lat, lng });
+  }, []);
 
   const [zoom, setZoom] = useState(14);
   const panTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -443,11 +450,14 @@ export default function MapPage() {
     mapRef.current = map;
     map.on('zoom', () => setZoom(Math.round(map.getZoom() * 2) / 2));
 
+    // マップクリックでホバーポップアップをすべて閉じる
+    map.on('click', closeAllMarkerPopups);
+
     // ダブルクリックで現在地ピンを移動＋住所更新
     map.on('dblclick', (e) => {
       if (_suppressDblclick) return;
       const { lat, lng } = e.lngLat;
-      currentPosRef.current = { lat, lng };
+      updateCurrentPos(lat, lng);
       if (currentPinRef.current) {
         currentPinRef.current.setLngLat([lng, lat]);
       } else {
@@ -473,7 +483,7 @@ export default function MapPage() {
       const geom = feature.geometry as { type: string; coordinates: number[] };
       if (geom.type !== 'Point') return;
       const [lng, lat] = geom.coordinates;
-      currentPosRef.current = { lat, lng };
+      updateCurrentPos(lat, lng);
       if (currentPinRef.current) {
         currentPinRef.current.setLngLat([lng, lat]);
       } else {
@@ -561,7 +571,7 @@ export default function MapPage() {
       pos => {
         if (!mapRef.current) return;
         const { longitude, latitude } = pos.coords;
-        currentPosRef.current = { lat: latitude, lng: longitude };
+        updateCurrentPos(latitude, longitude);
         if (!spotIdParam) mapRef.current.setCenter([longitude, latitude]);
         if (currentPinRef.current) {
           currentPinRef.current.setLngLat([longitude, latitude]);
@@ -599,7 +609,7 @@ export default function MapPage() {
       pos => {
         if (!mapRef.current) return;
         const { longitude, latitude } = pos.coords;
-        currentPosRef.current = { lat: latitude, lng: longitude };
+        updateCurrentPos(latitude, longitude);
         mapRef.current.flyTo({ center: [longitude, latitude], zoom: 15, speed: 1.4 });
         if (currentPinRef.current) {
           currentPinRef.current.setLngLat([longitude, latitude]);
@@ -668,6 +678,7 @@ export default function MapPage() {
             onSearch={handleSearch}
             onClear={handleSearchClear}
             hasSearchResult={hasSearchResult}
+            currentPos={currentPos}
           />
 
           {/* フィルター行 */}
@@ -688,7 +699,7 @@ export default function MapPage() {
               )}
             </div>
             {currentAddress && (
-              <div className="flex items-center gap-1 min-w-0">
+              <div className="hidden md:flex items-center gap-1 min-w-0">
                 <MapPin size={10} color="#F2B800" className="flex-shrink-0" />
                 <span className="truncate" style={{ fontSize: 13, color: '#666', lineHeight: 1.3, fontWeight: 500 }}>
                   {currentAddress}
@@ -713,7 +724,7 @@ export default function MapPage() {
             contentSearchLabel={contentSearchLabel}
             searchGachaIds={searchContentGachaIds}
             filterGachaIds={filterGachaIds}
-            currentPos={currentPosRef.current}
+            currentPos={currentPos}
           />
         )}
 
@@ -790,7 +801,7 @@ export default function MapPage() {
           searchOverrideIds={searchOverrideIds}
           searchLabel={contentSearchLabel}
           highlightGachaId={highlightGachaId}
-          currentPos={currentPosRef.current}
+          currentPos={currentPos}
           onClose={() => { setSelectedSpot(null); setSearchOverrideIds(null); }}
           onClearFilter={() => handleFilterApply([])}
           onOpenFilter={() => setFilterOpen(true)}

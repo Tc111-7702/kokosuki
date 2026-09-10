@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { MapPin, Search, X, Store, TrainFront, ArrowLeft } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { MapPin, Search, X, ArrowLeft } from 'lucide-react';
 
 interface Suggestion {
   label: string;
@@ -16,23 +16,29 @@ interface SearchBarProps {
   onSearch: (location: string, content: string, coords?: { lat: number; lng: number }) => void;
   onClear: () => void;
   hasSearchResult: boolean;
+  currentPos?: { lat: number; lng: number } | null;
 }
 
-export default function SearchBar({ onSearch, onClear, hasSearchResult }: SearchBarProps) {
+export default function SearchBar({ onSearch, onClear, hasSearchResult, currentPos }: SearchBarProps) {
   const [value, setValue]             = useState('');
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [focused, setFocused]         = useState(false);
   const selectedCoordsRef = useRef<{ lat: number; lng: number } | undefined>(undefined);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const fetchSuggestions = (v: string) => {
+  const fetchSuggestions = useCallback((v: string) => {
     if (timerRef.current) clearTimeout(timerRef.current);
     if (!v.trim()) { setSuggestions([]); return; }
     timerRef.current = setTimeout(async () => {
       try {
         const enc = encodeURIComponent(v);
+        const spotParams = new URLSearchParams({ name: v, suggest: '1' });
+        if (currentPos) {
+          spotParams.set('lat', String(currentPos.lat));
+          spotParams.set('lng', String(currentPos.lng));
+        }
         const [spotsRes, areaRes, stationRes, contentRes] = await Promise.all([
-          fetch(`/api/spots/search?name=${enc}&suggest=1`),
+          fetch(`/api/spots/search?${spotParams}`),
           fetch(`/api/area-suggest?q=${enc}`),
           fetch(`/api/station-suggest?q=${enc}`),
           fetch(`/api/gacha/search?q=${enc}&suggest=1`),
@@ -43,7 +49,13 @@ export default function SearchBar({ onSearch, onClear, hasSearchResult }: Search
         const contentData = await contentRes.json();
 
         const spots: Suggestion[] = (spotData.suggestions ?? []).map(
-          (s: { name: string; address: string }) => ({ label: s.name, sublabel: s.address, type: 'spot' as const })
+          (s: { name: string; address: string; lat: number; lng: number }) => ({
+            label: s.name,
+            sublabel: s.address,
+            type: 'spot' as const,
+            lat: s.lat,
+            lng: s.lng,
+          })
         );
         const areas: Suggestion[] = (areaData.suggestions ?? []).map(
           (s: { label: string; sublabel?: string }) => ({ label: s.label, sublabel: s.sublabel, type: 'area' as const })
@@ -55,18 +67,23 @@ export default function SearchBar({ onSearch, onClear, hasSearchResult }: Search
         );
         const contents: Suggestion[] = (contentData.suggestions ?? []);
 
-        const usedLabels = new Set(spots.map(s => s.label));
+        const storeSugg = spots.slice(0, 10);
+        const usedLabels = new Set(storeSugg.map(s => s.label));
         const locSugg = [
-          ...spots,
+          ...storeSugg,
           ...areas.filter(a => !usedLabels.has(a.label)),
           ...stations.filter(s => !usedLabels.has(s.label)),
         ];
 
-        // 位置情報最大4件 + コンテンツ全件（IPのシリーズをすべて表示するため）
-        setSuggestions([...locSugg.slice(0, 4), ...contents]);
+        // 店舗最大10件（近い順）+ エリア・駅 + コンテンツ全件
+        setSuggestions([...locSugg, ...contents]);
       } catch {}
     }, 150);
-  };
+  }, [currentPos]);
+
+  useEffect(() => {
+    if (value.trim() && currentPos) fetchSuggestions(value);
+  }, [currentPos, value, fetchSuggestions]);
 
   const isContentType = (type?: string) => type === 'gacha' || type === 'genre';
 
@@ -95,14 +112,15 @@ export default function SearchBar({ onSearch, onClear, hasSearchResult }: Search
     onClear();
   };
 
-  const hasInput = value || hasSearchResult;
   const showDrop = focused && suggestions.length > 0;
+  const locSuggestions = suggestions.filter(s => !isContentType(s.type));
+  const contentSuggestions = suggestions.filter(s => isContentType(s.type));
 
   return (
     // outer: no horizontal padding so dropdown can be full-width
     <div className="relative pb-1">
       <div className="flex gap-1.5 items-center px-4">
-        {hasInput && (
+        {hasSearchResult && (
           <button onClick={clear} aria-label="検索を解除"
             className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 active:scale-90 transition-transform"
             style={{ background: '#eee' }}>
@@ -111,12 +129,8 @@ export default function SearchBar({ onSearch, onClear, hasSearchResult }: Search
         )}
         <div className="flex-1">
           <div
-            className="flex items-center gap-1.5 px-3 py-2 rounded-2xl"
-            style={{
-              background: '#F5F3ED',
-              border: focused ? '1.5px solid #F2B800' : '1.5px solid transparent',
-              transition: 'border-color 0.15s',
-            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 md:py-2 rounded-2xl"
+            style={{ background: '#F5F3ED' }}
           >
             <Search size={13} color="#aaa" className="flex-shrink-0" />
             <input
@@ -143,12 +157,6 @@ export default function SearchBar({ onSearch, onClear, hasSearchResult }: Search
             )}
           </div>
         </div>
-
-        <button onClick={submit}
-          className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 hover:scale-110 active:scale-90 transition-transform"
-          style={{ background: '#F2B800' }}>
-          <Search size={14} color="white" />
-        </button>
       </div>
 
       {/* dropdown: left-0 right-0 relative to outer → full component width */}
@@ -157,49 +165,55 @@ export default function SearchBar({ onSearch, onClear, hasSearchResult }: Search
           className="absolute left-0 right-0 z-50 mt-1 rounded-xl overflow-hidden"
           style={{ top: '100%', background: 'white', boxShadow: '0 6px 24px rgba(0,0,0,0.14)', maxHeight: 320, overflowY: 'auto', border: '1px solid #f0f0f0' }}
         >
-          {suggestions.map((s, i) => (
+          {locSuggestions.map((s, i) => (
             <button
-              key={i}
-              className="w-full text-left px-3 py-2.5 active:bg-amber-50"
-              style={{ display: 'block', borderBottom: i < suggestions.length - 1 ? '1px solid #f5f5f5' : 'none' }}
+              key={`loc-${i}`}
+              className="w-full text-left px-2.5 md:px-3 py-2 md:py-2.5 active:bg-amber-50"
+              style={{ display: 'block', borderBottom: i < locSuggestions.length - 1 || contentSuggestions.length > 0 ? '1px solid #f5f5f5' : 'none' }}
               onMouseDown={() => selectSugg(s)}
             >
-              {isContentType(s.type) ? (
-                /* ガチャ・ジャンル: 画像左端 */
-                <div className="flex items-center gap-2">
-                  {s.type === 'gacha' && s.imageUrl ? (
-                    <img src={s.imageUrl} alt={s.label}
-                      style={{ width: 28, height: 28, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }}
-                      onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                  ) : (
-                    <div style={{ width: 28, height: 28, flexShrink: 0 }} />
-                  )}
-                  <span style={{ fontSize: 13, fontWeight: 600, color: '#222', flex: 1 }}>{s.label}</span>
-                  {s.type === 'genre' && (
-                    <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 8, flexShrink: 0, background: '#e0f2fe', color: '#0369a1' }}>ジャンル</span>
+              {s.type === 'spot' || s.type === 'station' ? (
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1 md:gap-1.5">
+                    <span className="text-[11px] md:text-[13px] font-semibold text-[#222] leading-snug truncate">{s.label}</span>
+                    {s.type === 'spot' && (
+                      <span className="text-[8px] md:text-[9px] font-bold px-1.5 py-0 rounded-full flex-shrink-0 bg-[#fef9c3] text-[#854d0e]">店舗</span>
+                    )}
+                    {s.type === 'station' && (
+                      <span className="text-[8px] md:text-[9px] font-bold px-1.5 py-0 rounded-full flex-shrink-0 bg-[#dbeafe] text-[#1d4ed8]">駅</span>
+                    )}
+                  </div>
+                  {s.sublabel && (
+                    <div className="text-[9px] md:text-[10px] text-[#999] leading-snug mt-0.5">{s.sublabel}</div>
                   )}
                 </div>
               ) : (
-                /* 店舗・駅・エリア: 既存スタイル維持 */
-                <div className="flex items-start gap-1.5">
-                  {s.type === 'spot'
-                    ? <Store size={11} color="#F2B800" className="flex-shrink-0 mt-0.5" />
-                    : s.type === 'station'
-                    ? <TrainFront size={11} color="#3b82f6" className="flex-shrink-0 mt-0.5" />
-                    : <MapPin size={11} color="#aaa" className="flex-shrink-0 mt-0.5" />
-                  }
+                <div className="flex items-start gap-1 md:gap-1.5">
+                  <MapPin color="#aaa" className="flex-shrink-0 mt-0.5 w-[9px] h-[9px] md:w-[11px] md:h-[11px]" />
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <span style={{ fontSize: 13, fontWeight: 600, color: '#222', lineHeight: 1.4 }} className="truncate">{s.label}</span>
-                      {s.type === 'spot'    && <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 8, flexShrink: 0, background: '#fef9c3', color: '#854d0e' }}>店舗</span>}
-                      {s.type === 'station' && <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 8, flexShrink: 0, background: '#dbeafe', color: '#1d4ed8' }}>駅</span>}
-                    </div>
-                    {s.sublabel && (s.type === 'station' || s.type === 'spot') && (
-                      <div style={{ fontSize: 10, color: '#999', lineHeight: 1.3, marginTop: 1 }}>{s.sublabel}</div>
-                    )}
+                    <span className="text-[11px] md:text-[13px] font-semibold text-[#222] leading-snug truncate">{s.label}</span>
                   </div>
                 </div>
               )}
+            </button>
+          ))}
+          {contentSuggestions.length > 0 && (
+            <div className="px-2.5 md:px-3 py-0.5 md:py-1 text-[9px] md:text-[10px] font-bold text-gray-400 bg-gray-50 border-b border-gray-100">ガチャ・IP</div>
+          )}
+          {contentSuggestions.map((s, i) => (
+            <button
+              key={`content-${i}`}
+              className={'w-full flex items-center justify-between px-2.5 md:px-3 py-1.5 md:py-2 active:bg-amber-50 text-left ' + (i < contentSuggestions.length - 1 ? 'border-b border-gray-100' : '')}
+              onMouseDown={() => selectSugg(s)}
+            >
+              <span className="text-[11px] md:text-xs font-medium text-gray-800 min-w-0 pr-2">{s.label}</span>
+              {s.type === 'genre' ? (
+                <span className="text-[8px] md:text-[9px] font-bold px-1.5 md:px-2 py-0 md:py-0.5 rounded-full flex-shrink-0 bg-blue-100 text-blue-700">IP</span>
+              ) : s.imageUrl ? (
+                <img src={s.imageUrl} alt={s.label}
+                  className="w-5 h-5 md:w-6 md:h-6 rounded-md object-cover flex-shrink-0"
+                  onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+              ) : null}
             </button>
           ))}
         </div>

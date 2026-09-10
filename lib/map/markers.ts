@@ -4,7 +4,29 @@ import type { SpotDetail, GachaInfo } from '@/components/SpotDetailSheet';
 // マーカークリック後の dblclick 誤発火を防ぐフラグ
 export let suppressDblclick = false;
 
+const activeMarkerPopups = new Set<mapboxgl.Popup>();
+
+/** 店舗マーカーホバーで表示中のポップアップをすべて閉じる */
+export function closeAllMarkerPopups() {
+  for (const popup of activeMarkerPopups) {
+    try { popup.remove(); } catch {}
+  }
+  activeMarkerPopups.clear();
+}
+
+function trackMarkerPopup(popup: mapboxgl.Popup) {
+  activeMarkerPopups.add(popup);
+  popup.on('close', () => activeMarkerPopups.delete(popup));
+}
+
 const NEARBY_RADIUS = 5_000;
+const MOBILE_BREAKPOINT = 768;
+
+function markerPopupFontSizes(): { name: number; sub: number } {
+  if (typeof window === 'undefined') return { name: 13, sub: 11 };
+  if (window.innerWidth < MOBILE_BREAKPOINT) return { name: 12, sub: 9 };
+  return { name: 13, sub: 11 };
+}
 
 export interface NearbySpot {
   id: string; name: string; address: string;
@@ -145,6 +167,7 @@ export async function loadNearbySpots(
 
     if (!map.getContainer().isConnected) return;
 
+    closeAllMarkerPopups();
     markersRef.current.forEach(m => m.remove());
     markersRef.current = [];
 
@@ -191,16 +214,27 @@ export async function loadNearbySpots(
         );
       }
 
-      const popup = new mapboxgl.Popup({ offset: 28, closeButton: false, closeOnClick: false, maxWidth: '200px' })
+      const popupFonts = markerPopupFontSizes();
+      const popupTight = typeof window !== 'undefined' && window.innerWidth < MOBILE_BREAKPOINT;
+      const popup = new mapboxgl.Popup({
+        offset: 28, closeButton: false, closeOnClick: false, maxWidth: '200px',
+        className: 'mikke-spot-marker-popup',
+      })
         .setHTML(
-          `<div style="font-size:13px;font-weight:700;color:#1a1a1a;margin-bottom:2px;line-height:1.4;word-break:auto-phrase">${spot.name}</div>` +
-          `<div style="font-size:11px;color:#888;margin-bottom:3px;line-height:1.4">${spot.address}</div>` +
-          (firstGacha ? `<div style="font-size:11px;color:#F2B800;font-weight:600;line-height:1.4">${firstGacha.seriesName}</div>` : '')
+          `<div style="font-size:${popupFonts.name}px;font-weight:700;color:#1a1a1a;margin-bottom:${popupTight ? 1 : 2}px;line-height:1.4;word-break:auto-phrase">${spot.name}</div>` +
+          `<div style="font-size:${popupFonts.sub}px;color:#888;margin-bottom:${firstGacha ? (popupTight ? 1 : 3) : 0}px;line-height:1.4">${spot.address}</div>` +
+          (firstGacha ? `<div style="font-size:${popupFonts.sub}px;color:#F2B800;font-weight:600;line-height:1.4;margin:0">${firstGacha.seriesName}</div>` : '')
         );
 
+      trackMarkerPopup(popup);
       const safeRemove = () => { try { popup.remove(); } catch {} };
-      el.addEventListener('mouseenter', () => popup.setLngLat([spot.lng, spot.lat]).addTo(map));
+      el.addEventListener('mouseenter', () => {
+        closeAllMarkerPopups();
+        activeMarkerPopups.add(popup);
+        popup.setLngLat([spot.lng, spot.lat]).addTo(map);
+      });
       el.addEventListener('mouseleave', safeRemove);
+      el.addEventListener('pointerleave', safeRemove);
       el.addEventListener('click', () => {
         suppressDblclick = true;
         setTimeout(() => { suppressDblclick = false; }, 600);

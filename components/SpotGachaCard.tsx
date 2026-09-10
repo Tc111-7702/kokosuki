@@ -13,7 +13,7 @@ export interface SpotGachaInfo {
 
 // ─── ユーティリティ ───────────────────────────────────────────────────────────
 
-function ipGradient(ipName: string): [string, string] {
+export function ipGradient(ipName: string): [string, string] {
   let h = 0;
   for (let i = 0; i < ipName.length; i++) { h = ipName.charCodeAt(i) + ((h << 5) - h); }
   const hue = Math.abs(h) % 360;
@@ -22,22 +22,25 @@ function ipGradient(ipName: string): [string, string] {
 
 // ─── 在庫バッジ ───────────────────────────────────────────────────────────────
 
-export function SpotStockBadge({ status }: { status: string | null }) {
+export function SpotStockBadge({ status, floating = true, compact = false }: { status: string | null; floating?: boolean; compact?: boolean }) {
   const isAvailable = status === 'in_stock' || status === 'available' || status === 'low' || status === 'low_stock';
   const isEmpty     = status === 'out_of_stock' || status === 'empty';
+  const fontSize = compact ? 8 : 10;
+  const pad = compact ? '1px 6px' : '2px 8px';
+  const pos = floating ? { position: 'absolute' as const, bottom: 6, left: 6 } : {};
   if (isAvailable) return (
-    <div style={{ position: 'absolute', bottom: 6, left: 6, background: 'rgba(22,163,74,0.92)', borderRadius: 20, padding: '2px 8px' }}>
-      <span style={{ fontSize: 10, color: 'white', fontWeight: 700 }}>〇 在庫あり</span>
+    <div style={{ ...pos, background: 'rgba(22,163,74,0.92)', borderRadius: 20, padding: pad }}>
+      <span style={{ fontSize, color: 'white', fontWeight: 700 }}>〇 在庫あり</span>
     </div>
   );
   if (isEmpty) return (
-    <div style={{ position: 'absolute', bottom: 6, left: 6, background: 'rgba(220,38,38,0.92)', borderRadius: 20, padding: '2px 8px' }}>
-      <span style={{ fontSize: 10, color: 'white', fontWeight: 700 }}>✕ 在庫なし</span>
+    <div style={{ ...pos, background: 'rgba(220,38,38,0.92)', borderRadius: 20, padding: pad }}>
+      <span style={{ fontSize, color: 'white', fontWeight: 700 }}>✕ 在庫なし</span>
     </div>
   );
   return (
-    <div style={{ position: 'absolute', bottom: 6, left: 6, background: 'rgba(100,100,100,0.72)', borderRadius: 20, padding: '2px 8px' }}>
-      <span style={{ fontSize: 10, color: 'white', fontWeight: 700 }}>在庫情報不明</span>
+    <div style={{ ...pos, background: 'rgba(100,100,100,0.72)', borderRadius: 20, padding: pad }}>
+      <span style={{ fontSize, color: 'white', fontWeight: 700 }}>在庫情報不明</span>
     </div>
   );
 }

@@ -2,8 +2,10 @@
 
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { X, MapPin, Navigation, Phone, ChevronRight, Send } from 'lucide-react';
-import { SpotGachaCard } from '@/components/SpotGachaCard';
+import { X, MapPin, Navigation, Phone, ChevronRight } from 'lucide-react';
+import { ipGradient } from '@/components/SpotGachaCard';
+import { GachaCard, type GachaItem } from '@/components/ui/GachaCard';
+import { ReplyComposerField } from '@/components/ReplyComposerField';
 import NavPickerModal from '@/components/NavPickerModal';
 import { Avatar } from '@/components/ui/Avatar';
 import { useIsMobile } from '@/lib/useIsMobile';
@@ -49,6 +51,21 @@ function fmtDistance(m: number): string {
   return m < 1000 ? `${m}m` : `${(m / 1000).toFixed(1)}km`;
 }
 
+function toGachaItem(g: GachaInfo): GachaItem {
+  const [gradientFrom, gradientTo] = ipGradient(g.ipName);
+  return {
+    id: g.id,
+    seriesName: g.seriesName,
+    ipName: g.ipName,
+    imageUrl: g.imageUrl,
+    gradientFrom,
+    gradientTo,
+    likeCount: 0,
+    status: 'on_sale',
+    releaseDate: null,
+  };
+}
+
 export default function SpotDetailSheet({
   spot, gachaMap, filterGachaIds, searchOverrideIds, searchLabel,
   highlightGachaId, currentPos, onClose, onClearFilter, onOpenFilter,
@@ -57,12 +74,15 @@ export default function SpotDetailSheet({
   const sheetRef = useRef<HTMLDivElement>(null);
   const [navOpen,     setNavOpen]     = useState(false);
   const MOBILE_BREAKPOINT = 768;
+  const NARROW_BREAKPOINT = 341;
   const isMobile = useIsMobile(MOBILE_BREAKPOINT);
+  const isNarrow = useIsMobile(NARROW_BREAKPOINT);
   const [expanded,    setExpanded]    = useState(false);
   const dragStartY = useRef<number | null>(null);
   const [reviews,     setReviews]     = useState<SheetReview[]>([]);
   const [reviewText,  setReviewText]  = useState('');
   const [submittingR, setSubmittingR] = useState(false);
+  const reviewTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => { setExpanded(false); setReviews([]); setReviewText(''); }, [spot?.id]);
 
@@ -132,7 +152,7 @@ export default function SpotDetailSheet({
       <div className="fixed z-40"
         style={{ inset: 0, bottom: bottomOffset, background: 'rgba(0,0,0,0.25)' }}
         onClick={onClose} />
-      <div ref={sheetRef} className="fixed left-0 right-0 z-50 flex flex-col"
+      <div ref={sheetRef} className="fixed left-0 right-0 z-50 flex flex-col min-w-0 overflow-hidden"
         style={{
           bottom: bottomOffset,
           background: 'white',
@@ -192,7 +212,7 @@ export default function SpotDetailSheet({
           onPointerUp={() => { dragStartY.current = null; }}
         >
           <div className="flex-1 min-w-0 pr-2">
-            <h2 className="text-[18px] font-black leading-tight" style={{ color: '#1a1a1a' }}>{spot.name}</h2>
+            <h2 className="text-[16px] md:text-[18px] font-black leading-tight" style={{ color: '#1a1a1a' }}>{spot.name}</h2>
             <div className="flex items-center gap-1 mt-1">
               <MapPin size={12} color="#aaa" />
               <p className="text-[12px] truncate" style={{ color: '#888' }}>{spot.address}</p>
@@ -207,7 +227,7 @@ export default function SpotDetailSheet({
         </div>
 
         <div
-          className="flex-1 overflow-y-auto"
+          className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden"
           style={{ minHeight: 0 }}
           onScroll={e => { if ((e.currentTarget as HTMLDivElement).scrollTop > 0 && !expanded) setExpanded(true); }}
           onWheel={e => {
@@ -248,48 +268,54 @@ export default function SpotDetailSheet({
               <div
                 className={isMobile && matchedGacha.length > 2 ? 'spot-gacha-scroll' : ''}
                 style={{
-                  display: 'flex', gap: 12, padding: '12px 16px', overflowX: 'auto',
+                  display: 'flex', gap: isMobile ? 12 : 32,
+                  padding: isMobile ? '10px 16px 6px' : '12px 16px',
+                  overflowX: 'auto',
                   scrollbarWidth: 'none',
                 }}
               >
-                {matchedGacha.map(g => (
-                  <SpotGachaCard key={g.id} gacha={g} stockStatus={spot.stockMap[g.id] ?? null} isMobile={isMobile} mode="scroll" highlight={searchSet != null && searchSet.has(g.id)} />
+                {matchedGacha.map((g, rank) => (
+                  <GachaCard
+                    key={g.id}
+                    gacha={toGachaItem(g)}
+                    rank={rank}
+                    showRank={false}
+                    isMobile={isMobile}
+                    narrow={isNarrow}
+                    variant="favorite"
+                    stockStatus={spot.stockMap[g.id] ?? null}
+                    highlight={searchSet != null && searchSet.has(g.id)}
+                  />
                 ))}
               </div>
             </>
           )}
 
-          <div className="px-4 py-2 text-[13px] font-bold mt-2"
+          <div className={`px-4 text-[13px] font-bold ${isMobile ? 'py-1.5 mt-1' : 'py-2 mt-2'}`}
             style={{ color: '#888', background: '#FAFAFA', borderBottom: '1px solid #F0F0F0' }}>
             口コミ
           </div>
           {/* 口コミ投稿欄 */}
-          <div className="px-4 pt-3 pb-2 flex items-end gap-2">
-            <textarea
-              value={reviewText}
+          <div className={`min-w-0 px-4 ${isMobile ? 'pt-2.5 pb-4' : 'pt-3 pb-2'}`}>
+            <ReplyComposerField
+              text={reviewText}
+              textareaRef={reviewTextareaRef}
               onChange={e => setReviewText(e.target.value)}
+              onSelect={() => {}}
               onKeyDown={e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); handleReviewSubmit(); } }}
+              renderMentionText={t => t}
+              onSubmit={handleReviewSubmit}
+              submitting={submittingR}
               placeholder="この店舗の口コミ・質問を書く..."
-              rows={2}
-              className="flex-1 resize-none rounded-xl px-3 py-2 text-[13px] placeholder-gray-400 focus:outline-none"
-              style={{ background: 'white', border: '1.5px solid #E0E0E0', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}
+              variant="inline"
+              plainText
             />
-            <button
-              onClick={handleReviewSubmit}
-              disabled={!reviewText.trim() || submittingR}
-              className="flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-full disabled:opacity-40"
-              style={{ background: '#F2B800', color: 'white' }}
-            >
-              {submittingR
-                ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                : <Send size={15} />}
-            </button>
           </div>
           {/* 口コミ一覧 (最大3件) */}
           {reviews.length > 0 && (
-            <div className="px-4 pb-3 flex flex-col gap-2">
+            <div className="min-w-0 px-4 pb-3 flex flex-col gap-2">
               {reviews.map(rv => (
-                <div key={rv.id} className="flex gap-2.5">
+                <div key={rv.id} className="flex gap-2.5 min-w-0">
                   <Avatar user={rv.user} size={28} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 mb-0.5">
@@ -298,7 +324,7 @@ export default function SpotDetailSheet({
                         {new Date(rv.createdAt).toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })}
                       </span>
                     </div>
-                    <p className="text-[13px] leading-snug" style={{ color: '#444' }}>{rv.text}</p>
+                    <p className="text-[13px] leading-snug whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word] min-w-0 max-w-full" style={{ color: '#444' }}>{rv.text}</p>
                   </div>
                 </div>
               ))}
@@ -320,30 +346,31 @@ export default function SpotDetailSheet({
             </button>
           </div>
 
-          <div className="flex gap-2 px-4 pb-6 pt-3" style={{ borderTop: '1px solid #F0F0F0' }}>
+          <div className={`flex px-4 pb-6 pt-3 ${isMobile ? 'gap-1.5' : 'gap-2'}`} style={{ borderTop: '1px solid #F0F0F0' }}>
             <button onClick={() => setNavOpen(true)}
-              className="flex items-center justify-center gap-1.5 py-3 rounded-2xl text-[14px] font-bold"
-              style={{ background: '#E8F4FD', color: '#0891b2', minWidth: 72 }}>
-              <Navigation size={15} />経路
+              className={`flex shrink-0 items-center justify-center gap-1 rounded-2xl font-bold ${isMobile ? 'px-3.5 py-2.5 text-[11px]' : 'px-4 py-2.5 text-[14px]'}`}
+              style={{ background: '#E8F4FD', color: '#0891b2', minWidth: isMobile ? undefined : 72 }}>
+              {!isMobile && <Navigation size={15} />}経路
             </button>
             {spot.phone && (
               <a href={'tel:' + spot.phone.replace(/[^\d+]/g, '')}
-                className="flex items-center justify-center gap-1.5 py-3 rounded-2xl text-[14px] font-bold"
-                style={{ background: '#E8F5E9', color: '#16a34a', minWidth: 72, textDecoration: 'none' }}>
-                <Phone size={15} />電話
+                aria-label="電話"
+                className={`flex shrink-0 items-center justify-center rounded-2xl font-bold ${isMobile ? 'px-2.5 py-2.5' : 'gap-1 px-4 py-2.5 text-[14px]'}`}
+                style={{ background: '#E8F5E9', color: '#16a34a', minWidth: isMobile ? undefined : 72, textDecoration: 'none' }}>
+                {isMobile ? <Phone size={16} /> : <><Phone size={15} />電話</>}
               </a>
             )}
             <button
               disabled={isEmpty || tooFarForStock}
               onClick={() => router.push(`/post?mode=stock&spotId=${spot.id}&spotName=${encodeURIComponent(spot.name)}&filterGachaIds=${filterGachaIds.join(',')}${searchLabel ? `&contentSearch=${encodeURIComponent(searchLabel)}` : ''}`)}
-              className="flex-1 py-3 rounded-2xl text-[14px] font-bold"
+              className={`min-w-0 flex-1 rounded-2xl font-bold ${isMobile ? 'px-2 py-2.5 text-[12px]' : 'py-2.5 text-[14px]'}`}
               style={{ background: '#F5F3ED', color: '#555', opacity: isEmpty || tooFarForStock ? 0.4 : 1, cursor: isEmpty || tooFarForStock ? 'not-allowed' : 'pointer' }}>
               在庫を報告
             </button>
             <button
               disabled={isEmpty}
               onClick={() => router.push(`/post?mode=pull&spotId=${spot.id}&spotName=${encodeURIComponent(spot.name)}&filterGachaIds=${filterGachaIds.join(',')}${searchLabel ? `&contentSearch=${encodeURIComponent(searchLabel)}` : ''}`)}
-              className="flex-1 py-3 rounded-2xl text-[14px] font-bold"
+              className={`min-w-0 flex-1 rounded-2xl font-bold ${isMobile ? 'px-1.5 py-2.5 text-[12px]' : 'py-2.5 text-[14px]'}`}
               style={{ background: '#F2B800', color: 'white', opacity: isEmpty ? 0.4 : 1, cursor: isEmpty ? 'not-allowed' : 'pointer' }}>
               引いた！
             </button>

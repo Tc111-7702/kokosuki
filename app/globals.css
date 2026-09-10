@@ -411,3 +411,14 @@ html, body {
   overflow: hidden;
   overscroll-behavior: none;
 }
+
+/* マップ：店舗マーカーホバー時のポップアップ */
+.mikke-spot-marker-popup .mapboxgl-popup-content {
+  padding: 12px 8px;
+}
+
+@media (max-width: 767px) {
+  .mikke-spot-marker-popup .mapboxgl-popup-content {
+    padding: 6px 6px 4px;
+  }
+}
