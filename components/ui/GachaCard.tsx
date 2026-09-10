@@ -3,9 +3,10 @@
 import { useRouter } from 'next/navigation';
 import { Heart } from 'lucide-react';
 import { useLikedGachas } from '@/lib/useLikedGachas';
+import { SpotStockBadge } from '@/components/SpotGachaCard';
 
 // カード用のいいね（ハート）ボタン。タップでいいねトグル（カード遷移はしない）。
-function GachaLikeButton({ gachaId }: { gachaId: string }) {
+function GachaLikeButton({ gachaId, size = 30, iconSize = 16 }: { gachaId: string; size?: number; iconSize?: number }) {
   const { isLiked, toggle } = useLikedGachas();
   const liked = isLiked(gachaId);
   return (
@@ -14,9 +15,9 @@ function GachaLikeButton({ gachaId }: { gachaId: string }) {
       onClick={e => { e.stopPropagation(); toggle(gachaId); }}
       aria-label={liked ? 'いいねを取り消す' : 'いいね'}
       className="flex items-center justify-center rounded-full active:scale-90"
-      style={{ width: 30, height: 30, background: 'rgba(255,255,255,0.92)', boxShadow: '0 1px 4px rgba(0,0,0,0.18)', transition: 'transform 0.1s' }}
+      style={{ width: size, height: size, background: 'rgba(255,255,255,0.92)', boxShadow: '0 1px 4px rgba(0,0,0,0.18)', transition: 'transform 0.1s' }}
     >
-      <Heart size={16} fill={liked ? '#FF4D4D' : 'none'} color={liked ? '#FF4D4D' : '#999'} strokeWidth={2.2} />
+      <Heart size={iconSize} fill={liked ? '#FF4D4D' : 'none'} color={liked ? '#FF4D4D' : '#999'} strokeWidth={2.2} />
     </button>
   );
 }
@@ -78,9 +79,14 @@ interface GachaCardProps {
   badgeLabel?: string;     // 指定時はステータスバッジの代わりに固定ラベルを表示（例: 今秋発売）
   variant?: 'default' | 'favorite'; // favorite: おきにいりカードと同じ見た目（正方形画像・順位なし）
   fullWidth?: boolean;    // favorite 時にグリッド等で幅100%にする
+  stockStatus?: string | null; // 指定時は発売状況バッジの代わりに在庫バッジを表示（店舗シート等）
+  highlight?: boolean;    // 検索ヒット時の黄色ボーダー
 }
 
-export function GachaCard({ gacha, rank, showRank, rankNumberInset, isMobile, narrow = false, onClick, badgeLabel, variant = 'default', fullWidth = false }: GachaCardProps) {
+export function GachaCard({
+  gacha, rank, showRank, rankNumberInset, isMobile, narrow = false, onClick, badgeLabel,
+  variant = 'default', fullWidth = false, stockStatus, highlight = false,
+}: GachaCardProps) {
   const router = useRouter();
   const go = onClick ?? (() => router.push(`/gacha/${gacha.id}`));
 
@@ -88,6 +94,7 @@ export function GachaCard({ gacha, rank, showRank, rankNumberInset, isMobile, na
   if (variant === 'favorite') {
     const favWNum = isMobile ? (narrow ? 118 : 150) : 270;
     const favW = fullWidth ? '100%' : favWNum;
+    const showLike = stockStatus === undefined;
     return (
       <div onClick={go} style={{ flexShrink: fullWidth ? undefined : 0, width: favW, cursor: 'pointer' }}>
         {/* カードの上に小さくIP名（無い場合も1行分の高さを確保して揃える） */}
@@ -109,7 +116,11 @@ export function GachaCard({ gacha, rank, showRank, rankNumberInset, isMobile, na
           )}
         <div
           className="relative z-10 flex flex-col rounded-2xl overflow-hidden w-full transition-transform"
-          style={{ background: 'white', boxShadow: '0 2px 12px rgba(0,0,0,0.07)' }}
+          style={{
+            background: 'white',
+            boxShadow: highlight ? '0 2px 10px rgba(242,184,0,0.35)' : '0 2px 12px rgba(0,0,0,0.07)',
+            border: highlight ? '2px solid #F2B800' : '2px solid transparent',
+          }}
           onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-3px)')}
           onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}
         >
@@ -123,14 +134,18 @@ export function GachaCard({ gacha, rank, showRank, rankNumberInset, isMobile, na
                 onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
               />
             )}
-            {/* 発売状況タグ（左上） */}
             <div style={{ position: 'absolute', top: 8, left: 8 }}>
-              <GachaStatusBadge status={gacha.status} badgeLabel={badgeLabel} isMobile={isMobile} />
+              {stockStatus !== undefined ? (
+                <SpotStockBadge status={stockStatus} floating={false} />
+              ) : (
+                <GachaStatusBadge status={gacha.status} badgeLabel={badgeLabel} isMobile={isMobile} />
+              )}
             </div>
-            {/* いいねボタン（右上） */}
-            <div style={{ position: 'absolute', top: 6, right: 6 }}>
-              <GachaLikeButton gachaId={gacha.id} />
-            </div>
+            {showLike && (
+              <div style={{ position: 'absolute', top: 6, right: 6 }}>
+                <GachaLikeButton gachaId={gacha.id} />
+              </div>
+            )}
           </div>
           <div className="px-2 py-1.5">
             <p style={{ fontSize: 11, color: '#222', fontWeight: 700, lineHeight: 1.3 }} className="line-clamp-2">

@@ -221,17 +221,27 @@ export const updateSpotPhone = (id: string, phone: string) =>
 export async function getGachaFilters() {
   const rows = await prisma.gacha.findMany({
     where: { status: 'on_sale' },
-    select: { id: true, seriesName: true, imageUrl: true, ...IP_NAME_SELECT },
+    select: {
+      id: true, seriesName: true, imageUrl: true,
+      _count: { select: { gachaLikes: true } },
+      ...IP_NAME_SELECT,
+    },
     orderBy: [{ ip: { name: 'asc' } }, { seriesName: 'asc' }],
   });
-  const items = rows.map(flatIp);
-  // ガチャ数が多い順にIPを並べる（未link ＝ ipName 空のガチャは IP 一覧に出さない）
-  const countMap = new Map<string, number>();
-  for (const g of items) {
-    if (!g.ipName) continue;
-    countMap.set(g.ipName, (countMap.get(g.ipName) ?? 0) + 1);
+  const items = rows.map(row => flatIp({
+    id: row.id,
+    seriesName: row.seriesName,
+    imageUrl: row.imageUrl,
+    ip: row.ip,
+  }));
+  // 総いいね数が多い順に IP を並べる（未 link のガチャは IP 一覧に出さない）
+  const likeMap = new Map<string, number>();
+  for (const row of rows) {
+    const name = row.ip?.name;
+    if (!name) continue;
+    likeMap.set(name, (likeMap.get(name) ?? 0) + row._count.gachaLikes);
   }
-  const ipNames = [...countMap.entries()]
+  const ipNames = [...likeMap.entries()]
     .sort((a, b) => b[1] - a[1])
     .map(([ip]) => ip);
   return { ipNames, items };

@@ -2,33 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { X, ChevronRight, ChevronLeft, Check, ChevronDown, ChevronUp, Search } from 'lucide-react';
+import { expandQuery } from '@/lib/gacha-aliases';
 
-// ─── 検索エイリアス（日本語表記 → 正式タイトル） ─────────────────────────────
-const SEARCH_ALIASES: Record<string, string[]> = {
-  'ONE PIECE':      ['ワンピース', 'onepiece', 'one piece'],
-  'HUNTER×HUNTER': ['ハンターハンター', 'hunterhunter', 'hunter hunter'],
-  'SPY×FAMILY':    ['スパイファミリー', 'spyfamily', 'spy family'],
-  'ポケモン':        ['pokemon', 'pokémon'],
-  'ドラゴンボール':   ['dragonball', 'dragon ball', 'db', 'dbz'],
-  '呪術廻戦':        ['jjk', 'jujutsu'],
-  'チェンソーマン':   ['chainsaw man', 'chainsawman'],
-  'ハイキュー!!':    ['haikyuu', 'haikyu'],
-  'DEATH NOTE':      ['デスノート', 'デスノ', 'death note', 'deathnote'],
-};
-
-/** クエリがテキストにマッチするか（エイリアス含む） */
-function matchesQuery(text: string, q: string): boolean {
-  if (text.toLowerCase().includes(q)) return true;
-  // エイリアス: text が正式名称のとき、qがエイリアスに含まれるか
-  const aliases = SEARCH_ALIASES[text] ?? [];
-  if (aliases.some((a) => a.includes(q))) return true;
-  // 逆引き: text がエイリアスのとき
-  for (const [canonical, alts] of Object.entries(SEARCH_ALIASES)) {
-    if (text.toLowerCase().includes(canonical.toLowerCase())) {
-      if (alts.some((a) => a.includes(q))) return true;
-    }
-  }
-  return false;
+/** クエリがテキストにマッチするか（カタカナ正規化・エイリアス展開込み） */
+function matchesQuery(text: string, rawQuery: string): boolean {
+  const q = rawQuery.trim();
+  if (!q) return false;
+  const textLower = text.toLowerCase();
+  return expandQuery(q).some((term) => textLower.includes(term.toLowerCase()));
 }
 
 // ─── 型定義 ──────────────────────────────────────────────────────────────────
@@ -131,7 +112,6 @@ export default function FilterDrawer({
           count: items.filter((g) => g.ipName === ip).length,
           isFav: favoriteIps.includes(ip),
         }));
-        summary.sort((a, b) => b.count - a.count);
         setIpList(summary);
         const stored = loadStoredGachaIds();
         const seed   = loadSeedGachaIds();
@@ -241,7 +221,7 @@ export default function FilterDrawer({
               <ChevronLeft size={22} color="#555" />
             </button>
             <span className="text-[18px] font-black flex-1" style={{ color: '#1a1a1a' }}>
-              ジャンル選択
+              IP選択
             </span>
             <button
               onClick={() => setScreen('selected')}
@@ -263,7 +243,7 @@ export default function FilterDrawer({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="ジャンル・ガチャ名で検索"
+                placeholder="IP・ガチャ名で検索"
                 className="flex-1 bg-transparent text-[14px] outline-none"
                 style={{ color: '#1a1a1a' }}
               />
@@ -284,7 +264,7 @@ export default function FilterDrawer({
             ) : searchQuery.trim() ? (
               // 検索結果
               (() => {
-                const q = searchQuery.trim().toLowerCase();
+                const q = searchQuery.trim();
                 const genreHits = ipList.filter((ip) => matchesQuery(ip.ipName, q));
                 const gachaHits = allGacha.filter((g) => matchesQuery(g.seriesName, q) || matchesQuery(g.ipName, q));
                 const hasResults = genreHits.length > 0 || gachaHits.length > 0;
@@ -295,11 +275,11 @@ export default function FilterDrawer({
                 );
                 return (
                   <>
-                    {/* ジャンルセクション */}
+                    {/* IPセクション */}
                     {genreHits.length > 0 && (
                       <>
-                        <div className="px-4 py-2 text-[11px] font-bold" style={{ background: '#FAFAFA', color: '#aaa', borderBottom: '1px solid #F0F0F0' }}>
-                          ジャンル
+                        <div className="px-4 py-1.5 md:py-2 text-[10px] md:text-[11px] font-bold" style={{ background: '#FAFAFA', color: '#aaa', borderBottom: '1px solid #F0F0F0' }}>
+                          IP
                         </div>
                         {genreHits.map((ip) => {
                           const selectedCount = allGacha.filter((g) => g.ipName === ip.ipName && selectedGachaIds.has(g.id)).length;
@@ -307,40 +287,39 @@ export default function FilterDrawer({
                             <button
                               key={ip.ipName}
                               onClick={() => { setSearchQuery(''); openIp(ip.ipName); }}
-                              className="flex items-center justify-between w-full px-4 py-3.5 active:bg-gray-50"
+                              className="flex items-center justify-between w-full px-4 py-2 md:py-3.5 active:bg-gray-50"
                               style={{ borderBottom: '1px solid #F5F5F5' }}
                             >
-                              <div className="flex items-center gap-3">
-                                <div className="rounded-full flex-shrink-0" style={{ width: 8, height: 8, background: selectedCount > 0 ? '#F2B800' : '#E0E0E0' }} />
+                              <div className="flex items-center gap-2.5 md:gap-3">
+                                <div className="rounded-full flex-shrink-0" style={{ width: 6, height: 6, background: selectedCount > 0 ? '#F2B800' : '#E0E0E0' }} />
                                 <div className="flex flex-col items-start">
-                                  <span className="text-[15px] font-semibold" style={{ color: '#1a1a1a' }}>{ip.ipName}</span>
-                                  <span className="text-[12px]" style={{ color: '#aaa' }}>
+                                  <span className="text-[11px] md:text-[15px] font-semibold" style={{ color: '#1a1a1a' }}>{ip.ipName}</span>
+                                  <span className="text-[10px] md:text-[12px]" style={{ color: '#aaa' }}>
                                     {selectedCount > 0 ? `${selectedCount}/${ip.count}件選択中` : `${ip.count}件`}
                                   </span>
                                 </div>
                               </div>
-                              <ChevronRight size={18} color="#ccc" />
+                              <ChevronRight size={16} color="#ccc" />
                             </button>
                           );
                         })}
                       </>
                     )}
-                    {/* 商品セクション */}
+                    {/* ガチャセクション */}
                     {gachaHits.length > 0 && (
                       <>
-                        <div className="px-4 py-2 text-[11px] font-bold" style={{ background: '#FAFAFA', color: '#aaa', borderBottom: '1px solid #F0F0F0' }}>
-                          商品（{gachaHits.length}件）
+                        <div className="px-4 py-1.5 md:py-2 text-[10px] md:text-[11px] font-bold" style={{ background: '#FAFAFA', color: '#aaa', borderBottom: '1px solid #F0F0F0' }}>
+                          ガチャ（{gachaHits.length}件）
                         </div>
                         {gachaHits.slice(0, 50).map((g) => {
                           const selected = selectedGachaIds.has(g.id);
                           return (
                             <div
                               key={g.id}
-                              className="flex items-center gap-3 px-4 py-3"
+                              className="flex items-center gap-2.5 md:gap-3 px-4 py-2 md:py-3"
                               style={{ borderBottom: '1px solid #F5F5F5' }}
                             >
-                              {/* 商品画像 */}
-                              <div className="flex-shrink-0 rounded-lg overflow-hidden" style={{ width: 40, height: 40, background: '#F0F0F0' }}>
+                              <div className="flex-shrink-0 rounded-lg overflow-hidden w-8 h-8 md:w-10 md:h-10" style={{ background: '#F0F0F0' }}>
                                 {g.imageUrl && (
                                   <img
                                     src={g.imageUrl}
@@ -350,22 +329,19 @@ export default function FilterDrawer({
                                   />
                                 )}
                               </div>
-                              {/* 商品名・ジャンル */}
                               <div className="flex-1 min-w-0">
-                                <p className="text-[13px] font-semibold truncate" style={{ color: '#1a1a1a' }}>{g.seriesName}</p>
-                                <p className="text-[11px]" style={{ color: '#aaa' }}>{g.ipName}</p>
+                                <p className="text-[11px] md:text-[13px] font-semibold truncate" style={{ color: '#1a1a1a' }}>{g.seriesName}</p>
+                                <p className="text-[10px] md:text-[11px]" style={{ color: '#aaa' }}>{g.ipName}</p>
                               </div>
-                              {/* 選択ボタン */}
                               <button
                                 onClick={() => toggleGacha(g.id)}
-                                className="flex-shrink-0 flex items-center justify-center rounded-full"
+                                className="flex-shrink-0 flex items-center justify-center rounded-full w-6 h-6 md:w-7 md:h-7"
                                 style={{
-                                  width: 28, height: 28,
                                   background: selected ? '#F2B800' : '#F0F0F0',
                                   border: selected ? 'none' : '1.5px solid #DDD',
                                 }}
                               >
-                                {selected && <Check size={14} color="white" strokeWidth={3} />}
+                                {selected && <Check size={12} color="white" strokeWidth={3} />}
                               </button>
                             </div>
                           );
@@ -390,7 +366,7 @@ export default function FilterDrawer({
                   <button
                     key={ip.ipName}
                     onClick={() => openIp(ip.ipName)}
-                    className="flex items-center justify-between w-full px-4 py-4 active:bg-gray-50 transition-colors"
+                    className="flex items-center justify-between w-full px-4 py-2.5 md:py-4 active:bg-gray-50 transition-colors"
                     style={{ borderBottom: '1px solid #F5F5F5' }}
                   >
                     <div className="flex items-center gap-3">
@@ -400,19 +376,19 @@ export default function FilterDrawer({
                       />
                       <div className="flex flex-col items-start">
                         <div className="flex items-center gap-2">
-                          <span className="text-[15px] font-semibold" style={{ color: '#1a1a1a' }}>
+                          <span className="text-[13px] md:text-[15px] font-semibold" style={{ color: '#1a1a1a' }}>
                             {ip.ipName}
                           </span>
                           {ip.isFav && (
                             <span
-                              className="text-[10px] px-1.5 py-0.5 rounded-full font-bold"
+                              className="text-[9px] md:text-[10px] px-1.5 py-0.5 rounded-full font-bold"
                               style={{ background: '#FFF0C0', color: '#B8860B' }}
                             >
                               お気に入り
                             </span>
                           )}
                         </div>
-                        <span className="text-[12px]" style={{ color: '#aaa' }}>
+                        <span className="text-[11px] md:text-[12px]" style={{ color: '#aaa' }}>
                           {selectedCount > 0 ? `${selectedCount}/${ip.count}件選択中` : `${ip.count}件`}
                         </span>
                       </div>
@@ -484,7 +460,7 @@ export default function FilterDrawer({
                 <button
                   key={g.id}
                   onClick={() => toggleGacha(g.id)}
-                  className="flex items-center gap-3 w-full px-4 py-3.5 active:bg-gray-50 transition-colors"
+                  className="flex items-center gap-3 w-full px-4 py-2.5 md:py-3.5 active:bg-gray-50 transition-colors"
                   style={{ borderBottom: '1px solid #F5F5F5' }}
                 >
                   <div
@@ -498,8 +474,8 @@ export default function FilterDrawer({
                     {selected && <Check size={13} color="white" strokeWidth={3} />}
                   </div>
                   <div
-                    className="flex-shrink-0 rounded-lg overflow-hidden"
-                    style={{ width: 44, height: 44, background: '#F0F0F0' }}
+                    className="flex-shrink-0 rounded-lg overflow-hidden w-10 h-10 md:w-11 md:h-11"
+                    style={{ background: '#F0F0F0' }}
                   >
                     {g.imageUrl && (
                       <img
@@ -511,7 +487,7 @@ export default function FilterDrawer({
                     )}
                   </div>
                   <span
-                    className="text-[14px] text-left flex-1"
+                    className="text-[11px] md:text-[14px] text-left flex-1 leading-snug"
                     style={{ color: selected ? '#1a1a1a' : '#555', fontWeight: selected ? 600 : 400 }}
                   >
                     {g.seriesName}
@@ -538,25 +514,25 @@ export default function FilterDrawer({
           <div className="flex items-center gap-3 px-4 py-4" style={{ borderBottom: '1px solid #F0F0F0' }}>
             <button onClick={() => setScreen('genres')} className="p-1"><ChevronLeft size={22} color="#555" /></button>
             <div className="flex-1 min-w-0">
-              <div className="text-[18px] font-black" style={{ color: '#1a1a1a' }}>選択中のガチャ</div>
-              <div className="text-[12px]" style={{ color: '#aaa' }}>{selectedGachaIds.size}件</div>
+              <div className="text-[16px] md:text-[18px] font-black" style={{ color: '#1a1a1a' }}>選択中のガチャ</div>
+              <div className="text-[11px] md:text-[12px]" style={{ color: '#aaa' }}>{selectedGachaIds.size}件</div>
             </div>
             <button onClick={onClose} className="p-1"><X size={22} color="#555" /></button>
           </div>
 
           <div className="flex-1 overflow-y-auto">
             {selectedGroups.length === 0 ? (
-              <div className="py-16 text-center text-[13px]" style={{ color: '#aaa' }}>選択中の商品がありません</div>
+              <div className="py-16 text-center text-[11px] md:text-[13px]" style={{ color: '#aaa' }}>選択中のガチャがありません</div>
             ) : (
               selectedGroups.map((group) => {
                 const expanded = expandedIps.has(group.ipName);
                 return (
                   <div key={group.ipName}>
-                    <div className="flex items-center px-4 py-2.5" style={{ background: '#FAFAFA', borderBottom: '1px solid #F0F0F0' }}>
+                    <div className="flex items-center px-4 py-1.5 md:py-2.5" style={{ background: '#FAFAFA', borderBottom: '1px solid #F0F0F0' }}>
                       <button onClick={() => toggleExpand(group.ipName)} className="flex items-center gap-2 flex-1 min-w-0">
                         {expanded ? <ChevronUp size={15} color="#aaa" /> : <ChevronDown size={15} color="#aaa" />}
-                        <span className="text-[13px] font-bold truncate" style={{ color: '#555' }}>{group.ipName}</span>
-                        <span className="text-[11px] flex-shrink-0" style={{ color: '#aaa' }}>{group.items.length}件</span>
+                        <span className="text-[11px] md:text-[13px] font-bold truncate" style={{ color: '#555' }}>{group.ipName}</span>
+                        <span className="text-[10px] md:text-[11px] flex-shrink-0" style={{ color: '#aaa' }}>{group.items.length}件</span>
                       </button>
                       <div className="flex gap-1.5 flex-shrink-0 ml-2">
                         <button onClick={() => selectAllInIp(group.ipName)} className="text-[10px] font-bold px-2 py-1 rounded-full" style={{ background: '#F2B800', color: 'white' }}>全選択</button>
@@ -564,12 +540,12 @@ export default function FilterDrawer({
                       </div>
                     </div>
                     {expanded && group.items.map((g) => (
-                      <button key={g.id} onClick={() => toggleGacha(g.id)} className="flex items-center gap-3 w-full px-4 py-3 active:bg-gray-50 transition-colors" style={{ borderBottom: '1px solid #F5F5F5' }}>
-                        <div className="flex-shrink-0 rounded-lg overflow-hidden" style={{ width: 40, height: 40, background: '#F0F0F0' }}>
+                      <button key={g.id} onClick={() => toggleGacha(g.id)} className="flex items-center gap-3 w-full px-4 py-2.5 md:py-3 active:bg-gray-50 transition-colors" style={{ borderBottom: '1px solid #F5F5F5' }}>
+                        <div className="flex-shrink-0 rounded-lg overflow-hidden w-8 h-8 md:w-10 md:h-10" style={{ background: '#F0F0F0' }}>
                           {g.imageUrl && <img src={g.imageUrl} alt={g.seriesName} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />}
                         </div>
-                        <span className="text-[13px] text-left flex-1" style={{ color: '#1a1a1a' }}>{g.seriesName}</span>
-                        <X size={15} color="#ccc" />
+                        <span className="text-[10px] md:text-[13px] text-left flex-1 leading-snug" style={{ color: '#1a1a1a' }}>{g.seriesName}</span>
+                        <X size={14} color="#ccc" className="flex-shrink-0" />
                       </button>
                     ))}
                   </div>
@@ -579,7 +555,7 @@ export default function FilterDrawer({
           </div>
 
           <div className="px-4 pb-8 pt-3" style={{ borderTop: '1px solid #F0F0F0' }}>
-            <button onClick={handleApply} className="w-full py-3.5 rounded-2xl text-[15px] font-bold" style={{ background: '#F2B800', color: 'white' }}>
+            <button onClick={handleApply} className="w-full py-3.5 rounded-2xl text-[13px] md:text-[15px] font-bold" style={{ background: '#F2B800', color: 'white' }}>
               {`適用する（${selectedGachaIds.size}件選択中）`}
             </button>
           </div>
