@@ -50,23 +50,25 @@ export function NearbyButton({ gacha, alwaysOpen, nearbyOpen, nearbyLoading, nea
               key={spot.id}
               onClick={() => onSpotClick(spot.id)}
               style={{
-                display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px',
+                display: 'flex', alignItems: 'center', gap: 10, padding: isMobile ? '9px 16px' : '12px 16px',
                 borderTop: i > 0 ? '1px solid #F0F0F0' : 'none',
                 cursor: 'pointer',
               }}
             >
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1A', margin: '0 0 2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <p style={{ fontSize: isMobile ? 12 : 14, fontWeight: 700, color: '#1A1A1A', margin: '0 0 2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {spot.name}
                 </p>
-                <p style={{ fontSize: 11, color: '#999', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {spot.address}
-                  {spot.distance != null && (
-                    <span style={{ marginLeft: 6, color: gacha.gradientFrom, fontWeight: 600 }}>
-                      {spot.distance < 1000 ? Math.round(spot.distance) + 'm' : (spot.distance / 1000).toFixed(1) + 'km'}
-                    </span>
-                  )}
-                </p>
+                {(!isMobile || spot.distance != null) && (
+                  <p style={{ fontSize: 11, color: isMobile ? gacha.gradientFrom : '#999', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: isMobile ? 600 : undefined }}>
+                    {!isMobile && spot.address}
+                    {spot.distance != null && (
+                      <span style={{ marginLeft: isMobile ? 0 : 6, color: gacha.gradientFrom, fontWeight: 600 }}>
+                        {spot.distance < 1000 ? Math.round(spot.distance) + 'm' : (spot.distance / 1000).toFixed(1) + 'km'}
+                      </span>
+                    )}
+                  </p>
+                )}
               </div>
               {spot.phone && (
                 <a

@@ -38,6 +38,7 @@ export function PostCard({
   onReplyClick,
   replyOpen,
   flushX = false,
+  compactY = false,
 }: {
   post: FeedPost;
   onSelect?: (post: FeedPost) => void;
@@ -47,6 +48,7 @@ export function PostCard({
   onReplyClick?: () => void;
   replyOpen?: boolean;
   flushX?: boolean;
+  compactY?: boolean;
 }) {
   const router = useRouter();
   const gradient = 'linear-gradient(135deg, ' + post.gacha.gradientFrom + ', ' + post.gacha.gradientTo + ')';
@@ -90,7 +92,7 @@ export function PostCard({
 
   return (
     <article
-      className={(flushX ? 'mx-0' : 'mx-3') + ' my-2.5 px-4 py-3 bg-white rounded-2xl shadow-sm transition-shadow ' + (interactive ? 'hover:shadow-md cursor-pointer' : '')}
+      className={(flushX ? 'mx-0' : 'mx-3') + ' ' + (compactY ? 'my-1' : 'my-2.5') + ' px-4 py-3 bg-white rounded-2xl shadow-sm transition-shadow ' + (interactive ? 'hover:shadow-md cursor-pointer' : '')}
       onClick={() => interactive && onSelect?.(post)}
     >
       <div className="relative mb-2">

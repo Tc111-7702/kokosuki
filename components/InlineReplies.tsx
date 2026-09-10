@@ -14,6 +14,7 @@ export function InlineReplies({
   postOwner,
   onCountChange,
   flushX = false,
+  compactY = false,
 }: {
   postId: string;
   postType: 'post' | 'stock';
@@ -21,6 +22,7 @@ export function InlineReplies({
   postOwner?: MentionUser; // メンション候補に投稿主を含めるため（任意）
   onCountChange?: (delta: number) => void;
   flushX?: boolean;
+  compactY?: boolean;
 }) {
   const [replies,    setReplies]    = useState<Reply[]>([]);
   const [loading,    setLoading]    = useState(true);
@@ -79,7 +81,7 @@ export function InlineReplies({
   const mentionNames = [...new Set(replies.map(x => x.user.name))];
 
   return (
-    <div className={(flushX ? 'mx-0' : 'mx-3') + ' -mt-2 mb-2.5 bg-white rounded-b-2xl shadow-sm overflow-hidden border-t border-gray-100'}>
+    <div className={(flushX ? 'mx-0' : 'mx-3') + ' -mt-2 ' + (compactY ? 'mb-1' : 'mb-2.5') + ' bg-white rounded-b-2xl shadow-sm overflow-hidden border-t border-gray-100'}>
       {/* 返信一覧 */}
       {loading ? (
         <div className="flex justify-center py-4">
