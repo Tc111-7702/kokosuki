@@ -1,0 +1,26 @@
+// ─── 通報 ──────────────────────────────────────────────────────────────────────
+//
+// targetType + targetId で通報対象をポリモーフィック参照（Post 等への FK は張らない）。
+// targetType: post | stock_post | post_reply | stock_post_reply | spot_review | spot_review_reply | user
+// reasonKeys: lib/reportReasons.ts の key の配列（1件以上・API で定数と照合）
+
+model Report {
+  id             String   @id @default(cuid())
+  reporterId     String
+  targetType     String
+  targetId       String
+  reportedUserId String
+  reasonKeys     String[]
+  detail         String?
+  status         String   @default("pending") // pending | reviewing | resolved | dismissed
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  reporter     User @relation("ReportsMade", fields: [reporterId], references: [id], onDelete: Cascade)
+  reportedUser User @relation("ReportsReceived", fields: [reportedUserId], references: [id], onDelete: Restrict)
+
+  @@unique([reporterId, targetType, targetId])
+  @@index([targetType, targetId])
+  @@index([reportedUserId, status])
+  @@index([status, createdAt])
+}

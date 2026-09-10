@@ -30,6 +30,8 @@ model User {
   spotReviewLikes    SpotReviewLike[]
   following          Follow[] @relation("Following")  // 自分がフォローしている
   followers          Follow[] @relation("Followers")  // 自分をフォローしている
+  reportsMade        Report[] @relation("ReportsMade")
+  reportsReceived    Report[] @relation("ReportsReceived")
 }
 
 model Session {
