@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { MapPin, Heart, MessageCircle, MoreHorizontal } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useInteraction } from '@/components/InteractionStore';
+import { reportPath } from '@/lib/reportPath';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -91,6 +92,7 @@ export function StockPostCard({
   const menuRef = useRef<HTMLDivElement>(null);
 
   const isOwner = !!currentUserId && post.user.id === currentUserId;
+  const canUseMenu = !!currentUserId;
 
   useEffect(() => {
     if (!showMenu) return;
@@ -144,21 +146,35 @@ export function StockPostCard({
         {/* テキスト情報 */}
         <div className="flex-1 min-w-0 relative">
           <div className="absolute -top-1 right-0 z-10 flex items-center gap-0.5" ref={menuRef}>
-            {isOwner && showMenu && (
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={deleting}
-                className="text-[10px] leading-none px-2 py-1 rounded-full bg-gray-200 text-red-500 font-medium hover:bg-gray-100 transition-colors whitespace-nowrap"
-              >
-                {deleting ? '削除中…' : '削除'}
-              </button>
+            {canUseMenu && showMenu && (
+              isOwner ? (
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="text-[10px] leading-none px-2 py-1 rounded-full bg-gray-200 text-red-500 font-medium hover:bg-gray-100 transition-colors whitespace-nowrap"
+                >
+                  {deleting ? '削除中…' : '削除'}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={e => {
+                    e.stopPropagation();
+                    setShowMenu(false);
+                    router.push(reportPath('stock_post', post.id));
+                  }}
+                  className="text-[10px] leading-none px-2 py-1 rounded-full bg-gray-200 text-gray-700 font-medium hover:bg-gray-100 transition-colors whitespace-nowrap"
+                >
+                  この投稿を報告する
+                </button>
+              )
             )}
             <button
               type="button"
               onClick={e => {
                 e.stopPropagation();
-                if (isOwner) setShowMenu(v => !v);
+                if (canUseMenu) setShowMenu(v => !v);
               }}
               className="p-0.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors"
               aria-label="投稿メニュー"
@@ -166,7 +182,7 @@ export function StockPostCard({
               <MoreHorizontal size={16} />
             </button>
           </div>
-          <div className={"flex items-center gap-1.5 flex-nowrap min-w-0 overflow-hidden " + (isOwner && showMenu ? 'pr-[72px]' : 'pr-5')}>
+          <div className={"flex items-center gap-1.5 flex-nowrap min-w-0 overflow-hidden " + (canUseMenu && showMenu ? 'pr-[72px]' : 'pr-5')}>
             <span
               className="text-[10px] lg:text-xs leading-none px-1.5 py-0.5 lg:px-2 lg:py-1 rounded-full font-semibold flex-shrink-0"
               style={{ background: status.bg, color: status.color }}
