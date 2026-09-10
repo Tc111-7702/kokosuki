@@ -1,10 +1,12 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { MessageCircle, MoreHorizontal, Pencil, X, ChevronDown } from 'lucide-react';
 import { Avatar, timeAgo } from '@/components/ui/Avatar';
 import { ReplyComposerField } from '@/components/ReplyComposerField';
 import { ReviewRepliesPanel } from '@/components/ReviewRepliesPanel';
+import { reportPath } from '@/lib/reportPath';
 
 interface ReviewReply {
   id: string;
@@ -27,6 +29,7 @@ interface Review {
 }
 
 export function StoreReviews({ spotId, autoOpenReviewId }: { spotId: string; autoOpenReviewId?: string | null }) {
+  const router = useRouter();
   const [reviews,      setReviews]      = useState<Review[]>([]);
   const [autoOpenDone, setAutoOpenDone] = useState(false);
   const [total,        setTotal]        = useState(0);
@@ -188,15 +191,18 @@ export function StoreReviews({ spotId, autoOpenReviewId }: { spotId: string; aut
         <div style={{ textAlign: 'center', padding: '16px 0', color: '#CCC', fontSize: 12 }}>まだ口コミがありません</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {reviews.map(review => (
+          {reviews.map(review => {
+            const isOwnReview = review.userId === currentUid;
+            const canShowMenu = !!currentUid && editingId !== review.id;
+            return (
             <div key={review.id} id={`review-${review.id}`} style={{ background: 'white', borderRadius: 14, padding: '12px 14px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
 
               {/* 投稿者行 */}
               <div style={{ position: 'relative', marginBottom: 8 }}>
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: 8, minWidth: 0,
-                  paddingRight: review.userId === currentUid && editingId !== review.id
-                    ? (menuOpenId === review.id ? 72 : 28)
+                  paddingRight: canShowMenu
+                    ? (menuOpenId === review.id ? 120 : 28)
                     : 0,
                 }}>
                   <Avatar user={review.user} size={28} />
@@ -207,7 +213,7 @@ export function StoreReviews({ spotId, autoOpenReviewId }: { spotId: string; aut
                       <span style={{ fontSize: 10, color: '#CCC', marginLeft: 4 }}>（編集済）</span>
                     )}
                   </div>
-                  {review.userId === currentUid && editingId !== review.id && (
+                  {isOwnReview && editingId !== review.id && (
                     <button
                       type="button"
                       onClick={() => startEdit(review)}
@@ -217,7 +223,7 @@ export function StoreReviews({ spotId, autoOpenReviewId }: { spotId: string; aut
                     </button>
                   )}
                 </div>
-                {review.userId === currentUid && editingId !== review.id && (
+                {canShowMenu && (
                   <div
                     ref={menuOpenId === review.id ? menuRef : undefined}
                     className="absolute top-0 right-0 z-20 flex items-center gap-0.5 flex-row-reverse"
@@ -231,14 +237,28 @@ export function StoreReviews({ spotId, autoOpenReviewId }: { spotId: string; aut
                       <MoreHorizontal size={16} />
                     </button>
                     {menuOpenId === review.id && (
-                      <button
-                        type="button"
-                        onClick={e => deleteReview(review.id, e)}
-                        disabled={deletingId === review.id}
-                        className="text-[10px] leading-none px-2 py-1 rounded-full bg-gray-200 text-red-500 font-medium hover:bg-gray-100 transition-colors whitespace-nowrap shadow-sm"
-                      >
-                        {deletingId === review.id ? '削除中…' : '削除'}
-                      </button>
+                      isOwnReview ? (
+                        <button
+                          type="button"
+                          onClick={e => deleteReview(review.id, e)}
+                          disabled={deletingId === review.id}
+                          className="text-[10px] leading-none px-2 py-1 rounded-full bg-gray-200 text-red-500 font-medium hover:bg-gray-100 transition-colors whitespace-nowrap shadow-sm"
+                        >
+                          {deletingId === review.id ? '削除中…' : '削除'}
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={e => {
+                            e.stopPropagation();
+                            setMenuOpenId(null);
+                            router.push(reportPath('spot_review', review.id));
+                          }}
+                          className="text-[10px] leading-none px-2 py-1 rounded-full bg-gray-200 text-gray-700 font-medium hover:bg-gray-100 transition-colors whitespace-nowrap shadow-sm"
+                        >
+                          この投稿を報告する
+                        </button>
+                      )
                     )}
                   </div>
                 )}
@@ -304,7 +324,8 @@ export function StoreReviews({ spotId, autoOpenReviewId }: { spotId: string; aut
                 />
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

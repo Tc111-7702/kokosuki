@@ -98,6 +98,7 @@ export function InlineReplies({
               postId={postId}
               postType={postType}
               isOwn={r.user.id === currentUserId}
+              currentUserId={currentUserId}
               mentionNames={mentionNames}
               onDelete={(id) => {
                 setReplies(prev => prev.filter(x => x.id !== id));

@@ -201,6 +201,7 @@ export function PostDetail({ post, onBack, onReplied, onDeleted }: { post: FeedP
                 reply={r}
                 postId={post.id}
                 isOwn={r.user.id === currentUid}
+                currentUserId={currentUid ?? undefined}
                 onDelete={handleDeleteReply}
                 mentionNames={mentionNames}
               />

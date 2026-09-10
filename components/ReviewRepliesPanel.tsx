@@ -87,6 +87,7 @@ export function ReviewRepliesPanel({
               postType="review"
               spotId={spotId}
               isOwn={rp.user.id === currentUserId}
+              currentUserId={currentUserId ?? undefined}
               mentionNames={mentionNames}
               onDelete={onReplyDeleted}
               compact

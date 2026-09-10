@@ -145,7 +145,7 @@ export function StockPostDetail({ post, onBack, onReplied, onDeleted }: { post: 
             <p className="text-center text-sm text-gray-400 py-8">{'まだ返信がありません'}</p>
           ) : (
             replies.map(r => (
-              <ReplyCard key={r.id} reply={r} postId={post.id} postType="stock" isOwn={r.user.id === currentUid} onDelete={handleDeleteReply} mentionNames={mentionNames} />
+              <ReplyCard key={r.id} reply={r} postId={post.id} postType="stock" isOwn={r.user.id === currentUid} currentUserId={currentUid ?? undefined} onDelete={handleDeleteReply} mentionNames={mentionNames} />
             ))
           )}
         </div>

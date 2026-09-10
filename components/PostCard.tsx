@@ -7,6 +7,7 @@ import { MapPin, Heart, MessageCircle, MoreHorizontal } from 'lucide-react';
 import { type FeedPost } from '@/components/community-types';
 import { useInteraction } from '@/components/InteractionStore';
 import { Avatar, timeAgo } from '@/components/ui/Avatar';
+import { reportPath } from '@/lib/reportPath';
 
 export const RESULT_BADGE: Record<string, { label: string; cls: string }> = {
   '神引き': { label: '● 神引き', cls: 'border border-yellow-400 text-yellow-600 bg-yellow-50'   },
@@ -61,6 +62,7 @@ export function PostCard({
   const menuRef = useRef<HTMLDivElement>(null);
 
   const isOwner = !!currentUserId && post.user.id === currentUserId;
+  const canUseMenu = !!currentUserId;
 
   useEffect(() => {
     if (!showMenu) return;
@@ -138,22 +140,36 @@ export function PostCard({
             type="button"
             onClick={e => {
               e.stopPropagation();
-              if (isOwner) setShowMenu(v => !v);
+              if (canUseMenu) setShowMenu(v => !v);
             }}
             className="p-0.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors pointer-events-auto"
             aria-label="投稿メニュー"
           >
             <MoreHorizontal size={16} />
           </button>
-          {isOwner && showMenu && (
-            <button
-              type="button"
-              onClick={handleDelete}
-              disabled={deleting}
-              className="text-[10px] leading-none px-2 py-1 rounded-full bg-gray-200 text-red-500 font-medium hover:bg-gray-100 transition-colors whitespace-nowrap pointer-events-auto shadow-sm"
-            >
-              {deleting ? '削除中…' : '削除'}
-            </button>
+          {canUseMenu && showMenu && (
+            isOwner ? (
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="text-[10px] leading-none px-2 py-1 rounded-full bg-gray-200 text-red-500 font-medium hover:bg-gray-100 transition-colors whitespace-nowrap pointer-events-auto shadow-sm"
+              >
+                {deleting ? '削除中…' : '削除'}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={e => {
+                  e.stopPropagation();
+                  setShowMenu(false);
+                  router.push(reportPath('post', post.id));
+                }}
+                className="text-[10px] leading-none px-2 py-1 rounded-full bg-gray-200 text-gray-700 font-medium hover:bg-gray-100 transition-colors whitespace-nowrap pointer-events-auto shadow-sm"
+              >
+                この投稿を報告する
+              </button>
+            )
           )}
         </div>
       </div>
