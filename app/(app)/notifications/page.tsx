@@ -40,18 +40,8 @@ const ANNOUNCEMENT_THUMB_H = 40;
 const ANNOUNCEMENT_THUMB_W = 60; // 3:2
 const MOBILE_BREAKPOINT = 768;
 const NOTIF_ROW_PT = 12;
-const NOTIF_ROW_PB = 12;
 const PERSONAL_NOTIF_ROW_PB_MOBILE = 8;
 const PERSONAL_NOTIF_ROW_PB_DESKTOP = 4;
-/** テキスト列(約80) + 上下padding ≒ 標準行 */
-const NOTIF_ROW_HEIGHT = NOTIF_THUMB_SIZE + NOTIF_ROW_PT + NOTIF_ROW_PB + 28;
-
-const notifRowStyle = {
-  borderBottom: '1px solid #F0ECD8',
-  height: NOTIF_ROW_HEIGHT,
-  boxSizing: 'border-box' as const,
-  overflow: 'hidden' as const,
-};
 
 const everyoneNotifRowStyle = {
   borderBottom: '1px solid #F0ECD8',

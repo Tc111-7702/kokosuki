@@ -68,10 +68,7 @@ function AnnouncementArticle({ item }: { item: AnnouncementDetail }) {
   );
 }
 
-export default function AnnouncementDetailPage() {
-  const router = useRouter();
-  const params = useParams();
-  const id = String(params.id ?? '');
+function AnnouncementDetailFeed({ id }: { id: string }) {
   const [items, setItems] = useState<AnnouncementDetail[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -87,16 +84,7 @@ export default function AnnouncementDetailPage() {
   );
 
   useEffect(() => {
-    if (!id) {
-      setNotFound(true);
-      setLoading(false);
-      return;
-    }
-
     let alive = true;
-    setLoading(true);
-    setNotFound(false);
-    setItems([]);
 
     fetch('/api/announcements')
       .then((r) => (r.ok ? r.json() : null))
@@ -120,6 +108,32 @@ export default function AnnouncementDetailPage() {
     };
   }, [id]);
 
+  if (loading) {
+    return <p className="text-center text-[13px] py-16" style={{ color: '#AAA' }}>読み込み中...</p>;
+  }
+
+  if (notFound || !selected) {
+    return <p className="text-center text-[13px] py-16" style={{ color: '#888' }}>お知らせが見つかりません</p>;
+  }
+
+  return (
+    <div className="flex flex-col gap-8 md:gap-10">
+      <AnnouncementArticle item={selected} />
+      {rest.map((item) => (
+        <div key={item.id}>
+          <div className="max-w-[960px] mx-auto mb-6 md:mb-8" style={{ borderTop: '1px solid #EDE9D8' }} />
+          <AnnouncementArticle item={item} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export default function AnnouncementDetailPage() {
+  const router = useRouter();
+  const params = useParams();
+  const id = String(params.id ?? '');
+
   return (
     <div className="flex flex-col h-full bg-[#F7F6F3]">
       <header className="flex items-center gap-2 px-4 md:px-10 py-3 bg-white border-b border-gray-100 flex-shrink-0">
@@ -136,20 +150,10 @@ export default function AnnouncementDetailPage() {
       </header>
 
       <main className="flex-1 overflow-y-auto min-h-0 px-4 md:px-10 py-4 md:py-6">
-        {loading ? (
-          <p className="text-center text-[13px] py-16" style={{ color: '#AAA' }}>読み込み中...</p>
-        ) : notFound || !selected ? (
+        {!id ? (
           <p className="text-center text-[13px] py-16" style={{ color: '#888' }}>お知らせが見つかりません</p>
         ) : (
-          <div className="flex flex-col gap-8 md:gap-10">
-            <AnnouncementArticle item={selected} />
-            {rest.map((item) => (
-              <div key={item.id}>
-                <div className="max-w-[960px] mx-auto mb-6 md:mb-8" style={{ borderTop: '1px solid #EDE9D8' }} />
-                <AnnouncementArticle item={item} />
-              </div>
-            ))}
-          </div>
+          <AnnouncementDetailFeed key={id} id={id} />
         )}
       </main>
     </div>
