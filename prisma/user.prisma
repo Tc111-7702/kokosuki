@@ -32,6 +32,7 @@ model User {
   followers         Follow[]          @relation("Followers") // 自分をフォローしている
   reportsMade       Report[]          @relation("ReportsMade")
   reportsReceived   Report[]          @relation("ReportsReceived")
+  inquiries         Inquiry[]
 }
 
 model Session {

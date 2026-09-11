@@ -118,6 +118,7 @@ export default function SettingsPage() {
         {/* その他 */}
         <SectionTitle>その他</SectionTitle>
         <div className="bg-white" style={{ borderTop: '1px solid #F0ECD8', borderBottom: '1px solid #F0ECD8' }}>
+          <RowLink label="お問い合わせ" onClick={() => router.push('/inquiry')} />
           <RowLink label="ヘルプ・お知らせ" onClick={() => setSheet('help')} />
           <RowLink label="利用規約" onClick={() => setSheet('terms')} />
           <RowLink label="プライバシーポリシー" onClick={() => setSheet('privacy')} />

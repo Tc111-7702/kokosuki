@@ -3,6 +3,7 @@
 // targetType + targetId で通報対象をポリモーフィック参照（Post 等への FK は張らない）。
 // targetType: post | stock_post | post_reply | stock_post_reply | spot_review | spot_review_reply | user
 // reasonKeys: lib/reportReasons.ts の key の配列（1件以上・API で定数と照合）
+// status: lib/reportReasons.ts の REPORT_STATUSES（admin 用）
 // 同一ユーザー×同一対象でも送信のたびに新規レコード（unique 制約なし）
 
 model Report {
