@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Settings, ArrowLeft } from 'lucide-react';
+import { Settings, ArrowLeft, MoreHorizontal } from 'lucide-react';
+import { reportPath } from '@/lib/reportPath';
 import { Avatar } from '@/components/ui/Avatar';
 import { PostCard } from '@/components/PostCard';
 import { StockPostCard } from '@/components/StockPostCard';
@@ -63,6 +64,8 @@ export default function ProfilePage() {
   const [reports, setReports] = useState<StockFeedPost[] | null>(null);
   const [selectedPost, setSelectedPost] = useState<FeedPost | null>(null);
   const [selectedStock, setSelectedStock] = useState<StockFeedPost | null>(null);
+  const [showAccountMenu, setShowAccountMenu] = useState(false);
+  const accountMenuRef = useRef<HTMLDivElement>(null);
 
   // プロフィール概要
   useEffect(() => {
@@ -96,6 +99,17 @@ export default function ProfilePage() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, isMobile, userId]);
+
+  useEffect(() => {
+    if (!showAccountMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (accountMenuRef.current && !accountMenuRef.current.contains(e.target as Node)) {
+        setShowAccountMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showAccountMenu]);
 
   if (notFound) {
     return (
@@ -253,10 +267,34 @@ export default function ProfilePage() {
           </button>
         </div>
       ) : (
-        <div className="flex-shrink-0 bg-white flex items-center px-2" style={{ height: 52, borderBottom: '1.5px solid #EDE9D8' }}>
+        <div className="flex-shrink-0 bg-white flex items-center justify-between px-2" style={{ height: 52, borderBottom: '1.5px solid #EDE9D8' }}>
           <button onClick={() => router.back()} className="p-2 active:opacity-60" aria-label="戻る">
             <ArrowLeft size={22} color="#555" />
           </button>
+          {currentUserId && (
+            <div ref={accountMenuRef} className="flex items-center gap-1 flex-row-reverse">
+              <button
+                type="button"
+                onClick={() => setShowAccountMenu((v) => !v)}
+                className="p-2 active:opacity-60"
+                aria-label="アカウントメニュー"
+              >
+                <MoreHorizontal size={22} color="#555" />
+              </button>
+              {showAccountMenu && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAccountMenu(false);
+                    router.push(reportPath('user', userId));
+                  }}
+                  className="text-[12px] leading-none px-3 py-1.5 rounded-full bg-gray-200 text-gray-700 font-medium hover:bg-gray-100 transition-colors whitespace-nowrap shadow-sm"
+                >
+                  このアカウントを報告する
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
 
