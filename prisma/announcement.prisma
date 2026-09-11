@@ -1,0 +1,17 @@
+// ─── お知らせ ────────────────────────────────────────────────────────────────
+//
+// 運営からの告知。admin が作成、mikke アプリ（ヘルプ・お知らせ等）で表示。
+// status: lib/announcementStatus.ts の定数（draft | published）
+
+model Announcement {
+  id          String    @id @default(cuid())
+  title       String
+  body        String
+  imageUrl    String
+  status      String    @default("draft") // draft | published
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([status, publishedAt(sort: Desc)])
+}
