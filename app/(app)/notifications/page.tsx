@@ -1,11 +1,12 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Bell, Heart, MessageCircle, Package, AtSign } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { NOTIFICATION_POLL_SECONDS } from '@/lib/useUnreadNotificationCount';
 import { useIsMobile } from '@/lib/useIsMobile';
+import { usePolling } from '@/lib/usePolling';
 
 /** notif-shine の animation 時間に合わせる */
 const NOTIF_SHINE_MS = 1200;
@@ -132,10 +133,45 @@ function tabFromParam(param: string | null): NotifTab {
   return param === 'everyone' ? 'everyone' : 'personal';
 }
 
-function TabButton({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
+function TabUnreadBadge({ count }: { count: number }) {
+  if (count <= 0) return null;
+  return (
+    <span
+      className="inline-flex items-center justify-center flex-shrink-0"
+      style={{
+        minWidth: 18,
+        height: 18,
+        borderRadius: 9,
+        background: '#E5484D',
+        color: 'white',
+        fontSize: 10,
+        fontWeight: 700,
+        padding: '0 5px',
+        lineHeight: 1,
+      }}
+    >
+      {count > 99 ? '99+' : count}
+    </span>
+  );
+}
+
+function TabButton({
+  active,
+  label,
+  unreadCount,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  unreadCount: number;
+  onClick: () => void;
+}) {
   return (
     <button onClick={onClick} className="flex-1 py-3 text-[13px] font-bold relative" style={{ color: active ? '#F2B800' : '#AAA' }}>
-      {label}
+      <span className="inline-flex items-center justify-center gap-1.5">
+        {label}
+        {!active && <TabUnreadBadge count={unreadCount} />}
+      </span>
       {active && (
         <div
           className="absolute bottom-0 left-1/2 -translate-x-1/2"
@@ -155,7 +191,7 @@ function announcementBodyPreview(body: string, isMobile: boolean): string {
   return `${text.slice(0, ANNOUNCEMENT_BODY_PREVIEW_DESKTOP)}…`;
 }
 
-function EveryoneTab() {
+function EveryoneTab({ onMarkedRead }: { onMarkedRead?: () => void }) {
   const router = useRouter();
   const isMobile = useIsMobile(MOBILE_BREAKPOINT);
   const [items, setItems] = useState<AnnouncementItem[]>([]);
@@ -179,6 +215,7 @@ function EveryoneTab() {
         if (!alive) return;
         fetch('/api/announcements/read', { method: 'PATCH' }).catch(() => {});
         setItems((prev) => prev.map((a) => (a.read ? a : { ...a, read: true })));
+        onMarkedRead?.();
       }, NOTIF_SHINE_MS);
     };
 
@@ -201,7 +238,7 @@ function EveryoneTab() {
       alive = false;
       clearMarkReadTimer();
     };
-  }, []);
+  }, [onMarkedRead]);
 
   if (loading) {
     return <p className="py-16 text-center text-[13px]" style={{ color: '#AAA' }}>読み込み中...</p>;
@@ -272,7 +309,7 @@ function EveryoneTab() {
   );
 }
 
-function PersonalNotificationsTab() {
+function PersonalNotificationsTab({ onMarkedRead }: { onMarkedRead?: () => void }) {
   const router = useRouter();
   const isMobile = useIsMobile(MOBILE_BREAKPOINT);
   const [items, setItems] = useState<NotificationItem[]>([]);
@@ -298,6 +335,7 @@ function PersonalNotificationsTab() {
         if (!alive) return;
         fetch('/api/notifications/read', { method: 'PATCH' }).catch(() => {});
         setItems((prev) => prev.map((n) => (n.read ? n : { ...n, read: true })));
+        onMarkedRead?.();
       }, NOTIF_SHINE_MS);
     };
 
@@ -331,7 +369,7 @@ function PersonalNotificationsTab() {
       clearInterval(timer);
       clearMarkReadTimer();
     };
-  }, []);
+  }, [onMarkedRead]);
 
   if (loading) {
     return <p className="py-16 text-center text-[13px]" style={{ color: '#AAA' }}>読み込み中...</p>;
@@ -437,10 +475,38 @@ function PersonalNotificationsTab() {
 function NotificationsPageInner() {
   const searchParams = useSearchParams();
   const [tab, setTab] = useState<NotifTab>(() => tabFromParam(searchParams.get('tab')));
+  const [tabUnread, setTabUnread] = useState({ everyone: 0, personal: 0 });
 
   useEffect(() => {
     setTab(tabFromParam(searchParams.get('tab')));
   }, [searchParams]);
+
+  const loadTabUnread = useCallback(() => {
+    return fetch('/api/notifications/tab-unread-counts')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d) {
+          setTabUnread({
+            everyone: d.everyone ?? 0,
+            personal: d.personal ?? 0,
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => { loadTabUnread(); }, [loadTabUnread]);
+
+  const pollTasks = useMemo(() => [loadTabUnread], [loadTabUnread]);
+  usePolling(pollTasks, NOTIFICATION_POLL_SECONDS);
+
+  const markEveryoneRead = useCallback(() => {
+    setTabUnread((prev) => ({ ...prev, everyone: 0 }));
+  }, []);
+
+  const markPersonalRead = useCallback(() => {
+    setTabUnread((prev) => ({ ...prev, personal: 0 }));
+  }, []);
 
   return (
     <div className="flex flex-col h-full bg-[#FFFFFF]">
@@ -475,12 +541,26 @@ function NotificationsPageInner() {
       </div>
 
       <div className="flex bg-white flex-shrink-0" style={{ borderBottom: '1.5px solid #EDE9D8' }}>
-        <TabButton active={tab === 'everyone'} label="みなさまへ" onClick={() => setTab('everyone')} />
-        <TabButton active={tab === 'personal'} label="あなたへ" onClick={() => setTab('personal')} />
+        <TabButton
+          active={tab === 'everyone'}
+          label="みなさまへ"
+          unreadCount={tabUnread.everyone}
+          onClick={() => { setTab('everyone'); loadTabUnread(); }}
+        />
+        <TabButton
+          active={tab === 'personal'}
+          label="あなたへ"
+          unreadCount={tabUnread.personal}
+          onClick={() => { setTab('personal'); loadTabUnread(); }}
+        />
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {tab === 'everyone' ? <EveryoneTab /> : <PersonalNotificationsTab />}
+        {tab === 'everyone' ? (
+          <EveryoneTab onMarkedRead={markEveryoneRead} />
+        ) : (
+          <PersonalNotificationsTab onMarkedRead={markPersonalRead} />
+        )}
       </div>
     </div>
   );

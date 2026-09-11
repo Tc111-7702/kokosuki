@@ -761,6 +761,15 @@ const toPublishedAnnouncementRow = (
   read: row.readByUserIds.includes(userId),
 });
 
+/** 公開済みお知らせの未読数（readByUserIds に含まれない件数） */
+export const getUnreadAnnouncementCount = (userId: string) =>
+  prisma.announcement.count({
+    where: {
+      status: 'published',
+      NOT: { readByUserIds: { has: userId } },
+    },
+  });
+
 /** 公開済みお知らせ一覧（新しい順・ユーザーごとの既読フラグ付き） */
 export const listPublishedAnnouncementsForUser = async (userId: string): Promise<PublishedAnnouncementRow[]> => {
   const rows = await prisma.announcement.findMany({
