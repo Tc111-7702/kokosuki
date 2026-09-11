@@ -1488,3 +1488,13 @@ export const createReport = (data: {
     },
   });
 };
+
+// ─── 問い合わせ ───────────────────────────────────────────────────────────────
+
+export const createInquiry = (data: { userId: string; body: string }) =>
+  prisma.inquiry.create({
+    data: {
+      userId: data.userId,
+      body: data.body.trim(),
+    },
+  });

@@ -3,8 +3,14 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-/** 通報送信完了後、上から被さるサンクス画面 */
-export function ReportSubmitSuccess() {
+type ReportSubmitSuccessProps = {
+  title?: string;
+};
+
+/** 通報・問い合わせ送信完了後、上から被さるサンクス画面 */
+export function ReportSubmitSuccess({
+  title = 'ご協力ありがとうございました',
+}: ReportSubmitSuccessProps) {
   const router = useRouter();
   const [entered, setEntered] = useState(false);
 
@@ -25,7 +31,7 @@ export function ReportSubmitSuccess() {
       aria-labelledby="report-success-title"
     >
       <p id="report-success-title" className="text-xl font-black text-gray-900">
-        ご協力ありがとうございました
+        {title}
       </p>
       <button
         type="button"
