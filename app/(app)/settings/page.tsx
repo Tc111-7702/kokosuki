@@ -79,7 +79,7 @@ export default function SettingsPage() {
         <h1 className="text-[16px] font-black" style={{ color: '#111' }}>設定</h1>
       </div>
 
-      <div className="flex-1 overflow-y-auto pb-10">
+      <div className="flex-1 overflow-y-auto pb-6 md:pb-10">
         {/* 地図 */}
         <SectionTitle>地図</SectionTitle>
         <div className="bg-white px-4 py-3.5" style={{ borderTop: '1px solid #F0ECD8', borderBottom: '1px solid #F0ECD8' }}>
@@ -109,7 +109,7 @@ export default function SettingsPage() {
         <SectionTitle>アカウント</SectionTitle>
         <div className="bg-white" style={{ borderTop: '1px solid #F0ECD8', borderBottom: '1px solid #F0ECD8' }}>
           <RowLink label="プロフィール設定" onClick={() => setSheet('profile')} />
-          <div className="flex items-center justify-between px-4 py-3.5">
+          <div className="flex items-center justify-between px-4 py-2.5 md:py-3.5">
             <p className="text-[14px] font-bold" style={{ color: '#111' }}>メールアドレス</p>
             <p className="text-[12px]" style={{ color: '#AAA' }}>{email || '…'}</p>
           </div>
@@ -121,18 +121,18 @@ export default function SettingsPage() {
           <RowLink label="ヘルプ・お知らせ" onClick={() => setSheet('help')} />
           <RowLink label="利用規約" onClick={() => setSheet('terms')} />
           <RowLink label="プライバシーポリシー" onClick={() => setSheet('privacy')} />
-          <div className="flex items-center justify-between px-4 py-3.5">
+          <div className="flex items-center justify-between px-4 py-2.5 md:py-3.5">
             <p className="text-[14px] font-bold" style={{ color: '#111' }}>バージョン</p>
             <p className="text-[12px]" style={{ color: '#AAA' }}>{APP_VERSION}</p>
           </div>
         </div>
 
         {/* ログアウト・退会 */}
-        <div className="mt-8 px-4 flex flex-col gap-3">
-          <button onClick={handleLogout} className="w-full py-3.5 rounded-2xl text-[14px] font-bold" style={{ background: '#EDE9D8', color: '#555' }}>
+        <div className="mt-6 md:mt-8 px-4 flex flex-col gap-2">
+          <button onClick={handleLogout} className="w-full py-2.5 md:py-3.5 rounded-2xl text-[14px] font-bold" style={{ background: '#EDE9D8', color: '#555' }}>
             ログアウト
           </button>
-          <button onClick={handleDeleteAccount} disabled={deleting} className="w-full py-3 text-[13px] font-bold" style={{ color: '#DC2626', opacity: deleting ? 0.5 : 1 }}>
+          <button onClick={handleDeleteAccount} disabled={deleting} className="w-full py-2 md:py-3 text-[13px] font-bold" style={{ color: '#DC2626', opacity: deleting ? 0.5 : 1 }}>
             {deleting ? '処理中…' : '退会する'}
           </button>
         </div>
@@ -153,7 +153,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 
 function RowLink({ label, onClick }: { label: string; onClick: () => void }) {
   return (
-    <button onClick={onClick} className="w-full flex items-center justify-between px-4 py-3.5 active:opacity-60" style={{ borderBottom: '1px solid #F5F2E4' }}>
+    <button onClick={onClick} className="w-full flex items-center justify-between px-4 py-2.5 md:py-3.5 active:opacity-60" style={{ borderBottom: '1px solid #F5F2E4' }}>
       <p className="text-[14px] font-bold" style={{ color: '#111' }}>{label}</p>
       <ChevronRight size={17} color="#C4C3C0" />
     </button>
