@@ -1468,18 +1468,7 @@ export const upsertScrapeSchedule = (type: string, everyDays: number, atTime: st
 
 // ─── 通報 ─────────────────────────────────────────────────────────────────────
 
-export const findReportByReporterAndTarget = (
-  reporterId: string,
-  targetType: string,
-  targetId: string,
-) =>
-  prisma.report.findUnique({
-    where: { reporterId_targetType_targetId: { reporterId, targetType, targetId } },
-    select: { id: true, reasonKeys: true, detail: true },
-  });
-
-/** 同一ユーザー×同一対象の通報があれば更新、なければ新規作成 */
-export const upsertReport = (data: {
+export const createReport = (data: {
   reporterId: string;
   targetType: string;
   targetId: string;
@@ -1488,28 +1477,14 @@ export const upsertReport = (data: {
   detail?: string | null;
 }) => {
   const detail = data.detail?.trim() || null;
-  const shared = {
-    reportedUserId: data.reportedUserId,
-    reasonKeys: data.reasonKeys,
-    detail,
-  };
-  return prisma.report.upsert({
-    where: {
-      reporterId_targetType_targetId: {
-        reporterId: data.reporterId,
-        targetType: data.targetType,
-        targetId: data.targetId,
-      },
-    },
-    create: {
+  return prisma.report.create({
+    data: {
       reporterId: data.reporterId,
       targetType: data.targetType,
       targetId: data.targetId,
-      ...shared,
-    },
-    update: {
-      ...shared,
-      status: 'pending',
+      reportedUserId: data.reportedUserId,
+      reasonKeys: data.reasonKeys,
+      detail,
     },
   });
 };

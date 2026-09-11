@@ -3,6 +3,7 @@
 // targetType + targetId で通報対象をポリモーフィック参照（Post 等への FK は張らない）。
 // targetType: post | stock_post | post_reply | stock_post_reply | spot_review | spot_review_reply | user
 // reasonKeys: lib/reportReasons.ts の key の配列（1件以上・API で定数と照合）
+// 同一ユーザー×同一対象でも送信のたびに新規レコード（unique 制約なし）
 
 model Report {
   id             String   @id @default(cuid())
@@ -19,7 +20,7 @@ model Report {
   reporter     User @relation("ReportsMade", fields: [reporterId], references: [id], onDelete: Cascade)
   reportedUser User @relation("ReportsReceived", fields: [reportedUserId], references: [id], onDelete: Restrict)
 
-  @@unique([reporterId, targetType, targetId])
+  @@index([reporterId, targetType, targetId])
   @@index([targetType, targetId])
   @@index([reportedUserId, status])
   @@index([status, createdAt])
