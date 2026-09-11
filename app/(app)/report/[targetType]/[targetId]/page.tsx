@@ -3,7 +3,7 @@
 import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { isReportTargetType, type ReportTargetType } from '@/lib/reportReasons';
-import { ReportFormDesktop } from '@/components/ReportFormDesktop';
+import { ReportForm } from '@/components/ReportForm';
 
 export default function ReportPage() {
   const router = useRouter();
@@ -30,7 +30,7 @@ export default function ReportPage() {
         {!valid ? (
           <p className="text-sm text-gray-500 px-4 py-6">通報対象が見つかりません。</p>
         ) : (
-          <ReportFormDesktop
+          <ReportForm
             targetType={targetType as ReportTargetType}
             targetId={targetId}
           />

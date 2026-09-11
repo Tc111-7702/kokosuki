@@ -13,7 +13,7 @@ interface Props {
   targetId: string;
 }
 
-export function ReportFormDesktop({ targetType, targetId }: Props) {
+export function ReportForm({ targetType, targetId }: Props) {
   const reasons = useMemo(() => getReportReasonsForTarget(targetType), [targetType]);
   const isUserReport = isUserReportTarget(targetType);
   const detailRef = useRef<HTMLTextAreaElement>(null);
