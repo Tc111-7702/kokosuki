@@ -37,7 +37,7 @@ export const REPORT_TARGET_TYPES = [
 export type ReportTargetType = (typeof REPORT_TARGET_TYPES)[number];
 
 /** 通報対応ステータス（admin 用） */
-export const REPORT_STATUSES = ['pending', 'reviewing', 'resolved', 'dismissed'] as const;
+export const REPORT_STATUSES = ['pending', 'resolved', 'dismissed'] as const;
 
 export type ReportStatus = (typeof REPORT_STATUSES)[number];
 
