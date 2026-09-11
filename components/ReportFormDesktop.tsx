@@ -21,7 +21,6 @@ export function ReportFormDesktop({ targetType, targetId }: Props) {
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const [detail, setDetail] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [showSuccess, setShowSuccess] = useState(false);
 
   const resizeDetail = useCallback(() => {
@@ -35,22 +34,8 @@ export function ReportFormDesktop({ targetType, targetId }: Props) {
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
-    fetch(`/api/reports?targetType=${encodeURIComponent(targetType)}&targetId=${encodeURIComponent(targetId)}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (cancelled || !d?.report) return;
-        setSelectedKeys(new Set(d.report.reasonKeys as string[]));
-        if (d.report.detail) setDetail(d.report.detail as string);
-      })
-      .catch(() => {})
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, [targetType, targetId]);
-
-  useEffect(() => {
     resizeDetail();
-  }, [detail, loading, resizeDetail]);
+  }, [detail, resizeDetail]);
 
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 768px)');
@@ -93,14 +78,6 @@ export function ReportFormDesktop({ targetType, targetId }: Props) {
       setSubmitting(false);
     }
   };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-24">
-        <div className="w-6 h-6 border-2 border-[#F2B800] border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
 
   return (
     <>
