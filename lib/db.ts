@@ -1491,17 +1491,10 @@ export const createReport = (data: {
 
 // ─── 問い合わせ ───────────────────────────────────────────────────────────────
 
-export const createInquiry = (data: { userId: string; body: string }) => {
-  let client = getPrisma();
-  // スキーマ追加後に dev サーバー再起動前の古い Client キャッシュを破棄
-  if (!client.inquiry) {
-    globalForPrisma.prisma = undefined;
-    client = getPrisma();
-  }
-  return client.inquiry.create({
+export const createInquiry = (data: { userId: string; body: string }) =>
+  prisma.inquiry.create({
     data: {
       userId: data.userId,
       body: data.body.trim(),
     },
   });
-};

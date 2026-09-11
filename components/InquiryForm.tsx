@@ -57,7 +57,9 @@ export function InquiryForm() {
 
   return (
     <>
-      {showSuccess && <ReportSubmitSuccess />}
+      {showSuccess && (
+        <ReportSubmitSuccess title="お問い合わせを受け付けました" />
+      )}
       <div className="w-full">
         <div className="max-w-3xl w-full mx-auto px-4 py-6 pb-8 md:px-10 md:py-8 md:pb-12">
           <p className="text-sm text-gray-500 mb-6">
