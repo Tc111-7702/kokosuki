@@ -10,7 +10,10 @@ interface AnnouncementDetail {
   body: string;
   imageUrl: string;
   publishedAt: string | null;
+  read: boolean;
 }
+
+const ANNOUNCEMENT_READ_SHINE_MS = 1200;
 
 function hasImageUrl(url: string): boolean {
   return url.trim().length > 0;
@@ -85,6 +88,14 @@ function AnnouncementDetailFeed({ id }: { id: string }) {
 
   useEffect(() => {
     let alive = true;
+    let markReadTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const clearMarkReadTimer = () => {
+      if (markReadTimer !== null) {
+        clearTimeout(markReadTimer);
+        markReadTimer = null;
+      }
+    };
 
     fetch('/api/announcements')
       .then((r) => (r.ok ? r.json() : null))
@@ -94,6 +105,16 @@ function AnnouncementDetailFeed({ id }: { id: string }) {
         setItems(announcements);
         if (!announcements.some((a) => a.id === id)) {
           setNotFound(true);
+          return;
+        }
+        if (announcements.some((a) => !a.read)) {
+          clearMarkReadTimer();
+          markReadTimer = setTimeout(() => {
+            markReadTimer = null;
+            if (!alive) return;
+            fetch('/api/announcements/read', { method: 'PATCH' }).catch(() => {});
+            setItems((prev) => prev.map((a) => (a.read ? a : { ...a, read: true })));
+          }, ANNOUNCEMENT_READ_SHINE_MS);
         }
       })
       .catch(() => {
@@ -105,6 +126,7 @@ function AnnouncementDetailFeed({ id }: { id: string }) {
 
     return () => {
       alive = false;
+      clearMarkReadTimer();
     };
   }, [id]);
 
