@@ -15,7 +15,7 @@ export async function GET(
     }
 
     const { id } = await params;
-    const announcement = await db.getPublishedAnnouncementById(id);
+    const announcement = await db.getPublishedAnnouncementByIdForUser(id, session.user.id);
     if (!announcement) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }

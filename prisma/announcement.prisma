@@ -4,14 +4,15 @@
 // status: lib/announcementStatus.ts の定数（draft | published）
 
 model Announcement {
-  id          String    @id @default(cuid())
-  title       String
-  body        String
-  imageUrl    String
-  status      String    @default("draft") // draft | published
-  publishedAt DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id             String    @id @default(cuid())
+  title          String
+  body           String
+  imageUrl       String
+  status         String    @default("draft") // draft | published
+  readByUserIds  String[]  @default([]) // 既読にしたユーザーID一覧
+  publishedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   @@index([status, publishedAt(sort: Desc)])
 }

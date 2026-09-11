@@ -730,34 +730,79 @@ export interface PublishedAnnouncementRow {
   body: string;
   imageUrl: string;
   publishedAt: Date | null;
+  read: boolean;
 }
 
-/** 公開済みお知らせ一覧（新しい順） */
-export const listPublishedAnnouncements = (): Promise<PublishedAnnouncementRow[]> =>
-  prisma.announcement.findMany({
+const PUBLISHED_ANNOUNCEMENT_SELECT = {
+  id: true,
+  title: true,
+  body: true,
+  imageUrl: true,
+  publishedAt: true,
+  readByUserIds: true,
+} as const;
+
+const toPublishedAnnouncementRow = (
+  row: {
+    id: string;
+    title: string;
+    body: string;
+    imageUrl: string;
+    publishedAt: Date | null;
+    readByUserIds: string[];
+  },
+  userId: string,
+): PublishedAnnouncementRow => ({
+  id: row.id,
+  title: row.title,
+  body: row.body,
+  imageUrl: row.imageUrl,
+  publishedAt: row.publishedAt,
+  read: row.readByUserIds.includes(userId),
+});
+
+/** 公開済みお知らせ一覧（新しい順・ユーザーごとの既読フラグ付き） */
+export const listPublishedAnnouncementsForUser = async (userId: string): Promise<PublishedAnnouncementRow[]> => {
+  const rows = await prisma.announcement.findMany({
     where: { status: 'published' },
     orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
-    select: {
-      id: true,
-      title: true,
-      body: true,
-      imageUrl: true,
-      publishedAt: true,
-    },
+    select: PUBLISHED_ANNOUNCEMENT_SELECT,
   });
+  return rows.map((row) => toPublishedAnnouncementRow(row, userId));
+};
 
-/** 公開済みお知らせ1件（詳細表示用） */
-export const getPublishedAnnouncementById = (id: string): Promise<PublishedAnnouncementRow | null> =>
-  prisma.announcement.findFirst({
+/** 公開済みお知らせ1件（詳細表示用・ユーザーごとの既読フラグ付き） */
+export const getPublishedAnnouncementByIdForUser = async (
+  id: string,
+  userId: string,
+): Promise<PublishedAnnouncementRow | null> => {
+  const row = await prisma.announcement.findFirst({
     where: { id, status: 'published' },
-    select: {
-      id: true,
-      title: true,
-      body: true,
-      imageUrl: true,
-      publishedAt: true,
-    },
+    select: PUBLISHED_ANNOUNCEMENT_SELECT,
   });
+  return row ? toPublishedAnnouncementRow(row, userId) : null;
+};
+
+/** 公開済みお知らせを既読化（未読のみ readByUserIds に userId を追加） */
+export const markPublishedAnnouncementsAsRead = async (userId: string) => {
+  const unread = await prisma.announcement.findMany({
+    where: {
+      status: 'published',
+      NOT: { readByUserIds: { has: userId } },
+    },
+    select: { id: true },
+  });
+  if (unread.length === 0) return;
+
+  await prisma.$transaction(
+    unread.map(({ id }) =>
+      prisma.announcement.update({
+        where: { id },
+        data: { readByUserIds: { push: userId } },
+      }),
+    ),
+  );
+};
 
 // ─── Post（通常投稿） ───────────────────────────────────────────────────────────
 

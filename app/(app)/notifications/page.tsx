@@ -75,6 +75,7 @@ interface AnnouncementItem {
   body: string;
   imageUrl: string;
   publishedAt: string | null;
+  read: boolean;
 }
 
 function timeAgo(iso: string): string {
@@ -162,12 +163,34 @@ function EveryoneTab() {
 
   useEffect(() => {
     let alive = true;
+    let markReadTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const clearMarkReadTimer = () => {
+      if (markReadTimer !== null) {
+        clearTimeout(markReadTimer);
+        markReadTimer = null;
+      }
+    };
+
+    const scheduleMarkRead = () => {
+      clearMarkReadTimer();
+      markReadTimer = setTimeout(() => {
+        markReadTimer = null;
+        if (!alive) return;
+        fetch('/api/announcements/read', { method: 'PATCH' }).catch(() => {});
+        setItems((prev) => prev.map((a) => (a.read ? a : { ...a, read: true })));
+      }, NOTIF_SHINE_MS);
+    };
 
     fetch('/api/announcements')
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (!alive) return;
-        setItems(d?.announcements ?? []);
+        const announcements: AnnouncementItem[] = d?.announcements ?? [];
+        setItems(announcements);
+        if (announcements.some((a) => !a.read)) {
+          scheduleMarkRead();
+        }
       })
       .catch(() => {})
       .finally(() => {
@@ -176,6 +199,7 @@ function EveryoneTab() {
 
     return () => {
       alive = false;
+      clearMarkReadTimer();
     };
   }, []);
 
@@ -203,8 +227,11 @@ function EveryoneTab() {
             key={a.id}
             type="button"
             onClick={() => router.push(`/notifications/announcements/${a.id}`)}
-            className="w-full flex items-start gap-3 pl-3 pr-4 text-left active:opacity-70"
-            style={everyoneNotifRowStyle}
+            className={"w-full flex items-start gap-3 pl-3 pr-4 text-left active:opacity-70" + (a.read ? "" : " notif-shine")}
+            style={{
+              ...everyoneNotifRowStyle,
+              background: a.read ? 'transparent' : '#FFF8D0',
+            }}
           >
             <div className="flex-1 min-w-0 min-h-0">
               <p className="text-[13px] font-bold truncate" style={{ color: '#111' }}>
