@@ -1491,8 +1491,12 @@ export const createReport = (data: {
 
 // ─── 問い合わせ ───────────────────────────────────────────────────────────────
 
-export const createInquiry = (data: { userId: string; body: string }) =>
-  prisma.inquiry.create({
+type InquiryRow = { id: string; userId: string; body: string; status: string; createdAt: Date; updatedAt: Date };
+
+export const createInquiry = (data: { userId: string; body: string }): Promise<InquiryRow> =>
+  (getPrisma() as unknown as {
+    inquiry: { create: (args: { data: { userId: string; body: string } }) => Promise<InquiryRow> };
+  }).inquiry.create({
     data: {
       userId: data.userId,
       body: data.body.trim(),

@@ -14,7 +14,7 @@
     "worker": "tsx scripts/scrape-worker.ts",
     "scrape:gacha": "tsx scripts/scrape-gacha.ts",
     "scrape:phone": "tsx scripts/scrape-phone.ts",
-    "postinstall": "node scripts/patch-kysely.mjs"
+    "postinstall": "prisma generate && node scripts/patch-kysely.mjs"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
