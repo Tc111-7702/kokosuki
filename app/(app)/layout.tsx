@@ -10,7 +10,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const MOBILE_BREAKPOINT = 768;
   const isMobile = useIsMobile(MOBILE_BREAKPOINT);
   const pathname = usePathname();
-  const hideNav = pathname.startsWith('/report') || pathname.startsWith('/inquiry');
+  const hideNav = pathname.startsWith('/report') || pathname.startsWith('/settings/inquiry');
 
   return isMobile ? (
     <div className="flex flex-col h-screen bg-[#F7F6F3]">
