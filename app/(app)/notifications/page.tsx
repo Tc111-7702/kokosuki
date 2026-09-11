@@ -4,6 +4,11 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Bell, Heart, MessageCircle, Package, AtSign } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
+import { NOTIFICATION_POLL_SECONDS } from '@/lib/useUnreadNotificationCount';
+
+/** notif-shine の animation 時間に合わせる */
+const NOTIF_SHINE_MS = 1200;
+const POLL_MS = NOTIFICATION_POLL_SECONDS * 1000;
 
 interface NotifActor { id: string; name: string; image: string | null }
 
@@ -82,22 +87,38 @@ export default function NotificationsPage() {
 
   useEffect(() => {
     let alive = true;
+    let markReadTimer: ReturnType<typeof setTimeout> | null = null;
 
-    // markRead=true の初回のみ既読化。ポーリング時は取得だけ行い、
-    // いいね者が付け替わった通知（未読に戻る）はヒカリ演出で気づけるようにする。
-    const load = (markRead: boolean) =>
+    const clearMarkReadTimer = () => {
+      if (markReadTimer !== null) {
+        clearTimeout(markReadTimer);
+        markReadTimer = null;
+      }
+    };
+
+    // GET で未読を描画してから演出時間後に既読化（サーバー＋ローカル）。
+    // GET と PATCH を同時に投げると PATCH が先に走り演出が出ないため遅延する。
+    const scheduleMarkRead = () => {
+      clearMarkReadTimer();
+      markReadTimer = setTimeout(() => {
+        markReadTimer = null;
+        if (!alive) return;
+        fetch('/api/notifications/read', { method: 'PATCH' }).catch(() => {});
+        setItems((prev) => prev.map((n) => (n.read ? n : { ...n, read: true })));
+      }, NOTIF_SHINE_MS);
+    };
+
+    const load = () =>
       fetch('/api/notifications')
         .then((r) => (r.ok ? r.json() : null))
         .then((d) => {
           if (!alive) return;
           // items を丸ごと差し替え。key(id) は不変なので、いいね者が更新された
           // 通知は actor[0]（左アバター）と下のいいね者一覧だけが差し替わる。
-          setItems(d?.notifications ?? []);
-          if (markRead) {
-            // 未読状態を取得・描画した後で既読化する。
-            // （GETとPATCHを同時に投げると、PATCHが先に走ってGETが全既読で返り、
-            //   未読のヒカル演出が出ないことがあるため順序を保証する）
-            fetch('/api/notifications/read', { method: 'PATCH' }).catch(() => {});
+          const notifications: NotificationItem[] = d?.notifications ?? [];
+          setItems(notifications);
+          if (notifications.some((n) => !n.read)) {
+            scheduleMarkRead();
           }
         })
         .catch(() => {})
@@ -105,17 +126,17 @@ export default function NotificationsPage() {
           if (alive) setLoading(false);
         });
 
-    load(true);
+    load();
 
     // 閲覧中は一定間隔で再取得し、いいね者の更新を反映（非表示タブでは休む）
-    const POLL_MS = 12000;
     const timer = setInterval(() => {
-      if (document.visibilityState === 'visible') load(false);
+      if (document.visibilityState === 'visible') load();
     }, POLL_MS);
 
     return () => {
       alive = false;
       clearInterval(timer);
+      clearMarkReadTimer();
     };
   }, []);
 
