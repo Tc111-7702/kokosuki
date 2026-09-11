@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   getReportReasonsForTarget,
   isUserReportTarget,
@@ -15,15 +14,25 @@ interface Props {
 }
 
 export function ReportFormDesktop({ targetType, targetId }: Props) {
-  const router = useRouter();
   const reasons = useMemo(() => getReportReasonsForTarget(targetType), [targetType]);
   const isUserReport = isUserReportTarget(targetType);
+  const detailRef = useRef<HTMLTextAreaElement>(null);
 
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const [detail, setDetail] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showSuccess, setShowSuccess] = useState(false);
+
+  const resizeDetail = useCallback(() => {
+    const el = detailRef.current;
+    if (!el || window.matchMedia('(min-width: 768px)').matches) {
+      if (el) el.style.height = '';
+      return;
+    }
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -38,6 +47,17 @@ export function ReportFormDesktop({ targetType, targetId }: Props) {
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [targetType, targetId]);
+
+  useEffect(() => {
+    resizeDetail();
+  }, [detail, loading, resizeDetail]);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)');
+    const onChange = () => resizeDetail();
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, [resizeDetail]);
 
   const toggleReason = (key: string) => {
     setSelectedKeys((prev) => {
@@ -76,7 +96,7 @@ export function ReportFormDesktop({ targetType, targetId }: Props) {
 
   if (loading) {
     return (
-      <div className="hidden md:flex items-center justify-center py-24">
+      <div className="flex items-center justify-center py-24">
         <div className="w-6 h-6 border-2 border-[#F2B800] border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -85,15 +105,15 @@ export function ReportFormDesktop({ targetType, targetId }: Props) {
   return (
     <>
     {showSuccess && <ReportSubmitSuccess />}
-    <div className="hidden md:block w-full">
-      <div className="max-w-5xl w-full mx-auto px-10 py-8 pb-12">
+    <div className="w-full">
+      <div className="max-w-5xl w-full mx-auto px-4 py-6 pb-8 md:px-10 md:py-8 md:pb-12">
         <p className="text-sm text-gray-500 mb-6">
           {isUserReport ? 'アカウントの通報' : '投稿の通報'}
           <span className="mx-2 text-gray-300">|</span>
           該当する理由をすべて選択し、必要に応じて詳細を記入してください。
         </p>
 
-        <div className="grid grid-cols-2 gap-10 items-stretch">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 md:items-stretch">
           <section className="flex flex-col">
             <h2 className="text-[15px] font-black text-gray-900 mb-1">項目1 — 理由選択</h2>
             <p className="text-xs text-gray-400 mb-4">該当するものをすべてチェック</p>
@@ -126,18 +146,27 @@ export function ReportFormDesktop({ targetType, targetId }: Props) {
           <section className="flex flex-col">
             <h2 className="text-[15px] font-black text-gray-900 mb-1">項目2 — 自由記述</h2>
             <p className="text-xs text-gray-400 mb-4">管理者に伝えたいことがあれば記入（任意）</p>
-            <div className="flex-1 min-h-0 rounded-2xl border border-gray-200 bg-white p-5 overflow-hidden flex flex-col">
+            <div className="rounded-2xl border border-gray-200 bg-white px-4 py-2 md:p-5 md:flex-1 md:min-h-0 md:overflow-hidden md:flex md:flex-col">
               <textarea
+                ref={detailRef}
+                rows={1}
                 value={detail}
-                onChange={(e) => setDetail(e.target.value)}
+                onChange={(e) => {
+                  setDetail(e.target.value);
+                  queueMicrotask(resizeDetail);
+                }}
                 placeholder="詳細を入力..."
-                className="scrollbar-hide flex-1 w-full min-h-0 resize-none text-sm text-gray-800 leading-relaxed outline-none placeholder:text-gray-300 bg-transparent overflow-hidden"
+                className={
+                  'scrollbar-hide w-full resize-none text-sm text-gray-800 leading-relaxed outline-none ' +
+                  'placeholder:text-gray-300 bg-transparent overflow-hidden ' +
+                  'md:flex-1 md:min-h-0'
+                }
               />
             </div>
           </section>
         </div>
 
-        <div className="relative z-10 flex justify-center pt-10">
+        <div className="relative z-10 flex justify-center pt-6 md:pt-10">
           <button
             type="button"
             onClick={handleSubmit}
