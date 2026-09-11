@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Bell, Heart, MessageCircle, Package, AtSign } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
@@ -407,7 +407,7 @@ function PersonalNotificationsTab() {
   );
 }
 
-export default function NotificationsPage() {
+function NotificationsPageInner() {
   const searchParams = useSearchParams();
   const [tab, setTab] = useState<NotifTab>(() => tabFromParam(searchParams.get('tab')));
 
@@ -456,5 +456,13 @@ export default function NotificationsPage() {
         {tab === 'everyone' ? <EveryoneTab /> : <PersonalNotificationsTab />}
       </div>
     </div>
+  );
+}
+
+export default function NotificationsPage() {
+  return (
+    <Suspense>
+      <NotificationsPageInner />
+    </Suspense>
   );
 }
