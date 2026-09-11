@@ -23,16 +23,16 @@ export function HelpContent() {
         あなたの報告が、誰かの「あった！」につながります。
       </p>
       <h2 className="text-[15px] font-black mb-2" style={{ color: '#111' }}>お問い合わせ</h2>
-      <p className="mb-3">
+      <p className="mb-4">
         不具合のご報告・ご意見は、運営までお気軽にご連絡ください。
         いただいた声はサービスの改善に活用させていただきます。
+        <Link
+          href="/settings/inquiry"
+          className="font-bold text-[#B45309] underline underline-offset-2 hover:opacity-80 active:opacity-60"
+        >
+          お問い合わせフォームはこちら
+        </Link>
       </p>
-      <Link
-        href="/settings/inquiry"
-        className="inline-flex items-center text-[13px] font-bold text-[#B45309] underline underline-offset-2 hover:opacity-80 active:opacity-60"
-      >
-        お問い合わせフォームはこちら
-      </Link>
       <h2 className="text-[15px] font-black mb-2" style={{ color: '#111' }}>お知らせ</h2>
       <p>現在お知らせはありません。</p>
     </Body>
