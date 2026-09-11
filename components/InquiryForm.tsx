@@ -64,7 +64,7 @@ export function InquiryForm() {
         <div className="max-w-3xl w-full mx-auto px-4 py-6 pb-8 md:px-10 md:py-8 md:pb-12">
           <div className="text-sm text-gray-500 mb-6 space-y-1">
             <p>不具合のご報告・ご意見・ご質問など、お気軽にお書きください。</p>
-            <p>回答は登録しているメールアドレスに送信します。</p>
+            <p>回答は登録しているメールアドレスに送信いたします。</p>
           </div>
 
           <div className="rounded-2xl border border-gray-200 bg-white px-4 py-2 md:p-5 md:min-h-[240px] md:flex md:flex-col">
