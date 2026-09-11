@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Bell, Heart, MessageCircle, Package, AtSign } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { NOTIFICATION_POLL_SECONDS } from '@/lib/useUnreadNotificationCount';
+import { useIsMobile } from '@/lib/useIsMobile';
 
 /** notif-shine の animation 時間に合わせる */
 const NOTIF_SHINE_MS = 1200;
@@ -31,6 +32,50 @@ interface NotificationItem {
 
 // いいねアバターを下に並べる際の表示上限（超過分は +N 表示）
 const LIKE_AVATAR_SHOWN = 5;
+
+/** あなたへ1行分の寸法（いいね行なし・サムネあり） */
+const NOTIF_AVATAR_SIZE = 36;
+const NOTIF_THUMB_SIZE = 52;
+const ANNOUNCEMENT_THUMB_H = 40;
+const ANNOUNCEMENT_THUMB_W = 60; // 3:2
+const MOBILE_BREAKPOINT = 768;
+const NOTIF_ROW_PT = 12;
+const PERSONAL_NOTIF_ROW_PB_MOBILE = 8;
+const PERSONAL_NOTIF_ROW_PB_DESKTOP = 4;
+
+const everyoneNotifRowStyle = {
+  borderBottom: '1px solid #F0ECD8',
+  boxSizing: 'border-box' as const,
+  paddingTop: NOTIF_ROW_PT,
+  paddingBottom: 8,
+};
+
+function personalNotifRowStyle(isMobile: boolean) {
+  const paddingBottom = isMobile ? PERSONAL_NOTIF_ROW_PB_MOBILE : PERSONAL_NOTIF_ROW_PB_DESKTOP;
+  const base = {
+    borderBottom: '1px solid #F0ECD8',
+    boxSizing: 'border-box' as const,
+    paddingTop: NOTIF_ROW_PT,
+    paddingBottom,
+  };
+  // デスクトップは固定高さをやめ、日付直下までコンテンツに合わせる
+  if (!isMobile) {
+    return base;
+  }
+  return {
+    ...base,
+    height: NOTIF_THUMB_SIZE + NOTIF_ROW_PT + paddingBottom + 28,
+    overflow: 'hidden' as const,
+  };
+}
+
+interface AnnouncementItem {
+  id: string;
+  title: string;
+  body: string;
+  imageUrl: string;
+  publishedAt: string | null;
+}
 
 function timeAgo(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime();
@@ -80,8 +125,129 @@ function bodyText(n: NotificationItem): string {
   return n.body;
 }
 
-export default function NotificationsPage() {
+type NotifTab = 'everyone' | 'personal';
+
+function tabFromParam(param: string | null): NotifTab {
+  return param === 'everyone' ? 'everyone' : 'personal';
+}
+
+function TabButton({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
+  return (
+    <button onClick={onClick} className="flex-1 py-3 text-[13px] font-bold relative" style={{ color: active ? '#F2B800' : '#AAA' }}>
+      {label}
+      {active && (
+        <div
+          className="absolute bottom-0 left-1/2 -translate-x-1/2"
+          style={{ width: 20, height: 2.5, background: '#FFCD31', borderRadius: 99 }}
+        />
+      )}
+    </button>
+  );
+}
+
+const ANNOUNCEMENT_BODY_PREVIEW_DESKTOP = 28;
+
+function announcementBodyPreview(body: string, isMobile: boolean): string {
+  if (isMobile) return body;
+  const text = body.trim();
+  if (text.length <= ANNOUNCEMENT_BODY_PREVIEW_DESKTOP) return text;
+  return `${text.slice(0, ANNOUNCEMENT_BODY_PREVIEW_DESKTOP)}…`;
+}
+
+function EveryoneTab() {
   const router = useRouter();
+  const isMobile = useIsMobile(MOBILE_BREAKPOINT);
+  const [items, setItems] = useState<AnnouncementItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+
+    fetch('/api/announcements')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!alive) return;
+        setItems(d?.announcements ?? []);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  if (loading) {
+    return <p className="py-16 text-center text-[13px]" style={{ color: '#AAA' }}>読み込み中...</p>;
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className="flex flex-col items-center py-20 px-6 text-center">
+        <p className="text-[14px] font-bold" style={{ color: '#888' }}>お知らせはありません</p>
+        <p className="mt-1 text-[12px] leading-relaxed" style={{ color: '#AAA' }}>
+          運営からのお知らせがここに表示されます
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {items.map((a) => {
+        const hasImage = Boolean(a.imageUrl?.trim());
+        return (
+          <button
+            key={a.id}
+            type="button"
+            onClick={() => router.push(`/notifications/announcements/${a.id}`)}
+            className="w-full flex items-start gap-3 pl-3 pr-4 text-left active:opacity-70"
+            style={everyoneNotifRowStyle}
+          >
+            <div className="flex-1 min-w-0 min-h-0">
+              <p className="text-[13px] font-bold truncate" style={{ color: '#111' }}>
+                {a.title}
+              </p>
+              <p className={`text-[12px] mt-0.5 ${isMobile ? 'truncate' : ''}`} style={{ color: '#666' }}>
+                {announcementBodyPreview(a.body, isMobile)}
+              </p>
+              {a.publishedAt && (
+                <p className="text-[11px] mt-1 truncate" style={{ color: '#AAA' }}>
+                  {timeAgo(a.publishedAt)}
+                </p>
+              )}
+            </div>
+
+            {hasImage ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={a.imageUrl}
+                alt=""
+                className="flex-shrink-0 object-cover"
+                style={{
+                  width: ANNOUNCEMENT_THUMB_W,
+                  height: ANNOUNCEMENT_THUMB_H,
+                  aspectRatio: '3 / 2',
+                  borderRadius: 0,
+                  background: '#F0ECD8',
+                }}
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <div className="flex-shrink-0" style={{ width: ANNOUNCEMENT_THUMB_W, height: ANNOUNCEMENT_THUMB_H }} aria-hidden />
+            )}
+          </button>
+        );
+      })}
+    </>
+  );
+}
+
+function PersonalNotificationsTab() {
+  const router = useRouter();
+  const isMobile = useIsMobile(MOBILE_BREAKPOINT);
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -140,6 +306,115 @@ export default function NotificationsPage() {
     };
   }, []);
 
+  if (loading) {
+    return <p className="py-16 text-center text-[13px]" style={{ color: '#AAA' }}>読み込み中...</p>;
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className="flex flex-col items-center py-20 px-6 text-center">
+        <p className="text-[14px] font-bold" style={{ color: '#888' }}>まだ通知はありません</p>
+        <p className="mt-1 text-[12px] leading-relaxed" style={{ color: '#AAA' }}>
+          お気に入りのガチャに在庫情報が届いたり、<br />あなたの投稿に反応があるとここに表示されます
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {items.map((n) => {
+        const dest = destinationUrl(n);
+        const actor = n.actors[0] ?? null;
+        const showLikeRow = n.type === 'like' && n.actors.length > 0;
+        return (
+          <button
+            key={n.id}
+            onClick={() => { if (dest) router.push(dest); }}
+            className={"w-full flex items-start gap-3 px-4 text-left active:opacity-70" + (n.read ? "" : " notif-shine")}
+            style={{
+              ...personalNotifRowStyle(isMobile),
+              background: n.read ? 'transparent' : '#FFF8D0',
+              cursor: dest ? 'pointer' : 'default',
+              ...(showLikeRow ? { height: 'auto', overflow: 'visible' } : {}),
+            }}
+          >
+            {/* 左: 相手ユーザーのアイコン（アクター不明時は種別アイコンにフォールバック） */}
+            <div className="flex-shrink-0">
+              {actor ? (
+                <Avatar user={actor} size={NOTIF_AVATAR_SIZE} />
+              ) : (
+                <div
+                  className="flex items-center justify-center"
+                  style={{ width: NOTIF_AVATAR_SIZE, height: NOTIF_AVATAR_SIZE, borderRadius: 18, background: 'white', border: '1.5px solid #EDE9D8' }}
+                >
+                  {typeIcon(n.type)}
+                </div>
+              )}
+            </div>
+
+            {/* 中央: タイトル(アイコン+文字)・本文・(いいね時)アバター列・日時 */}
+            <div className="flex-1 min-w-0">
+              <p className="flex items-center gap-1 text-[13px] font-bold" style={{ color: '#111' }}>
+                <span className="inline-flex flex-shrink-0">{typeIcon(n.type)}</span>
+                <span className="truncate">{n.title}</span>
+              </p>
+              <p
+                className="text-[12px] mt-0.5 leading-relaxed"
+                style={{ color: '#666', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
+              >
+                {bodyText(n)}
+              </p>
+
+              {showLikeRow && (
+                <div className="flex items-center mt-1.5">
+                  {n.actors.slice(0, LIKE_AVATAR_SHOWN).map((a, i) => (
+                    <span
+                      key={a.id}
+                      className="inline-flex rounded-full"
+                      style={{ marginLeft: i === 0 ? 0 : -6, border: '2px solid #FFFFFF', borderRadius: 999 }}
+                    >
+                      <Avatar user={a} size={22} />
+                    </span>
+                  ))}
+                  {n.actorCount > LIKE_AVATAR_SHOWN && (
+                    <span className="ml-1.5 text-[11px] font-bold" style={{ color: '#888' }}>
+                      +{n.actorCount - LIKE_AVATAR_SHOWN}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              <p className="text-[11px] mt-1" style={{ color: '#AAA' }}>{timeAgo(n.createdAt)}</p>
+            </div>
+
+            {/* 右: 投稿写真 / ガチャ画像のサムネ */}
+            {n.thumbnailUrl && (
+              // 任意ホストの画像に対応するため next/image ではなく img を使用
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={n.thumbnailUrl}
+                alt=""
+                className="flex-shrink-0 object-cover"
+                style={{ width: NOTIF_THUMB_SIZE, height: NOTIF_THUMB_SIZE, borderRadius: 10, background: '#F0ECD8' }}
+                referrerPolicy="no-referrer"
+              />
+            )}
+          </button>
+        );
+      })}
+    </>
+  );
+}
+
+function NotificationsPageInner() {
+  const searchParams = useSearchParams();
+  const [tab, setTab] = useState<NotifTab>(() => tabFromParam(searchParams.get('tab')));
+
+  useEffect(() => {
+    setTab(tabFromParam(searchParams.get('tab')));
+  }, [searchParams]);
+
   return (
     <div className="flex flex-col h-full bg-[#FFFFFF]">
       {/* 未読通知に、表示時一度だけ光が走る演出 */}
@@ -172,98 +447,22 @@ export default function NotificationsPage() {
         <h1 className="text-[16px] font-black" style={{ color: '#111', paddingLeft: 8 }}>通知</h1>
       </div>
 
+      <div className="flex bg-white flex-shrink-0" style={{ borderBottom: '1.5px solid #EDE9D8' }}>
+        <TabButton active={tab === 'everyone'} label="みなさまへ" onClick={() => setTab('everyone')} />
+        <TabButton active={tab === 'personal'} label="あなたへ" onClick={() => setTab('personal')} />
+      </div>
+
       <div className="flex-1 overflow-y-auto">
-        {loading ? (
-          <p className="py-16 text-center text-[13px]" style={{ color: '#AAA' }}>読み込み中...</p>
-        ) : items.length === 0 ? (
-          <div className="flex flex-col items-center py-20 px-6 text-center">
-            <p className="text-[14px] font-bold" style={{ color: '#888' }}>まだ通知はありません</p>
-            <p className="mt-1 text-[12px] leading-relaxed" style={{ color: '#AAA' }}>
-              お気に入りのガチャに在庫情報が届いたり、<br />あなたの投稿に反応があるとここに表示されます
-            </p>
-          </div>
-        ) : (
-          items.map((n) => {
-            const dest = destinationUrl(n);
-            const actor = n.actors[0] ?? null;
-            const showLikeRow = n.type === 'like' && n.actors.length > 0;
-            return (
-              <button
-                key={n.id}
-                onClick={() => { if (dest) router.push(dest); }}
-                className={"w-full flex items-start gap-3 px-4 py-3 text-left active:opacity-70" + (n.read ? "" : " notif-shine")}
-                style={{
-                  background: n.read ? 'transparent' : '#FFF8D0',
-                  borderBottom: '1px solid #F0ECD8',
-                  cursor: dest ? 'pointer' : 'default',
-                }}
-              >
-                {/* 左: 相手ユーザーのアイコン（アクター不明時は種別アイコンにフォールバック） */}
-                <div className="flex-shrink-0">
-                  {actor ? (
-                    <Avatar user={actor} size={36} />
-                  ) : (
-                    <div
-                      className="flex items-center justify-center"
-                      style={{ width: 36, height: 36, borderRadius: 18, background: 'white', border: '1.5px solid #EDE9D8' }}
-                    >
-                      {typeIcon(n.type)}
-                    </div>
-                  )}
-                </div>
-
-                {/* 中央: タイトル(アイコン+文字)・本文・(いいね時)アバター列・日時 */}
-                <div className="flex-1 min-w-0">
-                  <p className="flex items-center gap-1 text-[13px] font-bold" style={{ color: '#111' }}>
-                    <span className="inline-flex flex-shrink-0">{typeIcon(n.type)}</span>
-                    <span className="truncate">{n.title}</span>
-                  </p>
-                  <p
-                    className="text-[12px] mt-0.5 leading-relaxed"
-                    style={{ color: '#666', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
-                  >
-                    {bodyText(n)}
-                  </p>
-
-                  {showLikeRow && (
-                    <div className="flex items-center mt-1.5">
-                      {n.actors.slice(0, LIKE_AVATAR_SHOWN).map((a, i) => (
-                        <span
-                          key={a.id}
-                          className="inline-flex rounded-full"
-                          style={{ marginLeft: i === 0 ? 0 : -6, border: '2px solid #FFFFFF', borderRadius: 999 }}
-                        >
-                          <Avatar user={a} size={22} />
-                        </span>
-                      ))}
-                      {n.actorCount > LIKE_AVATAR_SHOWN && (
-                        <span className="ml-1.5 text-[11px] font-bold" style={{ color: '#888' }}>
-                          +{n.actorCount - LIKE_AVATAR_SHOWN}
-                        </span>
-                      )}
-                    </div>
-                  )}
-
-                  <p className="text-[11px] mt-1" style={{ color: '#AAA' }}>{timeAgo(n.createdAt)}</p>
-                </div>
-
-                {/* 右: 投稿写真 / ガチャ画像のサムネ */}
-                {n.thumbnailUrl && (
-                  // 任意ホストの画像に対応するため next/image ではなく img を使用
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={n.thumbnailUrl}
-                    alt=""
-                    className="flex-shrink-0 object-cover"
-                    style={{ width: 52, height: 52, borderRadius: 10, background: '#F0ECD8' }}
-                    referrerPolicy="no-referrer"
-                  />
-                )}
-              </button>
-            );
-          })
-        )}
+        {tab === 'everyone' ? <EveryoneTab /> : <PersonalNotificationsTab />}
       </div>
     </div>
+  );
+}
+
+export default function NotificationsPage() {
+  return (
+    <Suspense>
+      <NotificationsPageInner />
+    </Suspense>
   );
 }

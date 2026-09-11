@@ -722,6 +722,43 @@ export const deleteLikeNotification = (where: Prisma.NotificationWhereInput) =>
 export const deleteReadNotificationsBefore = (cutoff: Date) =>
   prisma.notification.deleteMany({ where: { read: true, createdAt: { lt: cutoff } } });
 
+// ─── Announcement（お知らせ） ───────────────────────────────────────────────────
+
+export interface PublishedAnnouncementRow {
+  id: string;
+  title: string;
+  body: string;
+  imageUrl: string;
+  publishedAt: Date | null;
+}
+
+/** 公開済みお知らせ一覧（新しい順） */
+export const listPublishedAnnouncements = (): Promise<PublishedAnnouncementRow[]> =>
+  prisma.announcement.findMany({
+    where: { status: 'published' },
+    orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
+    select: {
+      id: true,
+      title: true,
+      body: true,
+      imageUrl: true,
+      publishedAt: true,
+    },
+  });
+
+/** 公開済みお知らせ1件（詳細表示用） */
+export const getPublishedAnnouncementById = (id: string): Promise<PublishedAnnouncementRow | null> =>
+  prisma.announcement.findFirst({
+    where: { id, status: 'published' },
+    select: {
+      id: true,
+      title: true,
+      body: true,
+      imageUrl: true,
+      publishedAt: true,
+    },
+  });
+
 // ─── Post（通常投稿） ───────────────────────────────────────────────────────────
 
 const FEED_USER_SELECT  = { id: true, name: true, image: true, profile: { select: { handle: true } } } as const;
