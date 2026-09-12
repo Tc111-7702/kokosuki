@@ -11,8 +11,16 @@ export const NOTIFICATION_POLL_SECONDS = 30;
 const CLEANUP_MIN_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const CLEANUP_LS_KEY = 'notifCleanupAt';
 
+type ReloadFn = () => void | Promise<unknown>;
+const reloaders = new Set<ReloadFn>();
+
+/** ベルバッジ用 load をすべて実行（通知ページのタブ未読更新から即時反映用） */
+export function reloadUnreadNotificationCount() {
+  return Promise.all([...reloaders].map((fn) => Promise.resolve(fn()).catch(() => {})));
+}
+
 /**
- * 未読通知数（ナビのバッジ用）。マウント/遷移時に即更新＋一定間隔で更新。
+ * 未読数（ナビのベルバッジ用）。個人通知＋未読お知らせの合計。マウント/遷移時に即更新＋一定間隔で更新。
  * ポーリングは usePolling が Page Visibility 対応：非表示タブでは停止し、表示復帰時に即1回＋再開する。
  * 通知の自動クリーンアップ（既読30日経過の削除）は、cron の代わりにマウント時トリガ＋localStorage で
  * 24hに1回へスロットルして叩く（タブが長時間開かれない前提の setInterval では実行されないため）。
@@ -31,6 +39,11 @@ export function useUnreadNotificationCount(): number {
 
   // マウント/ページ遷移時は取得のみ（素早くバッジ更新）
   useEffect(() => { load(); }, [pathname, load]);
+
+  useEffect(() => {
+    reloaders.add(load);
+    return () => { reloaders.delete(load); };
+  }, [load]);
 
   // 一定間隔で未読数を更新（非表示時は停止／復帰時に即1回＋再開）
   const tasks = useMemo(() => [load], [load]);
