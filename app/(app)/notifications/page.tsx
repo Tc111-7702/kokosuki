@@ -213,29 +213,43 @@ function EveryoneTab({ onMarkedRead }: { onMarkedRead?: () => void }) {
       markReadTimer = setTimeout(() => {
         markReadTimer = null;
         if (!alive) return;
-        fetch('/api/announcements/read', { method: 'PATCH' }).catch(() => {});
         setItems((prev) => prev.map((a) => (a.read ? a : { ...a, read: true })));
-        onMarkedRead?.();
+        // PATCH 完了前にベル再取得すると未読のまま返るため、完了後に onMarkedRead
+        fetch('/api/announcements/read', { method: 'PATCH' })
+          .catch(() => {})
+          .finally(() => {
+            if (!alive) return;
+            onMarkedRead?.();
+          });
       }, NOTIF_SHINE_MS);
     };
 
-    fetch('/api/announcements')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (!alive) return;
-        const announcements: AnnouncementItem[] = d?.announcements ?? [];
-        setItems(announcements);
-        if (announcements.some((a) => !a.read)) {
-          scheduleMarkRead();
-        }
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (alive) setLoading(false);
-      });
+    const load = () =>
+      fetch('/api/announcements')
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => {
+          if (!alive) return;
+          const announcements: AnnouncementItem[] = d?.announcements ?? [];
+          setItems(announcements);
+          if (announcements.some((a) => !a.read)) {
+            scheduleMarkRead();
+          }
+        })
+        .catch(() => {})
+        .finally(() => {
+          if (alive) setLoading(false);
+        });
+
+    load();
+
+    // 閲覧中は一定間隔で再取得し、追加・削除を反映（非表示タブでは休む）
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible') load();
+    }, POLL_MS);
 
     return () => {
       alive = false;
+      clearInterval(timer);
       clearMarkReadTimer();
     };
   }, [onMarkedRead]);
@@ -333,9 +347,13 @@ function PersonalNotificationsTab({ onMarkedRead }: { onMarkedRead?: () => void 
       markReadTimer = setTimeout(() => {
         markReadTimer = null;
         if (!alive) return;
-        fetch('/api/notifications/read', { method: 'PATCH' }).catch(() => {});
         setItems((prev) => prev.map((n) => (n.read ? n : { ...n, read: true })));
-        onMarkedRead?.();
+        fetch('/api/notifications/read', { method: 'PATCH' })
+          .catch(() => {})
+          .finally(() => {
+            if (!alive) return;
+            onMarkedRead?.();
+          });
       }, NOTIF_SHINE_MS);
     };
 

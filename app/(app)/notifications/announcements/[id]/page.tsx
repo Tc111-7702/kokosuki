@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
+import { reloadUnreadNotificationCount } from '@/lib/useUnreadNotificationCount';
 
 interface AnnouncementDetail {
   id: string;
@@ -112,8 +113,10 @@ function AnnouncementDetailFeed({ id }: { id: string }) {
           markReadTimer = setTimeout(() => {
             markReadTimer = null;
             if (!alive) return;
-            fetch('/api/announcements/read', { method: 'PATCH' }).catch(() => {});
             setItems((prev) => prev.map((a) => (a.read ? a : { ...a, read: true })));
+            fetch('/api/announcements/read', { method: 'PATCH' })
+              .catch(() => {})
+              .finally(() => { reloadUnreadNotificationCount().catch(() => {}); });
           }, ANNOUNCEMENT_READ_SHINE_MS);
         }
       })
