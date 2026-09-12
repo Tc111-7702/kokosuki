@@ -4,7 +4,7 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Bell, Heart, MessageCircle, Package, AtSign } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
-import { NOTIFICATION_POLL_SECONDS } from '@/lib/useUnreadNotificationCount';
+import { NOTIFICATION_POLL_SECONDS, reloadUnreadNotificationCount } from '@/lib/useUnreadNotificationCount';
 import { useIsMobile } from '@/lib/useIsMobile';
 import { usePolling } from '@/lib/usePolling';
 
@@ -482,7 +482,7 @@ function NotificationsPageInner() {
   }, [searchParams]);
 
   const loadTabUnread = useCallback(() => {
-    return fetch('/api/notifications/tab-unread-counts')
+    const tabFetch = fetch('/api/notifications/tab-unread-counts')
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (d) {
@@ -491,8 +491,8 @@ function NotificationsPageInner() {
             personal: d.personal ?? 0,
           });
         }
-      })
-      .catch(() => {});
+      });
+    return Promise.all([tabFetch, reloadUnreadNotificationCount()]).catch(() => {});
   }, []);
 
   useEffect(() => { loadTabUnread(); }, [loadTabUnread]);
@@ -502,10 +502,12 @@ function NotificationsPageInner() {
 
   const markEveryoneRead = useCallback(() => {
     setTabUnread((prev) => ({ ...prev, everyone: 0 }));
+    reloadUnreadNotificationCount().catch(() => {});
   }, []);
 
   const markPersonalRead = useCallback(() => {
     setTabUnread((prev) => ({ ...prev, personal: 0 }));
+    reloadUnreadNotificationCount().catch(() => {});
   }, []);
 
   return (
