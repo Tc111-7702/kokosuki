@@ -13,6 +13,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const hideNav =
     pathname.startsWith('/report') ||
     pathname.startsWith('/settings/inquiry') ||
+    pathname.startsWith('/settings/email') ||
     pathname.startsWith('/notifications/announcements/');
 
   return isMobile ? (

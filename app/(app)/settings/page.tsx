@@ -109,10 +109,7 @@ export default function SettingsPage() {
         <SectionTitle>アカウント</SectionTitle>
         <div className="bg-white" style={{ borderTop: '1px solid #F0ECD8', borderBottom: '1px solid #F0ECD8' }}>
           <RowLink label="プロフィール設定" onClick={() => setSheet('profile')} />
-          <div className="flex items-center justify-between px-4 py-2.5 md:py-3.5">
-            <p className="text-[14px] font-bold" style={{ color: '#111' }}>メールアドレス</p>
-            <p className="text-[12px]" style={{ color: '#AAA' }}>{email || '…'}</p>
-          </div>
+          <RowLink label="メールアドレス" detail={email || '…'} onClick={() => router.push('/settings/email')} />
         </div>
 
         {/* その他 */}
@@ -151,11 +148,16 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   return <p className="px-4 pt-6 pb-2 text-[12px] font-bold" style={{ color: '#AAA' }}>{children}</p>;
 }
 
-function RowLink({ label, onClick }: { label: string; onClick: () => void }) {
+function RowLink({ label, detail, onClick }: { label: string; detail?: string; onClick: () => void }) {
   return (
     <button onClick={onClick} className="w-full flex items-center justify-between px-4 py-2.5 md:py-3.5 active:opacity-60" style={{ borderBottom: '1px solid #F5F2E4' }}>
       <p className="text-[14px] font-bold" style={{ color: '#111' }}>{label}</p>
-      <ChevronRight size={17} color="#C4C3C0" />
+      <div className="flex items-center gap-1 min-w-0">
+        {detail ? (
+          <p className="text-[12px] truncate max-w-[180px]" style={{ color: '#AAA' }}>{detail}</p>
+        ) : null}
+        <ChevronRight size={17} color="#C4C3C0" />
+      </div>
     </button>
   );
 }

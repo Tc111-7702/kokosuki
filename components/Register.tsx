@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, Camera } from 'lucide-react';
 import { authClient } from '@/lib/auth-client';
+import { PasswordPolicyHint } from '@/components/PasswordPolicyHint';
+import { isPasswordPolicyValid, validatePasswordPolicy } from '@/lib/passwordPolicy';
 import { avatarColor } from '@/components/ui/Avatar';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -101,6 +103,13 @@ export function Register({ likedGachaIds, onBack }: Props) {
         setLoading(false);
         return;
       }
+    }
+
+    const policyError = validatePasswordPolicy(password);
+    if (policyError) {
+      setError(policyError);
+      setLoading(false);
+      return;
     }
 
     // signUp（既に成功済みなら再実行しない＝二重作成防止）
@@ -248,12 +257,12 @@ export function Register({ likedGachaIds, onBack }: Props) {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="8文字以上"
+            placeholder="パスワード"
             required
-            minLength={8}
             className="w-full px-4 py-3 rounded-xl text-[15px] outline-none"
             style={{ background: 'white', border: '1.5px solid #EDE9D8' }}
           />
+          <PasswordPolicyHint className="text-[11px] mt-1" />
         </div>
 
         {error && (
@@ -276,9 +285,9 @@ export function Register({ likedGachaIds, onBack }: Props) {
       >
         <button
           type="submit"
-          disabled={loading || handleStatus === 'taken' || handleStatus === 'invalid'}
+          disabled={loading || handleStatus === 'taken' || handleStatus === 'invalid' || !isPasswordPolicyValid(password)}
           className="w-full py-4 rounded-2xl font-black text-white text-[16px]"
-          style={{ background: '#F2B800', opacity: (loading || handleStatus === 'taken' || handleStatus === 'invalid') ? 0.6 : 1 }}
+          style={{ background: '#F2B800', opacity: (loading || handleStatus === 'taken' || handleStatus === 'invalid' || !isPasswordPolicyValid(password)) ? 0.6 : 1 }}
         >
           {loading ? '登録中...' : 'はじめる'}
         </button>
