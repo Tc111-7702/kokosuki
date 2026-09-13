@@ -2,8 +2,12 @@ import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { emailOTP } from 'better-auth/plugins';
 import { APIError } from 'better-auth/api';
-import { finalizeMailDelivery } from './mailDeliveryContext';
-import { sendOtpEmail } from './mail';
+import {
+  captureExternalPasswordReset,
+  finalizeMailDelivery,
+  isExternalMailDelivery,
+} from './mailDeliveryContext';
+import { sendOtpEmail, sendPasswordResetEmail } from './mail';
 import { prisma } from './db';
 
 export const auth = betterAuth({
@@ -14,6 +18,14 @@ export const auth = betterAuth({
     enabled: true,
     minPasswordLength: 8,
     maxPasswordLength: 128,
+    sendResetPassword: async ({ user, url }) => {
+      if (isExternalMailDelivery()) {
+        captureExternalPasswordReset({ email: user.email, url, name: user.name });
+        return;
+      }
+      const result = await sendPasswordResetEmail({ email: user.email, url, name: user.name });
+      finalizeMailDelivery(result);
+    },
   },
   baseURL: process.env.BETTER_AUTH_URL ?? 'http://localhost:3000',
   secret: process.env.BETTER_AUTH_SECRET,

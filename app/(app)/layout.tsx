@@ -14,6 +14,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     pathname.startsWith('/report') ||
     pathname.startsWith('/settings/inquiry') ||
     pathname.startsWith('/settings/email') ||
+    pathname.startsWith('/settings/password') ||
     pathname.startsWith('/notifications/announcements/');
 
   return isMobile ? (

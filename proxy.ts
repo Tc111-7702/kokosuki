@@ -12,6 +12,22 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const hasSession = !!request.cookies.get(SESSION_COOKIE)?.value;
 
+  // 認証API・パスワード再設定（セッション不要）
+  if (
+    pathname.startsWith('/api/auth') ||
+    pathname === '/api/profile/reset-password' ||
+    /^\/resetPassword\/[^/]+$/.test(pathname)
+  ) {
+    return NextResponse.next();
+  }
+
+  // 旧形式の再設定リンク → Better Auth エンドポイントへ
+  if (pathname.startsWith('/reset-password/')) {
+    const url = request.nextUrl.clone();
+    url.pathname = `/api/auth${pathname}`;
+    return NextResponse.redirect(url);
+  }
+
   // ① ルート `/` → セッションの有無で振り分け
   if (pathname === '/') {
     return NextResponse.redirect(
@@ -48,5 +64,9 @@ export const config = {
     '/gacha/:path*',
     '/login/:path*',
     '/signup/:path*',
+    '/resetPassword/:path*',
+    '/reset-password/:path*',
+    '/api/profile/reset-password',
+    '/api/auth/:path*',
   ],
 };

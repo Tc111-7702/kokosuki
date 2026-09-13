@@ -2,6 +2,15 @@ import type { NextConfig } from "next";
 import path from "path";
 
 const nextConfig: NextConfig = {
+  async redirects() {
+    return [
+      {
+        source: '/reset-password/:token',
+        destination: '/api/auth/reset-password/:token',
+        permanent: false,
+      },
+    ];
+  },
   turbopack: {},
   images: {
     remotePatterns: [

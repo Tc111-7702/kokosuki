@@ -1,5 +1,6 @@
 import { Resend } from 'resend';
 import { isResendSandboxRestriction } from './mailDeliveryNotice';
+import { normalizePasswordResetUrl } from './passwordResetUrl';
 
 export type OtpMailType =
   | 'sign-in'
@@ -97,6 +98,40 @@ function buildOtpHtml(otp: string, type: OtpMailType): string {
   <p style="font-size:13px;color:#666">このコードは5分間有効です。心当たりがない場合はこのメールを無視してください。</p>
 </body>
 </html>`;
+}
+
+function buildPasswordResetHtml(url: string, name: string): string {
+  const displayName = name.trim() || 'ユーザー';
+  return `<!DOCTYPE html>
+<html lang="ja">
+<body style="font-family:sans-serif;color:#111;line-height:1.6">
+  <p>${displayName} さん</p>
+  <p>パスワード再設定のリクエストを受け付けました。以下のリンクからパスワードを変更してください。</p>
+  <p style="margin:20px 0;word-break:break-all">
+    <a href="${url}" style="color:#0066cc">${url}</a>
+  </p>
+  <p style="font-size:13px;color:#666">このリンクは1時間有効です。心当たりがない場合はこのメールを無視してください。</p>
+</body>
+</html>`;
+}
+
+/** Better Auth sendResetPassword から呼ばれるパスワード再設定メール。 */
+export async function sendPasswordResetEmail({
+  email,
+  url,
+  name,
+}: {
+  email: string;
+  url: string;
+  name: string;
+}): Promise<MailDeliveryResult> {
+  const resetUrl = normalizePasswordResetUrl(url);
+  return sendResendEmail({
+    to: email,
+    subject: '【mikke】パスワード再設定',
+    html: buildPasswordResetHtml(resetUrl, name),
+    devFallbackLog: [`[mail:dev] Password reset to ${email}: ${resetUrl}`],
+  });
 }
 
 /** Better Auth emailOTP から呼ばれる OTP メール送信。 */
