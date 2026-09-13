@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
 // 設定内の静的テキスト（ヘルプ・利用規約・プライバシーポリシー）
@@ -10,6 +11,40 @@ function Body({ children }: { children: React.ReactNode }) {
     <div className="px-5 py-6">
       <div className="text-[13px] leading-relaxed" style={{ color: '#555' }}>{children}</div>
     </div>
+  );
+}
+
+function HelpAnnouncementLink() {
+  const [latestId, setLatestId] = useState<string | null | undefined>(undefined);
+
+  useEffect(() => {
+    let alive = true;
+    fetch('/api/announcements')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!alive) return;
+        const id = d?.announcements?.[0]?.id;
+        setLatestId(typeof id === 'string' ? id : null);
+      })
+      .catch(() => {
+        if (alive) setLatestId(null);
+      });
+    return () => { alive = false; };
+  }, []);
+
+  if (latestId === undefined) {
+    return <p style={{ color: '#AAA' }}>読み込み中…</p>;
+  }
+  if (!latestId) {
+    return <p>現在お知らせはありません。</p>;
+  }
+  return (
+    <Link
+      href={`/notifications/announcements/${latestId}`}
+      className="inline-block text-[13px] font-bold text-[#B45309] underline underline-offset-2 hover:opacity-80 active:opacity-60"
+    >
+      お知らせはこちら
+    </Link>
   );
 }
 
@@ -33,7 +68,7 @@ export function HelpContent() {
         お問い合わせフォームはこちら
       </Link>
       <h2 className="text-[15px] font-black mb-2" style={{ color: '#111' }}>お知らせ</h2>
-      <p>現在お知らせはありません。</p>
+      <HelpAnnouncementLink />
     </Body>
   );
 }

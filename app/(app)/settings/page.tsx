@@ -110,6 +110,7 @@ export default function SettingsPage() {
         <div className="bg-white" style={{ borderTop: '1px solid #F0ECD8', borderBottom: '1px solid #F0ECD8' }}>
           <RowLink label="プロフィール設定" onClick={() => setSheet('profile')} />
           <RowLink label="メールアドレス" detail={email || '…'} onClick={() => router.push('/settings/email')} />
+          <RowLink label="パスワードの再設定" onClick={() => router.push('/settings/password')} />
         </div>
 
         {/* その他 */}
