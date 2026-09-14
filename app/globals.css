@@ -422,3 +422,94 @@ html, body {
     padding: 6px 6px 4px;
   }
 }
+
+/* ログイン: 起動スプラッシュ */
+.login-splash {
+  background: #ffcd31;
+}
+
+.login-splash-title {
+  font-family: var(--font-splash-display), "Noto Sans JP", "Hiragino Sans", "Yu Gothic", sans-serif;
+  font-weight: 900;
+  font-size: 40px;
+  line-height: 1.1;
+  letter-spacing: 0.06em;
+  color: #ffffff;
+  -webkit-text-stroke: 2px #ffffff;
+  paint-order: stroke fill;
+}
+
+.login-splash-title-position {
+  margin-top: 3.5rem;
+  transform: translateY(0.5rem);
+}
+
+@media (min-width: 768px) {
+  .login-splash-title {
+    font-size: 56px;
+    -webkit-text-stroke: 3px #ffffff;
+  }
+
+  .login-splash-title-position {
+    margin-top: 2rem;
+    transform: translateY(-1rem);
+  }
+}
+
+/* ログイン: サービス紹介 */
+.login-intro-tagline {
+  font-family: var(--font-login-display), "Zen Maru Gothic", "Hiragino Maru Gothic ProN", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.6;
+  color: #555555;
+}
+
+.login-intro-title {
+  font-family: var(--font-login-display), "Zen Maru Gothic", "Hiragino Maru Gothic ProN", sans-serif;
+  font-weight: 700;
+  font-size: 28px;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+  color: #111111;
+}
+
+@media (max-width: 767px) {
+  .login-intro-title {
+    font-size: 22px;
+  }
+}
+
+.login-intro-brand {
+  font-weight: 900;
+}
+
+.login-intro-divider-line {
+  display: block;
+  height: 1px;
+  min-width: 0;
+  background: #111111;
+}
+
+.login-intro-divider-text {
+  font-family: var(--font-login-display), "Zen Maru Gothic", "Hiragino Maru Gothic ProN", sans-serif;
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 700;
+  color: #111111;
+  white-space: nowrap;
+}
+
+.login-intro-primary-btn {
+  font-family: var(--font-login-display), "Zen Maru Gothic", "Hiragino Maru Gothic ProN", sans-serif;
+  font-weight: 700;
+  background: #ffcd31;
+}
+
+.login-intro-secondary-btn {
+  font-family: var(--font-login-display), "Zen Maru Gothic", "Hiragino Maru Gothic ProN", sans-serif;
+  font-weight: 700;
+  background: #ffffff;
+  border: 2px solid #ffcd31;
+  color: #ffcd31;
+}

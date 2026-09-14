@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { authClient } from '@/lib/auth-client';
+import { markLoginFromLogout } from '@/lib/loginSplash';
 
 // (app) 配下の全ページ共通のセッションガード。
 // サーバー側のセッションが失われたら（BAN でのセッション削除・期限切れ・別端末でのログアウト等）
@@ -24,6 +25,7 @@ export function SessionGuard() {
       if (redirecting) return;
       redirecting = true;
       try { await authClient.signOut(); } catch {}
+      markLoginFromLogout();
       window.location.href = '/login';
     };
 

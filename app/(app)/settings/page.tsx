@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, ChevronRight } from 'lucide-react';
 import { authClient } from '@/lib/auth-client';
+import { markLoginFromLogout } from '@/lib/loginSplash';
 import { SettingsSheet } from '@/components/SettingsSheet';
 import { ProfileSettingsSheet } from '@/components/ProfileSettingsSheet';
 import { HelpContent, PrivacyContent, TermsContent } from '@/components/StaticContents';
@@ -53,6 +54,7 @@ export default function SettingsPage() {
 
   const handleLogout = async () => {
     await authClient.signOut();
+    markLoginFromLogout();
     router.push('/login');
   };
 
@@ -63,6 +65,7 @@ export default function SettingsPage() {
     const res = await fetch('/api/me', { method: 'DELETE' }).catch(() => null);
     if (res?.ok) {
       await authClient.signOut().catch(() => {});
+      markLoginFromLogout();
       router.push('/login');
     } else {
       setDeleting(false);
