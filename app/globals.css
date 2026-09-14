@@ -7,7 +7,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-body);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -49,7 +49,6 @@
 }
 
 :root {
-  --font-body: system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -122,12 +121,11 @@
   * {
     @apply border-border outline-ring/50;
   }
-  html,
-  body {
-    font-family: var(--font-body);
-  }
   body {
     @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
   }
 }
 
@@ -591,16 +589,7 @@ html, body {
   }
 }
 
-/* ログイン: メール認証（Step 3）— 標準フォントを明示 */
-.login-email-step,
-.login-email-step input,
-.login-email-step button,
-.login-email-step h1,
-.login-email-step p,
-.login-email-step a {
-  font-family: var(--font-body);
-}
-
+/* ログイン: メール認証（Step 3） */
 .login-email-input {
   background: #ffffff;
   border: 1.5px solid #ede9d8;
