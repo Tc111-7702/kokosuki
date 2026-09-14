@@ -10,6 +10,7 @@ import { OtpDigitInput } from '@/components/OtpDigitInput';
 import { PasswordResetGlobeIllustration } from '@/components/ui/PasswordResetGlobeIllustration';
 import { formatMailDeliveryNotice } from '@/lib/mailDeliveryNotice';
 import type { MailDeliveryResult } from '@/lib/mail';
+import { persistSavedLoginAccount } from '@/lib/persistSavedLoginAccount';
 
 const OTP_MISMATCH = '認証コードが一致しません。';
 
@@ -52,6 +53,7 @@ export function LoginOtpStep({
         setError(formatLoginOtpError(signInError));
         return;
       }
+      await persistSavedLoginAccount(email);
       router.replace('/home');
       router.refresh();
     } catch {

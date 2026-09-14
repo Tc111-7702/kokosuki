@@ -70,8 +70,8 @@ export function LoginSignInStep({ onBack, onSelectProvider, intent = 'login' }: 
           </div>
         </header>
 
-        <div className="login-signin-below-logo flex flex-col flex-1 max-md:flex-none">
-          <div className="login-signin-tagline-wrap flex-1 max-md:flex-none flex items-center justify-center py-8 max-md:justify-start max-md:py-0">
+        <div className="login-signin-below-logo flex flex-col items-center w-full flex-1 max-md:flex-none">
+          <div className="login-signin-tagline-wrap flex-1 max-md:flex-none flex items-center justify-center py-8 max-md:justify-start max-md:py-0 w-full">
             <p className="login-signin-tagline text-center">
               あなたの「好き」が
               <br />
@@ -79,7 +79,7 @@ export function LoginSignInStep({ onBack, onSelectProvider, intent = 'login' }: 
             </p>
           </div>
 
-          <div className="login-signin-actions flex flex-col gap-3 pb-10 max-md:pb-0">
+          <div className="login-signin-actions flex flex-col gap-3 pb-10 max-md:pb-0 w-full">
             <button
               type="button"
               onClick={() => onSelectProvider('google')}
@@ -108,7 +108,10 @@ export function LoginSignInStep({ onBack, onSelectProvider, intent = 'login' }: 
             </button>
           </div>
 
-          <p className="login-signin-notice md:hidden">
+          <p
+            className="login-signin-notice mt-5 pb-8 w-full leading-relaxed px-1 max-md:block md:hidden"
+            style={{ color: '#999999', textAlign: 'left' }}
+          >
             新規登録またはログインで、ココスキの利用規約とプライバシーポリシーに同意したものとみなされます。
           </p>
         </div>

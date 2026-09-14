@@ -8,6 +8,7 @@ import {
   isExternalMailDelivery,
 } from './mailDeliveryContext';
 import { sendOtpEmail, sendPasswordResetEmail } from './mail';
+import { quickLoginAuthPlugin } from './quickLoginAuthPlugin';
 import { prisma } from './db';
 
 export const auth = betterAuth({
@@ -58,6 +59,7 @@ export const auth = betterAuth({
     },
   },
   plugins: [
+    quickLoginAuthPlugin(),
     emailOTP({
       disableSignUp: true,
       changeEmail: { enabled: true },
