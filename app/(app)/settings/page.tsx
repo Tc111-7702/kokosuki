@@ -55,7 +55,7 @@ export default function SettingsPage() {
   const handleLogout = async () => {
     await authClient.signOut();
     markLoginFromLogout();
-    router.push('/login');
+    window.location.href = '/login';
   };
 
   const handleDeleteAccount = async () => {
@@ -66,7 +66,7 @@ export default function SettingsPage() {
     if (res?.ok) {
       await authClient.signOut().catch(() => {});
       markLoginFromLogout();
-      router.push('/login');
+      window.location.href = '/login';
     } else {
       setDeleting(false);
       window.alert('退会に失敗しました。時間をおいて再度お試しください');
@@ -76,7 +76,7 @@ export default function SettingsPage() {
   return (
     <div className="relative flex flex-col h-full bg-[#FFFFFF] overflow-hidden">
       <div className="flex-shrink-0 bg-white flex items-center gap-2 px-3" style={{ height: 52, borderBottom: '1.5px solid #EDE9D8' }}>
-        <button onClick={() => router.back()} className="p-2 active:opacity-60" aria-label="戻る">
+        <button onClick={() => router.push('/mypage')} className="p-2 active:opacity-60" aria-label="戻る">
           <ArrowLeft size={20} color="#555" />
         </button>
         <h1 className="text-[16px] font-black" style={{ color: '#111' }}>設定</h1>
