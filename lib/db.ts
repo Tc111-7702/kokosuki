@@ -24,10 +24,15 @@ function createPrisma() {
   });
 }
 
+/** dev ホットリロードで古い PrismaClient が残ったとき delegate 欠落を検知する */
+function hasSignupPendingDelegate(client: PrismaClient): boolean {
+  return 'signupPending' in (client as object);
+}
+
 function getPrisma(): PrismaClient {
   const existing = globalForPrisma.prisma;
   // スキーマ追加後に dev サーバーを再起動せず古い Client が残ると delegate が undefined になる
-  if (existing && 'signupPending' in existing) {
+  if (existing && hasSignupPendingDelegate(existing)) {
     return existing;
   }
   if (existing) {
