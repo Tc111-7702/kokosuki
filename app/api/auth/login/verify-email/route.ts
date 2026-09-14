@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import * as db from '@/lib/db';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -13,10 +13,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: '有効なメールアドレスを入力してください' }, { status: 400 });
   }
 
-  const user = await prisma.user.findUnique({
-    where: { email },
-    select: { id: true, isActive: true },
-  });
+  const user = await db.findUserAuthByEmail(email);
   if (!user) {
     return NextResponse.json({ error: '登録されていないメールアドレスです' }, { status: 400 });
   }

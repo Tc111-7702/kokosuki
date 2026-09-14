@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'crypto';
-import { prisma } from '@/lib/db';
+import * as db from '@/lib/db';
 
 const IDENTIFIER_PREFIX = 'mikke-quick-login:';
 const TOKEN_TTL_MS = 365 * 24 * 60 * 60 * 1000; // 1年
@@ -20,51 +20,33 @@ export async function registerQuickLoginToken(userId: string): Promise<string> {
   const token = generateQuickLoginToken();
   const expiresAt = new Date(Date.now() + TOKEN_TTL_MS);
 
-  await prisma.verification.deleteMany({
-    where: {
-      identifier: { startsWith: IDENTIFIER_PREFIX },
-      value: userId,
-    },
-  });
-
-  await prisma.verification.create({
-    data: {
-      identifier: quickLoginIdentifier(token),
-      value: userId,
-      expiresAt,
-    },
+  await db.deleteQuickLoginVerificationsForUser(IDENTIFIER_PREFIX, userId);
+  await db.createVerificationRow({
+    identifier: quickLoginIdentifier(token),
+    value: userId,
+    expiresAt,
   });
 
   return token;
 }
 
 export async function revokeQuickLoginTokensForUser(userId: string): Promise<void> {
-  await prisma.verification.deleteMany({
-    where: {
-      identifier: { startsWith: IDENTIFIER_PREFIX },
-      value: userId,
-    },
-  });
+  await db.deleteQuickLoginVerificationsForUser(IDENTIFIER_PREFIX, userId);
 }
 
 export async function verifyQuickLoginToken(
   email: string,
   token: string,
 ): Promise<{ userId: string } | null> {
-  const record = await prisma.verification.findFirst({
-    where: { identifier: quickLoginIdentifier(token) },
-  });
+  const record = await db.findVerificationByIdentifier(quickLoginIdentifier(token));
   if (!record || record.expiresAt < new Date()) {
     if (record) {
-      await prisma.verification.delete({ where: { id: record.id } }).catch(() => undefined);
+      await db.deleteVerificationById(record.id).catch(() => undefined);
     }
     return null;
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: record.value },
-    select: { id: true, email: true, isActive: true },
-  });
+  const user = await db.findUserAuthById(record.value);
   if (!user || user.email.toLowerCase() !== email.trim().toLowerCase() || !user.isActive) {
     return null;
   }

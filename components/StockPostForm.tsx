@@ -200,7 +200,6 @@ function GachaSearch({ onSelect, accentColor = ACCENT, largeText = false }: {
   );
 }
 
-
 // ─── デスクトップ1ページレイアウト ────────────────────────────────────
 
 type StockValidationErrors = { gacha?: string; spot?: string; stock?: string };

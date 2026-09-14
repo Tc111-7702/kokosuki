@@ -169,7 +169,6 @@ function HomePageInner() {
         {tab === 'favorites' && <FavoritesTab />}
       </div>
 
-
     </div>
   );
 }

@@ -4,10 +4,15 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft } from 'lucide-react';
 import { authClient } from '@/lib/auth-client';
-import { formatEmailOtpError } from '@/lib/emailOtpErrors';
+import { formatEmailOtpError, isOtpExpiredError } from '@/lib/emailOtpErrors';
 import { useOtpResendCooldown } from '@/lib/useOtpResendCooldown';
+import {
+  isSignupPendingSessionExpiredResponse,
+  useSignupPendingExpiry,
+} from '@/lib/useSignupPendingExpiry';
 import { OtpDigitInput } from '@/components/OtpDigitInput';
 import { PasswordResetGlobeIllustration } from '@/components/ui/PasswordResetGlobeIllustration';
+import { MailDeliveryNotice } from '@/components/MailDeliveryNotice';
 import { formatMailDeliveryNotice } from '@/lib/mailDeliveryNotice';
 import type { MailDeliveryResult } from '@/lib/mail';
 import { persistSavedLoginAccount } from '@/lib/persistSavedLoginAccount';
@@ -22,15 +27,27 @@ function formatLoginOtpError(error: { code?: string; message?: string } | null |
   return formatEmailOtpError(error, OTP_MISMATCH);
 }
 
+export type LoginOtpFlow = 'login' | 'signup';
+
 export function LoginOtpStep({
   email,
   initialMailNotice,
   onBack,
+  onVerified,
+  onSessionExpired,
+  flow = 'login',
+  resendPath,
 }: {
   email: string;
   initialMailNotice?: string | null;
   onBack: () => void;
+  onVerified?: (email: string) => void;
+  onSessionExpired?: () => void;
+  flow?: LoginOtpFlow;
+  resendPath?: string;
 }) {
+  const isSignup = flow === 'signup';
+  const resolvedResendPath = resendPath ?? (isSignup ? '/api/auth/signup/send-otp' : '/api/auth/login/send-otp');
   const router = useRouter();
   const { remaining, canResend, restart } = useOtpResendCooldown(30);
   const [otp, setOtp] = useState('');
@@ -38,6 +55,8 @@ export function LoginOtpStep({
   const [resending, setResending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mailNotice, setMailNotice] = useState<string | null>(initialMailNotice ?? null);
+
+  const { handleExpired } = useSignupPendingExpiry(onSessionExpired ?? onBack, { enabled: false });
 
   const busy = verifying || resending;
   const canSubmit = /^\d{6}$/.test(otp) && !busy;
@@ -48,10 +67,42 @@ export function LoginOtpStep({
     setVerifying(true);
     setError(null);
     try {
-      const { error: signInError } = await authClient.signIn.emailOtp({ email, otp });
-      if (signInError) {
-        setError(formatLoginOtpError(signInError));
+      if (isSignup) {
+        const res = await fetch('/api/auth/signup/verify-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ email, otp }),
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok) {
+          if (isSignupPendingSessionExpiredResponse(res)) {
+            void handleExpired();
+            return;
+          }
+          const verifyError = {
+            code: typeof data?.code === 'string' ? data.code : undefined,
+            message: typeof data?.error === 'string' ? data.error : undefined,
+          };
+          if (isOtpExpiredError(verifyError)) {
+            void handleExpired();
+            return;
+          }
+          setError(formatLoginOtpError(verifyError));
+          return;
+        }
+        onVerified?.(email);
         return;
+      } else {
+        const { error: signInError } = await authClient.signIn.emailOtp({ email, otp });
+        if (signInError) {
+          if (isOtpExpiredError(signInError)) {
+            onBack();
+            return;
+          }
+          setError(formatLoginOtpError(signInError));
+          return;
+        }
       }
       await persistSavedLoginAccount(email);
       router.replace('/home');
@@ -76,9 +127,10 @@ export function LoginOtpStep({
     setResending(true);
     setError(null);
     try {
-      const res = await fetch('/api/auth/login/send-otp', {
+      const res = await fetch(resolvedResendPath, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ email }),
       });
       const data = await res.json().catch(() => null);
@@ -131,8 +183,14 @@ export function LoginOtpStep({
             に送信された6桁の認証コードを入力してください。
           </p>
 
+          {error ? (
+            <p className="hidden md:block mt-3 mb-0 text-[13px] font-bold text-center w-full" style={{ color: '#C4483C' }}>
+              {error}
+            </p>
+          ) : null}
+
           <form
-            className="mt-8 w-full flex flex-col items-center gap-4"
+            className={`mt-8 w-full flex flex-col items-center gap-4${error ? ' md:mt-2' : ''}`}
             onSubmit={(e) => {
               e.preventDefault();
               void handleVerify();
@@ -148,12 +206,10 @@ export function LoginOtpStep({
             />
 
             {mailNotice ? (
-              <p className="text-[12px] font-bold -mt-1 text-center leading-relaxed w-full" style={{ color: '#2E7D32' }}>
-                {mailNotice}
-              </p>
+              <MailDeliveryNotice className="-mt-1">{mailNotice}</MailDeliveryNotice>
             ) : null}
             {error ? (
-              <p className="text-[13px] font-bold -mt-1 text-center w-full" style={{ color: '#C4483C' }}>
+              <p className="md:hidden text-[13px] font-bold -mt-1 text-center w-full" style={{ color: '#C4483C' }}>
                 {error}
               </p>
             ) : null}

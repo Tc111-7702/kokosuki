@@ -1,5 +1,5 @@
 /** メール変更フロー共通レイアウト（モバイル: ブロック中央・文言左揃え / デスクトップ: 中央） */
-export const EMAIL_NOTICE_COLOR = '#B45309';
+export const EMAIL_NOTICE_COLOR = '#2E7D32';
 
 export const emailPanelClass =
   'flex flex-col items-center gap-4 md:gap-6 w-full text-left md:text-center';
@@ -20,7 +20,7 @@ export const emailBodyClass =
   'text-[13px] md:text-[16px] leading-relaxed md:whitespace-nowrap text-left md:text-center w-full';
 
 export const emailNoticeClass =
-  'text-[12px] md:text-[14px] font-bold leading-relaxed md:whitespace-nowrap text-left md:text-center w-full';
+  'text-[12px] md:text-[14px] font-bold leading-relaxed text-left line-clamp-3 w-full';
 
 /** バリデーション・エラーメッセージ（常に中央揃え） */
 export const emailErrorClass =

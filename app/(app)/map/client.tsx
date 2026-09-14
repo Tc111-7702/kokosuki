@@ -22,7 +22,6 @@ import { reverseGeocode, resolveLocation, resolveContent, type ContentResult } f
 
 // accessToken は page.tsx から props 経由で受け取る（下記 MapClient を参照）
 
-
 const STATION_RADIUS  = 1000;
 const STORAGE_KEY     = 'mikke_filter_gacha_ids';
 const LIKED_SEED_KEY  = 'mikke_filter_liked_seed_v1';
@@ -37,9 +36,7 @@ if (typeof window !== 'undefined' && !localStorage.getItem(MIGRATION_KEY)) {
   localStorage.setItem(MIGRATION_KEY, '1');
 }
 
-
 // ─── MapClient ───────────────────────────────────────────────────────────────
-
 
 export default function MapPage() {
   const searchParams   = useSearchParams();

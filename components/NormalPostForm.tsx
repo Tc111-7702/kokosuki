@@ -189,7 +189,6 @@ function GachaSearch({ onSelect }: {
   );
 }
 
-
 // ─── 結果選択 ────────────────────────────────────────────────────────────
 
 function ResultSelector({ value, onChange }: { value: string; onChange: (v: string) => void }) {
@@ -804,7 +803,6 @@ const nextBtnStyle = (active: boolean): React.CSSProperties => ({
   fontSize: 14, fontWeight: 800, cursor: active ? 'pointer' : 'not-allowed',
   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
 });
-
 
 function NormalPostForm(props: { onDone?: () => void; initialSpotId?: string; initialSpotName?: string; initialFilterGachaIds?: string[]; initialSearch?: string }) {
   return <MobileForm {...props} />;

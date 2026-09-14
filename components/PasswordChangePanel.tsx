@@ -8,6 +8,7 @@ import { formatMailDeliveryNotice } from '@/lib/mailDeliveryNotice';
 import type { MailDeliveryResult } from '@/lib/mail';
 import { isPasswordPolicyValid, validatePasswordPolicy } from '@/lib/passwordPolicy';
 import { useOtpResendCooldown } from '@/lib/useOtpResendCooldown';
+import { MailDeliveryNotice } from '@/components/MailDeliveryNotice';
 import {
   EMAIL_NOTICE_COLOR,
   emailButtonClass,
@@ -16,7 +17,6 @@ import {
   emailFieldStyle,
   emailFormGroupClass,
   emailLabelClass,
-  emailNoticeClass,
   emailPanelClass,
   emailPrimaryButtonStyle,
 } from '@/components/emailChangeLayout';
@@ -196,7 +196,7 @@ export function PasswordChangePanel({
               : `パスワードを忘れた場合 : ${remaining}s`}
         </button>
         {forgotNotice ? (
-          <p className={emailNoticeClass} style={{ color: EMAIL_NOTICE_COLOR }}>{forgotNotice}</p>
+          <MailDeliveryNotice color={EMAIL_NOTICE_COLOR} centerOnMobile>{forgotNotice}</MailDeliveryNotice>
         ) : null}
         {forgotError ? (
           <p className={emailErrorClass} style={{ color: '#C4483C' }}>{forgotError}</p>

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, Eye, EyeOff } from 'lucide-react';
 import { authClient } from '@/lib/auth-client';
+import { MailDeliveryNotice } from '@/components/MailDeliveryNotice';
 import { formatMailDeliveryNotice } from '@/lib/mailDeliveryNotice';
 import type { MailDeliveryResult } from '@/lib/mail';
 import { useOtpResendCooldown } from '@/lib/useOtpResendCooldown';
@@ -177,9 +178,7 @@ export function LoginPasswordStep({
                     : `パスワードをお忘れですか？ : ${remaining}s`}
               </button>
               {forgotNotice ? (
-                <p className="text-[12px] font-bold text-center leading-relaxed w-full" style={{ color: '#2E7D32' }}>
-                  {forgotNotice}
-                </p>
+                <MailDeliveryNotice centerOnMobile>{forgotNotice}</MailDeliveryNotice>
               ) : null}
               {forgotError ? (
                 <p className="text-[12px] font-bold text-center w-full" style={{ color: '#C4483C' }}>

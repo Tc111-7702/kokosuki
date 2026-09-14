@@ -8,14 +8,17 @@ import { isPasswordPolicyValid, validatePasswordPolicy } from '@/lib/passwordPol
 import { avatarColor } from '@/components/ui/Avatar';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import {
+  HANDLE_FORMAT_ERROR,
+  isSignupHandleFormatValid,
+  normalizeSignupHandleInput,
+} from '@/lib/signupHandle';
 
 interface Props {
   likedGachaIds: string[];
   onBack: () => void;
 }
 
-// アカウントID（handle）の形式: 英数字・アンダースコア 1〜30文字
-const HANDLE_RE = /^[a-z0-9_]{1,30}$/;
 type HandleStatus = 'idle' | 'checking' | 'ok' | 'taken' | 'invalid';
 
 export function Register({ likedGachaIds, onBack }: Props) {
@@ -37,14 +40,13 @@ export function Register({ likedGachaIds, onBack }: Props) {
 
   useEffect(() => () => { if (handleDebounce.current) clearTimeout(handleDebounce.current); }, []);
 
-  // @を除いた英数字・アンダースコアのみ許可。入力中に空き確認をデバウンス実行。
   const handleInput = (v: string) => {
-    const next = v.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
+    const next = normalizeSignupHandleInput(v);
     setHandle(next);
     latestHandleRef.current = next;
     if (handleDebounce.current) clearTimeout(handleDebounce.current);
-    if (!next)                 { setHandleStatus('idle');    return; }
-    if (!HANDLE_RE.test(next)) { setHandleStatus('invalid'); return; }
+    if (!next) { setHandleStatus('idle'); return; }
+    if (!isSignupHandleFormatValid(next)) { setHandleStatus('invalid'); return; }
     setHandleStatus('checking');
     handleDebounce.current = setTimeout(async () => {
       try {
@@ -85,8 +87,8 @@ export function Register({ likedGachaIds, onBack }: Props) {
 
     // ⑥ handle の pre-flight: signUp の前に形式＋空きを確認し、不正/重複なら User を作らない
     if (trimmedHandle) {
-      if (!HANDLE_RE.test(trimmedHandle)) {
-        setError('アカウントIDは英数字・アンダースコア（1〜30文字）で入力してください。');
+      if (!isSignupHandleFormatValid(trimmedHandle)) {
+        setError(HANDLE_FORMAT_ERROR);
         setLoading(false);
         return;
       }
@@ -220,8 +222,8 @@ export function Register({ likedGachaIds, onBack }: Props) {
               type="text"
               value={handle}
               onChange={(e) => handleInput(e.target.value)}
-              placeholder="英数字・アンダースコアのみ"
-              maxLength={30}
+              placeholder="ユーザーID"
+              maxLength={20}
               className="flex-1 px-2 py-3 text-[15px] outline-none bg-transparent"
             />
           </div>
@@ -232,7 +234,7 @@ export function Register({ likedGachaIds, onBack }: Props) {
           ) : handleStatus === 'taken' ? (
             <p className="text-[11px] mt-1" style={{ color: '#E5484D' }}>このIDはすでに使われています</p>
           ) : handleStatus === 'invalid' ? (
-            <p className="text-[11px] mt-1" style={{ color: '#E5484D' }}>英数字・アンダースコアのみ（1〜30文字）</p>
+            <p className="text-[11px] mt-1" style={{ color: '#E5484D' }}>{HANDLE_FORMAT_ERROR}</p>
           ) : (
             <p className="text-[11px] text-[#BBB] mt-1">空欄の場合はランダムなIDが設定されます</p>
           )}

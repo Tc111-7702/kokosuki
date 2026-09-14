@@ -1,5 +1,13 @@
 type AuthError = { code?: string; message?: string } | null | undefined;
 
+/** OTP の有効期限切れエラーか */
+export function isOtpExpiredError(error: AuthError): boolean {
+  const code = error?.code ?? '';
+  if (code === 'OTP_EXPIRED') return true;
+  const msg = (error?.message ?? '').toLowerCase();
+  return msg.includes('otp expired');
+}
+
 /** Better Auth emailOTP のエラーを日本語メッセージに変換する。 */
 export function formatEmailOtpError(error: AuthError, fallback: string): string {
   const code = error?.code ?? '';

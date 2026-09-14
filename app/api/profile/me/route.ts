@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import * as db from '@/lib/db';
 import { headers } from 'next/headers';
+import { HANDLE_FORMAT_ERROR, isSignupHandleFormatValid } from '@/lib/signupHandle';
 
 export async function GET() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -26,7 +27,6 @@ export async function GET() {
   });
 }
 
-const HANDLE_RE = /^[a-zA-Z0-9_]{3,20}$/;
 const RADIUS_MIN = 1_000;
 const RADIUS_MAX = 200_000;
 
@@ -51,8 +51,12 @@ export async function PATCH(req: Request) {
   if (name !== undefined && (typeof name !== 'string' || !name.trim() || name.trim().length > 30)) {
     return NextResponse.json({ error: '名前は1〜30文字で入力してください' }, { status: 400 });
   }
-  if (handle !== undefined && !HANDLE_RE.test(handle)) {
-    return NextResponse.json({ error: 'ユーザーIDは3〜20文字の半角英数字と_のみ使えます' }, { status: 400 });
+  let normalizedHandle: string | undefined;
+  if (handle !== undefined) {
+    normalizedHandle = handle.trim().toLowerCase();
+    if (!isSignupHandleFormatValid(normalizedHandle)) {
+      return NextResponse.json({ error: HANDLE_FORMAT_ERROR }, { status: 400 });
+    }
   }
   if (bio !== undefined && (typeof bio !== 'string' || bio.length > 200)) {
     return NextResponse.json({ error: '一言は200文字以内で入力してください' }, { status: 400 });
@@ -68,8 +72,8 @@ export async function PATCH(req: Request) {
   }
 
   // handleの重複チェック（自分以外が使用中なら409）
-  if (handle !== undefined) {
-    const existing = await db.findProfileByHandle(handle);
+  if (normalizedHandle !== undefined) {
+    const existing = await db.findProfileByHandle(normalizedHandle);
     if (existing && existing.userId !== userId) {
       return NextResponse.json({ error: 'このIDはすでに使われています' }, { status: 409 });
     }
@@ -82,7 +86,7 @@ export async function PATCH(req: Request) {
 
   // それ以外はUserProfile
   const profileData: db.ProfileUpsertData = {};
-  if (handle !== undefined) profileData.handle = handle;
+  if (normalizedHandle !== undefined) profileData.handle = normalizedHandle;
   if (bio !== undefined) profileData.bio = bio;
   // アイコン：空文字/nullは削除扱い。アバターは User.image に一本化（全ポストカードに反映）
   if (avatarUrl !== undefined) {

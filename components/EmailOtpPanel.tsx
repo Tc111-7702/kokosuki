@@ -7,6 +7,7 @@ import { formatMailDeliveryNotice } from '@/lib/mailDeliveryNotice';
 import type { MailDeliveryResult } from '@/lib/mail';
 import { OtpDigitInput } from '@/components/OtpDigitInput';
 import { useOtpResendCooldown } from '@/lib/useOtpResendCooldown';
+import { MailDeliveryNotice } from '@/components/MailDeliveryNotice';
 import {
   EMAIL_NOTICE_COLOR,
   emailBodyClass,
@@ -14,7 +15,6 @@ import {
   emailFormGroupClass,
   emailLabelClass,
   emailErrorClass,
-  emailNoticeClass,
   emailPanelClass,
   emailPrimaryButtonStyle,
 } from '@/components/emailChangeLayout';
@@ -118,9 +118,7 @@ export function EmailOtpPanel({
         />
       </div>
       {mailNotice ? (
-        <p className={emailNoticeClass} style={{ color: EMAIL_NOTICE_COLOR }}>
-          {mailNotice}
-        </p>
+        <MailDeliveryNotice color={EMAIL_NOTICE_COLOR}>{mailNotice}</MailDeliveryNotice>
       ) : null}
       {error ? (
         <p className={emailErrorClass} style={{ color: '#C4483C' }}>{error}</p>
