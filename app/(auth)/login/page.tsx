@@ -22,11 +22,11 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!shouldShowLoginSplash()) {
-      setPhase('intro');
-      return;
+      const introTimer = window.setTimeout(() => setPhase('intro'), 0);
+      return () => window.clearTimeout(introTimer);
     }
 
-    setPhase('splash');
+    const splashTimer = window.setTimeout(() => setPhase('splash'), 0);
 
     const fadeTimer = window.setTimeout(() => {
       setSplashVisible(false);
@@ -38,6 +38,7 @@ export default function LoginPage() {
     }, SPLASH_DURATION_MS);
 
     return () => {
+      window.clearTimeout(splashTimer);
       window.clearTimeout(fadeTimer);
       window.clearTimeout(stepTimer);
     };
