@@ -7,7 +7,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-body);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -49,6 +49,7 @@
 }
 
 :root {
+  --font-body: system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -121,11 +122,12 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html,
+  body {
+    font-family: var(--font-body);
+  }
   body {
     @apply bg-background text-foreground;
-  }
-  html {
-    @apply font-sans;
   }
 }
 
@@ -421,4 +423,328 @@ html, body {
   .mikke-spot-marker-popup .mapboxgl-popup-content {
     padding: 6px 6px 4px;
   }
+}
+
+/* ログイン: 起動スプラッシュ */
+.login-splash {
+  background: #ffcd31;
+}
+
+.login-splash-title {
+  font-family: var(--font-splash-display), "Noto Sans JP", "Hiragino Sans", "Yu Gothic", sans-serif;
+  font-weight: 900;
+  font-size: 40px;
+  line-height: 1.1;
+  letter-spacing: 0.06em;
+  color: #ffffff;
+  -webkit-text-stroke: 2px #ffffff;
+  paint-order: stroke fill;
+}
+
+.login-splash-title-position {
+  margin-top: 3.5rem;
+  transform: translateY(0.5rem);
+}
+
+@media (min-width: 768px) {
+  .login-splash-title {
+    font-size: 56px;
+    -webkit-text-stroke: 3px #ffffff;
+  }
+
+  .login-splash-title-position {
+    margin-top: 2rem;
+    transform: translateY(-1rem);
+  }
+}
+
+/* ログイン: ステップ2（ソーシャルログイン）— この画面のみ Zen Maru Gothic */
+.login-signin,
+.login-signin input,
+.login-signin button,
+.login-signin p,
+.login-signin h1,
+.login-signin a {
+  font-family: var(--font-login-display), "Zen Maru Gothic", "Hiragino Maru Gothic ProN", sans-serif;
+}
+
+.login-signin {
+  background: #fffbf0;
+}
+
+.login-signin-tagline {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.75;
+  letter-spacing: -0.01em;
+  color: #111111;
+}
+
+.login-signin-inner {
+  max-width: 360px;
+}
+
+.login-signin-logo {
+  width: 180px;
+}
+
+.login-signin-logo img {
+  width: 100% !important;
+  height: auto !important;
+}
+
+@media (max-width: 767px) {
+  .login-signin-below-logo {
+    flex: 0 0 auto;
+    margin-top: 1.25rem;
+  }
+
+  .login-signin-tagline-wrap {
+    flex: 0 0 auto;
+    justify-content: flex-start;
+    padding-top: 1.5rem;
+    padding-bottom: 0.75rem;
+  }
+
+  .login-signin-actions {
+    margin-top: 0;
+  }
+}
+
+.login-signin-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.625rem 1.25rem;
+  border-radius: 9999px;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.login-signin-btn > svg,
+.login-signin-btn > .login-signin-btn-email-icon {
+  position: absolute;
+  left: 1.25rem;
+}
+
+.login-signin-btn-google,
+.login-signin-btn-email {
+  background: #ffffff;
+  border: 1.5px solid #111111;
+  color: #111111;
+}
+
+.login-signin-btn-apple {
+  background: #111111;
+  border: 1.5px solid #111111;
+  color: #ffffff;
+}
+
+.login-signin-btn-email-icon {
+  color: #4285f4;
+}
+
+.login-signin-btn.login-signin-btn-email-signup {
+  gap: 0.75rem;
+}
+
+.login-signin-btn.login-signin-btn-email-signup > .login-signin-btn-email-icon {
+  position: static;
+  left: auto;
+}
+
+.login-signin-notice {
+  margin-top: 1.25rem;
+  padding-bottom: 2rem;
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 1.6;
+  letter-spacing: 0.01em;
+  text-align: center;
+  color: #999999;
+}
+
+@media (min-width: 768px) {
+  .login-signin-inner {
+    max-width: 440px;
+  }
+
+  .login-signin-logo {
+    width: 210px;
+  }
+
+  .login-signin-below-logo {
+    transform: translateY(-0.875rem);
+  }
+
+  .login-signin-actions {
+    transform: translateY(-0.75rem);
+  }
+
+  .login-signin-btn {
+    padding-top: 1.0625rem;
+    padding-bottom: 1.0625rem;
+    font-size: 17px;
+  }
+}
+
+/* ログイン: メール認証（Step 3）— 標準フォントを明示 */
+.login-email-step,
+.login-email-step input,
+.login-email-step button,
+.login-email-step h1,
+.login-email-step p,
+.login-email-step a {
+  font-family: var(--font-body);
+}
+
+.login-email-input {
+  background: #ffffff;
+  border: 1.5px solid #ede9d8;
+  color: #111111;
+}
+
+.login-email-input::placeholder {
+  color: #94a3b8;
+}
+
+.login-email-input-suffix {
+  padding-right: 6.75rem;
+}
+
+.login-email-input-wrap-has-value .login-email-input-suffix {
+  padding-right: 8.75rem;
+}
+
+.login-email-fixed-suffix {
+  position: absolute;
+  top: 50%;
+  right: 1rem;
+  transform: translateY(-50%);
+  font-size: 15px;
+  font-weight: 700;
+  color: #111111;
+  pointer-events: none;
+}
+
+.login-email-input-wrap-has-value .login-email-fixed-suffix {
+  right: 3rem;
+}
+
+.login-otp-send-btn {
+  background: #f2b800;
+}
+
+.login-otp-send-btn:disabled {
+  background: #e5e1d0;
+  color: #ffffff;
+  opacity: 1;
+}
+
+.login-otp-resend {
+  padding: 4px 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #111111;
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.login-otp-resend:not(:disabled):hover {
+  opacity: 0.75;
+}
+
+.login-otp-resend:not(:disabled):active {
+  opacity: 0.6;
+}
+
+.login-otp-resend:disabled {
+  color: #94a3b8;
+  text-decoration: none;
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.login-email-back-link {
+  margin-top: 4px;
+  padding: 8px 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #64748b;
+  text-align: center;
+  text-decoration: underline;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.login-email-back-link:hover {
+  opacity: 0.75;
+}
+
+.login-email-back-link:active {
+  opacity: 0.6;
+}
+
+/* ログイン: サービス紹介 */
+.login-intro-tagline {
+  font-family: var(--font-login-display), "Zen Maru Gothic", "Hiragino Maru Gothic ProN", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.6;
+  color: #555555;
+}
+
+.login-intro-title {
+  font-family: var(--font-login-display), "Zen Maru Gothic", "Hiragino Maru Gothic ProN", sans-serif;
+  font-weight: 700;
+  font-size: 28px;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+  color: #111111;
+}
+
+@media (max-width: 767px) {
+  .login-intro-title {
+    font-size: 22px;
+  }
+}
+
+.login-intro-brand {
+  font-weight: 900;
+}
+
+.login-intro-divider-line {
+  display: block;
+  height: 1px;
+  min-width: 0;
+  background: #111111;
+}
+
+.login-intro-divider-text {
+  font-family: var(--font-login-display), "Zen Maru Gothic", "Hiragino Maru Gothic ProN", sans-serif;
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 700;
+  color: #111111;
+  white-space: nowrap;
+}
+
+.login-intro-primary-btn {
+  font-family: var(--font-login-display), "Zen Maru Gothic", "Hiragino Maru Gothic ProN", sans-serif;
+  font-weight: 700;
+  background: #ffcd31;
+}
+
+.login-intro-secondary-btn {
+  font-family: var(--font-login-display), "Zen Maru Gothic", "Hiragino Maru Gothic ProN", sans-serif;
+  font-weight: 700;
+  background: #ffffff;
+  border: 2px solid #ffcd31;
+  color: #ffcd31;
 }
