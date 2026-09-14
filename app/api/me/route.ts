@@ -2,6 +2,12 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import * as db from '@/lib/db';
 import { headers } from 'next/headers';
+import {
+  quickLoginCookieName,
+  quickLoginCookieOptions,
+} from '@/lib/quickLoginCookie';
+import { revokeQuickLoginTokensForUser } from '@/lib/quickLoginToken';
+import { isSavedLoginProviderEmail } from '@/lib/savedLoginAccounts';
 
 export async function GET() {
   try {
@@ -21,8 +27,17 @@ export async function DELETE() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    await db.deleteUser(session.user.id);
-    return NextResponse.json({ ok: true });
+    const userId = session.user.id;
+    const userEmail = session.user.email?.trim().toLowerCase() ?? '';
+
+    await revokeQuickLoginTokensForUser(userId);
+    await db.deleteUser(userId);
+
+    const res = NextResponse.json({ ok: true });
+    if (userEmail && isSavedLoginProviderEmail(userEmail)) {
+      res.cookies.set(quickLoginCookieName(userEmail), '', quickLoginCookieOptions(0));
+    }
+    return res;
   } catch (e) {
     console.error('[me DELETE]', e);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

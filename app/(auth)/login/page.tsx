@@ -9,6 +9,7 @@ import { LoginPasswordStep } from '@/components/LoginPasswordStep';
 import { LoginSignInStep } from '@/components/LoginSignInStep';
 import { LoginSplash } from '@/components/LoginSplash';
 import { markLoginSplashSeen, shouldShowLoginSplash } from '@/lib/loginSplash';
+import { clearSignupPendingSession } from '@/lib/signupPendingCancel';
 import {
   getSavedAccountsForProvider,
   removeLoginAccount,
@@ -17,11 +18,8 @@ import {
 
 type LoginPhase = 'pending' | 'splash' | 'intro' | 'signin' | 'account-picker' | 'email' | 'otp' | 'password';
 
-const SPLASH_DURATION_MS = 3_000;
-
 export default function LoginPage() {
   const [phase, setPhase] = useState<LoginPhase>('pending');
-  const [splashVisible, setSplashVisible] = useState(true);
   const [emailProvider, setEmailProvider] = useState<LoginEmailProvider>('email');
   const [savedAccounts, setSavedAccounts] = useState<SavedLoginAccount[]>([]);
   const [email, setEmail] = useState('');
@@ -30,26 +28,30 @@ export default function LoginPage() {
   const [quickLoginError, setQuickLoginError] = useState<string | null>(null);
 
   useEffect(() => {
+    const clearPending = () => {
+      void clearSignupPendingSession();
+    };
+
+    clearPending();
+
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) clearPending();
+    };
+    window.addEventListener('pageshow', onPageShow);
+
     if (!shouldShowLoginSplash()) {
       const introTimer = window.setTimeout(() => setPhase('intro'), 0);
-      return () => window.clearTimeout(introTimer);
+      return () => {
+        window.clearTimeout(introTimer);
+        window.removeEventListener('pageshow', onPageShow);
+      };
     }
 
     const splashTimer = window.setTimeout(() => setPhase('splash'), 0);
 
-    const fadeTimer = window.setTimeout(() => {
-      setSplashVisible(false);
-    }, SPLASH_DURATION_MS - 500);
-
-    const stepTimer = window.setTimeout(() => {
-      markLoginSplashSeen();
-      setPhase('intro');
-    }, SPLASH_DURATION_MS);
-
     return () => {
       window.clearTimeout(splashTimer);
-      window.clearTimeout(fadeTimer);
-      window.clearTimeout(stepTimer);
+      window.removeEventListener('pageshow', onPageShow);
     };
   }, []);
 
@@ -108,7 +110,14 @@ export default function LoginPage() {
 
   return (
     <>
-      {phase === 'splash' && <LoginSplash visible={splashVisible} />}
+      {phase === 'splash' && (
+        <LoginSplash
+          onFinish={() => {
+            markLoginSplashSeen();
+            setPhase('intro');
+          }}
+        />
+      )}
       {phase === 'intro' && (
         <LoginIntroStep onLogin={() => setPhase('signin')} />
       )}

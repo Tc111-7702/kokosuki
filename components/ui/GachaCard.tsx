@@ -6,18 +6,35 @@ import { useLikedGachas } from '@/lib/useLikedGachas';
 import { SpotStockBadge } from '@/components/SpotGachaCard';
 
 // カード用のいいね（ハート）ボタン。タップでいいねトグル（カード遷移はしない）。
-function GachaLikeButton({ gachaId, size = 30, iconSize = 16 }: { gachaId: string; size?: number; iconSize?: number }) {
+function GachaLikeButton({
+  gachaId,
+  size = 30,
+  iconSize = 16,
+  liked,
+  onToggle,
+}: {
+  gachaId: string;
+  size?: number;
+  iconSize?: number;
+  liked?: boolean;
+  onToggle?: (gachaId: string) => void;
+}) {
   const { isLiked, toggle } = useLikedGachas();
-  const liked = isLiked(gachaId);
+  const isControlled = onToggle !== undefined;
+  const isLikedState = isControlled ? (liked ?? false) : isLiked(gachaId);
   return (
     <button
       type="button"
-      onClick={e => { e.stopPropagation(); toggle(gachaId); }}
+      onClick={e => {
+        e.stopPropagation();
+        if (isControlled) onToggle(gachaId);
+        else toggle(gachaId);
+      }}
       aria-label={liked ? 'いいねを取り消す' : 'いいね'}
       className="flex items-center justify-center rounded-full active:scale-90"
       style={{ width: size, height: size, background: 'rgba(255,255,255,0.92)', boxShadow: '0 1px 4px rgba(0,0,0,0.18)', transition: 'transform 0.1s' }}
     >
-      <Heart size={iconSize} fill={liked ? '#FF4D4D' : 'none'} color={liked ? '#FF4D4D' : '#999'} strokeWidth={2.2} />
+      <Heart size={iconSize} fill={isLikedState ? '#FF4D4D' : 'none'} color={isLikedState ? '#FF4D4D' : '#999'} strokeWidth={2.2} />
     </button>
   );
 }
@@ -81,11 +98,17 @@ interface GachaCardProps {
   fullWidth?: boolean;    // favorite 時にグリッド等で幅100%にする
   stockStatus?: string | null; // 指定時は発売状況バッジの代わりに在庫バッジを表示（店舗シート等）
   highlight?: boolean;    // 検索ヒット時の黄色ボーダー
+  /** 新規登録など未ログイン時: ハート状態を外部管理 */
+  likedOverride?: boolean;
+  onToggleLike?: (gachaId: string) => void;
+  /** favorite 時: カード上の IP 名を表示する（既定 true） */
+  showIpName?: boolean;
 }
 
 export function GachaCard({
   gacha, rank, showRank, rankNumberInset, isMobile, narrow = false, onClick, badgeLabel,
   variant = 'default', fullWidth = false, stockStatus, highlight = false,
+  likedOverride, onToggleLike, showIpName = true,
 }: GachaCardProps) {
   const router = useRouter();
   const go = onClick ?? (() => router.push(`/gacha/${gacha.id}`));
@@ -97,8 +120,9 @@ export function GachaCard({
     const showLike = stockStatus === undefined;
     return (
       <div onClick={go} style={{ flexShrink: fullWidth ? undefined : 0, width: favW, cursor: 'pointer' }}>
-        {/* カードの上に小さくIP名（無い場合も1行分の高さを確保して揃える） */}
-        <p className="px-0.5 mb-1 truncate" style={{ fontSize: 10, color: '#999', fontWeight: 700 }}>{gacha.ipName || ' '}</p>
+        {showIpName ? (
+          <p className="px-0.5 mb-1 truncate" style={{ fontSize: 10, color: '#999', fontWeight: 700 }}>{gacha.ipName || ' '}</p>
+        ) : null}
         {/* isolation: カード内の z-index を封じ込め、sticky ヘッダー等の外側に影響させない */}
         <div className="relative" style={{ isolation: 'isolate' }}>
           {/* ランキング数字（カード背面・話題のガチャのみ） */}
@@ -143,7 +167,11 @@ export function GachaCard({
             </div>
             {showLike && (
               <div style={{ position: 'absolute', top: 6, right: 6 }}>
-                <GachaLikeButton gachaId={gacha.id} />
+                <GachaLikeButton
+                  gachaId={gacha.id}
+                  liked={onToggleLike ? likedOverride : undefined}
+                  onToggle={onToggleLike}
+                />
               </div>
             )}
           </div>

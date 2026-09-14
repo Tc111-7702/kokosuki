@@ -21,15 +21,19 @@ const FULL_DOMAIN: Partial<Record<LoginEmailProvider, string>> = {
   apple: '@icloud.com',
 };
 
+export type LoginEmailFlow = 'login' | 'signup';
+
 interface Props {
   provider: LoginEmailProvider;
+  flow?: LoginEmailFlow;
   onBack: () => void;
-  onSent: (email: string, notice?: string) => void;
-  onPasswordLogin: (email: string) => void;
+  onSent?: (email: string, notice?: string) => void;
+  onPasswordLogin?: (email: string) => void;
 }
 
 export function LoginEmailStep({
   provider,
+  flow = 'login',
   onBack,
   onSent,
   onPasswordLogin,
@@ -51,14 +55,18 @@ export function LoginEmailStep({
     ? LOCAL_PART_RE.test(trimmed) && trimmed.length > 0 && !busy
     : EMAIL_RE.test(trimmed) && !busy;
 
+  const isSignup = flow === 'signup';
+  const sendOtpPath = isSignup ? '/api/auth/signup/send-otp' : '/api/auth/login/send-otp';
+
   const handleSubmit = async () => {
     if (!canSubmit) return;
     setSending(true);
     setError(null);
     try {
-      const res = await fetch('/api/auth/login/send-otp', {
+      const res = await fetch(sendOtpPath, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ email: fullEmail }),
       });
       const data = await res.json().catch(() => null);
@@ -71,7 +79,7 @@ export function LoginEmailStep({
         fullEmail,
         `${fullEmail} に認証コードを送信しました`,
       );
-      onSent(fullEmail, notice);
+      onSent?.(fullEmail, notice);
     } catch {
       setError('認証コードの送信に失敗しました');
     } finally {
@@ -80,7 +88,7 @@ export function LoginEmailStep({
   };
 
   const handlePasswordLogin = async () => {
-    if (!canSubmit) return;
+    if (!canSubmit || !onPasswordLogin) return;
     setVerifyingEmail(true);
     setError(null);
     try {
@@ -122,14 +130,16 @@ export function LoginEmailStep({
             className="mt-6 text-[22px] font-black text-center leading-snug w-full"
             style={{ color: '#111111' }}
           >
-            メールアドレスでログイン
+            {isSignup ? 'メールアドレスで作成する' : 'メールアドレスでログイン'}
           </h1>
 
           <p
             className="mt-3 text-[13px] text-left md:text-center leading-relaxed px-1 w-full"
             style={{ color: '#64748b' }}
           >
-            アカウント登録時に使用した、メールアドレスを入力してください
+            {isSignup
+              ? '登録完了時に通知するために、連絡可能なメールアドレスを入力してください'
+              : 'アカウント登録時に使用した、メールアドレスを入力してください'}
           </p>
 
           <form
@@ -190,14 +200,16 @@ export function LoginEmailStep({
               {sending ? '送信中…' : '認証コードを送信'}
             </button>
 
-            <button
-              type="button"
-              onClick={() => void handlePasswordLogin()}
-              disabled={!canSubmit}
-              className="login-otp-resend self-center disabled:cursor-not-allowed"
-            >
-              {verifyingEmail ? '確認中…' : 'パスワードでログイン'}
-            </button>
+            {!isSignup && onPasswordLogin ? (
+              <button
+                type="button"
+                onClick={() => void handlePasswordLogin()}
+                disabled={!canSubmit}
+                className="login-otp-resend self-center disabled:cursor-not-allowed"
+              >
+                {verifyingEmail ? '確認中…' : 'パスワードでログイン'}
+              </button>
+            ) : null}
 
             <button
               type="button"

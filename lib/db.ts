@@ -24,10 +24,21 @@ function createPrisma() {
   });
 }
 
+/** dev ホットリロードで古い PrismaClient が残ったとき delegate 欠落を検知する */
+function hasSignupPendingDelegate(client: PrismaClient): boolean {
+  return 'signupPending' in (client as object);
+}
+
 function getPrisma(): PrismaClient {
-  if (!globalForPrisma.prisma) {
-    globalForPrisma.prisma = createPrisma();
+  const existing = globalForPrisma.prisma;
+  // スキーマ追加後に dev サーバーを再起動せず古い Client が残ると delegate が undefined になる
+  if (existing && hasSignupPendingDelegate(existing)) {
+    return existing;
   }
+  if (existing) {
+    void existing.$disconnect().catch(() => undefined);
+  }
+  globalForPrisma.prisma = createPrisma();
   return globalForPrisma.prisma;
 }
 
@@ -268,6 +279,77 @@ export async function getPopularIpsByLikes(limit = 12): Promise<string[]> {
     .slice(0, limit);
 }
 
+export type SignupIpOption = {
+  ipName: string;
+  imageUrl: string | null;
+};
+
+/** 総いいね数が多い順に IP を返す。各 IP の imageUrl は配下で最もいいね数が多いガチャのアイコン */
+export async function getPopularIpsWithTopGachaImage(limit = 9): Promise<SignupIpOption[]> {
+  const rows = await prisma.gacha.findMany({
+    where: { status: 'on_sale', ipNameId: { not: null } },
+    select: {
+      imageUrl: true,
+      _count: { select: { gachaLikes: true } },
+      ...IP_NAME_SELECT,
+    },
+    orderBy: { gachaLikes: { _count: 'desc' } },
+  });
+  const likeMap = new Map<string, number>();
+  const imageMap = new Map<string, string | null>();
+  for (const g of rows) {
+    const name = g.ip?.name;
+    if (!name) continue;
+    likeMap.set(name, (likeMap.get(name) ?? 0) + g._count.gachaLikes);
+    if (!imageMap.has(name)) imageMap.set(name, g.imageUrl);
+  }
+  return [...likeMap.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([ipName]) => ({
+      ipName,
+      imageUrl: imageMap.get(ipName) ?? null,
+    }));
+}
+
+/** 指定 IP ごとに、配下で最もいいね数が多いガチャのアイコンを返す（検索結果用） */
+export async function getTopGachaImageByIpNames(ipNames: string[]): Promise<SignupIpOption[]> {
+  const unique = [...new Set(ipNames.map((n) => n.trim()).filter(Boolean))];
+  if (unique.length === 0) return [];
+
+  const rows = await prisma.gacha.findMany({
+    where: {
+      status: 'on_sale',
+      OR: unique.map((name) => ({ ip: { name: { equals: name, mode: 'insensitive' as const } } })),
+    },
+    select: {
+      imageUrl: true,
+      _count: { select: { gachaLikes: true } },
+      ...IP_NAME_SELECT,
+    },
+    orderBy: { gachaLikes: { _count: 'desc' } },
+  });
+
+  const imageByCanonical = new Map<string, string | null>();
+  const canonicalByLower = new Map<string, string>();
+  for (const g of rows) {
+    const name = g.ip?.name;
+    if (!name) continue;
+    canonicalByLower.set(name.toLowerCase(), name);
+    if (!imageByCanonical.has(name)) imageByCanonical.set(name, g.imageUrl);
+  }
+
+  const seen = new Set<string>();
+  const out: SignupIpOption[] = [];
+  for (const query of unique) {
+    const canonical = canonicalByLower.get(query.toLowerCase());
+    if (!canonical || seen.has(canonical)) continue;
+    seen.add(canonical);
+    out.push({ ipName: canonical, imageUrl: imageByCanonical.get(canonical) ?? null });
+  }
+  return out;
+}
+
 export const findGachaByWpPostId = (wpPostId: number) =>
   prisma.gacha.findUnique({ where: { wpPostId } });
 
@@ -456,6 +538,18 @@ export async function getGachasByIpName(ipName: string, limit = 100) {
     },
   });
   return rows.map(({ _count, ...g }) => ({ ...flatIp(g), likeCount: _count.gachaLikes }));
+}
+
+/** 新規登録: 各 IP ごとにいいね数が多い順で上位 N 件のガチャを返す */
+export async function getTopGachasByIpNamesForSignup(ipNames: string[], perIp = 4) {
+  const unique = [...new Set(ipNames.map((n) => n.trim()).filter(Boolean))];
+  const results = await Promise.all(
+    unique.map(async (ipName) => ({
+      ipName,
+      gachas: await getGachasByIpName(ipName, perIp),
+    })),
+  );
+  return results;
 }
 
 // ─── PostReply ────────────────────────────────────────────────────────────────
@@ -1161,6 +1255,14 @@ export async function deleteUser(id: string) {
 export const updateUserName = (id: string, name: string) =>
   prisma.user.update({ where: { id }, data: { name } });
 
+/** 生年月日を更新 */
+export const updateUserBirthDate = (id: string, birthDate: Date) =>
+  prisma.user.update({ where: { id }, data: { birthDate } });
+
+/** メール認証済みに更新 */
+export const markUserEmailVerified = (id: string) =>
+  prisma.user.update({ where: { id }, data: { emailVerified: true } });
+
 /** ユーザーの表示画像（User.image）を更新（プロフィールアイコンと同期・削除時はnull） */
 export const updateUserImage = (id: string, image: string | null) =>
   prisma.user.update({ where: { id }, data: { image } });
@@ -1589,3 +1691,131 @@ export const createInquiry = (data: { userId: string; body: string }) =>
       body: data.body.trim(),
     },
   });
+
+// ─── User（認証） ─────────────────────────────────────────────────────────────
+
+export const findUserIdByEmail = (email: string) =>
+  prisma.user.findUnique({ where: { email }, select: { id: true } });
+
+export const findUserAuthByEmail = (email: string) =>
+  prisma.user.findUnique({ where: { email }, select: { id: true, isActive: true } });
+
+export const findUserAuthById = (id: string) =>
+  prisma.user.findUnique({ where: { id }, select: { id: true, email: true, isActive: true } });
+
+export const getUserIsActiveById = (id: string) =>
+  prisma.user.findUnique({ where: { id }, select: { isActive: true } });
+
+// ─── SignupPending ────────────────────────────────────────────────────────────
+
+export const signupPendingPublicSelect = {
+  email: true,
+  expiresAt: true,
+  passwordEnc: true,
+  name: true,
+  birthDate: true,
+  handle: true,
+} as const;
+
+export const deleteExpiredSignupPendingRows = () =>
+  prisma.signupPending.deleteMany({ where: { expiresAt: { lt: new Date() } } });
+
+export const upsertSignupPendingRow = (args: {
+  email: string;
+  tokenHash: string;
+  expiresAt: Date;
+}) =>
+  prisma.signupPending.upsert({
+    where: { email: args.email },
+    create: {
+      email: args.email,
+      tokenHash: args.tokenHash,
+      expiresAt: args.expiresAt,
+    },
+    update: {
+      tokenHash: args.tokenHash,
+      expiresAt: args.expiresAt,
+      passwordEnc: null,
+      name: null,
+      birthDate: null,
+      handle: null,
+    },
+  });
+
+export const findSignupPendingByTokenHash = (tokenHash: string) =>
+  prisma.signupPending.findUnique({
+    where: { tokenHash },
+    select: { ...signupPendingPublicSelect, tokenHash: true },
+  });
+
+export const deleteSignupPendingByTokenHash = (tokenHash: string) =>
+  prisma.signupPending.deleteMany({ where: { tokenHash } });
+
+export const deleteSignupPendingByEmail = (email: string) =>
+  prisma.signupPending.deleteMany({ where: { email } });
+
+export const updateSignupPendingByTokenHash = (
+  tokenHash: string,
+  data: {
+    passwordEnc?: string | null;
+    name?: string | null;
+    birthDate?: Date | null;
+    handle?: string | null;
+  },
+) =>
+  prisma.signupPending.update({
+    where: { tokenHash },
+    data,
+    select: signupPendingPublicSelect,
+  });
+
+// ─── Verification（OTP / quick login） ───────────────────────────────────────
+
+export const findVerificationByIdentifier = (identifier: string) =>
+  prisma.verification.findFirst({
+    where: { identifier },
+    orderBy: { createdAt: 'desc' },
+  });
+
+export const deleteVerificationsByIdentifier = (identifier: string) =>
+  prisma.verification.deleteMany({ where: { identifier } });
+
+export const createVerificationRow = (data: {
+  identifier: string;
+  value: string;
+  expiresAt: Date;
+}) => prisma.verification.create({ data });
+
+export const deleteVerificationById = (id: string) =>
+  prisma.verification.delete({ where: { id } });
+
+export const deleteQuickLoginVerificationsForUser = (identifierPrefix: string, userId: string) =>
+  prisma.verification.deleteMany({
+    where: {
+      identifier: { startsWith: identifierPrefix },
+      value: userId,
+    },
+  });
+
+// ─── 通報対象のユーザー解決 ───────────────────────────────────────────────────
+
+export const findPostReportOwnerId = (id: string) =>
+  prisma.post.findUnique({ where: { id }, select: { userId: true } });
+
+export const findStockPostReportOwnerId = (id: string) =>
+  prisma.stockPost.findUnique({ where: { id }, select: { userId: true } });
+
+export const findPostReplyReportOwnerId = (id: string) =>
+  prisma.postReply.findUnique({ where: { id }, select: { userId: true } });
+
+export const findStockPostReplyReportOwnerId = (id: string) =>
+  prisma.stockPostReply.findUnique({ where: { id }, select: { userId: true } });
+
+export const findSpotReviewReportOwnerId = (id: string) =>
+  prisma.spotReview.findUnique({ where: { id }, select: { userId: true } });
+
+export const findSpotReviewReplyReportOwnerId = (id: string) =>
+  prisma.spotReviewReply.findUnique({ where: { id }, select: { userId: true } });
+
+export const findUserReportOwnerId = (id: string) =>
+  prisma.user.findUnique({ where: { id }, select: { id: true } });

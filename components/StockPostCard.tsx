@@ -43,7 +43,6 @@ function Avatar({ user, size }: { user: { name: string; image: string | null }; 
   );
 }
 
-
 function hasDisplayIpName(name: string): boolean {
   const n = name.trim();
   return n.length > 0 && n !== '不明';

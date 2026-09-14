@@ -51,9 +51,9 @@ export function LoginAccountPickerStep({
   const ProviderIcon = provider === 'google' ? GoogleIcon : AppleIcon;
 
   return (
-    <div className="login-account-picker w-full min-h-[100dvh]">
-      <div className="login-account-picker-shell w-full min-h-[100dvh] flex flex-col items-center px-4 py-6 md:px-6 md:py-10">
-        <div className="login-account-picker-inner w-full max-w-[448px] flex flex-col flex-1 min-h-0">
+    <div className="login-account-picker flex flex-col min-h-[100dvh] w-full">
+      <div className="login-account-picker-shell flex flex-col min-h-[100dvh] w-full px-4 py-6 md:px-6 md:py-10">
+        <div className="login-account-picker-inner w-full max-w-[448px] mx-auto flex flex-col flex-1 min-h-0 min-w-0">
           <button
             type="button"
             onClick={onBack}
@@ -64,9 +64,9 @@ export function LoginAccountPickerStep({
             <ChevronLeft size={28} strokeWidth={2} color="#111111" />
           </button>
 
-          <div className="login-account-picker-card w-full min-w-0 bg-white overflow-hidden flex flex-col flex-1 min-h-0">
-            <div className="login-account-picker-header px-6 pt-6 pb-5 flex flex-col items-center w-full text-left md:text-center">
-              <div className="login-account-picker-provider flex items-center gap-2.5 w-full self-start md:self-auto">
+          <div className="login-account-picker-card w-full min-w-0 bg-white overflow-hidden flex flex-col md:flex-1 md:min-h-0">
+            <div className="login-account-picker-header px-6 pt-6 pb-5 flex flex-col w-full text-left md:text-center">
+              <div className="login-account-picker-provider flex items-center gap-2.5 w-full md:justify-center">
                 <ProviderIcon />
                 <span>{`${providerLabel} でログイン`}</span>
               </div>
@@ -123,7 +123,7 @@ export function LoginAccountPickerStep({
               </p>
             ) : null}
 
-            <div className="login-account-picker-footer px-6 py-5 border-t mt-auto w-full shrink-0 flex flex-col items-center text-left md:text-center">
+            <div className="login-account-picker-footer px-6 py-5 border-t md:mt-auto w-full shrink-0 flex flex-col text-left md:text-center">
               <p className="login-account-picker-notice w-full leading-relaxed px-1">
                 続行すると、ココスキの利用規約とプライバシーポリシーが適用されます。
               </p>

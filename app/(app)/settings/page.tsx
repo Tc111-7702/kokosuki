@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, ChevronRight } from 'lucide-react';
 import { authClient } from '@/lib/auth-client';
 import { markLoginFromLogout } from '@/lib/loginSplash';
+import { clearSavedLoginAccount } from '@/lib/persistSavedLoginAccount';
 import { SettingsSheet } from '@/components/SettingsSheet';
 import { ProfileSettingsSheet } from '@/components/ProfileSettingsSheet';
 import { HelpContent, PrivacyContent, TermsContent } from '@/components/StaticContents';
@@ -62,8 +63,9 @@ export default function SettingsPage() {
     if (!window.confirm('退会すると、投稿・お気に入りなどすべてのデータが削除されます。本当に退会しますか？')) return;
     if (!window.confirm('この操作は取り消せません。よろしいですか？')) return;
     setDeleting(true);
-    const res = await fetch('/api/me', { method: 'DELETE' }).catch(() => null);
+    const res = await fetch('/api/me', { method: 'DELETE', credentials: 'include' }).catch(() => null);
     if (res?.ok) {
+      await clearSavedLoginAccount(email);
       await authClient.signOut().catch(() => {});
       markLoginFromLogout();
       window.location.href = '/login';

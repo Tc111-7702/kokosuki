@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { auth } from '@/lib/auth';
-import { prisma } from '@/lib/db';
-import { finalizeMailDelivery, runWithExternalMailDelivery } from '@/lib/mailDeliveryContext';
+import * as db from '@/lib/db';
+import { runWithMailDeliveryContext } from '@/lib/mailDeliveryContext';
 import { formatMailSendError } from '@/lib/mailDeliveryNotice';
-import { sendOtpEmail } from '@/lib/mail';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -18,10 +17,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: '有効なメールアドレスを入力してください' }, { status: 400 });
   }
 
-  const user = await prisma.user.findUnique({
-    where: { email },
-    select: { id: true, isActive: true },
-  });
+  const user = await db.findUserAuthByEmail(email);
   if (!user) {
     return NextResponse.json({ error: '登録されていないメールアドレスです' }, { status: 400 });
   }
@@ -31,22 +27,11 @@ export async function POST(req: Request) {
 
   try {
     const headersList = await headers();
-    const mail = await runWithExternalMailDelivery(async () => {
+    const { mail } = await runWithMailDeliveryContext(async () => {
       await auth.api.sendVerificationOTP({
         body: { email, type: 'sign-in' },
         headers: headersList,
       });
-      const otpResponse = await auth.api.getVerificationOTP({
-        query: { email, type: 'sign-in' },
-        headers: headersList,
-      });
-      const otp = otpResponse?.otp;
-      if (!otp) {
-        throw new Error('認証コードの生成に失敗しました');
-      }
-      const result = await sendOtpEmail({ email, otp, type: 'sign-in' });
-      finalizeMailDelivery(result);
-      return result;
     });
     return NextResponse.json({ success: true, mail });
   } catch (e) {

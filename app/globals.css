@@ -616,12 +616,22 @@ html, body {
   }
 
   .login-account-picker-inner {
-    flex: 1;
+    flex: 1 1 auto;
   }
 
   .login-account-picker-card {
-    flex: 1;
+    flex: 1 1 auto;
     min-height: 0;
+  }
+}
+
+@media (max-width: 767px) {
+  .login-account-picker-inner {
+    flex: 0 1 auto;
+  }
+
+  .login-account-picker-card {
+    flex: 0 1 auto;
   }
 }
 
@@ -761,7 +771,6 @@ html, body {
   }
 }
 
-
 /* ログイン: メール認証（Step 3） */
 .login-email-input {
   background: #ffffff;
@@ -794,6 +803,15 @@ html, body {
 
 .login-email-input-wrap-has-value .login-email-fixed-suffix {
   right: 3rem;
+}
+
+.mail-delivery-notice-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .login-otp-send-btn {

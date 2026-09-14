@@ -1,15 +1,16 @@
 // ─── Better Auth ──────────────────────────────────────────────────────────────
 
 model User {
-  id            String   @id @default(cuid())
-  email         String   @unique
-  emailVerified Boolean  @default(false)
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified Boolean   @default(false)
   name          String
+  birthDate     DateTime? @db.Date
   image         String?
-  role          String   @default("user") // 権限（既定 'user'）。20260810 の add_user_role で追加。
-  isActive      Boolean  @default(true) // アカウント有効/無効（false = BAN・凍結）。既定は有効。
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  role          String    @default("user") // 権限（既定 'user'）。20260810 の add_user_role で追加。
+  isActive      Boolean   @default(true) // アカウント有効/無効（false = BAN・凍結）。既定は有効。
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   sessions          Session[]
   accounts          Account[]
@@ -75,6 +76,22 @@ model Verification {
   expiresAt  DateTime
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+}
+
+// 新規登録: メール OTP 認証後〜本登録までの一時状態（30分有効）
+model SignupPending {
+  id               String    @id @default(cuid())
+  email            String    @unique
+  tokenHash        String    @unique
+  passwordEnc      String?
+  name             String?
+  birthDate        DateTime? @db.Date
+  handle           String?
+  expiresAt        DateTime
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([expiresAt])
 }
 
 // ─── ユーザープロフィール ──────────────────────────────────────────────────────

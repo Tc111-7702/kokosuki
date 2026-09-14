@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import * as db from '@/lib/db';
 import { headers } from 'next/headers';
+import { HANDLE_FORMAT_ERROR, isSignupHandleFormatValid } from '@/lib/signupHandle';
 
 function randomHandle(): string {
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-  const rand = Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-  return `user_${rand}`;
+  return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
 }
 
 export async function POST(req: NextRequest) {
@@ -17,9 +17,12 @@ export async function POST(req: NextRequest) {
 
   const { likedGachaIds = [], handle, avatarUrl } = await req.json();
 
-  let resolvedHandle = handle?.trim() || null;
+  let resolvedHandle = handle?.trim().toLowerCase() || null;
 
   if (resolvedHandle) {
+    if (!isSignupHandleFormatValid(resolvedHandle)) {
+      return NextResponse.json({ error: HANDLE_FORMAT_ERROR }, { status: 400 });
+    }
     const existing = await db.findProfileByHandle(resolvedHandle);
     if (existing) {
       return NextResponse.json({ error: 'このIDはすでに使われています' }, { status: 409 });

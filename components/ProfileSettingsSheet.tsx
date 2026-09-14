@@ -4,6 +4,11 @@ import { useEffect, useRef, useState } from 'react';
 import { Camera } from 'lucide-react';
 import { SettingsSheet } from '@/components/SettingsSheet';
 import { avatarColor } from '@/components/ui/Avatar';
+import {
+  HANDLE_FORMAT_ERROR,
+  isSignupHandleFormatValid,
+  normalizeSignupHandleInput,
+} from '@/lib/signupHandle';
 
 interface FavoriteGacha {
   id: string;
@@ -74,13 +79,19 @@ export function ProfileSettingsSheet({ open, onClose }: { open: boolean; onClose
   const handleSave = async () => {
     setSaving(true);
     setError(null);
+    const trimmedHandle = handle.trim();
+    if (trimmedHandle && !isSignupHandleFormatValid(trimmedHandle)) {
+      setError(HANDLE_FORMAT_ERROR);
+      setSaving(false);
+      return;
+    }
     try {
       const res = await fetch('/api/profile/me', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: name.trim(),
-          ...(handle.trim() ? { handle: handle.trim() } : {}),
+          ...(trimmedHandle ? { handle: trimmedHandle } : {}),
           bio,
           avatarUrl, // null のときは削除としてサーバーに反映
           favoriteIps,
@@ -150,10 +161,14 @@ export function ProfileSettingsSheet({ open, onClose }: { open: boolean; onClose
         </Field>
 
         {/* ユーザーID */}
-        <Field label="ユーザーID" hint="3〜20文字の半角英数字と_">
+        <Field label="ユーザーID" hint="4-20字・半角英数字">
           <div className="flex items-center gap-1 px-4 py-3 rounded-2xl" style={{ background: 'white', border: '1.5px solid #EDE9D8' }}>
             <span className="text-[14px]" style={{ color: '#AAA' }}>@</span>
-            <input value={handle} onChange={(e) => setHandle(e.target.value)} maxLength={20} placeholder="user_id"
+            <input
+              value={handle}
+              onChange={(e) => setHandle(normalizeSignupHandleInput(e.target.value))}
+              maxLength={20}
+              placeholder="user_id"
               className="flex-1 text-[14px]" style={{ color: '#111', outline: 'none', background: 'transparent' }} />
           </div>
         </Field>

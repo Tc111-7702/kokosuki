@@ -10,6 +10,7 @@ import {
 import { sendOtpEmail, sendPasswordResetEmail } from './mail';
 import { quickLoginAuthPlugin } from './quickLoginAuthPlugin';
 import { prisma } from './db';
+import * as db from './db';
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
@@ -45,10 +46,7 @@ export const auth = betterAuth({
         // 無効化(BAN・凍結)されたアカウントはセッションを作らせない＝ログイン不可にする。
         // セッション作成は email/password・ソーシャル等すべてのログインで通るため、ここで一括ブロックする。
         before: async (session) => {
-          const user = await prisma.user.findUnique({
-            where: { id: session.userId },
-            select: { isActive: true },
-          });
+          const user = await db.getUserIsActiveById(session.userId);
           if (user && !user.isActive) {
             throw new APIError('FORBIDDEN', {
               message: 'このアカウントは無効化されています。',
