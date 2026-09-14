@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { KokosukiLogo } from '@/components/ui/KokosukiLogo';
 import loginServiceIntro from '@/components/ui/assets/login-service-intro.png';
+import { loginDisplayFont } from '@/lib/loginFonts';
 
 interface Props {
   onLogin: () => void;
@@ -12,7 +13,7 @@ export function LoginIntroStep({ onLogin }: Props) {
   const router = useRouter();
 
   return (
-    <div className="login-intro flex flex-col items-center min-h-[100dvh] bg-white px-6 py-10 max-md:pt-10 max-md:pb-16">
+    <div className={`login-intro ${loginDisplayFont.className} flex flex-col items-center min-h-[100dvh] bg-white px-6 py-10 max-md:pt-10 max-md:pb-16`}>
       <div className="w-full max-w-[360px] flex flex-col items-center flex-1 justify-center max-md:flex-none max-md:justify-start max-md:-translate-y-6">
         <img
           src={loginServiceIntro.src}

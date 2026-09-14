@@ -2,6 +2,7 @@
 
 import { ChevronLeft, Mail } from 'lucide-react';
 import { KokosukiLogo } from '@/components/ui/KokosukiLogo';
+import { loginDisplayFont } from '@/lib/loginFonts';
 
 export type LoginSignInProvider = 'google' | 'apple' | 'email';
 
@@ -53,7 +54,7 @@ export function LoginSignInStep({ onBack, onSelectProvider, intent = 'login' }: 
   const actionLabel = intent === 'signup' ? '新規登録' : '続ける';
 
   return (
-    <div className="login-signin flex flex-col min-h-[100dvh] px-6">
+    <div className={`login-signin ${loginDisplayFont.className} flex flex-col min-h-[100dvh] px-6`}>
       <div className="login-signin-inner w-full mx-auto flex flex-col flex-1">
         <header className="login-signin-header relative flex flex-col items-center pt-10 max-md:pt-8 w-full">
           <button
