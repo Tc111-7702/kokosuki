@@ -28,8 +28,11 @@ export function useSignupPendingExpiry(
 ) {
   const enabled = options?.enabled ?? true;
   const onExpiredRef = useRef(onExpired);
-  onExpiredRef.current = onExpired;
   const expiredRef = useRef(false);
+
+  useEffect(() => {
+    onExpiredRef.current = onExpired;
+  }, [onExpired]);
 
   const handleExpired = useCallback(async () => {
     if (expiredRef.current) return;
