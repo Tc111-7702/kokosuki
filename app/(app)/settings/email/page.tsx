@@ -11,6 +11,8 @@ import { EmailChangeCompletePanel } from '@/components/EmailChangeCompletePanel'
 export default function SettingsEmailPage() {
   const router = useRouter();
   const [email, setEmail] = useState<string | null | undefined>(undefined);
+  const [profileName, setProfileName] = useState('');
+  const [profileAvatarUrl, setProfileAvatarUrl] = useState<string | null>(null);
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [pendingEmail, setPendingEmail] = useState('');
   const [mailNotice, setMailNotice] = useState<string | null>(null);
@@ -22,6 +24,8 @@ export default function SettingsEmailPage() {
       .then((d) => {
         if (!alive) return;
         setEmail(typeof d?.email === 'string' ? d.email : null);
+        setProfileName(typeof d?.name === 'string' ? d.name : '');
+        setProfileAvatarUrl(typeof d?.avatarUrl === 'string' ? d.avatarUrl : null);
       })
       .catch(() => {
         if (alive) setEmail(null);
@@ -71,7 +75,12 @@ export default function SettingsEmailPage() {
               onVerified={() => setStep(4)}
             />
           ) : (
-            <EmailChangeCompletePanel newEmail={pendingEmail} />
+            <EmailChangeCompletePanel
+              oldEmail={email}
+              newEmail={pendingEmail}
+              name={profileName}
+              avatarUrl={profileAvatarUrl}
+            />
           )}
         </div>
       </div>
