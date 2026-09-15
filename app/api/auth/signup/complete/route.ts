@@ -95,9 +95,8 @@ export async function POST(req: Request) {
     const response = NextResponse.json({ ok: true });
     response.cookies.set(SIGNUP_PENDING_COOKIE_NAME, '', { ...signupPendingCookieOptions(0), maxAge: 0 });
 
-    const setCookie = signUpResponse.headers.get('set-cookie');
-    if (setCookie) {
-      response.headers.set('set-cookie', setCookie);
+    for (const setCookie of signUpResponse.headers.getSetCookie()) {
+      response.headers.append('set-cookie', setCookie);
     }
 
     return response;
