@@ -31,7 +31,7 @@ export function LoginIntroStep({ onLogin }: Props) {
           alt=""
           width={loginServiceIntro.width}
           height={loginServiceIntro.height}
-          className="block w-full max-w-[260px] h-auto md:hidden"
+          className="block w-full max-w-[300px] h-auto md:hidden"
         />
         <div className="hidden md:block md:-translate-y-8 shrink-0">
           <KokosukiLogo width={280} />
