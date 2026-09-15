@@ -203,7 +203,7 @@ export function SignupIpSelectStep({ onBack, onContinue }: Props) {
                 value={query}
                 onChange={(e) => handleQueryChange(e.target.value)}
                 placeholder="キャラクター・IP検索"
-                className="login-email-input w-full h-[44px] md:h-[48px] rounded-2xl pl-11 pr-11 text-[13px] md:text-[14px] outline-none"
+                className="login-email-input w-full h-[44px] md:h-[48px] rounded-2xl pl-11 pr-11 text-[16px] md:text-[14px] outline-none"
               />
               {query ? (
                 <button
