@@ -14,7 +14,7 @@ export const SCHEDULE_BASE = 'https://gacha-island.jp/gacha-release-schedule';
 export const GEOCODE_BASE = 'https://maps.googleapis.com/maps/api/geocode/json';
 
 /** スクレイプ時の User-Agent */
-export const UA = { 'User-Agent': 'mikke-scraper/1.0' };
+export const UA = { 'User-Agent': 'kokosuki-scraper/1.0' };
 
 /**
  * 一覧/スケジュールページからガチャ記事リンクの wpPostId を抽出する正規表現。

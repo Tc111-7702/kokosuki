@@ -1,4 +1,4 @@
-/** 記録・投稿の通報理由（mikke-admin 側にも同内容を保持すること） */
+/** 記録・投稿の通報理由（kokosuki-admin 側にも同内容を保持すること） */
 export const CONTENT_REPORT_REASONS = [
   { key: 'offensive_inappropriate', name: '攻撃的・不適切な内容' },
   { key: 'personal_info', name: '個人情報が含まれている' },

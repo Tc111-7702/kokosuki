@@ -1,6 +1,6 @@
 // ─── お知らせ ────────────────────────────────────────────────────────────────
 //
-// 運営からの告知。admin が作成、mikke アプリ（ヘルプ・お知らせ等）で表示。
+// 運営からの告知。admin が作成、ココスキアプリ（ヘルプ・お知らせ等）で表示。
 // status: lib/announcementStatus.ts の定数（draft | published）
 
 model Announcement {

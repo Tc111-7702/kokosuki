@@ -1,5 +1,5 @@
 // スクレイピング予約設定（DB管理）。
-// admin が書き込み、この worker（mikke）が起動時に読み込んで start*Scraping に渡す。
+// admin が書き込み、この worker（ココスキ）が起動時に読み込んで start*Scraping に渡す。
 // 以前は JSON ファイルだったが、別サーバ運用でも共有できるよう DB(ScrapeSchedule) へ移行。
 
 import * as db from '@/lib/db';

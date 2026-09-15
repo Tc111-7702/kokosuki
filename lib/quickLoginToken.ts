@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from 'crypto';
 import * as db from '@/lib/db';
 
-const IDENTIFIER_PREFIX = 'mikke-quick-login:';
+const IDENTIFIER_PREFIX = 'kokosuki-quick-login:';
 const TOKEN_TTL_MS = 365 * 24 * 60 * 60 * 1000; // 1年
 
 export function generateQuickLoginToken(): string {

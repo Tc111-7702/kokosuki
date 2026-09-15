@@ -1,4 +1,4 @@
-export function MikkeIcon({ size = 46 }: { size?: number }) {
+export function KokosukiIcon({ size = 46 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
       <circle cx="24" cy="26" r="17" fill="#F2B800"/>

@@ -1,4 +1,4 @@
-export const THEME_STORAGE_KEY = 'mikke-theme';
+export const THEME_STORAGE_KEY = 'kokosuki-theme';
 
 export type AppTheme = 'light' | 'dark';
 

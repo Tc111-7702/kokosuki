@@ -26,7 +26,7 @@ interface SpotData {
   stockMap: Record<string, string>;
 }
 
-const STORAGE_KEY = 'mikke_filter_gacha_ids';
+const STORAGE_KEY = 'kokosuki_filter_gacha_ids';
 
 // ─── ユーティリティ ───────────────────────────────────────────
 

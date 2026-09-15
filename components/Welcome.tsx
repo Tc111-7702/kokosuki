@@ -12,7 +12,7 @@ export function Welcome({ onNext }: Props) {
     <div className="flex flex-col min-h-screen bg-[#FFFFFF] px-6 pt-12">
       <div className="flex-1 flex flex-col items-center justify-center">
         <h1 className="text-4xl font-black text-[#F2B800] mb-4" style={{ letterSpacing: '-1px' }}>
-          Mikke！
+          ココスキ！
         </h1>
         <p className="text-[#666] text-center text-[15px] mb-12 leading-relaxed">
           ガチャの在庫情報をみんなでシェア。<br />

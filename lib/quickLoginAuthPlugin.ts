@@ -15,7 +15,7 @@ const quickSignInBodySchema = z.object({
 
 export function quickLoginAuthPlugin() {
   return {
-    id: 'mikke-quick-login',
+    id: 'kokosuki-quick-login',
     endpoints: {
       quickSignIn: createAuthEndpoint(
         '/quick-login/sign-in',
