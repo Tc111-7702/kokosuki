@@ -25,7 +25,7 @@ export function LoginIntroStep({ onLogin }: Props) {
 
   return (
     <div className={`login-intro ${loginDisplayFont.className} flex flex-col items-center min-h-[100dvh] bg-white px-6 py-10 max-md:pt-10 max-md:pb-16`}>
-      <div className="w-full max-w-[360px] flex flex-col items-center flex-1 justify-center max-md:flex-none max-md:justify-start max-md:-translate-y-6">
+      <div className="w-full max-w-[360px] flex flex-col items-center flex-1 justify-center max-md:flex-none max-md:justify-start max-md:translate-y-10">
         <img
           src={loginServiceIntro.src}
           alt=""

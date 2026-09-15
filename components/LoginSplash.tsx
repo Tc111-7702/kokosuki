@@ -54,7 +54,7 @@ export function LoginSplash({ onFinish }: LoginSplashProps) {
 
   return (
     <div
-      className="login-splash fixed inset-0 z-50 flex flex-col items-center justify-center px-6 transition-opacity duration-500"
+      className="login-splash fixed inset-0 z-50 flex flex-col items-center justify-center max-md:justify-start max-md:pt-[38dvh] px-6 transition-opacity duration-500"
       style={{
         backgroundColor: splashBg,
         opacity: visible ? 1 : 0,
@@ -62,7 +62,7 @@ export function LoginSplash({ onFinish }: LoginSplashProps) {
       }}
       aria-hidden={!visible}
     >
-      <div className="flex flex-col items-center translate-y-8">
+      <div className="flex flex-col items-center translate-y-8 max-md:translate-y-0">
         <img
           ref={imgRef}
           src={passwordResetComplete.src}
