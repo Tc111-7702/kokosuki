@@ -31,7 +31,7 @@ export function LoginIntroStep({ onLogin }: Props) {
           alt=""
           width={loginServiceIntro.width}
           height={loginServiceIntro.height}
-          className="block w-full max-w-[300px] h-auto md:hidden"
+          className="block w-full max-w-[270px] h-auto md:hidden"
         />
         <div className="hidden md:block md:-translate-y-8 shrink-0">
           <KokosukiLogo width={280} />
@@ -49,7 +49,7 @@ export function LoginIntroStep({ onLogin }: Props) {
             </h1>
           </div>
 
-          <div className="login-intro-actions w-full max-md:-mx-2 max-md:w-[calc(100%+1rem)] max-md:translate-y-8 md:-mx-8 md:w-[calc(100%+4rem)] md:-translate-y-10">
+          <div className="login-intro-actions w-full max-md:-mx-2 max-md:w-[calc(100%+1rem)] max-md:translate-y-0 md:-mx-8 md:w-[calc(100%+4rem)] md:-translate-y-10">
             <button
               type="button"
               onClick={() => router.push('/signup')}
