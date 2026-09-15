@@ -218,7 +218,7 @@ export async function loadNearbySpots(
       const popupTight = typeof window !== 'undefined' && window.innerWidth < MOBILE_BREAKPOINT;
       const popup = new mapboxgl.Popup({
         offset: 28, closeButton: false, closeOnClick: false, maxWidth: '200px',
-        className: 'mikke-spot-marker-popup',
+        className: 'kokosuki-spot-marker-popup',
       })
         .setHTML(
           `<div style="font-size:${popupFonts.name}px;font-weight:700;color:#1a1a1a;margin-bottom:${popupTight ? 1 : 2}px;line-height:1.4;word-break:auto-phrase">${spot.name}</div>` +

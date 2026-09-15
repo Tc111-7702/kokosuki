@@ -43,10 +43,10 @@ interface FilterDrawerProps {
 
 // ─── localStorage ─────────────────────────────────────────────────────────────
 
-const STORAGE_KEY = 'mikke_filter_gacha_ids';
+const STORAGE_KEY = 'kokosuki_filter_gacha_ids';
 
 // アクティブフィルターが解除されても「最後に選んだガチャ」を覚えておくキー
-const SEED_KEY    = 'mikke_filter_gacha_ids_seed';
+const SEED_KEY    = 'kokosuki_filter_gacha_ids_seed';
 
 export function loadStoredGachaIds(): string[] {
   if (typeof window === 'undefined') return [];
@@ -176,7 +176,7 @@ export default function FilterDrawer({
         } else {
           // LIKED_SEED_KEY: マップロード時に profile/me から書き込まれるお気に入りID
           const likedSeed: string[] = (() => {
-            try { return JSON.parse(localStorage.getItem('mikke_filter_liked_seed_v1') || '[]') as string[]; } catch { return []; }
+            try { return JSON.parse(localStorage.getItem('kokosuki_filter_liked_seed_v1') || '[]') as string[]; } catch { return []; }
           })();
           const validLiked = likedSeed.filter(id => items.some(g => g.id === id));
           if (validLiked.length > 0) {

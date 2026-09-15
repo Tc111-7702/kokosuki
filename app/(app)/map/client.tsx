@@ -23,16 +23,16 @@ import { reverseGeocode, resolveLocation, resolveContent, type ContentResult } f
 // accessToken は page.tsx から props 経由で受け取る（下記 MapClient を参照）
 
 const STATION_RADIUS  = 1000;
-const STORAGE_KEY     = 'mikke_filter_gacha_ids';
-const LIKED_SEED_KEY  = 'mikke_filter_liked_seed_v1';
-const MIGRATION_KEY   = 'mikke_filter_migrated_v3';
+const STORAGE_KEY     = 'kokosuki_filter_gacha_ids';
+const LIKED_SEED_KEY  = 'kokosuki_filter_liked_seed_v1';
+const MIGRATION_KEY   = 'kokosuki_filter_migrated_v3';
 
 // v3移行: ユーザーリセット後のキャッシュクリア
 if (typeof window !== 'undefined' && !localStorage.getItem(MIGRATION_KEY)) {
   localStorage.removeItem(STORAGE_KEY);
-  localStorage.removeItem('mikke_filter_gacha_ids_seed');
+  localStorage.removeItem('kokosuki_filter_gacha_ids_seed');
   localStorage.removeItem(LIKED_SEED_KEY);
-  localStorage.removeItem('mikke_filter_migrated_v2');
+  localStorage.removeItem('kokosuki_filter_migrated_v2');
   localStorage.setItem(MIGRATION_KEY, '1');
 }
 
@@ -65,7 +65,7 @@ export default function MapPage() {
   const [contentSearchLabel, setContentSearchLabel] = useState<string | null>(null);
   const [hasSearchResult, setHasSearchResult]     = useState(false);
   const [showList, setShowList]                   = useState(() =>
-    typeof window !== 'undefined' && localStorage.getItem('mikke_map_show_list') === '1'
+    typeof window !== 'undefined' && localStorage.getItem('kokosuki_map_show_list') === '1'
   );
   const [filterSpotList, setFilterSpotList]         = useState<NearbySpot[]>([]);
   const [searchSpotList, setSearchSpotList]         = useState<NearbySpot[]>([]);
@@ -111,7 +111,7 @@ export default function MapPage() {
 
   // リスト/マップ表示モードを永続化
   useEffect(() => {
-    try { localStorage.setItem('mikke_map_show_list', showList ? '1' : '0'); } catch {}
+    try { localStorage.setItem('kokosuki_map_show_list', showList ? '1' : '0'); } catch {}
   }, [showList]);
 
   // 赤ピン設置
@@ -412,7 +412,7 @@ export default function MapPage() {
             const validIds = likedIds.filter(id => items.some(g => g.id === id));
             if (validIds.length > 0) {
               try { localStorage.setItem(STORAGE_KEY, JSON.stringify(validIds)); } catch {}
-              try { localStorage.setItem('mikke_filter_gacha_ids_seed', JSON.stringify(validIds)); } catch {}
+              try { localStorage.setItem('kokosuki_filter_gacha_ids_seed', JSON.stringify(validIds)); } catch {}
               setFilterGachaIds(validIds); filterRef.current = validIds;
               if (currentPosRef.current && mapRef.current && !hasSearchResultRef.current && !spotIdModeRef.current) {
                 const { lat, lng } = currentPosRef.current;

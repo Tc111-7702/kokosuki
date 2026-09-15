@@ -1,7 +1,7 @@
 /** サイドバー/ボトムナビのアクティブ判定用（直前にいた主要セクション） */
 export type NavSection = 'home' | 'map' | 'mypage';
 
-const KEY = 'mikke_nav_section';
+const KEY = 'kokosuki_nav_section';
 
 export function getNavSection(): NavSection {
   if (typeof window === 'undefined') return 'home';

@@ -1,5 +1,5 @@
-export const LOGIN_FROM_LOGOUT_KEY = 'mikke_login_from_logout';
-export const LOGIN_SPLASH_SEEN_KEY = 'mikke_login_splash_seen';
+export const LOGIN_FROM_LOGOUT_KEY = 'kokosuki_login_from_logout';
+export const LOGIN_SPLASH_SEEN_KEY = 'kokosuki_login_splash_seen';
 
 export function shouldShowLoginSplash(): boolean {
   if (typeof window === 'undefined') return false;

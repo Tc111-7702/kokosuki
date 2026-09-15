@@ -188,31 +188,31 @@
 }
 .sunlit-fill { animation: sunlit-fill 0.6s ease-out forwards; }
 
-/* ─── Mikke! Design System ─── */
+/* ─── ココスキ! Design System ─── */
 
 /* Mascot entrance animation */
-@keyframes mikke-mascot-in {
+@keyframes kokosuki-mascot-in {
   0%   { transform: translateY(-18px) scale(0.85); opacity: 0; }
   55%  { transform: translateY(6px)   scale(1.05); opacity: 1; }
   75%  { transform: translateY(-3px)  scale(0.98); }
   90%  { transform: translateY(2px)   scale(1.01); }
   100% { transform: translateY(0)     scale(1);    opacity: 1; }
 }
-.mikke-mascot-in {
-  animation: mikke-mascot-in 0.65s cubic-bezier(0.2, 0.8, 0.35, 1.1) both;
+.kokosuki-mascot-in {
+  animation: kokosuki-mascot-in 0.65s cubic-bezier(0.2, 0.8, 0.35, 1.1) both;
 }
 
 /* Screen slide-in */
-@keyframes mikke-screen-in {
+@keyframes kokosuki-screen-in {
   from { transform: translateX(24px); opacity: 0; }
   to   { transform: translateX(0);    opacity: 1; }
 }
-.mikke-screen-in {
-  animation: mikke-screen-in 0.28s cubic-bezier(0.2, 0.8, 0.4, 1) both;
+.kokosuki-screen-in {
+  animation: kokosuki-screen-in 0.28s cubic-bezier(0.2, 0.8, 0.4, 1) both;
 }
 
 /* Primary yellow button — Duolingo-style 3D */
-.mikke-btn-yellow {
+.kokosuki-btn-yellow {
   background: #FFCD31;
   color: #111111;
   border-radius: 14px;
@@ -230,11 +230,11 @@
   transition: transform 0.07s ease, box-shadow 0.07s ease;
   -webkit-tap-highlight-color: transparent;
 }
-.mikke-btn-yellow:active:not(:disabled) {
+.kokosuki-btn-yellow:active:not(:disabled) {
   transform: translateY(4px);
   box-shadow: 0 1px 0 #C8960A;
 }
-.mikke-btn-yellow:disabled {
+.kokosuki-btn-yellow:disabled {
   background: #E8E6E0;
   color: #B0AFAC;
   box-shadow: none;
@@ -242,7 +242,7 @@
 }
 
 /* Dark button */
-.mikke-btn-dark {
+.kokosuki-btn-dark {
   background: #1A1A1A;
   color: #FFCD31;
   border-radius: 14px;
@@ -260,13 +260,13 @@
   transition: transform 0.07s ease, box-shadow 0.07s ease;
   -webkit-tap-highlight-color: transparent;
 }
-.mikke-btn-dark:active {
+.kokosuki-btn-dark:active {
   transform: translateY(4px);
   box-shadow: 0 1px 0 #000;
 }
 
 /* Ghost/secondary button */
-.mikke-btn-ghost {
+.kokosuki-btn-ghost {
   background: #F5F2E8;
   color: #888888;
   border-radius: 14px;
@@ -282,13 +282,13 @@
   transition: transform 0.07s ease, box-shadow 0.07s ease;
   -webkit-tap-highlight-color: transparent;
 }
-.mikke-btn-ghost:active {
+.kokosuki-btn-ghost:active {
   transform: translateY(3px);
   box-shadow: 0 1px 0 #E0DDD4;
 }
 
 /* Selection card — type/IP picker */
-.mikke-card {
+.kokosuki-card {
   background: #F8F5ED;
   border: 2px solid #EDE9D8;
   border-radius: 16px;
@@ -297,22 +297,22 @@
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
-.mikke-card:active {
+.kokosuki-card:active {
   transform: translateY(3px);
   box-shadow: 0 1px 0 #E5E1CE;
 }
-.mikke-card[data-selected="true"] {
+.kokosuki-card[data-selected="true"] {
   background: #FFCD31;
   border-color: #C8960A;
   box-shadow: 0 4px 0 #C8960A;
 }
-.mikke-card[data-selected="true"]:active {
+.kokosuki-card[data-selected="true"]:active {
   transform: translateY(3px);
   box-shadow: 0 1px 0 #C8960A;
 }
 
 /* Feed card — Duolingo-style raised card */
-.mikke-feed-card {
+.kokosuki-feed-card {
   background: white;
   border-radius: 18px;
   border: 1.5px solid #EDE9D8;
@@ -321,36 +321,36 @@
   cursor: pointer;
   transition: transform 0.07s ease, box-shadow 0.07s ease;
 }
-.mikke-feed-card:active {
+.kokosuki-feed-card:active {
   transform: translateY(2px);
   box-shadow: 0 1px 0 #E5E1CE;
 }
 
 /* Coach mark — overlay fade-in */
-@keyframes mikke-coachmark-in {
+@keyframes kokosuki-coachmark-in {
   from { opacity: 0; }
   to   { opacity: 1; }
 }
-.mikke-coachmark-in {
-  animation: mikke-coachmark-in 0.22s ease both;
+.kokosuki-coachmark-in {
+  animation: kokosuki-coachmark-in 0.22s ease both;
 }
 
 /* Coach mark — tooltip card entrance */
-@keyframes mikke-coachmark-card-in {
+@keyframes kokosuki-coachmark-card-in {
   from { transform: translateY(10px) scale(0.97); opacity: 0; }
   to   { transform: translateY(0)    scale(1);    opacity: 1; }
 }
-.mikke-coachmark-card-in {
-  animation: mikke-coachmark-card-in 0.26s cubic-bezier(0.2, 0.8, 0.4, 1) both;
+.kokosuki-coachmark-card-in {
+  animation: kokosuki-coachmark-card-in 0.26s cubic-bezier(0.2, 0.8, 0.4, 1) both;
 }
 
 /* Coach mark — spotlight ring spin */
-@keyframes mikke-coachmark-ring-spin {
+@keyframes kokosuki-coachmark-ring-spin {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
 }
-.mikke-coachmark-ring-spin {
-  animation: mikke-coachmark-ring-spin 4s linear infinite;
+.kokosuki-coachmark-ring-spin {
+  animation: kokosuki-coachmark-ring-spin 4s linear infinite;
 }
 
 /* Scrollbar hide utility */
@@ -486,12 +486,12 @@ html, body {
 }
 
 /* マップ：店舗マーカーホバー時のポップアップ */
-.mikke-spot-marker-popup .mapboxgl-popup-content {
+.kokosuki-spot-marker-popup .mapboxgl-popup-content {
   padding: 12px 8px;
 }
 
 @media (max-width: 767px) {
-  .mikke-spot-marker-popup .mapboxgl-popup-content {
+  .kokosuki-spot-marker-popup .mapboxgl-popup-content {
     padding: 6px 6px 4px;
   }
 }

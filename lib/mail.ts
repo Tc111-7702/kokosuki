@@ -9,13 +9,13 @@ export type OtpMailType =
   | 'change-email';
 
 const SUBJECTS: Record<OtpMailType, string> = {
-  'sign-in': '【mikke】ログイン認証コード',
-  'email-verification': '【mikke】メール認証コード',
-  'forget-password': '【mikke】パスワード再設定コード',
-  'change-email': '【mikke】メールアドレス変更の認証コード',
+  'sign-in': '【kokosuki】ログイン認証コード',
+  'email-verification': '【kokosuki】メール認証コード',
+  'forget-password': '【kokosuki】パスワード再設定コード',
+  'change-email': '【kokosuki】メールアドレス変更の認証コード',
 };
 
-const DEFAULT_FROM = 'mikke <onboarding@resend.dev>';
+const DEFAULT_FROM = 'kokosuki <onboarding@resend.dev>';
 
 export type MailDeliveryMode = 'resend' | 'dev-redirect' | 'dev-console';
 
@@ -128,7 +128,7 @@ export async function sendPasswordResetEmail({
   const resetUrl = normalizePasswordResetUrl(url);
   return sendResendEmail({
     to: email,
-    subject: '【mikke】パスワード再設定',
+    subject: '【kokosuki】パスワード再設定',
     html: buildPasswordResetHtml(resetUrl, name),
     devFallbackLog: [`[mail:dev] Password reset to ${email}: ${resetUrl}`],
   });

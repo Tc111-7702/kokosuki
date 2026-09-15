@@ -1,4 +1,4 @@
-/** お知らせ公開ステータス（admin 用。mikke-admin 側にも同内容を保持すること） */
+/** お知らせ公開ステータス（admin 用。kokosuki-admin 側にも同内容を保持すること） */
 export const ANNOUNCEMENT_STATUSES = ['draft', 'published'] as const;
 
 export type AnnouncementStatus = (typeof ANNOUNCEMENT_STATUSES)[number];

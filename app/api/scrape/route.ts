@@ -7,10 +7,10 @@ import {
 } from '@/lib/kokosukiApiAuth';
 
 // スクレイピング即時実行 API（admin から呼ばれる）。
-//  - npm run scrape:gacha / scrape:phone を「mikke 自身の cwd で」子プロセス起動し、
+//  - npm run scrape:gacha / scrape:phone を「ココスキ 自身の cwd で」子プロセス起動し、
 //    stdout/stderr を text/plain でストリーム返却する。
-//  - 以前は admin が MIKKE_DIR 越しに子プロセスを起動していたが、別サーバ運用では
-//    ファイルシステムにアクセスできない。スクレイパーが在る mikke 側で実行する形にした。
+//  - 以前は admin が KOKOSUKI_DIR 越しに子プロセスを起動していたが、別サーバ運用では
+//    ファイルシステムにアクセスできない。スクレイパーが在る ココスキ側で実行する形にした。
 //  - 子プロセス実行なので stdout が隔離され、他リクエストのログを巻き込まない。
 //  - shop-sync 中など可視ログが無出力になる区間があるため、一定間隔で不可視ハートビートを
 //    送り、接続のアイドルタイムアウト（fetch/プロキシ）で切れないようにする。
@@ -72,7 +72,7 @@ export async function POST(req: Request) {
         } catch { /* closed */ }
       };
 
-      // mikke 自身のディレクトリで実行（スクレイパーは mikke に在る）。
+      // ココスキ 自身のディレクトリで実行（スクレイパーは ココスキに在る）。
       child = spawn('npm', ['run', script], {
         cwd: process.cwd(),
         shell: true,

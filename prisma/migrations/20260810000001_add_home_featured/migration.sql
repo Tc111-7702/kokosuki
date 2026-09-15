@@ -1,4 +1,4 @@
--- ホーム掲載枠テーブル（admin が書き込み、mikke のホームが読む共有テーブル）。
+-- ホーム掲載枠テーブル（admin が書き込み、ココスキのホームが読む共有テーブル）。
 CREATE TABLE "HomeFeatured" (
     "id" TEXT NOT NULL,
     "section" TEXT NOT NULL,

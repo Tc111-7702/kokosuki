@@ -1,4 +1,4 @@
-/** 問い合わせ対応ステータス（admin 用。mikke-admin 側にも同内容を保持すること） */
+/** 問い合わせ対応ステータス（admin 用。kokosuki-admin 側にも同内容を保持すること） */
 export const INQUIRY_STATUSES = ['pending', 'resolved'] as const;
 
 export type InquiryStatus = (typeof INQUIRY_STATUSES)[number];

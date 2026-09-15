@@ -14,9 +14,9 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_USER: mikke
-          POSTGRES_PASSWORD: mikke
-          POSTGRES_DB: mikke_ci
+          POSTGRES_USER: kokosuki
+          POSTGRES_PASSWORD: kokosuki
+          POSTGRES_DB: kokosuki_ci
         ports:
           - 5432:5432
         options: >-
@@ -26,7 +26,7 @@ jobs:
           --health-retries 5
 
     env:
-      DATABASE_URL: postgresql://mikke:mikke@localhost:5432/mikke_ci
+      DATABASE_URL: postgresql://kokosuki:kokosuki@localhost:5432/kokosuki_ci
 
     steps:
       - name: Checkout

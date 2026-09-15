@@ -7,9 +7,9 @@ export type SavedLoginAccount = {
 export type SavedLoginProvider = 'google' | 'apple' | 'email';
 
 const STORAGE_KEYS = {
-  google: 'mikke_saved_login_google',
-  apple: 'mikke_saved_login_apple',
-  email: 'mikke_saved_login_email',
+  google: 'kokosuki_saved_login_google',
+  apple: 'kokosuki_saved_login_apple',
+  email: 'kokosuki_saved_login_email',
 } as const;
 
 const MAX_ACCOUNTS_PER_KEY = 3;

@@ -51,9 +51,9 @@ function HelpAnnouncementLink() {
 export function HelpContent() {
   return (
     <Body>
-      <h2 className="text-[15px] font-black mb-2" style={{ color: '#111' }}>mikkeの使い方</h2>
+      <h2 className="text-[15px] font-black mb-2" style={{ color: '#111' }}>ココスキの使い方</h2>
       <p className="mb-4">
-        mikkeは、気になるガチャが「どこにあるか」をみんなで見つけるアプリです。
+        ココスキは、気になるガチャが「どこにあるか」をみんなで見つけるアプリです。
         マップでガチャスポットを探して、お店に着いたら在庫を報告したり、引いた結果を投稿してみましょう。
         あなたの報告が、誰かの「あった！」につながります。
       </p>
@@ -77,7 +77,7 @@ export function PrivacyContent() {
   return (
     <Body>
       <p className="mb-4">
-        mikke（以下「本サービス」）は、ユーザーの個人情報の取扱いについて、以下のとおりプライバシーポリシーを定めます。
+        ココスキ（以下「本サービス」）は、ユーザーの個人情報の取扱いについて、以下のとおりプライバシーポリシーを定めます。
       </p>
       <h2 className="text-[14px] font-black mb-2" style={{ color: '#111' }}>取得する情報</h2>
       <p className="mb-4">
@@ -99,7 +99,7 @@ export function TermsContent() {
   return (
     <Body>
       <p className="mb-4">
-        この利用規約（以下「本規約」）は、mikke（以下「本サービス」）の利用条件を定めるものです。
+        この利用規約（以下「本規約」）は、ココスキ（以下「本サービス」）の利用条件を定めるものです。
         ユーザーの皆さまには、本規約に同意のうえ本サービスをご利用いただきます。
       </p>
       <h2 className="text-[14px] font-black mb-2" style={{ color: '#111' }}>第1条（適用）</h2>

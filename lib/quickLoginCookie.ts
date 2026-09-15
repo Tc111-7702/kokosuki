@@ -1,6 +1,6 @@
 import { createHash } from 'crypto';
 
-const COOKIE_PREFIX = 'mikke_ql_';
+const COOKIE_PREFIX = 'kokosuki_ql_';
 export const QUICK_LOGIN_COOKIE_MAX_AGE_SEC = 365 * 24 * 60 * 60;
 
 export function normalizeLoginEmail(email: string): string {

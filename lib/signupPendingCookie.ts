@@ -1,4 +1,4 @@
-export const SIGNUP_PENDING_COOKIE_NAME = 'mikke_signup_pending';
+export const SIGNUP_PENDING_COOKIE_NAME = 'kokosuki_signup_pending';
 export const SIGNUP_PENDING_COOKIE_MAX_AGE_SEC = 30 * 60;
 /** SignupPending クッキー／DB の有効期限と同じ間隔でポーリング */
 export const SIGNUP_PENDING_CHECK_INTERVAL_MS = SIGNUP_PENDING_COOKIE_MAX_AGE_SEC * 1000;
