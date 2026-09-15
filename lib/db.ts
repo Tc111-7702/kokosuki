@@ -1247,6 +1247,9 @@ export async function deleteUser(id: string) {
       });
     }
 
+    // 4. 被通報者として残っている通報（reportedUserId は onDelete: Restrict）
+    await tx.report.deleteMany({ where: { reportedUserId: id } });
+
     await tx.user.delete({ where: { id } });
   });
 }

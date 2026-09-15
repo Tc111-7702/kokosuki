@@ -6,9 +6,46 @@ import { useAppTheme } from '@/components/AppThemeProvider';
 import { useLikedGachas } from '@/lib/useLikedGachas';
 import { SpotStockBadge } from '@/components/SpotGachaCard';
 
-function gachaCardShellClass(isDark: boolean, extra = '') {
-  return ['gacha-card-shell', isDark ? 'gacha-card-shell--dark' : '', extra].filter(Boolean).join(' ');
+function gachaCardShellStyle(isDark: boolean, opts: { highlight?: boolean; favorite?: boolean } = {}) {
+  const { highlight = false, favorite = false } = opts;
+  return {
+    background: isDark ? '#0a0a0a' : '#ffffff',
+    boxShadow: highlight
+      ? '0 2px 10px rgba(242,184,0,0.35)'
+      : isDark
+        ? '0 2px 12px rgba(0,0,0,0.45)'
+        : favorite
+          ? '0 2px 12px rgba(0,0,0,0.07)'
+          : '0 2px 10px rgba(0,0,0,0.08)',
+    cursor: 'pointer' as const,
+    transition: 'transform 150ms',
+  };
 }
+
+const gachaCardFooterStyle = { background: '#ffffff' } as const;
+
+const gachaCardSeriesNameStyle = (compact: boolean, mobile: boolean) => ({
+  color: compact ? '#222222' : '#1a1a1a',
+  fontSize: compact ? 11 : mobile ? 12 : 14,
+  fontWeight: compact ? 700 : 800,
+  margin: 0,
+  overflow: 'hidden',
+  display: '-webkit-box',
+  WebkitLineClamp: 2,
+  WebkitBoxOrient: 'vertical' as const,
+  lineHeight: compact ? 1.3 : 1.4,
+});
+
+const gachaCardIpNameStyle = {
+  fontSize: 11,
+  color: '#999',
+  fontWeight: 700,
+  lineHeight: 1.3,
+  margin: 0,
+  overflow: 'hidden',
+  whiteSpace: 'nowrap' as const,
+  textOverflow: 'ellipsis',
+};
 
 // カード用のいいね（ハート）ボタン。タップでいいねトグル（カード遷移はしない）。
 function GachaLikeButton({
@@ -136,7 +173,9 @@ export function GachaCard({
         cursor: 'pointer',
       }}>
         {showIpName ? (
-          <p className="px-0.5 mb-1 truncate" style={{ fontSize: 10, color: '#999', fontWeight: 700 }}>{gacha.ipName || ' '}</p>
+          <p className="px-0.5 mb-1" style={gachaCardIpNameStyle}>
+            {gacha.ipName || ' '}
+          </p>
         ) : null}
         {/* isolation: カード内の z-index を封じ込め、sticky ヘッダー等の外側に影響させない */}
         <div className="relative" style={{ isolation: 'isolate' }}>
@@ -154,8 +193,9 @@ export function GachaCard({
             </span>
           )}
         <div
-          className={`${gachaCardShellClass(isDark, 'gacha-card-shell--favorite relative z-10 flex flex-col rounded-2xl overflow-hidden w-full transition-transform')}${highlight ? ' gacha-card-shell--highlight' : ''}`}
+          className={`gacha-card-shell gacha-card-shell--favorite relative z-10 flex flex-col rounded-2xl overflow-hidden w-full transition-transform${isDark ? ' gacha-card-shell--dark' : ''}${highlight ? ' gacha-card-shell--highlight' : ''}`}
           style={{
+            ...gachaCardShellStyle(isDark, { highlight, favorite: true }),
             border: highlight ? '2px solid #F2B800' : '2px solid transparent',
           }}
           onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-3px)')}
@@ -188,8 +228,8 @@ export function GachaCard({
               </div>
             )}
           </div>
-          <div className="gacha-card-footer px-2 py-1.5">
-            <p className="gacha-card-series-name gacha-card-series-name--compact line-clamp-2">
+          <div className="gacha-card-footer px-2 py-1.5" style={gachaCardFooterStyle}>
+            <p className="gacha-card-series-name gacha-card-series-name--compact" style={gachaCardSeriesNameStyle(true, isMobile)}>
               {gacha.seriesName}
             </p>
           </div>
@@ -206,10 +246,11 @@ export function GachaCard({
 
   return (
     <div
-      className={gachaCardShellClass(isDark)}
+      className={`gacha-card-shell${isDark ? ' gacha-card-shell--dark' : ''}`}
       onClick={onClick ?? (() => router.push(`/gacha/${gacha.id}`))}
       style={{
         flexShrink: 0, width: cardW, borderRadius: radius, overflow: 'hidden',
+        ...gachaCardShellStyle(isDark),
       }}
       onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-3px)')}
       onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}
@@ -243,13 +284,11 @@ export function GachaCard({
           <GachaStatusBadge status={gacha.status} badgeLabel={badgeLabel} isMobile={isMobile} />
         </div>
       </div>
-      <div className="gacha-card-footer" style={{ padding: isMobile ? '8px 10px 10px' : '10px 14px 12px' }}>
-        <p style={{ fontSize: isMobile ? 10 : 11, color: '#AAA', margin: '0 0 3px', fontWeight: 600 }}>
+      <div className="gacha-card-footer" style={{ ...gachaCardFooterStyle, padding: isMobile ? '8px 10px 10px' : '10px 14px 12px' }}>
+        <p style={{ ...gachaCardIpNameStyle, color: '#AAA', fontWeight: 600, margin: '0 0 3px' }}>
           {gacha.ipName}
         </p>
-        <p
-          className={`gacha-card-series-name${isMobile ? ' gacha-card-series-name--mobile' : ''}`}
-        >
+        <p className={`gacha-card-series-name${isMobile ? ' gacha-card-series-name--mobile' : ''}`} style={gachaCardSeriesNameStyle(false, isMobile)}>
           {gacha.seriesName}
         </p>
       </div>

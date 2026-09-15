@@ -217,14 +217,29 @@ export default function ProfilePage() {
 
   // ── タブバー ──
   const TabButton = ({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) => (
-    <button onClick={onClick} className="flex-1 py-3 text-[13px] font-bold relative" style={{ color: active ? '#F2B800' : '#AAA' }}>
+    <button onClick={onClick} className="flex-1 py-2 md:py-3 text-[13px] font-bold relative z-[1]" style={{ color: active ? '#F2B800' : '#AAA' }}>
       {label}
-      {active && <div className="absolute bottom-0 left-1/2 -translate-x-1/2" style={{ width: 20, height: 2.5, background: '#FFCD31', borderRadius: 99 }} />}
     </button>
   );
 
+  const tabIndicatorIndex = isMobile
+    ? (tab === 'posts' ? 0 : tab === 'reports' ? 1 : 2)
+    : (feedActive ? 0 : 1);
+  const tabIndicatorCount = isMobile ? 3 : 2;
+
   const TabBar = (
-    <div className="flex bg-white flex-shrink-0" style={{ borderBottom: '1.5px solid #EDE9D8' }}>
+    <div className="relative flex bg-white flex-shrink-0" style={{ borderBottom: '1.5px solid #EDE9D8' }}>
+      <div
+        className="absolute bottom-0 left-0 pointer-events-none transition-transform duration-200 ease-out"
+        style={{
+          width: `calc(100% / ${tabIndicatorCount})`,
+          height: 2.5,
+          background: '#FFCD31',
+          boxShadow: '0 0 10px rgba(255, 205, 49, 0.55)',
+          transform: `translateX(${tabIndicatorIndex * 100}%)`,
+        }}
+        aria-hidden
+      />
       {isMobile ? (
         <>
           <TabButton active={tab === 'posts'} label="投稿" onClick={() => setTab('posts')} />

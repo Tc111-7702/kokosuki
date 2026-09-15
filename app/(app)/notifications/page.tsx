@@ -167,17 +167,11 @@ function TabButton({
   onClick: () => void;
 }) {
   return (
-    <button onClick={onClick} className="flex-1 py-3 text-[13px] font-bold relative" style={{ color: active ? '#F2B800' : '#AAA' }}>
+    <button onClick={onClick} className="flex-1 py-2 md:py-3 text-[13px] font-bold relative z-[1]" style={{ color: active ? '#F2B800' : '#AAA' }}>
       <span className="inline-flex items-center justify-center gap-1.5">
         {label}
         {!active && <TabUnreadBadge count={unreadCount} />}
       </span>
-      {active && (
-        <div
-          className="absolute bottom-0 left-1/2 -translate-x-1/2"
-          style={{ width: 20, height: 2.5, background: '#FFCD31', borderRadius: 99 }}
-        />
-      )}
     </button>
   );
 }
@@ -560,7 +554,18 @@ function NotificationsPageInner() {
         <h1 className="text-[16px] font-black" style={{ color: '#111', paddingLeft: 8 }}>通知</h1>
       </div>
 
-      <div className="flex bg-white flex-shrink-0" style={{ borderBottom: '1.5px solid #EDE9D8' }}>
+      <div className="relative flex bg-white flex-shrink-0" style={{ borderBottom: '1.5px solid #EDE9D8' }}>
+        <div
+          className="absolute bottom-0 left-0 pointer-events-none transition-transform duration-200 ease-out"
+          style={{
+            width: '50%',
+            height: 2.5,
+            background: '#FFCD31',
+            boxShadow: '0 0 10px rgba(255, 205, 49, 0.55)',
+            transform: `translateX(${tab === 'everyone' ? 0 : 100}%)`,
+          }}
+          aria-hidden
+        />
         <TabButton
           active={tab === 'everyone'}
           label="みなさまへ"

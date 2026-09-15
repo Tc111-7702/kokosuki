@@ -4,6 +4,11 @@ import { useState, useEffect, useSyncExternalStore } from 'react';
 import { X, ChevronRight, ChevronLeft, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { expandQuery } from '@/lib/gacha-aliases';
 import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
+import { useIsMobile } from '@/lib/useIsMobile';
+import { DESKTOP_PAGE_NAV_WIDTH } from '@/lib/desktopPageNav';
+
+const MOBILE_BREAKPOINT = 768;
+const MOBILE_BOTTOM_NAV_HEIGHT = 64;
 
 /** クエリがテキストにマッチするか（カタカナ正規化・エイリアス展開込み） */
 function matchesQuery(text: string, rawQuery: string): boolean {
@@ -96,11 +101,19 @@ export default function FilterDrawer({
     return new Set(loadSeedGachaIds()); // アクティブフィルター解除後もseedから復元
   });
 
+  const isMobile = useIsMobile(MOBILE_BREAKPOINT);
   const isDark = useSyncExternalStore(
     subscribeTheme,
     () => getThemeSnapshot() === 'dark',
     () => false,
   );
+
+  const mainAreaInsetStyle = {
+    top: 0,
+    right: 0,
+    bottom: isMobile ? MOBILE_BOTTOM_NAV_HEIGHT : 0,
+    left: isMobile ? 0 : DESKTOP_PAGE_NAV_WIDTH,
+  } as const;
   const filterBorderColor = isDark ? '#262626' : '#F3F4F6';
   const filterScreenBg = isDark ? '#0a0a0a' : '#FFFFFF';
   const filterSectionBg = isDark ? '#0a0a0a' : '#FAFAFA';
@@ -247,7 +260,7 @@ export default function FilterDrawer({
     .filter((g) => g.items.length > 0);
 
   return (
-    <div className="filter-drawer fixed inset-0 z-[60] flex flex-col" style={{ background: filterScreenBg }}>
+    <div className="filter-drawer fixed z-[60] flex flex-col" style={{ ...mainAreaInsetStyle, background: filterScreenBg }}>
       {screen === 'genres' ? (
         <>
           {/* ヘッダー */}
@@ -447,7 +460,7 @@ export default function FilterDrawer({
           <div className="px-4 pb-8 pt-3" style={filterFooterBorderStyle}>
             <button
               onClick={handleApply}
-              className="w-full py-3.5 rounded-2xl text-[15px] font-bold"
+              className="w-full py-2 md:py-3.5 rounded-2xl text-[15px] font-bold"
               style={{ background: '#F2B800', color: 'white' }}
             >
               適用する（{selectedGachaIds.size}件選択中）
@@ -542,7 +555,7 @@ export default function FilterDrawer({
           <div className="px-4 pb-8 pt-3" style={filterFooterBorderStyle}>
             <button
               onClick={handleApply}
-              className="w-full py-3.5 rounded-2xl text-[15px] font-bold"
+              className="w-full py-2 md:py-3.5 rounded-2xl text-[15px] font-bold"
               style={{ background: '#F2B800', color: 'white' }}
             >
               適用する（{selectedGachaIds.size}件選択中）
@@ -608,7 +621,7 @@ export default function FilterDrawer({
           </div>
 
           <div className="px-4 pb-8 pt-3" style={{ ...filterFooterBorderStyle, background: filterScreenBg }}>
-            <button onClick={handleApply} className="w-full py-3.5 rounded-2xl text-[13px] md:text-[15px] font-bold" style={{ background: '#F2B800', color: 'white' }}>
+            <button onClick={handleApply} className="w-full py-2 md:py-3.5 rounded-2xl text-[13px] md:text-[15px] font-bold" style={{ background: '#F2B800', color: 'white' }}>
               {`適用する（${selectedGachaIds.size}件選択中）`}
             </button>
           </div>

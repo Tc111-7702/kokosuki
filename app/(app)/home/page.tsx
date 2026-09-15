@@ -74,22 +74,32 @@ function HomePageInner() {
 
   const showSearchBar = tab === 'new' || tab === 'community' || tab === 'favorites';
 
+  const activeTabIndex = TAB_LABELS.findIndex(({ key }) => key === tab);
+
   const tabBar = (fixedHeight?: number) => (
-    <div className="flex" style={fixedHeight != null ? { height: fixedHeight } : undefined}>
+    <div
+      className="relative flex w-full"
+      style={fixedHeight != null ? { height: fixedHeight } : undefined}
+    >
+      <div
+        className="absolute bottom-0 left-0 pointer-events-none transition-transform duration-200 ease-out"
+        style={{
+          width: 'calc(100% / 3)',
+          height: 2.5,
+          background: '#FFCD31',
+          boxShadow: '0 0 10px rgba(255, 205, 49, 0.55)',
+          transform: `translateX(${activeTabIndex * 100}%)`,
+        }}
+        aria-hidden
+      />
       {TAB_LABELS.map(({ key, label }) => (
         <button
           key={key}
           onClick={() => switchTab(key)}
-          className={`flex-1 relative text-[13px] font-bold ${fixedHeight != null ? 'flex items-center justify-center' : 'py-3'}`}
+          className={`flex-1 relative z-[1] text-[13px] font-bold ${fixedHeight != null ? 'flex items-center justify-center' : 'py-3'}`}
           style={{ color: tab === key ? '#F2B800' : '#AAA' }}
         >
           {label}
-          {tab === key && (
-            <div
-              className="absolute bottom-0 left-1/2 -translate-x-1/2"
-              style={{ width: 20, height: 2.5, background: '#FFCD31', borderRadius: 99 }}
-            />
-          )}
         </button>
       ))}
     </div>
