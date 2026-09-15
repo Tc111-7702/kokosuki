@@ -18,7 +18,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     pathname.startsWith('/notifications/announcements/');
 
   return isMobile ? (
-    <div className="flex flex-col h-screen bg-[#F7F6F3]">
+    <div className="flex flex-col h-[100dvh] bg-[#F7F6F3]">
       <SessionGuard />
       <main className="flex-1 overflow-hidden h-full">
         {children}
