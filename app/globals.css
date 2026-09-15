@@ -991,6 +991,12 @@ html, body {
   .login-intro-title {
     font-size: 22px;
   }
+
+  .login-intro-brand {
+    font-weight: 900;
+    -webkit-text-stroke: 0.8px currentColor;
+    paint-order: stroke fill;
+  }
 }
 
 .login-intro-brand {

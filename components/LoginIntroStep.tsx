@@ -31,7 +31,7 @@ export function LoginIntroStep({ onLogin }: Props) {
           alt=""
           width={loginServiceIntro.width}
           height={loginServiceIntro.height}
-          className="block w-full max-w-[220px] h-auto md:hidden"
+          className="block w-full max-w-[260px] h-auto md:hidden"
         />
         <div className="hidden md:block md:-translate-y-8 shrink-0">
           <KokosukiLogo width={280} />
@@ -53,7 +53,7 @@ export function LoginIntroStep({ onLogin }: Props) {
             <button
               type="button"
               onClick={() => router.push('/signup')}
-              className="login-intro-primary-btn mt-10 max-md:mt-6 md:mt-6 w-full h-[52px] max-md:h-[46px] rounded-2xl max-md:rounded-lg text-[16px] font-bold text-white active:opacity-80"
+              className="login-intro-primary-btn mt-10 max-md:mt-6 md:mt-6 w-full h-[52px] max-md:h-auto max-md:min-h-[50px] max-md:py-3.5 rounded-2xl max-md:rounded-lg text-[16px] font-bold text-white active:opacity-80"
             >
               はじめての方
             </button>
@@ -67,7 +67,7 @@ export function LoginIntroStep({ onLogin }: Props) {
             <button
               type="button"
               onClick={onLogin}
-              className="login-intro-secondary-btn mt-4 max-md:mt-3 md:mt-3 w-full h-[52px] max-md:h-[46px] rounded-2xl max-md:rounded-lg text-[16px] font-bold active:opacity-80"
+              className="login-intro-secondary-btn mt-4 max-md:mt-3 md:mt-3 w-full h-[52px] max-md:h-auto max-md:min-h-[50px] max-md:py-3.5 rounded-2xl max-md:rounded-lg text-[16px] font-bold active:opacity-80"
             >
               ログイン
             </button>
