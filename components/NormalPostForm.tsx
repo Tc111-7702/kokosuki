@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { X, ChevronLeft, ChevronRight, Camera } from 'lucide-react';
 import { SpotSearchPanel } from '@/components/SpotSearchPanel';
 import { SpotGachaPicker } from '@/components/SpotGachaPicker';
 import { PopularIpTagList, SearchTagsDivider } from '@/components/PopularIpTagList';
 import { useIsMobile } from '@/lib/useIsMobile';
+import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 import { POST_STEP_NEXT_GAP, POST_SPOT_STEP_NEXT_GAP } from '@/lib/postFormMobileLayout';
 import {
   PostImageFrame,
@@ -56,8 +57,9 @@ const EMPTY: FormState = {
 
 // ─── ガチャ検索（人気IP chips 付き） ─────────────────────────────────────
 
-function GachaSearch({ onSelect }: {
+function GachaSearch({ onSelect, onClear }: {
   onSelect: (id: string, name: string, imageUrl: string | null, lineup: string[]) => void;
+  onClear?: () => void;
 }) {
   const [query, setQuery]             = useState('');
   const [suggestions, setSuggestions] = useState<GachaSuggestion[]>([]);
@@ -122,43 +124,53 @@ function GachaSearch({ onSelect }: {
       {/* 検索バー（home/search と同じUI） */}
       <div ref={searchRef} style={{ position: 'relative' }}>
         <div style={{ paddingTop: isMobile ? 6 : 8 }}>
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          padding: isMobile ? '6px 12px' : '10px 14px',
-          background: '#F5F3ED', borderRadius: 16,
-        }}>
-          <input type="text" value={query} placeholder="気になっているガチャをさがす"
-            onChange={e => { setQuery(e.target.value); fetchSuggestions(e.target.value); }}
-            onFocus={() => { setFocused(true); if (query) fetchSuggestions(query); }}
-            onBlur={() => setTimeout(() => setFocused(false), 200)}
-            style={{ flex: 1, minWidth: 0, background: 'none', border: 'none', outline: 'none', fontSize: isMobile ? 12 : 14, color: '#333' }} />
-          {resolving
-            ? <div style={{ width: 13, height: 13, border: '2px solid #F2B800', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
-            : query
-              ? <button onMouseDown={e => { e.preventDefault(); setQuery(''); setSuggestions([]); }}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 0 }}>
-                  <X size={13} color="#bbb" />
-                </button>
-              : null}
-        </div>
+          <div className="community-search-input-shell flex items-center gap-2 px-3 py-1.5 lg:py-2.5 rounded-full">
+            {resolving ? (
+              <div className="animate-spin rounded-full border-2 border-t-transparent flex-shrink-0" style={{ width: 15, height: 15, borderColor: '#F2B800', borderTopColor: 'transparent' }} />
+            ) : (
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2.5" className="flex-shrink-0">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="16.65" y1="16.65" x2="21" y2="21" />
+              </svg>
+            )}
+            <input
+              type="text"
+              value={query}
+              placeholder="引いたガチャをさがす"
+              onChange={e => { setQuery(e.target.value); fetchSuggestions(e.target.value); }}
+              onFocus={() => { setFocused(true); if (query) fetchSuggestions(query); }}
+              onBlur={() => setTimeout(() => setFocused(false), 200)}
+              disabled={resolving}
+              className="community-search-input shell-field flex-1 bg-transparent text-xs lg:text-sm outline-none min-w-0"
+              style={{ fontSize: isMobile ? 12 : 14, textAlign: 'left' }}
+            />
+            {query && !resolving && (
+              <button
+                type="button"
+                onMouseDown={e => { e.preventDefault(); setQuery(''); setSuggestions([]); onClear?.(); }}
+                aria-label="入力をクリア"
+                className="home-search-clear-btn p-0 bg-transparent border-none cursor-pointer leading-none flex-shrink-0"
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
         </div>
         {focused && suggestions.length > 0 && (
-          <div style={{
-            position: 'absolute', zIndex: 50, top: 'calc(100% - 4px)', left: 0, right: 0,
-            background: 'white', borderRadius: 12, boxShadow: '0 6px 24px rgba(0,0,0,0.14)',
-            border: '1px solid #f0f0f0', maxHeight: 280, overflow: 'hidden',
-          }}>
+          <div
+            className="search-suggest-dropdown absolute z-50 left-0 right-0 rounded-xl shadow-xl"
+            style={{ top: 'calc(100% - 4px)', maxHeight: 280, overflow: 'hidden' }}
+          >
             <div style={{ maxHeight: 280, overflowY: 'auto' }}>
-              <div style={{ padding: '4px 12px', fontSize: isMobile ? 10 : 12, fontWeight: 700, color: '#9CA3AF', background: '#F9FAFB', borderBottom: '1px solid #F3F4F6' }}>ガチャ・IP</div>
-              {suggestions.map((s, i) => (
+              <div className="search-suggest-section" style={{ fontSize: isMobile ? 10 : 12 }}>ガチャ・IP</div>
+              {suggestions.map((s) => (
                 <button key={`${s.type}-${s.label}`} onMouseDown={e => { e.preventDefault(); handleSelect(s.label); }}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', textAlign: 'left',
-                    padding: isMobile ? '8px 12px' : '10px 14px', border: 'none',
-                    borderBottom: i < suggestions.length - 1 ? '1px solid #F3F4F6' : 'none',
-                    background: 'none', cursor: 'pointer',
-                  }}>
-                  <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: isMobile ? 12 : 14, fontWeight: 500, color: '#1F2937', paddingRight: 8 }}>
+                  className="search-suggest-item flex items-center justify-between"
+                  style={{ padding: isMobile ? '8px 12px' : '10px 14px' }}>
+                  <span
+                    className="search-suggest-label min-w-0 flex-1 truncate font-medium"
+                    style={{ fontSize: isMobile ? 12 : 14, paddingRight: 8 }}
+                  >
                     {s.label}
                   </span>
                   {s.type === 'genre' ? (
@@ -215,6 +227,23 @@ function ResultSelector({ value, onChange }: { value: string; onChange: (v: stri
 function ItemSelector({ items, value, onChange }: {
   items: string[]; value: string; onChange: (v: string) => void;
 }) {
+  const isDark = useSyncExternalStore(
+    subscribeTheme,
+    () => getThemeSnapshot() === 'dark',
+    () => false,
+  );
+
+  const tagStyle = (selected: boolean): React.CSSProperties => {
+    if (selected) {
+      return isDark
+        ? { background: 'rgba(242, 184, 0, 0.16)', border: '2px solid #F2B800', color: '#F2B800' }
+        : { background: '#FFF8D0', border: '2px solid #F2B800', color: '#8A6800' };
+    }
+    return isDark
+      ? { background: 'rgba(255, 255, 255, 0.08)', border: '1.5px solid #262626', color: '#d4d4d4' }
+      : { background: 'rgba(245, 243, 237, 0.5)', border: '1.5px solid #EDE9D8', color: '#555' };
+  };
+
   if (items.length === 0) {
     return (
       <input type="text" value={value} onChange={e => onChange(e.target.value)}
@@ -225,18 +254,23 @@ function ItemSelector({ items, value, onChange }: {
   }
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, maxHeight: 180, overflowY: 'auto' }}>
-      {items.map(item => (
-        <button key={item} onClick={() => onChange(item === value ? '' : item)}
-          style={{
-            padding: '6px 13px', borderRadius: 99, fontSize: 12, fontWeight: 600,
-            border: value === item ? '2px solid #F2B800' : '1.5px solid #EDE9D8',
-            background: value === item ? '#FFF8D0' : 'white',
-            color: value === item ? '#8A6800' : '#555',
-            cursor: 'pointer', transition: 'all 0.12s',
-          }}>
-          {item}
-        </button>
-      ))}
+      {items.map(item => {
+        const selected = value === item;
+        return (
+          <button
+            key={item}
+            type="button"
+            onClick={() => onChange(selected ? '' : item)}
+            style={{
+              padding: '6px 13px', borderRadius: 99, fontSize: 12, fontWeight: 600,
+              cursor: 'pointer', transition: 'all 0.12s',
+              ...tagStyle(selected),
+            }}
+          >
+            {item}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -245,6 +279,12 @@ function ItemSelector({ items, value, onChange }: {
 
 function StepHeader({ step, onBack }: { step: Step; onBack?: () => void }) {
   const idx = STEPS.indexOf(step);
+  const isDark = useSyncExternalStore(
+    subscribeTheme,
+    () => getThemeSnapshot() === 'dark',
+    () => false,
+  );
+  const stepTitleColor = isDark ? '#FFFFFF' : '#1A1A1A';
   return (
     <div style={{ marginBottom: 20 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
@@ -253,7 +293,7 @@ function StepHeader({ step, onBack }: { step: Step; onBack?: () => void }) {
             <ChevronLeft size={22} color="#888" />
           </button>
         )}
-        <span style={{ fontSize: 15, fontWeight: 700, color: '#1A1A1A' }}>{STEP_LABELS[step]}</span>
+        <span style={{ fontSize: 15, fontWeight: 700, color: stepTitleColor }}>{STEP_LABELS[step]}</span>
         <span style={{ marginLeft: 'auto', fontSize: 12, color: '#AAA' }}>{idx + 1} / {STEPS.length}</span>
       </div>
       <div style={{ height: 4, background: '#F0EDDF', borderRadius: 99 }}>
@@ -269,17 +309,25 @@ function StepHeader({ step, onBack }: { step: Step; onBack?: () => void }) {
 // ─── 確認画面サマリー（モバイル） ─────────────────────────────────────────
 
 function MobileConfirmSummary({ form }: { form: FormState }) {
+  const isDark = useSyncExternalStore(
+    subscribeTheme,
+    () => getThemeSnapshot() === 'dark',
+    () => false,
+  );
   const labelStyle: React.CSSProperties = {
-    fontSize: 10, color: '#AAA', minWidth: 44, flexShrink: 0, lineHeight: 1.4,
+    fontSize: 10, color: isDark ? '#737373' : '#AAA', minWidth: 44, flexShrink: 0, lineHeight: 1.4,
   };
   const valueStyle: React.CSSProperties = {
-    fontSize: 11, color: '#222', fontWeight: 600, flex: 1, minWidth: 0, lineHeight: 1.4,
+    fontSize: 11, color: isDark ? '#FFFFFF' : '#222', fontWeight: 600, flex: 1, minWidth: 0, lineHeight: 1.4,
     overflowWrap: 'anywhere', wordBreak: 'break-word',
   };
   const rowStyle: React.CSSProperties = {
     display: 'flex', alignItems: 'center', gap: 8,
-    padding: '8px 12px', background: '#FAFAF6', borderRadius: 10,
+    padding: '8px 12px', background: isDark ? '#0a0a0a' : '#FAFAF6', borderRadius: 10,
     overflow: 'hidden',
+  };
+  const photoBlockStyle: React.CSSProperties = {
+    padding: '8px 12px', background: isDark ? '#0a0a0a' : '#FAFAF6', borderRadius: 10,
   };
   const resultOpt = RESULT_OPTIONS.find(o => o.value === form.result);
 
@@ -320,14 +368,14 @@ function MobileConfirmSummary({ form }: { form: FormState }) {
         <span style={valueStyle}>{form.itemName}</span>
       </div>
 
-      <div style={{ padding: '8px 12px', background: '#FAFAF6', borderRadius: 10 }}>
+      <div style={photoBlockStyle}>
         <div style={{
           display: 'flex', alignItems: 'center', gap: 8,
           marginBottom: form.imageUrl ? 8 : 0,
         }}>
           <span style={labelStyle}>写真</span>
           {!form.imageUrl && (
-            <span style={{ ...valueStyle, color: '#AAA', fontWeight: 500 }}>なし</span>
+            <span style={{ ...valueStyle, color: isDark ? '#737373' : '#AAA', fontWeight: 500 }}>なし</span>
           )}
         </div>
         {form.imageUrl ? (
@@ -346,7 +394,7 @@ function MobileConfirmSummary({ form }: { form: FormState }) {
         {form.memo ? (
           <span style={{ ...valueStyle, whiteSpace: 'pre-wrap' }}>{form.memo}</span>
         ) : (
-          <span style={{ ...valueStyle, color: '#AAA', fontWeight: 500 }}>なし</span>
+          <span style={{ ...valueStyle, color: isDark ? '#737373' : '#AAA', fontWeight: 500 }}>なし</span>
         )}
       </div>
     </div>
@@ -372,6 +420,11 @@ function MobileForm({ onDone, initialSpotId = '', initialSpotName = '', initialF
   const [submitting, setSubmitting] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
   const [error, setError]           = useState('');
+  const isDark = useSyncExternalStore(
+    subscribeTheme,
+    () => getThemeSnapshot() === 'dark',
+    () => false,
+  );
 
   const set    = (p: Partial<FormState>) => setForm(f => ({ ...f, ...p }));
   const goBack = () => {
@@ -406,7 +459,13 @@ function MobileForm({ onDone, initialSpotId = '', initialSpotName = '', initialF
   };
 
   const card = (content: React.ReactNode) => (
-    <div style={{ background: 'white', borderRadius: 20, padding: '16px 12px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+    <div style={{
+      background: isDark ? '#0a0a0a' : 'white',
+      borderRadius: 20,
+      padding: '16px 12px',
+      boxShadow: isDark ? 'none' : '0 2px 12px rgba(0,0,0,0.06)',
+      border: isDark ? '1px solid #262626' : 'none',
+    }}>
       {content}
     </div>
   );
@@ -424,17 +483,20 @@ function MobileForm({ onDone, initialSpotId = '', initialSpotName = '', initialF
                 set({ gachaId: id, gachaName: name, gachaImageUrl: img, gachaLineup: lineup });
               }} />
             <button onClick={goNext} disabled={!form.gachaId}
-              style={{ ...nextBtnStyle(!!form.gachaId), marginTop: 32, width: '100%' }}>
+              style={{ ...nextBtnStyle(!!form.gachaId, isDark), marginTop: 32, width: '100%' }}>
               次へ <ChevronRight size={14} />
             </button>
           </>
         ) : (
           <>
-            <GachaSearch onSelect={(id, name, img, lineup) => {
-              set({ gachaId: id, gachaName: name, gachaImageUrl: img, gachaLineup: lineup });
-            }} />
+            <GachaSearch
+              onSelect={(id, name, img, lineup) => {
+                set({ gachaId: id, gachaName: name, gachaImageUrl: img, gachaLineup: lineup });
+              }}
+              onClear={() => set({ gachaId: '', gachaName: '', gachaImageUrl: null, gachaLineup: [] })}
+            />
             <button onClick={goNext} disabled={!form.gachaId}
-              style={{ ...nextBtnStyle(!!form.gachaId), width: '100%' }}>
+              style={{ ...nextBtnStyle(!!form.gachaId, isDark), width: '100%' }}>
               次へ <ChevronRight size={14} />
             </button>
           </>
@@ -458,7 +520,7 @@ function MobileForm({ onDone, initialSpotId = '', initialSpotName = '', initialF
             onSelect={(id, name) => { set({ spotId: id, spotName: name }); }} />
         )}
         <button onClick={goNext} disabled={!form.spotId}
-          style={{ ...nextBtnStyle(!!form.spotId), marginTop: form.spotId ? POST_SPOT_STEP_NEXT_GAP : 0, width: '100%' }}>
+          style={{ ...nextBtnStyle(!!form.spotId, isDark), marginTop: form.spotId ? POST_SPOT_STEP_NEXT_GAP : 0, width: '100%' }}>
           次へ <ChevronRight size={14} />
         </button>
       </>)}
@@ -467,7 +529,7 @@ function MobileForm({ onDone, initialSpotId = '', initialSpotName = '', initialF
         <StepHeader step="result" onBack={goBack} />
         <ResultSelector value={form.result} onChange={v => set({ result: v })} />
         <button onClick={goNext} disabled={!form.result}
-          style={{ ...nextBtnStyle(!!form.result), marginTop: 16, width: '100%' }}>
+          style={{ ...nextBtnStyle(!!form.result, isDark), marginTop: 16, width: '100%' }}>
           次へ <ChevronRight size={14} />
         </button>
       </>)}
@@ -476,7 +538,7 @@ function MobileForm({ onDone, initialSpotId = '', initialSpotName = '', initialF
         <StepHeader step="item" onBack={goBack} />
         <ItemSelector items={form.gachaLineup} value={form.itemName} onChange={v => set({ itemName: v })} />
         <button onClick={goNext} disabled={!form.itemName}
-          style={{ ...nextBtnStyle(!!form.itemName), marginTop: 16, width: '100%' }}>
+          style={{ ...nextBtnStyle(!!form.itemName, isDark), marginTop: 16, width: '100%' }}>
           次へ <ChevronRight size={14} />
         </button>
       </>)}
@@ -493,7 +555,7 @@ function MobileForm({ onDone, initialSpotId = '', initialSpotName = '', initialF
         <button
           onClick={goNext}
           disabled={imageUploading}
-          style={{ ...nextBtnStyle(!imageUploading), marginTop: 16, width: '100%' }}
+          style={{ ...nextBtnStyle(!imageUploading, isDark), marginTop: 16, width: '100%' }}
         >
           次へ <ChevronRight size={14} />
         </button>
@@ -505,7 +567,7 @@ function MobileForm({ onDone, initialSpotId = '', initialSpotName = '', initialF
           placeholder="本文を入力…" rows={4}
           style={{ width: '100%', padding: '12px 14px', borderRadius: 12, fontSize: 14,
                    border: '1.5px solid #EDE9D8', outline: 'none', resize: 'none', color: '#333', boxSizing: 'border-box' }} />
-        <button onClick={goNext} style={{ ...nextBtnStyle(true), marginTop: 16, width: '100%' }}>
+        <button onClick={goNext} style={{ ...nextBtnStyle(true, isDark), marginTop: 16, width: '100%' }}>
           確認へ <ChevronRight size={14} />
         </button>
       </>)}
@@ -661,6 +723,26 @@ export function DesktopNormalForm({ onDone, initialSpotId = '', initialSpotName 
   const [error, setError]           = useState('');
   const [vErr, setVErr]             = useState<ValidationErrors>({});
   const set = (p: Partial<FormState>) => setForm(f => ({ ...f, ...p }));
+  const isDark = useSyncExternalStore(
+    subscribeTheme,
+    () => getThemeSnapshot() === 'dark',
+    () => false,
+  );
+  const sectionTitleColor = (errMsg?: string) => (errMsg ? '#EF4444' : isDark ? '#FFFFFF' : '#AAAAAA');
+  const selectedGachaChipStyle: React.CSSProperties = isDark
+    ? {
+        background: 'rgba(242, 184, 0, 0.2)',
+        border: '2px solid #F2B800',
+        boxShadow: '0 0 0 1px rgba(242, 184, 0, 0.45), 0 0 22px rgba(242, 184, 0, 0.32)',
+      }
+    : {
+        background: '#FFF4B0',
+        border: '2px solid #F2B800',
+        boxShadow: '0 0 0 1px rgba(242, 184, 0, 0.3), 0 0 16px rgba(242, 184, 0, 0.28)',
+      };
+  const selectedSpotChipStyle: React.CSSProperties = isDark
+    ? { background: 'rgba(255, 255, 255, 0.04)', border: '1px solid #262626' }
+    : { background: 'rgba(255, 255, 255, 0.45)', border: '1px solid #e5e7eb' };
 
   const hasGacha = !!form.gachaId;
   const canSubmit = hasGacha && !!form.result && !!form.itemName && !!form.spotId && !imageUploading;
@@ -695,7 +777,7 @@ export function DesktopNormalForm({ onDone, initialSpotId = '', initialSpotName 
       transition: 'opacity 0.2s, box-shadow 0.2s',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-        <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: errMsg ? '#EF4444' : '#AAA', letterSpacing: 1.5, textTransform: 'uppercase' }}>{title}</p>
+        <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: sectionTitleColor(errMsg), letterSpacing: 1.5, textTransform: 'uppercase' }}>{title}</p>
         {errMsg && <span style={{ fontSize: 12, color: '#EF4444', fontWeight: 600 }}>⚠ {errMsg}</span>}
       </div>
       {content}
@@ -707,11 +789,14 @@ export function DesktopNormalForm({ onDone, initialSpotId = '', initialSpotName 
 
       {sec('ガチャを選ぶ（必須）',
         hasGacha ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: '#FFF8D0', borderRadius: 12 }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 12,
+            ...selectedGachaChipStyle,
+          }}>
             {form.gachaImageUrl
               ? <img src={form.gachaImageUrl} alt={form.gachaName} style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
               : <div style={{ width: 44, height: 44, borderRadius: 8, background: '#F2B80044', flexShrink: 0 }} />}
-            <span style={{ flex: 1, fontWeight: 700, fontSize: 15, color: '#1A1A1A' }}>{form.gachaName}</span>
+            <span style={{ flex: 1, fontWeight: 700, fontSize: 15, color: isDark ? '#FFFFFF' : '#1A1A1A' }}>{form.gachaName}</span>
             <button onClick={() => { set({ ...EMPTY, spotId: initialSpotId, spotName: initialSpotName }); setVErr(v => ({ ...v, gacha: undefined })); }}
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, flexShrink: 0 }}>
               <X size={16} color="#AAA" />
@@ -724,10 +809,16 @@ export function DesktopNormalForm({ onDone, initialSpotId = '', initialSpotName 
               setVErr(v => ({ ...v, gacha: undefined }));
             }} />
         ) : (
-          <GachaSearch onSelect={(id, name, img, lineup) => {
-            set({ gachaId: id, gachaName: name, gachaImageUrl: img, gachaLineup: lineup });
-            setVErr(v => ({ ...v, gacha: undefined }));
-          }} />
+          <GachaSearch
+            onSelect={(id, name, img, lineup) => {
+              set({ gachaId: id, gachaName: name, gachaImageUrl: img, gachaLineup: lineup });
+              setVErr(v => ({ ...v, gacha: undefined }));
+            }}
+            onClear={() => {
+              set({ gachaId: '', gachaName: '', gachaImageUrl: null, gachaLineup: [] });
+              setVErr(v => ({ ...v, gacha: undefined }));
+            }}
+          />
         ),
         false, vErr.gacha
       )}
@@ -745,8 +836,11 @@ export function DesktopNormalForm({ onDone, initialSpotId = '', initialSpotName 
 
       {sec('お店を選ぶ（必須）',
         form.spotId ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: '#F5F3ED', borderRadius: 12 }}>
-            <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: '#1A1A1A' }}>{form.spotName}</span>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 12,
+            ...selectedSpotChipStyle,
+          }}>
+            <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: isDark ? '#FFFFFF' : '#1A1A1A' }}>{form.spotName}</span>
             <button onClick={() => { set({ spotId: '', spotName: '' }); setVErr(e => ({ ...e, spot: undefined })); }}
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, fontSize: 12, color: '#AAA' }}>
               変更
@@ -797,9 +891,10 @@ export function DesktopNormalForm({ onDone, initialSpotId = '', initialSpotName 
 
 // ─── スタイルヘルパー ─────────────────────────────────────────────────────
 
-const nextBtnStyle = (active: boolean): React.CSSProperties => ({
+const nextBtnStyle = (active: boolean, isDark: boolean): React.CSSProperties => ({
   padding: '12px 0', borderRadius: 12, border: 'none',
-  background: active ? '#F2B800' : '#F0EDDF', color: active ? 'white' : '#CCC',
+  background: active ? '#F2B800' : isDark ? '#141414' : '#F0EDDF',
+  color: active ? 'white' : isDark ? '#525252' : '#CCC',
   fontSize: 14, fontWeight: 800, cursor: active ? 'pointer' : 'not-allowed',
   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
 });

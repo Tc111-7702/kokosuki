@@ -5,7 +5,7 @@ import { ChevronLeft } from 'lucide-react';
 import discoverImg from '@/components/ui/assets/signup-feature-discover.png';
 import mapImg from '@/components/ui/assets/signup-feature-map.png';
 import shareImg from '@/components/ui/assets/login-service-intro.png';
-import { loginDisplayFont } from '@/lib/loginFonts';
+import { useAuthBackIconColor, useAuthTextColor } from '@/lib/useAuthPrimaryButtonStyle';
 
 type Slide = {
   image: { src: string; width: number; height: number };
@@ -19,22 +19,22 @@ const SLIDES: Slide[] = [
   {
     image: discoverImg,
     titleBefore: 'ココスキで',
-    titleHighlight: '好き',
-    titleAfter: 'を発見！',
+    titleHighlight: '好きを発見！',
+    titleAfter: '',
     subtitle: '新作をチェックしてお気に入りに',
   },
   {
     image: mapImg,
     titleBefore: 'ココスキで',
-    titleHighlight: '行き先',
-    titleAfter: 'を決める！',
+    titleHighlight: '行き先を決める！',
+    titleAfter: '',
     subtitle: 'お気に入りの取扱情報を、マップで確認',
   },
   {
     image: shareImg,
     titleBefore: 'ココスキで',
-    titleHighlight: 'ガチャ活',
-    titleAfter: 'を共有！',
+    titleHighlight: 'ガチャ活を共有！',
+    titleAfter: '',
     subtitle: 'お店の状況も、引いた記録もかんたんに',
   },
 ];
@@ -45,8 +45,8 @@ function SignupFeaturePageIndicator({ activeIndex, total }: { activeIndex: numbe
       {Array.from({ length: total }, (_, i) => (
         <span
           key={i}
-          className={`block rounded-full transition-all duration-300 ease-out ${
-            i === activeIndex ? 'w-6 h-2 bg-[#FFCD31]' : 'w-2 h-2 bg-[#FFCD31]/30'
+          className={`block w-2 h-2 rounded-full transition-colors duration-300 ease-out ${
+            i === activeIndex ? 'bg-[#FFCD31]' : 'bg-[#FFCD31]/30'
           }`}
           aria-hidden="true"
         />
@@ -65,6 +65,8 @@ interface Props {
 export function SignupFeatureIntroStep({ initialStep = 0, onBack, onComplete }: Props) {
   const [step, setStep] = useState(initialStep);
   const slide = SLIDES[step] ?? SLIDES[0];
+  const backIconColor = useAuthBackIconColor();
+  const textColor = useAuthTextColor();
 
   const handleBack = () => {
     if (step > 0) {
@@ -84,7 +86,7 @@ export function SignupFeatureIntroStep({ initialStep = 0, onBack, onComplete }: 
 
   return (
     <div
-      className={`signup-feature-intro ${loginDisplayFont.className} flex flex-col min-h-[100dvh] bg-white px-6 pt-6 pb-8 max-md:pb-6 md:pb-10`}
+      className="signup-feature-intro signup-app-font font-sans flex flex-col min-h-[100dvh] bg-white px-6 pt-6 pb-8 max-md:pb-6 md:pb-10"
     >
       <div className="w-full max-w-[360px] md:max-w-[400px] mx-auto flex flex-col flex-1 min-h-0">
         <div className="flex-1 min-h-0 flex flex-col items-center justify-center md:justify-start md:pt-4">
@@ -95,7 +97,7 @@ export function SignupFeatureIntroStep({ initialStep = 0, onBack, onComplete }: 
               className="absolute left-0 bottom-full -ml-1 mb-2 md:mb-0 md:translate-y-5 p-1 active:opacity-60 disabled:opacity-50 z-10"
               aria-label="戻る"
             >
-              <ChevronLeft size={28} strokeWidth={2} color="#111111" />
+              <ChevronLeft size={28} strokeWidth={2} color={backIconColor} />
             </button>
             <img
               src={slide.image.src}
@@ -108,12 +110,18 @@ export function SignupFeatureIntroStep({ initialStep = 0, onBack, onComplete }: 
           </div>
 
           <div className="w-full mt-6 md:mt-4 flex flex-col items-center text-center shrink-0">
-            <h1 className="signup-feature-intro-title text-[19px] md:text-[24px] font-bold leading-snug text-[#111111]">
+            <h1
+              className="signup-feature-intro-title text-[19px] md:text-[24px] font-bold leading-snug"
+              style={{ color: textColor }}
+            >
               {slide.titleBefore}
-              <span className="text-[#FFCD31]">{slide.titleHighlight}</span>
+              <span style={{ color: '#FFCD31' }}>{slide.titleHighlight}</span>
               {slide.titleAfter}
             </h1>
-            <p className="mt-3 text-[12px] md:text-[14px] font-bold leading-relaxed text-[#64748b]">
+            <p
+              className="mt-3 text-[12px] md:text-[14px] font-bold leading-relaxed"
+              style={{ color: textColor }}
+            >
               {slide.subtitle}
             </p>
           </div>

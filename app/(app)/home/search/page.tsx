@@ -73,8 +73,8 @@ function SearchPageInner() {
   return (
     <div className="flex flex-col h-full bg-[#FFFFFF]">
       <div
-        className="flex-shrink-0 bg-white"
-        style={{ borderBottom: '1.5px solid #EDE9D8', paddingTop: isMobile ? MOBILE_HEADER_PADDING_TOP : 16 }}
+        className="home-header-bar relative flex-shrink-0 bg-white"
+        style={{ paddingTop: isMobile ? MOBILE_HEADER_PADDING_TOP : 16 }}
       >
         {isMobile ? (
           <>
@@ -85,12 +85,12 @@ function SearchPageInner() {
               <button
                 type="button"
                 onClick={handleBack}
-                className="w-8 h-8 rounded-full flex items-center justify-center active:bg-gray-100"
+                className="home-search-back-btn w-8 h-8 rounded-full flex items-center justify-center active:bg-gray-100"
                 style={{ flexShrink: 0 }}
               >
-                <ArrowLeft size={18} color="#555" />
+                <ArrowLeft size={18} />
               </button>
-              <h1 style={{ fontSize: 15, fontWeight: 700, color: '#222', lineHeight: 1 }}>
+              <h1 className="home-search-header-title" style={{ fontSize: 15, fontWeight: 700, lineHeight: 1 }}>
                 {hasIpSearch ? label : 'ガチャ・IPをしらべる'}
               </h1>
             </div>
@@ -104,12 +104,12 @@ function SearchPageInner() {
               <button
                 type="button"
                 onClick={handleBack}
-                className="w-8 h-8 rounded-full flex items-center justify-center active:bg-gray-100"
+                className="home-search-back-btn w-8 h-8 rounded-full flex items-center justify-center active:bg-gray-100"
                 style={{ flexShrink: 0 }}
               >
-                <ArrowLeft size={18} color="#555" />
+                <ArrowLeft size={18} />
               </button>
-              <h1 style={{ fontSize: 15, fontWeight: 700, color: '#222' }}>
+              <h1 className="home-search-header-title" style={{ fontSize: 15, fontWeight: 700 }}>
                 {hasIpSearch ? label : 'ガチャ・IPをしらべる'}
               </h1>
             </div>

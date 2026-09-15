@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Search, X, SlidersHorizontal } from 'lucide-react';
+import { X, SlidersHorizontal } from 'lucide-react';
 import { useIsMobile } from '@/lib/useIsMobile';
 import FilterDrawer from '@/components/FilterDrawer';
 import { expandQuery } from '@/lib/gacha-aliases';
@@ -127,21 +127,32 @@ export function SpotGachaPicker({ spotId, filterGachaIds, onSelect, selectedId, 
 
   return (
     <div>
-      {/* 検索バー */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 8, padding: isMobile ? '5px 10px' : '8px 12px', background: '#F5F3ED', borderRadius: 10, marginBottom: isMobile ? 6 : 8 }}>
-        <Search size={isMobile ? 12 : 14} color="#aaa" />
-        <input
-          type="text"
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          placeholder="ガチャ名・IPで検索…"
-          style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: isMobile ? 11 : fs(13), color: '#333', minWidth: 0 }}
-        />
-        {query && (
-          <button onClick={() => setQuery('')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
-            <X size={13} color="#bbb" />
-          </button>
-        )}
+      {/* 検索バー（ホームと同じUI） */}
+      <div className="mb-1.5 md:mb-2">
+        <div className="community-search-input-shell flex items-center gap-2 px-3 py-1.5 lg:py-2.5 rounded-full">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2.5" className="flex-shrink-0">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="16.65" y1="16.65" x2="21" y2="21" />
+          </svg>
+          <input
+            type="text"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="ガチャ名・IPで検索…"
+            className="community-search-input shell-field flex-1 bg-transparent text-xs lg:text-sm outline-none min-w-0"
+            style={{ fontSize: isMobile ? 12 : 13, textAlign: 'left' }}
+          />
+          {query && (
+            <button
+              type="button"
+              onMouseDown={e => { e.preventDefault(); setQuery(''); }}
+              aria-label="入力をクリア"
+              className="home-search-clear-btn p-0 bg-transparent border-none cursor-pointer leading-none flex-shrink-0"
+            >
+              <X size={13} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* フィルター行（マップと同じUI） */}

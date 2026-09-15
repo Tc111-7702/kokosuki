@@ -157,6 +157,7 @@ export default function SignupPage() {
           accounts={savedAccounts}
           busy={quickLoginBusy}
           error={quickLoginError}
+          appFont
           onBack={() => setPhase('signin')}
           onSelect={(account) => { void startQuickLogin(account); }}
           onUseOtherAccount={() => setPhase('email')}

@@ -1,10 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import { ChevronLeft, X } from 'lucide-react';
 import { PasswordResetGlobeIllustration } from '@/components/ui/PasswordResetGlobeIllustration';
 import { formatMailDeliveryNotice } from '@/lib/mailDeliveryNotice';
 import type { MailDeliveryResult } from '@/lib/mail';
+import {
+  useAuthBackIconColor,
+  useAuthMutedTextColor,
+  useAuthPrimaryButtonStyle,
+  useAuthResendLinkColor,
+} from '@/lib/useAuthPrimaryButtonStyle';
+import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const LOCAL_PART_RE = /^[^\s@]+$/;
@@ -54,6 +61,16 @@ export function LoginEmailStep({
   const canSubmit = suffix
     ? LOCAL_PART_RE.test(trimmed) && trimmed.length > 0 && !busy
     : EMAIL_RE.test(trimmed) && !busy;
+  const submitStyle = useAuthPrimaryButtonStyle(canSubmit);
+  const backIconColor = useAuthBackIconColor();
+  const backLinkColor = useAuthMutedTextColor();
+  const passwordLoginLinkColor = useAuthResendLinkColor(!canSubmit);
+  const isDark = useSyncExternalStore(
+    subscribeTheme,
+    () => getThemeSnapshot() === 'dark',
+    () => false,
+  );
+  const suffixColor = isDark ? '#ffffff' : '#111111';
 
   const isSignup = flow === 'signup';
   const sendOtpPath = isSignup ? '/api/auth/signup/send-otp' : '/api/auth/login/send-otp';
@@ -110,8 +127,10 @@ export function LoginEmailStep({
     }
   };
 
+  const fontClass = isSignup ? 'signup-app-font font-sans' : '';
+
   return (
-    <div className="login-email-step flex flex-col min-h-screen px-6 pt-4 pb-8 bg-white">
+    <div className={`login-email-step flex flex-col min-h-screen px-6 pt-4 pb-8 bg-white ${fontClass}`}>
       <div className="w-full max-w-[360px] md:max-w-[520px] mx-auto flex flex-col">
         <button
           type="button"
@@ -120,7 +139,7 @@ export function LoginEmailStep({
           className="self-start -ml-1 p-1 active:opacity-60 disabled:opacity-50 md:hidden"
           aria-label="戻る"
         >
-          <ChevronLeft size={28} strokeWidth={2} color="#111111" />
+          <ChevronLeft size={28} strokeWidth={2} color={backIconColor} />
         </button>
 
         <div className="-mt-1 md:mt-0 flex flex-col items-center w-full">
@@ -128,14 +147,14 @@ export function LoginEmailStep({
 
           <h1
             className="mt-6 text-[22px] font-black text-center leading-snug w-full"
-            style={{ color: '#111111' }}
+            style={{ color: 'var(--app-text)' }}
           >
             {isSignup ? 'メールアドレスで作成する' : 'メールアドレスでログイン'}
           </h1>
 
           <p
             className="mt-3 text-[13px] text-left md:text-center leading-relaxed px-1 w-full"
-            style={{ color: '#64748b' }}
+            style={{ color: 'var(--app-text-muted)' }}
           >
             {isSignup
               ? '登録完了時に通知するために、連絡可能なメールアドレスを入力してください'
@@ -165,7 +184,7 @@ export function LoginEmailStep({
                 className={`login-email-input w-full h-[52px] rounded-2xl px-4 text-[15px] outline-none disabled:opacity-50${suffix ? ' login-email-input-suffix' : ' pr-11'}`}
               />
               {suffix ? (
-                <span className="login-email-fixed-suffix" aria-hidden="true">
+                <span className="login-email-fixed-suffix" style={{ color: suffixColor }} aria-hidden="true">
                   {suffix}
                 </span>
               ) : null}
@@ -195,6 +214,7 @@ export function LoginEmailStep({
             <button
               type="submit"
               disabled={!canSubmit}
+              style={submitStyle}
               className="login-otp-send-btn w-full h-[52px] rounded-full text-[16px] font-bold text-white active:opacity-80 disabled:cursor-not-allowed"
             >
               {sending ? '送信中…' : '認証コードを送信'}
@@ -206,6 +226,7 @@ export function LoginEmailStep({
                 onClick={() => void handlePasswordLogin()}
                 disabled={!canSubmit}
                 className="login-otp-resend self-center disabled:cursor-not-allowed"
+                style={{ color: passwordLoginLinkColor }}
               >
                 {verifyingEmail ? '確認中…' : 'パスワードでログイン'}
               </button>
@@ -216,6 +237,7 @@ export function LoginEmailStep({
               onClick={onBack}
               disabled={busy}
               className="login-email-back-link hidden md:block w-full disabled:opacity-50"
+              style={{ color: backLinkColor }}
             >
               戻る
             </button>

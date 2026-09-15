@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Heart, ChevronRight } from 'lucide-react';
 import { useIsMobile } from '@/lib/useIsMobile';
@@ -12,6 +12,7 @@ import { PostCard } from '@/components/PostCard';
 import { StockPostCard, type StockFeedPost } from '@/components/StockPostCard';
 import { InlineReplies } from '@/components/InlineReplies';
 import type { FeedPost } from '@/components/community-types';
+import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 
 const STATUS_LABEL: Record<string, string> = {
   on_sale: '発売中', coming_soon: '発売予定', ended: '終了',
@@ -22,6 +23,11 @@ type OpenReply = { id: string; type: 'post' | 'stock' } | null;
 
 function GachaPostsSection({ gachaId, seriesName, isMobile }: { gachaId: string; seriesName: string; isMobile: boolean }) {
   const router = useRouter();
+  const isDark = useSyncExternalStore(
+    subscribeTheme,
+    () => getThemeSnapshot() === 'dark',
+    () => false,
+  );
   // 「みんなで見る」→ home のコミュニティタブを、このガチャで検索した状態で開く
   // （seriesName は gacha と1:1なので、系列名で検索したのと同義）。
   const communityUrl = `/home?tab=community&gachaId=${gachaId}&label=${encodeURIComponent(seriesName)}`;
@@ -77,7 +83,7 @@ function GachaPostsSection({ gachaId, seriesName, isMobile }: { gachaId: string;
     return (
       <div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 12 }}>
-          <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: '#1A1A1A' }}>このシリーズのみんなの投稿</p>
+          <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: isDark ? '#FFFFFF' : '#1A1A1A' }}>このシリーズのみんなの投稿</p>
           <button onClick={() => router.push(communityUrl)}
             style={{ display: 'flex', alignItems: 'center', gap: 2, background: 'none', border: 'none',
               cursor: 'pointer', fontSize: 12, color: '#999', fontWeight: 600, flexShrink: 0, whiteSpace: 'nowrap' }}>
@@ -138,19 +144,27 @@ function GachaPostsSection({ gachaId, seriesName, isMobile }: { gachaId: string;
 
   const colHeader = (title: string, count: number) => (
     <div style={{ marginBottom: 10, padding: '0 2px' }}>
-      <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#1A1A1A' }}>
+      <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: isDark ? '#FFFFFF' : '#1A1A1A' }}>
         {title}{' '}
         <span style={{ fontSize: 11, color: '#999', fontWeight: 600 }}>({count})</span>
       </p>
     </div>
   );
+  const colShellStyle = (lightBg: string): React.CSSProperties => ({
+    flex: 1,
+    minWidth: 0,
+    background: isDark ? '#0a0a0a' : lightBg,
+    border: isDark ? '1px solid #262626' : 'none',
+    borderRadius: 16,
+    padding: '14px 12px',
+  });
 
   return (
     <div>
       {/* 投稿(在庫+通常の合計) ＋「みんなで見る」（投稿数に関わらず常時表示、押すとホームへ） */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         marginBottom: 12, padding: '0 2px' }}>
-        <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: '#1A1A1A' }}>
+        <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: isDark ? '#FFFFFF' : '#1A1A1A' }}>
           このシリーズのみんなの投稿{' '}
           <span style={{ fontSize: 12, color: '#999', fontWeight: 600 }}>({posts.length})</span>
         </p>
@@ -162,7 +176,7 @@ function GachaPostsSection({ gachaId, seriesName, isMobile }: { gachaId: string;
       </div>
       <div style={{ display: 'flex', gap: 12 }}>
       {/* 左列: 在庫情報 */}
-      <div style={{ flex: 1, minWidth: 0, background: '#F3F4F6', borderRadius: 16, padding: '14px 12px' }}>
+      <div style={colShellStyle('#F3F4F6')}>
         {colHeader('在庫情報', stockPosts.length)}
         <div style={{ maxHeight: COL_H, overflowY: 'scroll', display: 'flex', flexDirection: 'column', paddingRight: 4 }}>
           {stockPosts.length === 0
@@ -194,7 +208,7 @@ function GachaPostsSection({ gachaId, seriesName, isMobile }: { gachaId: string;
         </div>
       </div>
       {/* 右列: 引いた！ */}
-      <div style={{ flex: 1, minWidth: 0, background: '#FFF7ED', borderRadius: 16, padding: '14px 12px' }}>
+      <div style={colShellStyle('#FFF7ED')}>
         {colHeader('引いた！', normalPosts.length)}
         <div style={{ maxHeight: COL_H, overflowY: 'scroll', display: 'flex', flexDirection: 'column', paddingRight: 4 }}>
           {normalPosts.length === 0
@@ -246,6 +260,11 @@ export default function GachaDetailPage() {
   const [nearbyError,   setNearbyError]   = useState<string | null>(null);
   const MOBILE_BREAKPOINT = 768;
   const isMobile = useIsMobile(MOBILE_BREAKPOINT);
+  const isDark = useSyncExternalStore(
+    subscribeTheme,
+    () => getThemeSnapshot() === 'dark',
+    () => false,
+  );
 
   useEffect(() => {
     fetch('/api/gacha/' + id)
@@ -331,8 +350,10 @@ export default function GachaDetailPage() {
         background: statusColor, color: '#fff' }}>
         {STATUS_LABEL[gacha.status] ?? gacha.status}
       </span>
-      <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20,
-        background: 'rgba(0,0,0,0.07)', color: '#555' }}>
+      <span style={{
+        fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20,
+        background: '#E5E7EB', color: '#1A1A1A',
+      }}>
         ガチャ
       </span>
       {gacha.isReissue && <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: '#FEF3C7', color: '#D97706' }}>再販</span>}
@@ -342,7 +363,7 @@ export default function GachaDetailPage() {
   const titleBlock = (size: number) => (
     <div>
       <p style={{ fontSize: 12, color: '#999', fontWeight: 600, margin: '0 0 4px' }}>{gacha.ipName}</p>
-      <h1 style={{ fontSize: size, fontWeight: 900, color: '#1A1A1A', margin: 0, lineHeight: 1.3 }}>
+      <h1 style={{ fontSize: size, fontWeight: 900, color: isDark ? '#FFFFFF' : '#1A1A1A', margin: 0, lineHeight: 1.3 }}>
         {gacha.seriesName}
       </h1>
     </div>
@@ -363,23 +384,26 @@ export default function GachaDetailPage() {
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '16px 20px', position: 'sticky', top: 0, zIndex: 10,
-        background: 'rgba(255,254,239,0.92)', backdropFilter: 'blur(8px)',
+        background: isDark ? '#0a0a0a' : 'rgba(255,254,239,0.92)',
+        backdropFilter: isDark ? 'none' : 'blur(8px)',
+        borderBottom: isDark ? '1px solid #262626' : 'none',
       }}>
         <button onClick={() => router.back()} style={{
           width: 36, height: 36, borderRadius: 18, border: 'none',
-          background: 'rgba(0,0,0,0.07)', cursor: 'pointer',
+          background: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0,0,0,0.07)',
+          cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          <ArrowLeft size={18} color="#555" />
+          <ArrowLeft size={18} color={isDark ? '#d4d4d4' : '#555'} />
         </button>
         <button onClick={handleLike} style={{
           height: 36, borderRadius: 18, border: 'none', padding: '0 12px',
-          background: liked ? 'rgba(255,77,77,0.12)' : 'rgba(0,0,0,0.07)',
+          background: liked ? 'rgba(255,77,77,0.12)' : (isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0,0,0,0.07)'),
           cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5,
         }}>
-          <Heart size={18} fill={liked ? '#FF4D4D' : 'none'} color={liked ? '#FF4D4D' : '#555'} />
+          <Heart size={18} fill={liked ? '#FF4D4D' : 'none'} color={liked ? '#FF4D4D' : (isDark ? '#d4d4d4' : '#555')} />
           {likeCount > 0 && (
-            <span style={{ fontSize: 13, fontWeight: 700, color: liked ? '#FF4D4D' : '#555' }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: liked ? '#FF4D4D' : (isDark ? '#d4d4d4' : '#555') }}>
               {likeCount}
             </span>
           )}

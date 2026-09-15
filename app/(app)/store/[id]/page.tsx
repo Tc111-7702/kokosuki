@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, useSyncExternalStore } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { ArrowLeft, ChevronLeft, MapPin, Navigation, Phone, SlidersHorizontal } from 'lucide-react';
 import { HomeSearchBar } from '@/components/HomeSearchBar';
@@ -13,6 +13,7 @@ import { PostCard } from '@/components/PostCard';
 import { InlineReplies } from '@/components/InlineReplies';
 import { type FeedPost, type FeedItem } from '@/components/community-types';
 import { useIsMobile } from '@/lib/useIsMobile';
+import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 import { StoreReviews } from '@/components/StoreReviews';
 
 // ─── 型定義 ──────────────────────────────────────────────────
@@ -255,6 +256,15 @@ export default function StorePage() {
   const [loading,       setLoading]       = useState(true);
   const MOBILE_BREAKPOINT = 768;
   const isMobile = useIsMobile(MOBILE_BREAKPOINT);
+  const isDark = useSyncExternalStore(
+    subscribeTheme,
+    () => getThemeSnapshot() === 'dark',
+    () => false,
+  );
+  const storeNameColor = isDark ? '#FFFFFF' : '#1a1a1a';
+  const sectionBg = isDark ? '#0a0a0a' : '#FAFAFA';
+  const sectionBorder = isDark ? '#262626' : '#F0F0F0';
+  const postCardBorder = isDark ? '#262626' : '#e5e7eb';
   // 通知から来たとき（返信欄を開く指定あり）は「口コミ・投稿」タブを初期表示に
   const [activeTab,     setActiveTab]     = useState<'products' | 'posts'>(openReplyId || openReviewId ? 'posts' : 'products');
 
@@ -403,7 +413,7 @@ export default function StorePage() {
 
   // ─── ガチャ一覧エリア ────────────────────────────────────────────────────
   const ProductsArea = (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minWidth: 0, background: sectionBg }}>
       <div style={{ position: 'relative', flexShrink: 0, zIndex: 20 }}>
         <HomeSearchBar
           placeholder="取り扱っているガチャをさがす"
@@ -417,28 +427,34 @@ export default function StorePage() {
         />
       </div>
       <div style={{ padding: '0 16px 8px', flexShrink: 0 }}>
-        <span style={{ fontSize: 12, fontWeight: 600, color: '#888' }}>{productCountLabel}</span>
+        <span style={{ fontSize: 12, fontWeight: 600, color: isDark ? '#737373' : '#888' }}>{productCountLabel}</span>
       </div>
       {/* ガチャグリッド */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '4px 16px 32px' }}>
+      <div style={{ flex: 1, minWidth: 0, overflowY: 'auto', overflowX: 'hidden', padding: '4px 16px 32px' }}>
         {visibleGachas.length === 0 ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: 60, color: '#BBB' }}>
             <p style={{ fontSize: 14, margin: 0 }}>該当するガチャがありません</p>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(200px, 1fr))', gap: isMobile ? 12 : 16 }}>
+          <div style={{
+            display: 'grid',
+            width: '100%',
+            gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(auto-fill, minmax(200px, 1fr))',
+            gap: isMobile ? 12 : 16,
+          }}>
             {visibleGachas.map((g, rank) => (
-              <GachaCard
-                key={g.id}
-                gacha={toGachaItem(g)}
-                rank={rank}
-                showRank={false}
-                isMobile={isMobile}
-                variant="favorite"
-                fullWidth
-                stockStatus={spot.stockMap[g.id] ?? null}
-                highlight={searchSet != null && searchSet.has(g.id)}
-              />
+              <div key={g.id} style={{ minWidth: 0, width: '100%' }}>
+                <GachaCard
+                  gacha={toGachaItem(g)}
+                  rank={rank}
+                  showRank={false}
+                  isMobile={isMobile}
+                  variant="favorite"
+                  fullWidth
+                  stockStatus={spot.stockMap[g.id] ?? null}
+                  highlight={searchSet != null && searchSet.has(g.id)}
+                />
+              </div>
             ))}
           </div>
         )}
@@ -448,16 +464,16 @@ export default function StorePage() {
 
   // ─── 投稿エリア ────────────────────────────────────────────────────────
   const PostsArea = (
-    <div style={{ height: '100%', overflowY: 'scroll', padding: '0 16px 32px', boxSizing: 'border-box' }}>
+    <div style={{ height: '100%', overflowY: 'scroll', padding: '0 16px 32px', boxSizing: 'border-box', background: sectionBg }}>
       {/* 口コミ */}
       <StoreReviews spotId={spotId} autoOpenReviewId={openReviewId} />
 
       {/* 仕切り */}
-      <div style={{ borderTop: '1px solid #F0F0F0', margin: '12px 0' }} />
+      <div style={{ borderTop: `1px solid ${sectionBorder}`, margin: '12px 0' }} />
 
       {/* みんなの投稿 */}
       <div style={{ padding: '4px 0 8px' }}>
-        <span style={{ fontSize: 13, fontWeight: 800, color: '#1A1A1A' }}>
+        <span style={{ fontSize: 13, fontWeight: 800, color: isDark ? '#FFFFFF' : '#1A1A1A' }}>
           みんなの投稿
         </span>
         {isFiltered && (
@@ -469,7 +485,7 @@ export default function StorePage() {
   );
 
   return (
-    <div style={{ height: '100%', background: '#FAFAFA', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div style={{ height: '100%', background: sectionBg, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
       {/* ─── ヘッダー ─── */}
       <div style={{ background: 'white', borderBottom: '1px solid #F0F0F0', flexShrink: 0 }}>
@@ -489,9 +505,10 @@ export default function StorePage() {
               )}
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, marginLeft: 'auto', flexWrap: 'nowrap' }}>
                 <button onClick={() => setFilterOpen(true)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 20, border: 'none', cursor: 'pointer', background: isFiltered ? '#F2B800' : '#F5F3ED', color: isFiltered ? 'white' : '#555', fontSize: 12, fontWeight: 700 }}>
+                  className={`map-list-toggle-btn flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-bold active:scale-95 transition-transform ${isFiltered ? 'map-list-toggle-btn--active' : ''}`}
+                  style={isFiltered ? undefined : { background: 'rgba(245, 243, 237, 0.28)', border: '1px solid rgba(237, 233, 216, 0.45)' }}>
                   <SlidersHorizontal size={13} />
-                  フィルター{isFiltered ? ` (${filterGachaIds.length})` : ''}
+                  {isFiltered ? `フィルター中 (${filterGachaIds.length})` : 'フィルター'}
                 </button>
                 {spot.phone && (
                   <a href={`tel:${spot.phone.replace(/[^\d+]/g, '')}`}
@@ -508,7 +525,7 @@ export default function StorePage() {
             </div>
             {/* モバイル: 店舗名 */}
             <div style={{ padding: '4px 16px 8px', minWidth: 0 }}>
-              <h1 style={{ fontSize: 17, fontWeight: 900, color: '#1a1a1a', margin: 0, lineHeight: 1.2, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{spot.name}</h1>
+              <h1 style={{ fontSize: 17, fontWeight: 900, color: storeNameColor, margin: 0, lineHeight: 1.2, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{spot.name}</h1>
               {distance !== null && (
                 <span style={{ display: 'block', marginTop: 3, fontSize: 11, fontWeight: 600, color: '#0891b2' }}>現在地から {fmtDistance(distance)}</span>
               )}
@@ -529,15 +546,16 @@ export default function StorePage() {
                   </button>
                 )}
                 <button onClick={() => setFilterOpen(true)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 20, border: 'none', cursor: 'pointer', background: isFiltered ? '#F2B800' : '#F5F3ED', color: isFiltered ? 'white' : '#555', fontSize: 13, fontWeight: 700 }}>
-                  <SlidersHorizontal size={14} />
-                  フィルター{isFiltered ? ` (${filterGachaIds.length})` : ''}
+                  className={`map-list-toggle-btn flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-bold active:scale-95 transition-transform ${isFiltered ? 'map-list-toggle-btn--active' : ''}`}
+                  style={isFiltered ? undefined : { background: 'rgba(245, 243, 237, 0.28)', border: '1px solid rgba(237, 233, 216, 0.45)' }}>
+                  <SlidersHorizontal size={13} />
+                  {isFiltered ? `フィルター中 (${filterGachaIds.length})` : 'フィルター'}
                 </button>
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '0 16px 12px' }}>
               <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'row', alignItems: 'baseline', gap: 10 }}>
-                <h1 style={{ fontSize: 17, fontWeight: 900, color: '#1a1a1a', margin: 0, lineHeight: 1.2, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{spot.name}</h1>
+                <h1 style={{ fontSize: 17, fontWeight: 900, color: storeNameColor, margin: 0, lineHeight: 1.2, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{spot.name}</h1>
                 <div style={{ minWidth: 0, display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, color: '#888', minWidth: 0, maxWidth: '100%' }}>
                     <MapPin size={11} color="#aaa" style={{ flexShrink: 0 }} />
@@ -566,10 +584,21 @@ export default function StorePage() {
 
         {/* モバイル: タブ切り替え */}
         {isMobile && (
-          <div style={{ display: 'flex', borderTop: '1px solid #F0F0F0' }}>
-            {(['products', 'posts'] as const).map(tab => (
+          <div style={{ display: 'flex', borderTop: `1px solid ${postCardBorder}` }}>
+            {(['products', 'posts'] as const).map((tab, index) => (
               <button key={tab} onClick={() => setActiveTab(tab)}
-                style={{ flex: 1, padding: '10px 0', fontSize: 13, fontWeight: 700, border: 'none', cursor: 'pointer', background: 'none', borderBottom: activeTab === tab ? '2px solid #F2B800' : '2px solid transparent', color: activeTab === tab ? '#F2B800' : '#888' }}>
+                style={{
+                  flex: 1,
+                  padding: '10px 0',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: 'none',
+                  borderRight: index === 0 ? `1px solid ${postCardBorder}` : undefined,
+                  borderBottom: activeTab === tab ? '2px solid #F2B800' : '2px solid transparent',
+                  color: activeTab === tab ? '#F2B800' : '#888',
+                }}>
                 {tab === 'products' ? 'ガチャ一覧' : '口コミ / 投稿'}
               </button>
             ))}
@@ -580,18 +609,18 @@ export default function StorePage() {
       {/* ─── コンテンツ ─── */}
       {isMobile ? (
         // モバイル: アクティブタブのみ表示
-        <div style={{ flex: 1, overflow: 'hidden' }}>
+        <div style={{ flex: 1, overflow: 'hidden', background: sectionBg }}>
           {activeTab === 'products' ? ProductsArea : PostsArea}
         </div>
       ) : (
         // デスクトップ: 左右2列
-        <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+        <div style={{ flex: 1, display: 'flex', overflow: 'hidden', background: sectionBg }}>
           {/* 左: ガチャ一覧 */}
-          <div style={{ flex: '0 0 55%', borderRight: '1px solid #F0F0F0', overflow: 'hidden' }}>
+          <div style={{ flex: '0 0 55%', borderRight: `1px solid ${sectionBorder}`, overflow: 'hidden', background: sectionBg }}>
             {ProductsArea}
           </div>
           {/* 右: みんなの投稿 */}
-          <div style={{ flex: '0 0 45%', overflow: 'hidden' }}>
+          <div style={{ flex: '0 0 45%', overflow: 'hidden', background: sectionBg }}>
             {PostsArea}
           </div>
         </div>

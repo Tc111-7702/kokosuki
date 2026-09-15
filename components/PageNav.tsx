@@ -1,10 +1,13 @@
 'use client';
 
+import { useSyncExternalStore } from 'react';
 import { Home, MapPin, User, Plus, Bell } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useNavActive } from '@/lib/useNavActive';
 import { useUnreadNotificationCount } from '@/lib/useUnreadNotificationCount';
+import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 import { KokosukiLogo } from '@/components/ui/KokosukiLogo';
+import { DESKTOP_PAGE_NAV_WIDTH } from '@/lib/desktopPageNav';
 
 const NAV_ITEMS = [
   { path: '/home',          label: 'ホーム',     icon: <Home size={20} /> },
@@ -14,19 +17,25 @@ const NAV_ITEMS = [
   { path: '/mypage',        label: 'マイページ', icon: <User size={20} /> },
 ];
 
-const ACTIVE_COLOR = '#1A1A1A';   // アクティブ＝黒
-const INACTIVE_COLOR = '#C4C3C0'; // 非アクティブ＝グレー
 const POST_BG = '#FFCD31';        // 投稿ボタンの黄色
 
 export function PageNav() {
   const router   = useRouter();
   const unread = useUnreadNotificationCount();
   const isNavActive = useNavActive();
+  const isDark = useSyncExternalStore(
+    subscribeTheme,
+    () => getThemeSnapshot() === 'dark',
+    () => false,
+  );
+  const activeColor = isDark ? '#F2B800' : '#1A1A1A';
+  const inactiveColor = isDark ? '#FFFFFF' : '#C4C3C0';
+  const navBorderColor = isDark ? '#262626' : '#EDE9D8';
 
   return (
     <nav
       className="flex-shrink-0 flex flex-col bg-white h-screen sticky top-0"
-      style={{ width: 88, borderRight: '1.5px solid #EDE9D8' }}
+      style={{ width: DESKTOP_PAGE_NAV_WIDTH, borderRight: `1.5px solid ${navBorderColor}` }}
     >
       {/* ロゴ */}
       <div className="flex items-center justify-center pt-6 pb-4 px-2">
@@ -56,7 +65,7 @@ export function PageNav() {
           }
 
           const isActive = isNavActive(item.path);
-          const color = isActive ? ACTIVE_COLOR : INACTIVE_COLOR;
+          const color = isActive ? activeColor : inactiveColor;
           return (
             <button
               key={item.path}

@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { X, ChevronRight, ChevronLeft, Check, ChevronDown, ChevronUp, Search } from 'lucide-react';
+import { useState, useEffect, useSyncExternalStore } from 'react';
+import { X, ChevronRight, ChevronLeft, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { expandQuery } from '@/lib/gacha-aliases';
+import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 
 /** クエリがテキストにマッチするか（カタカナ正規化・エイリアス展開込み） */
 function matchesQuery(text: string, rawQuery: string): boolean {
@@ -38,6 +39,7 @@ interface FilterDrawerProps {
 // ─── localStorage ─────────────────────────────────────────────────────────────
 
 const STORAGE_KEY = 'mikke_filter_gacha_ids';
+
 // アクティブフィルターが解除されても「最後に選んだガチャ」を覚えておくキー
 const SEED_KEY    = 'mikke_filter_gacha_ids_seed';
 
@@ -93,6 +95,42 @@ export default function FilterDrawer({
     if (stored.length > 0) return new Set(stored);
     return new Set(loadSeedGachaIds()); // アクティブフィルター解除後もseedから復元
   });
+
+  const isDark = useSyncExternalStore(
+    subscribeTheme,
+    () => getThemeSnapshot() === 'dark',
+    () => false,
+  );
+  const filterBorderColor = isDark ? '#262626' : '#F3F4F6';
+  const filterScreenBg = isDark ? '#0a0a0a' : '#FFFFFF';
+  const filterSectionBg = isDark ? '#0a0a0a' : '#FAFAFA';
+  const filterMutedColor = isDark ? '#737373' : '#aaaaaa';
+  const filterPlaceholderBg = isDark ? '#1a1a1a' : '#F0F0F0';
+  const ipNameColor = isDark ? '#FFFFFF' : '#1a1a1a';
+  const gachaSelectedColor = '#F2B800';
+  const gachaNameColor = (selected: boolean) => (selected ? gachaSelectedColor : isDark ? '#a3a3a3' : '#555');
+  const ipRowPressBg = isDark ? '#1a1a1a' : '#F9FAFB';
+  const ipRowBorderStyle = {
+    borderBottom: `1px solid ${filterBorderColor}`,
+    WebkitTapHighlightColor: 'transparent',
+  } as const;
+  const filterFooterBorderStyle = { borderTop: `1px solid ${filterBorderColor}` };
+  const createRowPressHandlers = (resetBg = '') => ({
+    onPointerDown: (e: React.PointerEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.backgroundColor = ipRowPressBg;
+    },
+    onPointerUp: (e: React.PointerEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.backgroundColor = resetBg;
+    },
+    onPointerLeave: (e: React.PointerEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.backgroundColor = resetBg;
+    },
+    onPointerCancel: (e: React.PointerEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.backgroundColor = resetBg;
+    },
+  });
+  const ipRowPressHandlers = createRowPressHandlers();
+  const selectedGachaRowPressHandlers = createRowPressHandlers(filterScreenBg);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -209,47 +247,50 @@ export default function FilterDrawer({
     .filter((g) => g.items.length > 0);
 
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col" style={{ background: 'white' }}>
+    <div className="filter-drawer fixed inset-0 z-[60] flex flex-col" style={{ background: filterScreenBg }}>
       {screen === 'genres' ? (
         <>
           {/* ヘッダー */}
-          <div
-            className="flex items-center gap-3 px-4 py-4"
-            style={{ borderBottom: '1px solid #F0F0F0' }}
-          >
-            <button onClick={onClose} className="p-1">
-              <ChevronLeft size={22} color="#555" />
+          <div className="filter-drawer-header flex items-center gap-3 px-4 py-4">
+            <button type="button" onClick={onClose} className="filter-drawer-header-btn p-1">
+              <ChevronLeft size={22} />
             </button>
-            <span className="text-[18px] font-black flex-1" style={{ color: '#1a1a1a' }}>
+            <span className="filter-drawer-header-title text-[18px] font-black flex-1">
               IP選択
             </span>
             <button
+              type="button"
               onClick={() => setScreen('selected')}
-              className="text-[13px] font-bold px-3.5 py-2 rounded-full"
-              style={{ background: '#F5F3ED', color: '#555' }}
+              className="map-list-toggle-btn text-[13px] font-bold px-3 py-1.5 rounded-full active:scale-95 transition-transform"
+              style={{ background: 'rgba(245, 243, 237, 0.28)', border: '1px solid rgba(237, 233, 216, 0.45)' }}
             >
               選択中のガチャ一覧
             </button>
           </div>
 
           {/* 検索バー */}
-          <div className="px-4 py-3" style={{ borderBottom: '1px solid #F0F0F0' }}>
-            <div
-              className="flex items-center gap-2 px-3 py-2 rounded-xl"
-              style={{ background: '#F5F5F5' }}
-            >
-              <Search size={15} color="#aaa" />
+          <div className="filter-drawer-search px-4 py-3">
+            <div className="community-search-input-shell flex items-center gap-2 px-3 py-1.5 lg:py-2.5 rounded-full">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2.5" className="flex-shrink-0">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="16.65" y1="16.65" x2="21" y2="21" />
+              </svg>
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="IP・ガチャ名で検索"
-                className="flex-1 bg-transparent text-[14px] outline-none"
-                style={{ color: '#1a1a1a' }}
+                className="community-search-input shell-field flex-1 bg-transparent text-xs lg:text-sm outline-none min-w-0"
+                style={{ fontSize: 13, textAlign: 'left' }}
               />
               {searchQuery && (
-                <button onClick={() => setSearchQuery('')}>
-                  <X size={14} color="#aaa" />
+                <button
+                  type="button"
+                  onMouseDown={e => { e.preventDefault(); setSearchQuery(''); }}
+                  aria-label="入力をクリア"
+                  className="home-search-clear-btn p-0 bg-transparent border-none cursor-pointer leading-none flex-shrink-0"
+                >
+                  <X size={13} />
                 </button>
               )}
             </div>
@@ -287,13 +328,14 @@ export default function FilterDrawer({
                             <button
                               key={ip.ipName}
                               onClick={() => { setSearchQuery(''); openIp(ip.ipName); }}
-                              className="flex items-center justify-between w-full px-4 py-2 md:py-3.5 active:bg-gray-50"
-                              style={{ borderBottom: '1px solid #F5F5F5' }}
+                              className="flex items-center justify-between w-full px-4 py-2 md:py-3.5 transition-colors"
+                              style={ipRowBorderStyle}
+                              {...ipRowPressHandlers}
                             >
                               <div className="flex items-center gap-2.5 md:gap-3">
                                 <div className="rounded-full flex-shrink-0" style={{ width: 6, height: 6, background: selectedCount > 0 ? '#F2B800' : '#E0E0E0' }} />
                                 <div className="flex flex-col items-start">
-                                  <span className="text-[11px] md:text-[15px] font-semibold" style={{ color: '#1a1a1a' }}>{ip.ipName}</span>
+                                  <span className="text-[11px] md:text-[15px] font-semibold" style={{ color: ipNameColor }}>{ip.ipName}</span>
                                   <span className="text-[10px] md:text-[12px]" style={{ color: '#aaa' }}>
                                     {selectedCount > 0 ? `${selectedCount}/${ip.count}件選択中` : `${ip.count}件`}
                                   </span>
@@ -330,8 +372,8 @@ export default function FilterDrawer({
                                 )}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-[11px] md:text-[13px] font-semibold truncate" style={{ color: '#1a1a1a' }}>{g.seriesName}</p>
-                                <p className="text-[10px] md:text-[11px]" style={{ color: '#aaa' }}>{g.ipName}</p>
+                                <p className="text-[11px] md:text-[13px] font-semibold truncate" style={{ color: gachaNameColor(selected) }}>{g.seriesName}</p>
+                                <p className="text-[10px] md:text-[11px]" style={{ color: ipNameColor }}>{g.ipName}</p>
                               </div>
                               <button
                                 onClick={() => toggleGacha(g.id)}
@@ -366,8 +408,9 @@ export default function FilterDrawer({
                   <button
                     key={ip.ipName}
                     onClick={() => openIp(ip.ipName)}
-                    className="flex items-center justify-between w-full px-4 py-2.5 md:py-4 active:bg-gray-50 transition-colors"
-                    style={{ borderBottom: '1px solid #F5F5F5' }}
+                    className="flex items-center justify-between w-full px-4 py-2.5 md:py-4 transition-colors"
+                    style={ipRowBorderStyle}
+                    {...ipRowPressHandlers}
                   >
                     <div className="flex items-center gap-3">
                       <div
@@ -376,7 +419,7 @@ export default function FilterDrawer({
                       />
                       <div className="flex flex-col items-start">
                         <div className="flex items-center gap-2">
-                          <span className="text-[13px] md:text-[15px] font-semibold" style={{ color: '#1a1a1a' }}>
+                          <span className="text-[13px] md:text-[15px] font-semibold" style={{ color: ipNameColor }}>
                             {ip.ipName}
                           </span>
                           {ip.isFav && (
@@ -401,7 +444,7 @@ export default function FilterDrawer({
           </div>
 
           {/* フッター */}
-          <div className="px-4 pb-8 pt-3" style={{ borderTop: '1px solid #F0F0F0' }}>
+          <div className="px-4 pb-8 pt-3" style={filterFooterBorderStyle}>
             <button
               onClick={handleApply}
               className="w-full py-3.5 rounded-2xl text-[15px] font-bold"
@@ -414,28 +457,25 @@ export default function FilterDrawer({
       ) : screen === 'products' ? (
         <>
           {/* ヘッダー */}
-          <div
-            className="flex items-center gap-3 px-4 py-4"
-            style={{ borderBottom: '1px solid #F0F0F0' }}
-          >
-            <button onClick={() => setScreen('genres')} className="p-1">
-              <ChevronLeft size={22} color="#555" />
+          <div className="filter-drawer-header flex items-center gap-3 px-4 py-4">
+            <button type="button" onClick={() => setScreen('genres')} className="filter-drawer-header-btn p-1">
+              <ChevronLeft size={22} />
             </button>
             <div className="flex-1 min-w-0">
-              <div className="text-[18px] font-black truncate" style={{ color: '#1a1a1a' }}>
+              <div className="filter-drawer-header-title text-[18px] font-black truncate">
                 {activeIp}
               </div>
-              <div className="text-[12px]" style={{ color: '#aaa' }}>
+              <div className="filter-drawer-header-subtitle text-[12px]">
                 {selectedInActive}/{activeGacha.length}件選択中
               </div>
             </div>
-            <button onClick={onClose} className="p-1">
-              <X size={22} color="#555" />
+            <button type="button" onClick={onClose} className="filter-drawer-header-btn p-1">
+              <X size={22} />
             </button>
           </div>
 
           {/* 全選択/全解除 */}
-          <div className="flex gap-2 px-4 py-2" style={{ borderBottom: '1px solid #F5F5F5' }}>
+          <div className="flex gap-2 px-4 py-2" style={{ borderBottom: `1px solid ${filterBorderColor}` }}>
             <button
               onClick={selectAll}
               className="flex-1 py-2 rounded-xl text-[13px] font-bold"
@@ -445,8 +485,8 @@ export default function FilterDrawer({
             </button>
             <button
               onClick={deselectAll}
-              className="flex-1 py-2 rounded-xl text-[13px] font-bold"
-              style={{ background: '#F5F3ED', color: '#555' }}
+              className="map-list-toggle-btn flex-1 py-2 rounded-xl text-[13px] font-bold active:scale-95 transition-transform"
+              style={{ background: 'rgba(245, 243, 237, 0.28)', border: '1px solid rgba(237, 233, 216, 0.45)' }}
             >
               全解除
             </button>
@@ -460,8 +500,9 @@ export default function FilterDrawer({
                 <button
                   key={g.id}
                   onClick={() => toggleGacha(g.id)}
-                  className="flex items-center gap-3 w-full px-4 py-2.5 md:py-3.5 active:bg-gray-50 transition-colors"
-                  style={{ borderBottom: '1px solid #F5F5F5' }}
+                  className="flex items-center gap-3 w-full px-4 py-2.5 md:py-3.5 transition-colors"
+                  style={{ borderBottom: `1px solid ${filterBorderColor}`, WebkitTapHighlightColor: 'transparent' }}
+                  {...ipRowPressHandlers}
                 >
                   <div
                     className="flex items-center justify-center rounded-full flex-shrink-0"
@@ -488,7 +529,7 @@ export default function FilterDrawer({
                   </div>
                   <span
                     className="text-[11px] md:text-[14px] text-left flex-1 leading-snug"
-                    style={{ color: selected ? '#1a1a1a' : '#555', fontWeight: selected ? 600 : 400 }}
+                    style={{ color: gachaNameColor(selected), fontWeight: selected ? 600 : 400 }}
                   >
                     {g.seriesName}
                   </span>
@@ -498,7 +539,7 @@ export default function FilterDrawer({
           </div>
 
           {/* フッター */}
-          <div className="px-4 pb-8 pt-3" style={{ borderTop: '1px solid #F0F0F0' }}>
+          <div className="px-4 pb-8 pt-3" style={filterFooterBorderStyle}>
             <button
               onClick={handleApply}
               className="w-full py-3.5 rounded-2xl text-[15px] font-bold"
@@ -511,41 +552,53 @@ export default function FilterDrawer({
       ) : (
         <>
           {/* ヘッダー */}
-          <div className="flex items-center gap-3 px-4 py-4" style={{ borderBottom: '1px solid #F0F0F0' }}>
-            <button onClick={() => setScreen('genres')} className="p-1"><ChevronLeft size={22} color="#555" /></button>
+          <div className="filter-drawer-header flex items-center gap-3 px-4 py-4" style={{ background: filterScreenBg }}>
+            <button type="button" onClick={() => setScreen('genres')} className="filter-drawer-header-btn p-1"><ChevronLeft size={22} /></button>
             <div className="flex-1 min-w-0">
-              <div className="text-[16px] md:text-[18px] font-black" style={{ color: '#1a1a1a' }}>選択中のガチャ</div>
-              <div className="text-[11px] md:text-[12px]" style={{ color: '#aaa' }}>{selectedGachaIds.size}件</div>
+              <div className="filter-drawer-header-title text-[16px] md:text-[18px] font-black">選択中のガチャ</div>
+              <div className="filter-drawer-header-subtitle text-[11px] md:text-[12px]">{selectedGachaIds.size}件</div>
             </div>
-            <button onClick={onClose} className="p-1"><X size={22} color="#555" /></button>
+            <button type="button" onClick={onClose} className="filter-drawer-header-btn p-1"><X size={22} /></button>
           </div>
 
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto" style={{ background: filterScreenBg }}>
             {selectedGroups.length === 0 ? (
-              <div className="py-16 text-center text-[11px] md:text-[13px]" style={{ color: '#aaa' }}>選択中のガチャがありません</div>
+              <div className="py-16 text-center text-[11px] md:text-[13px]" style={{ color: filterMutedColor }}>選択中のガチャがありません</div>
             ) : (
               selectedGroups.map((group) => {
                 const expanded = expandedIps.has(group.ipName);
                 return (
                   <div key={group.ipName}>
-                    <div className="flex items-center px-4 py-1.5 md:py-2.5" style={{ background: '#FAFAFA', borderBottom: '1px solid #F0F0F0' }}>
+                    <div className="flex items-center px-4 py-1.5 md:py-2.5" style={{ background: filterSectionBg, borderBottom: `1px solid ${filterBorderColor}` }}>
                       <button onClick={() => toggleExpand(group.ipName)} className="flex items-center gap-2 flex-1 min-w-0">
-                        {expanded ? <ChevronUp size={15} color="#aaa" /> : <ChevronDown size={15} color="#aaa" />}
-                        <span className="text-[11px] md:text-[13px] font-bold truncate" style={{ color: '#555' }}>{group.ipName}</span>
-                        <span className="text-[10px] md:text-[11px] flex-shrink-0" style={{ color: '#aaa' }}>{group.items.length}件</span>
+                        {expanded ? <ChevronUp size={15} color={filterMutedColor} /> : <ChevronDown size={15} color={filterMutedColor} />}
+                        <span className="text-[11px] md:text-[13px] font-bold truncate" style={{ color: ipNameColor }}>{group.ipName}</span>
+                        <span className="text-[10px] md:text-[11px] flex-shrink-0" style={{ color: filterMutedColor }}>{group.items.length}件</span>
                       </button>
                       <div className="flex gap-1.5 flex-shrink-0 ml-2">
                         <button onClick={() => selectAllInIp(group.ipName)} className="text-[10px] font-bold px-2 py-1 rounded-full" style={{ background: '#F2B800', color: 'white' }}>全選択</button>
-                        <button onClick={() => deselectAllInIp(group.ipName)} className="text-[10px] font-bold px-2 py-1 rounded-full" style={{ background: '#F0F0F0', color: '#555' }}>全解除</button>
+                        <button
+                          onClick={() => deselectAllInIp(group.ipName)}
+                          className="map-list-toggle-btn text-[10px] font-bold px-2 py-1 rounded-full active:scale-95 transition-transform"
+                          style={{ background: 'rgba(245, 243, 237, 0.28)', border: '1px solid rgba(237, 233, 216, 0.45)' }}
+                        >
+                          全解除
+                        </button>
                       </div>
                     </div>
                     {expanded && group.items.map((g) => (
-                      <button key={g.id} onClick={() => toggleGacha(g.id)} className="flex items-center gap-3 w-full px-4 py-2.5 md:py-3 active:bg-gray-50 transition-colors" style={{ borderBottom: '1px solid #F5F5F5' }}>
-                        <div className="flex-shrink-0 rounded-lg overflow-hidden w-8 h-8 md:w-10 md:h-10" style={{ background: '#F0F0F0' }}>
+                      <button
+                        key={g.id}
+                        onClick={() => toggleGacha(g.id)}
+                        className="flex items-center gap-3 w-full px-4 py-2.5 md:py-3 transition-colors"
+                        style={{ background: filterScreenBg, borderBottom: `1px solid ${filterBorderColor}`, WebkitTapHighlightColor: 'transparent' }}
+                        {...selectedGachaRowPressHandlers}
+                      >
+                        <div className="flex-shrink-0 rounded-lg overflow-hidden w-8 h-8 md:w-10 md:h-10" style={{ background: filterPlaceholderBg }}>
                           {g.imageUrl && <img src={g.imageUrl} alt={g.seriesName} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />}
                         </div>
-                        <span className="text-[10px] md:text-[13px] text-left flex-1 leading-snug" style={{ color: '#1a1a1a' }}>{g.seriesName}</span>
-                        <X size={14} color="#ccc" className="flex-shrink-0" />
+                        <span className="text-[10px] md:text-[13px] text-left flex-1 leading-snug" style={{ color: gachaSelectedColor }}>{g.seriesName}</span>
+                        <X size={14} color={filterMutedColor} className="flex-shrink-0" />
                       </button>
                     ))}
                   </div>
@@ -554,7 +607,7 @@ export default function FilterDrawer({
             )}
           </div>
 
-          <div className="px-4 pb-8 pt-3" style={{ borderTop: '1px solid #F0F0F0' }}>
+          <div className="px-4 pb-8 pt-3" style={{ ...filterFooterBorderStyle, background: filterScreenBg }}>
             <button onClick={handleApply} className="w-full py-3.5 rounded-2xl text-[13px] md:text-[15px] font-bold" style={{ background: '#F2B800', color: 'white' }}>
               {`適用する（${selectedGachaIds.size}件選択中）`}
             </button>

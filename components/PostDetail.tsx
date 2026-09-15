@@ -168,11 +168,11 @@ export function PostDetail({ post, onBack, onReplied, onDeleted }: { post: FeedP
   const mentionNames = [...new Set([post.user.name, ...replies.map((r) => r.user.name)])];
 
   return (
-    <div className="flex flex-col h-full bg-[#F5F5F0]">
-      <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 bg-white/90 backdrop-blur-sm border-b border-gray-100 sticky top-0 z-10">
+    <div className="flex flex-col h-full community-feed-bg">
+      <div className="post-detail-header flex-shrink-0 flex items-center gap-3 px-4 py-3 sticky top-0 z-10">
         <button
           onClick={onBack}
-          className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-100 transition-colors text-gray-600"
+          className="post-detail-back-btn flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-100 transition-colors text-gray-600"
         >
           <ArrowLeft size={20} />
         </button>
@@ -186,33 +186,32 @@ export function PostDetail({ post, onBack, onReplied, onDeleted }: { post: FeedP
           currentUserId={currentUid ?? undefined}
           onDelete={(id) => { onDeleted?.(id); onBack(); }}
         />
-        <div className="mx-4 border-t border-gray-200 mt-1 mb-2" />
-        <div className="bg-white mx-3 rounded-2xl overflow-hidden shadow-sm">
-          {loadingR ? (
-            <div className="flex justify-center py-8">
-              <div className="w-5 h-5 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin" />
-            </div>
-          ) : replies.length === 0 ? (
-            <p className="text-center text-sm text-gray-400 py-8">{'まだ返信がありません'}</p>
-          ) : (
-            replies.map((r) => (
-              <ReplyCard
-                key={r.id}
-                reply={r}
-                postId={post.id}
-                isOwn={r.user.id === currentUid}
-                currentUserId={currentUid ?? undefined}
-                onDelete={handleDeleteReply}
-                mentionNames={mentionNames}
-              />
-            ))
-          )}
-        </div>
+        {loadingR ? (
+          <div className="flex justify-center py-8">
+            <div className="w-5 h-5 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : replies.length === 0 ? (
+          <p className="text-center text-sm text-gray-400 py-8">{'まだ返信がありません'}</p>
+        ) : (
+          replies.map((r) => (
+            <ReplyCard
+              key={r.id}
+              reply={r}
+              postId={post.id}
+              variant="card"
+              className="mx-3 my-2.5"
+              isOwn={r.user.id === currentUid}
+              currentUserId={currentUid ?? undefined}
+              onDelete={handleDeleteReply}
+              mentionNames={mentionNames}
+            />
+          ))
+        )}
       </div>
 
       <div className="flex-shrink-0 relative">
         {mentionQuery !== null && mentionCandidates.length > 0 && (
-          <div className="absolute bottom-full left-4 right-4 mb-1 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden z-20 max-h-44 overflow-y-auto">
+          <div className="reply-mention-dropdown absolute bottom-full left-4 right-4 mb-1 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden z-20 max-h-44 overflow-y-auto">
             {mentionCandidates.map((u) => (
               <button
                 key={u.id}
@@ -229,7 +228,7 @@ export function PostDetail({ post, onBack, onReplied, onDeleted }: { post: FeedP
           </div>
         )}
 
-        <div className="bg-white border-t border-gray-100 px-4 py-2">
+        <div className="reply-composer-bar px-4 py-2">
           <ReplyComposerField
             text={text}
             textareaRef={textareaRef}

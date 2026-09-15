@@ -1,14 +1,18 @@
 'use client';
 
+import { useAuthTextColor } from '@/lib/useAuthPrimaryButtonStyle';
+
 interface Props {
   onContinue: () => void;
 }
 
 /** 新規登録: ハンドル登録完了（入力ページ上に重ねて表示） */
 export function SignupCompleteStep({ onContinue }: Props) {
+  const titleColor = useAuthTextColor();
+
   return (
     <div
-      className="font-sans fixed inset-0 z-50 flex items-center justify-center px-6 py-8 bg-black/40"
+      className="signup-app-font font-sans fixed inset-0 z-50 flex items-center justify-center px-6 py-8 bg-black/40"
       role="dialog"
       aria-modal="true"
       aria-labelledby="signup-complete-title"
@@ -19,7 +23,8 @@ export function SignupCompleteStep({ onContinue }: Props) {
       >
         <h1
           id="signup-complete-title"
-          className="text-[18px] md:text-[22px] font-black leading-snug text-[#111111]"
+          className="text-[18px] md:text-[22px] font-black leading-snug"
+          style={{ color: titleColor }}
         >
           登録が完了しました！
         </h1>

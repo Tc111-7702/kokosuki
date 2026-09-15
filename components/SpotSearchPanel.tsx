@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { MapPin, Search, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { MapPin, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { useIsMobile } from '@/lib/useIsMobile';
 import { fetchPostSpotSuggestions, type PostSpotSuggestion } from '@/lib/spotPostSuggest';
 import { POST_SPOT_STEP_NEXT_GAP, POST_STEP_NEXT_GAP } from '@/lib/postFormMobileLayout';
@@ -18,6 +18,13 @@ interface SpotResult {
 function fmtDist(d?: number): string {
   if (d == null) return '';
   return d < 1000 ? Math.round(d) + 'm' : (d / 1000).toFixed(1) + 'km';
+}
+
+const MIN_SPOT_QUERY_LEN = 2;
+const SPOT_SUGGEST_DEBOUNCE_MS = 600;
+
+function isSpotQueryReady(v: string): boolean {
+  return v.trim().length >= MIN_SPOT_QUERY_LEN;
 }
 
 // ─── メインコンポーネント ─────────────────────────────────────────────
@@ -46,6 +53,8 @@ export function SpotSearchPanel({
   const [nearbyOpen, setNearbyOpen]       = useState(false);
   const [userPos, setUserPos]           = useState<{ lat: number; lng: number } | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const requestGen = useRef(0);
+  const composingRef = useRef(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
 
@@ -60,7 +69,7 @@ export function SpotSearchPanel({
 
   // 現在地取得後に距離順を再計算
   useEffect(() => {
-    if (!query.trim() || !userPos) return;
+    if (!isSpotQueryReady(query) || !userPos) return;
     fetchSuggestions(query);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userPos]);
@@ -81,18 +90,35 @@ export function SpotSearchPanel({
 
   const fetchSuggestions = (v: string) => {
     if (timer.current) clearTimeout(timer.current);
-    if (!v.trim()) { setSuggestions([]); setSuggestLoading(false); return; }
-    setSuggestLoading(true);
+    const gen = ++requestGen.current;
+
+    if (!v.trim() || !isSpotQueryReady(v)) {
+      setSuggestions([]);
+      setSuggestLoading(false);
+      return;
+    }
+
     timer.current = setTimeout(async () => {
+      if (gen !== requestGen.current) return;
+      setSuggestLoading(true);
       try {
         const results = await fetchPostSpotSuggestions(v, gachaId, userPos);
+        if (gen !== requestGen.current) return;
         setSuggestions(results);
       } catch {
-        setSuggestions([]);
+        if (gen === requestGen.current) setSuggestions([]);
       } finally {
-        setSuggestLoading(false);
+        if (gen === requestGen.current) setSuggestLoading(false);
       }
-    }, 200);
+    }, SPOT_SUGGEST_DEBOUNCE_MS);
+  };
+
+  const handleQueryChange = (v: string) => {
+    setQuery(v);
+    setSpots([]);
+    setSpotMessage(null);
+    setNearbyOpen(false);
+    if (!composingRef.current) fetchSuggestions(v);
   };
 
   const handleNearbyToggle = () => {
@@ -135,8 +161,8 @@ export function SpotSearchPanel({
     );
   };
 
-  const showDrop = focused && query.trim().length > 0;
-  const showEmptySuggest = showDrop && !suggestLoading && suggestions.length === 0;
+  const showDrop = focused && isSpotQueryReady(query) && !suggestLoading;
+  const showEmptySuggest = showDrop && suggestions.length === 0;
 
   const chipBg = accentColor === '#F2B800' ? '#FFF8D0' : '#EFF6FF';
   const chipText = accentColor === '#F2B800' ? '#8A6800' : '#1D4ED8';
@@ -157,64 +183,70 @@ export function SpotSearchPanel({
         </span>
       </div>
 
-      {/* 検索バー */}
+      {/* 検索バー（home/search と同じUI） */}
       <div ref={searchRef} style={{ position: 'relative', marginBottom: isMobile ? 8 : 10 }}>
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          padding: isMobile ? '6px 12px' : '8px 12px',
-          background: '#F5F3ED', borderRadius: 12,
-        }}>
-          <Search size={14} color="#aaa" />
-          <input
-            type="text"
-            value={query}
-            placeholder="店舗・駅・都道府県・市区町村を検索"
-            onChange={e => {
-              setQuery(e.target.value);
-              fetchSuggestions(e.target.value);
-              setSpots([]);
-              setSpotMessage(null);
-              setNearbyOpen(false);
-            }}
-            onFocus={() => { setFocused(true); if (query) fetchSuggestions(query); }}
-            onBlur={() => setTimeout(() => setFocused(false), 200)}
-            style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: isMobile ? 12 : 13, color: '#333' }}
-          />
-          {query ? (
-            <button
-              onMouseDown={e => {
-                e.preventDefault();
-                setQuery(''); setSuggestions([]); setSpots([]); setSpotMessage(null); setNearbyOpen(false);
+        <div style={{ paddingTop: isMobile ? 6 : 8 }}>
+          <div className="community-search-input-shell flex items-center gap-2 px-3 py-1.5 lg:py-2.5 rounded-full">
+            {suggestLoading ? (
+              <div className="animate-spin rounded-full border-2 border-t-transparent flex-shrink-0" style={{ width: 15, height: 15, borderColor: accentColor, borderTopColor: 'transparent' }} />
+            ) : (
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2.5" className="flex-shrink-0">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="16.65" y1="16.65" x2="21" y2="21" />
+              </svg>
+            )}
+            <input
+              type="text"
+              value={query}
+              placeholder="店舗・駅・都道府県・市区町村を検索"
+              onChange={e => handleQueryChange(e.target.value)}
+              onCompositionStart={() => { composingRef.current = true; }}
+              onCompositionEnd={e => {
+                composingRef.current = false;
+                handleQueryChange(e.currentTarget.value);
               }}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-            >
-              <X size={13} color="#bbb" />
-            </button>
-          ) : null}
+              onFocus={() => { setFocused(true); if (isSpotQueryReady(query)) fetchSuggestions(query); }}
+              onBlur={() => setTimeout(() => setFocused(false), 200)}
+              className="community-search-input shell-field flex-1 bg-transparent text-xs lg:text-sm outline-none min-w-0"
+              style={{ fontSize: isMobile ? 12 : 14, textAlign: 'left' }}
+            />
+            {query && !suggestLoading && (
+              <button
+                type="button"
+                onMouseDown={e => {
+                  e.preventDefault();
+                  if (timer.current) clearTimeout(timer.current);
+                  requestGen.current += 1;
+                  setQuery('');
+                  setSuggestions([]);
+                  setSuggestLoading(false);
+                  setSpots([]);
+                  setSpotMessage(null);
+                  setNearbyOpen(false);
+                }}
+                aria-label="入力をクリア"
+                className="home-search-clear-btn p-0 bg-transparent border-none cursor-pointer leading-none flex-shrink-0"
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
         </div>
 
         {showDrop && (
-          <div style={{
-            position: 'absolute', zIndex: 50, top: 'calc(100% + 4px)', left: 0, right: 0,
-            background: 'white', borderRadius: 12, boxShadow: '0 6px 24px rgba(0,0,0,0.12)',
-            border: '1px solid #f0f0f0', maxHeight: 280, overflowY: 'auto',
-          }}>
-            {suggestLoading ? (
-              <div style={{ textAlign: 'center', padding: '16px 0' }}>
-                <div style={{
-                  width: 18, height: 18, margin: '0 auto',
-                  border: `2px solid ${accentColor}`, borderTopColor: 'transparent',
-                  borderRadius: '50%', animation: 'spin 0.7s linear infinite',
-                }} />
-              </div>
-            ) : showEmptySuggest ? (
+          <div
+            className="search-suggest-dropdown absolute z-50 left-0 right-0 rounded-xl shadow-xl"
+            style={{ top: 'calc(100% - 4px)', maxHeight: 280, overflowY: 'auto' }}
+          >
+            {showEmptySuggest ? (
               <p style={{ margin: 0, padding: isMobile ? '12px 12px' : '14px 12px', fontSize: isMobile ? 11 : 12, color: '#AAA', textAlign: 'center' }}>
                 店舗が見つかりませんでした
               </p>
             ) : (
-              suggestions.map((s, i) => (
+              suggestions.map((s) => (
                 <button
                   key={s.id}
+                  className="search-suggest-item block"
                   onMouseDown={e => {
                     e.preventDefault();
                     setQuery(s.name);
@@ -222,17 +254,12 @@ export function SpotSearchPanel({
                     setFocused(false);
                     onSelect(s.id, s.name);
                   }}
-                  style={{
-                    display: 'block', width: '100%', textAlign: 'left',
-                    padding: isMobile ? '8px 12px' : '10px 14px',
-                    borderBottom: i < suggestions.length - 1 ? '1px solid #f5f5f5' : 'none',
-                    background: 'none', border: 'none', cursor: 'pointer',
-                  }}
+                  style={{ padding: isMobile ? '8px 12px' : '10px 14px' }}
                 >
-                  <p style={{ margin: '0 0 2px', fontSize: isMobile ? 12 : 13, fontWeight: 600, color: '#222', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <p className="search-suggest-label m-0 mb-0.5 truncate font-semibold" style={{ fontSize: isMobile ? 12 : 13 }}>
                     {s.name}
                   </p>
-                  <p style={{ margin: 0, fontSize: isMobile ? 10 : 11, color: '#999', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <p className="search-suggest-sublabel m-0 truncate" style={{ fontSize: isMobile ? 10 : 11 }}>
                     {s.address}
                     {s.distance != null && (
                       <span style={{ marginLeft: 6, fontWeight: 600, color: accentColor }}>
@@ -249,13 +276,15 @@ export function SpotSearchPanel({
 
       {/* 現在地ボタン（開閉トグル） */}
       <button
+        type="button"
         onClick={handleNearbyToggle}
         disabled={nearbyLoading}
+        className="post-card-border-btn flex items-center gap-1.5 w-full rounded-2xl active:scale-[0.99] transition-transform"
         style={{
-          display: 'flex', alignItems: 'center', gap: 6, width: '100%',
-          padding: isMobile ? '6px 12px' : '8px 14px', marginBottom: nearbyOpen ? 8 : 0, borderRadius: 12,
-          background: '#F5F3ED', border: 'none', cursor: nearbyLoading ? 'default' : 'pointer',
-          fontSize: isMobile ? 12 : 13, color: '#555',
+          padding: isMobile ? '8px 12px' : '10px 14px',
+          marginBottom: nearbyOpen ? 8 : 0,
+          cursor: nearbyLoading ? 'default' : 'pointer',
+          fontSize: isMobile ? 12 : 13,
         }}
       >
         <MapPin size={14} color={accentColor} style={{ flexShrink: 0 }} />
@@ -272,24 +301,25 @@ export function SpotSearchPanel({
       )}
 
       {nearbyOpen && spots.length > 0 && (
-        <div style={{ borderRadius: 12, border: '1px solid #F0EDDF', overflow: 'hidden' }}>
-          {spots.map((sp, i) => (
+        <div className="post-card-border-list rounded-2xl">
+          {spots.map(sp => (
             <button
               key={sp.id}
+              type="button"
               onClick={() => onSelect(sp.id, sp.name)}
-              style={{
-                display: 'block', width: '100%', textAlign: 'left',
-                padding: isMobile ? '8px 12px' : '12px 14px',
-                borderTop: 'none', borderLeft: 'none', borderRight: 'none',
-                borderBottom: i < spots.length - 1 ? '1px solid #F0EDDF' : 'none',
-                background: 'white', cursor: 'pointer',
-                transition: 'background 0.1s',
-              }}
-              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = '#FFFBF0'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'white'; }}
+              className="post-card-border-list-item"
+              style={{ padding: isMobile ? '8px 12px' : '12px 14px' }}
             >
-              <p style={{ margin: '0 0 2px', fontSize: isMobile ? 12 : 13, fontWeight: 600, color: '#222', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sp.name}</p>
-              <p style={{ margin: 0, fontSize: isMobile ? 10 : 11, color: '#999', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <p
+                className="spot-nearby-name m-0 mb-0.5 truncate font-semibold"
+                style={{ fontSize: isMobile ? 12 : 13 }}
+              >
+                {sp.name}
+              </p>
+              <p
+                className="spot-nearby-meta m-0 truncate"
+                style={{ fontSize: isMobile ? 10 : 11 }}
+              >
                 {sp.address}
                 {sp.distance != null && (
                   <span style={{ marginLeft: 6, fontWeight: 600, color: accentColor }}>

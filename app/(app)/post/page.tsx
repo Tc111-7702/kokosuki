@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, Suspense, useSyncExternalStore } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ChevronLeft } from 'lucide-react';
 import { NormalPostForm, DesktopNormalForm } from '@/components/NormalPostForm';
 import { StockPostForm,  DesktopStockForm  } from '@/components/StockPostForm';
 import { useIsMobile } from '@/lib/useIsMobile';
+import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 
 type PostType = 'normal' | 'stock';
 
@@ -21,17 +22,26 @@ function DesktopPostPage({ initialMode, initialSpotId, initialSpotName, initialF
   const router = useRouter();
   const [tab, setTab] = useState<PostType>(initialMode === 'stock' ? 'stock' : 'normal');
   const handleDone = () => router.push('/home?tab=community&posted=1');
+  const isDark = useSyncExternalStore(
+    subscribeTheme,
+    () => getThemeSnapshot() === 'dark',
+    () => false,
+  );
+  const activeTabColor = isDark ? '#FFFFFF' : '#1A1A1A';
 
   const TABS: { key: PostType; label: string; accent: string }[] = [
     { key: 'normal', label: '引いた！',   accent: '#F2B800' },
     { key: 'stock',  label: '在庫を報告', accent: '#60A5FA' },
   ];
 
-  const bg = tab === 'stock' ? '#F3F4F6' : '#FFFFFF';
+  const isStockTab = tab === 'stock';
+  const pageBg = isStockTab ? (isDark ? '#0a0a0a' : '#F3F4F6') : '#FFFFFF';
+  const headerBg = isStockTab && isDark ? '#0a0a0a' : 'white';
+  const headerBorder = isStockTab && isDark ? '#262626' : '#EDE9D8';
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: bg }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: pageBg }}>
       <div style={{
-        flexShrink: 0, background: 'white', borderBottom: '1.5px solid #EDE9D8',
+        flexShrink: 0, background: headerBg, borderBottom: `1.5px solid ${headerBorder}`,
         display: 'flex', gap: 0, justifyContent: 'center', position: 'relative',
       }}>
         {initialMode && (
@@ -53,7 +63,7 @@ function DesktopPostPage({ initialMode, initialSpotId, initialSpotName, initialF
                 padding: '14px 48px', background: 'none', border: 'none',
                 cursor: locked ? 'not-allowed' : 'pointer',
                 fontSize: 15, fontWeight: 800,
-                color: tab === t.key ? '#1A1A1A' : '#DDD',
+                color: tab === t.key ? activeTabColor : '#DDD',
                 borderBottom: tab === t.key ? `3px solid ${t.accent}` : '3px solid transparent',
                 transition: 'color 0.15s, border-color 0.15s',
                 opacity: locked ? 0.4 : 1,
@@ -63,7 +73,7 @@ function DesktopPostPage({ initialMode, initialSpotId, initialSpotName, initialF
           );
         })}
       </div>
-      <div style={{ flex: 1, overflowY: 'auto' }}>
+      <div style={{ flex: 1, overflowY: 'auto', background: pageBg }}>
         {tab === 'normal'
           ? <DesktopNormalForm onDone={handleDone} initialSpotId={initialSpotId} initialSpotName={initialSpotName} initialFilterGachaIds={initialFilterGachaIds} initialSearch={initialSearch} />
           : <DesktopStockForm  onDone={handleDone} initialSpotId={initialSpotId} initialSpotName={initialSpotName} initialFilterGachaIds={initialFilterGachaIds} initialSearch={initialSearch} />
@@ -87,6 +97,12 @@ function MobilePostPage({ initialMode, initialSpotId, initialSpotName, initialFi
     initialMode === 'pull' ? 'normal' : initialMode === 'stock' ? 'stock' : null
   );
   const handleDone = () => router.push('/home?tab=community&posted=1');
+  const isDark = useSyncExternalStore(
+    subscribeTheme,
+    () => getThemeSnapshot() === 'dark',
+    () => false,
+  );
+  const headerTitleColor = isDark ? '#FFFFFF' : '#1A1A1A';
 
   if (!postType) {
     return (
@@ -95,7 +111,7 @@ function MobilePostPage({ initialMode, initialSpotId, initialSpotName, initialFi
           flexShrink: 0, background: 'white', borderBottom: '1.5px solid #EDE9D8',
           padding: '14px 16px', display: 'flex', alignItems: 'center',
         }}>
-          <span style={{ fontSize: 16, fontWeight: 800, color: '#1A1A1A' }}>投稿する</span>
+          <span style={{ fontSize: 16, fontWeight: 800, color: headerTitleColor }}>投稿する</span>
         </div>
         <div style={{ flex: 1, overflowY: 'auto', padding: '24px 16px' }}>
           <p style={{ fontSize: 13, color: '#AAA', marginBottom: 20, textAlign: 'center' }}>
@@ -129,21 +145,24 @@ function MobilePostPage({ initialMode, initialSpotId, initialSpotName, initialFi
   }
 
   const isNormal = postType === 'normal';
+  const pageBg = isNormal ? '#FFFFFF' : (isDark ? '#0a0a0a' : '#F3F4F6');
+  const headerBg = !isNormal && isDark ? '#0a0a0a' : 'white';
+  const headerBorder = !isNormal && isDark ? '#262626' : '#EDE9D8';
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: isNormal ? '#FFFFFF' : '#F3F4F6' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: pageBg }}>
       <div style={{
-        flexShrink: 0, background: 'white', borderBottom: '1.5px solid #EDE9D8',
+        flexShrink: 0, background: headerBg, borderBottom: `1.5px solid ${headerBorder}`,
         padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10,
       }}>
         <button onClick={() => { if (initialMode) router.back(); else setPostType(null); }}
           style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
           <ChevronLeft size={22} color="#888" />
         </button>
-        <span style={{ fontSize: 16, fontWeight: 800, color: '#1A1A1A' }}>
+        <span style={{ fontSize: 16, fontWeight: 800, color: headerTitleColor }}>
           {isNormal ? '引いた！' : '在庫を報告'}
         </span>
       </div>
-      <div style={{ flex: 1, overflowY: 'auto' }}>
+      <div style={{ flex: 1, overflowY: 'auto', background: pageBg }}>
         {isNormal
           ? <NormalPostForm onDone={handleDone} initialSpotId={initialSpotId} initialSpotName={initialSpotName} initialFilterGachaIds={initialFilterGachaIds} initialSearch={initialSearch} />
           : <StockPostForm  onDone={handleDone} initialSpotId={initialSpotId} initialSpotName={initialSpotName} initialFilterGachaIds={initialFilterGachaIds} initialSearch={initialSearch} />

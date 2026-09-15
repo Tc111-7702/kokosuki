@@ -1,8 +1,11 @@
 'use client';
 
+import { useSyncExternalStore } from 'react';
 import { ChevronLeft, UserRound } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import type { SavedLoginAccount } from '@/lib/savedLoginAccounts';
+import { useAuthBackIconColor, useAuthMutedTextColor } from '@/lib/useAuthPrimaryButtonStyle';
+import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 
 const PROVIDER_LABEL: Record<'google' | 'apple', string> = {
   google: 'Google',
@@ -36,6 +39,8 @@ interface Props {
   onBack: () => void;
   onSelect: (account: SavedLoginAccount) => void;
   onUseOtherAccount: () => void;
+  /** サインアップフローでは通常フォント */
+  appFont?: boolean;
 }
 
 export function LoginAccountPickerStep({
@@ -46,13 +51,36 @@ export function LoginAccountPickerStep({
   onBack,
   onSelect,
   onUseOtherAccount,
+  appFont = false,
 }: Props) {
+  const backIconColor = useAuthBackIconColor();
+  const backLinkColor = useAuthMutedTextColor();
+  const isDark = useSyncExternalStore(
+    subscribeTheme,
+    () => getThemeSnapshot() === 'dark',
+    () => false,
+  );
+  const pageBg = isDark ? '#0a0a0a' : undefined;
+  const cardStyle = isDark
+    ? { backgroundColor: '#0a0a0a', borderColor: '#262626', boxShadow: 'none' }
+    : undefined;
+  const rowStyle = isDark ? { backgroundColor: '#0a0a0a', borderColor: '#262626' } : undefined;
+  const titleColor = isDark ? '#ffffff' : undefined;
+  const bodyColor = isDark ? '#a3a3a3' : undefined;
+  const nameColor = isDark ? '#ffffff' : undefined;
+  const fontClass = appFont ? 'signup-app-font font-sans' : '';
   const providerLabel = PROVIDER_LABEL[provider];
   const ProviderIcon = provider === 'google' ? GoogleIcon : AppleIcon;
 
   return (
-    <div className="login-account-picker flex flex-col min-h-[100dvh] w-full">
-      <div className="login-account-picker-shell flex flex-col min-h-[100dvh] w-full px-4 py-6 md:px-6 md:py-10">
+    <div
+      className={`login-account-picker flex flex-col min-h-[100dvh] w-full ${fontClass}`}
+      style={pageBg ? { backgroundColor: pageBg } : undefined}
+    >
+      <div
+        className="login-account-picker-shell flex flex-col min-h-[100dvh] w-full px-4 py-6 md:px-6 md:py-10"
+        style={pageBg ? { backgroundColor: pageBg } : undefined}
+      >
         <div className="login-account-picker-inner w-full max-w-[448px] mx-auto flex flex-col flex-1 min-h-0 min-w-0">
           <button
             type="button"
@@ -61,26 +89,39 @@ export function LoginAccountPickerStep({
             className="self-start -ml-1 mb-4 p-1 active:opacity-60 disabled:opacity-50 md:hidden"
             aria-label="戻る"
           >
-            <ChevronLeft size={28} strokeWidth={2} color="#111111" />
+            <ChevronLeft size={28} strokeWidth={2} color={backIconColor} />
           </button>
 
-          <div className="login-account-picker-card w-full min-w-0 bg-white overflow-hidden flex flex-col md:flex-1 md:min-h-0">
+          <div
+            className="login-account-picker-card w-full min-w-0 bg-white overflow-hidden flex flex-col md:flex-1 md:min-h-0"
+            style={cardStyle}
+          >
             <div className="login-account-picker-header px-6 pt-6 pb-5 flex flex-col w-full text-left md:text-center">
-              <div className="login-account-picker-provider flex items-center gap-2.5 w-full md:justify-center">
+              <div
+                className="login-account-picker-provider flex items-center gap-2.5 w-full md:justify-center"
+                style={bodyColor ? { color: bodyColor } : undefined}
+              >
                 <ProviderIcon />
                 <span>{`${providerLabel} でログイン`}</span>
               </div>
 
-              <h1 className="login-account-picker-title mt-5 w-full">
+              <h1 className="login-account-picker-title mt-5 w-full" style={titleColor ? { color: titleColor } : undefined}>
                 アカウントを選択してください
               </h1>
 
-              <p className="login-account-picker-subtitle mt-3 w-full leading-relaxed px-1">
+              <p
+                className="login-account-picker-subtitle mt-3 w-full leading-relaxed px-1"
+                style={bodyColor ? { color: bodyColor } : undefined}
+              >
                 この端末でログインしたことのあるアカウントを選択してください
               </p>
             </div>
 
-            <div className="login-account-picker-list border-t w-full min-w-0" aria-busy={busy}>
+            <div
+              className="login-account-picker-list border-t w-full min-w-0"
+              style={rowStyle ? { borderColor: rowStyle.borderColor } : undefined}
+              aria-busy={busy}
+            >
               {accounts.map((account) => (
                 <button
                   key={account.email}
@@ -88,16 +129,23 @@ export function LoginAccountPickerStep({
                   disabled={busy}
                   onClick={() => onSelect(account)}
                   className="login-account-picker-row w-full flex items-center gap-4 px-6 text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={rowStyle}
                 >
                   <Avatar
                     user={{ name: account.name, image: account.avatarUrl }}
                     size={40}
                   />
                   <span className="min-w-0 flex-1">
-                    <span className="login-account-picker-name block truncate">
+                    <span
+                      className="login-account-picker-name block truncate"
+                      style={nameColor ? { color: nameColor } : undefined}
+                    >
                       {account.name}
                     </span>
-                    <span className="login-account-picker-email block truncate mt-0.5">
+                    <span
+                      className="login-account-picker-email block truncate mt-0.5"
+                      style={bodyColor ? { color: bodyColor } : undefined}
+                    >
                       {account.email}
                     </span>
                   </span>
@@ -109,11 +157,17 @@ export function LoginAccountPickerStep({
                 onClick={onUseOtherAccount}
                 disabled={busy}
                 className="login-account-picker-row login-account-picker-row-other w-full flex items-center gap-4 px-6 text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                style={rowStyle}
               >
-                <span className="login-account-picker-other-icon flex items-center justify-center shrink-0">
+                <span
+                  className="login-account-picker-other-icon flex items-center justify-center shrink-0"
+                  style={bodyColor ? { color: bodyColor } : undefined}
+                >
                   <UserRound size={22} strokeWidth={1.75} />
                 </span>
-                <span className="login-account-picker-name">別のアカウントを使用する</span>
+                <span className="login-account-picker-name" style={nameColor ? { color: nameColor } : undefined}>
+                  別のアカウントを使用する
+                </span>
               </button>
             </div>
 
@@ -123,8 +177,14 @@ export function LoginAccountPickerStep({
               </p>
             ) : null}
 
-            <div className="login-account-picker-footer px-6 py-5 border-t md:mt-auto w-full shrink-0 flex flex-col text-left md:text-center">
-              <p className="login-account-picker-notice w-full leading-relaxed px-1">
+            <div
+              className="login-account-picker-footer px-6 py-5 border-t md:mt-auto w-full shrink-0 flex flex-col text-left md:text-center"
+              style={rowStyle ? { borderColor: rowStyle.borderColor } : undefined}
+            >
+              <p
+                className="login-account-picker-notice w-full leading-relaxed px-1"
+                style={bodyColor ? { color: bodyColor } : undefined}
+              >
                 続行すると、ココスキの利用規約とプライバシーポリシーが適用されます。
               </p>
 
@@ -133,6 +193,7 @@ export function LoginAccountPickerStep({
                 onClick={onBack}
                 disabled={busy}
                 className="login-email-back-link hidden md:block w-full mt-3 disabled:opacity-50"
+                style={{ color: backLinkColor }}
               >
                 戻る
               </button>

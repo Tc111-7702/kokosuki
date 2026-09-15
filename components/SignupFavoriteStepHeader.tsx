@@ -1,6 +1,9 @@
+'use client';
+
 import type { ReactNode } from 'react';
 import { ChevronLeft } from 'lucide-react';
 import { loginDisplayFont } from '@/lib/loginFonts';
+import { useAuthBackIconColor, useAuthTextColor } from '@/lib/useAuthPrimaryButtonStyle';
 
 interface Props {
   title: string;
@@ -11,6 +14,8 @@ interface Props {
   countRowRight?: ReactNode;
   /** デスクトップ: タイトル左に戻るボタン */
   onDesktopBack?: () => void;
+  /** ログイン用丸ゴシックを使う場合のみ true */
+  useLoginFont?: boolean;
 }
 
 /** 新規登録: IP選択・ガチャ選択の共通ヘッダー */
@@ -20,11 +25,15 @@ export function SignupFavoriteStepHeader({
   layout = 'gacha',
   countRowRight,
   onDesktopBack,
+  useLoginFont = false,
 }: Props) {
+  const backIconColor = useAuthBackIconColor();
+  const titleColor = useAuthTextColor();
+  const fontClass = useLoginFont ? loginDisplayFont.className : 'signup-app-font font-sans';
   const isGachaLayout = layout === 'gacha';
 
   return (
-    <div className={`w-full shrink-0 ${loginDisplayFont.className}`}>
+    <div className={`w-full shrink-0 ${fontClass}`}>
       <div className="max-md:translate-y-2">
         <div className="relative mt-1 md:mt-2 w-full">
           {onDesktopBack ? (
@@ -34,14 +43,14 @@ export function SignupFavoriteStepHeader({
               className="hidden md:block absolute left-0 top-1/2 -translate-y-1/2 -ml-1 p-1 active:opacity-60 disabled:opacity-50 z-10"
               aria-label="戻る"
             >
-              <ChevronLeft size={28} strokeWidth={2} color="#111111" />
+              <ChevronLeft size={28} strokeWidth={2} color={backIconColor} />
             </button>
           ) : null}
           <h1
             className={`font-black text-center leading-snug w-full ${
               isGachaLayout ? 'text-[17px] md:text-[21px]' : 'text-[20px] md:text-[22px]'
             }`}
-            style={{ color: '#111111' }}
+            style={{ color: titleColor }}
           >
             {title}
           </h1>
@@ -51,7 +60,7 @@ export function SignupFavoriteStepHeader({
           <>
             <p
               className="mt-1 md:mt-2 text-[12px] md:text-[15px] font-bold text-center w-full"
-              style={{ color: '#64748b' }}
+              style={{ color: titleColor }}
             >
               いつでも追加できます
             </p>
@@ -62,7 +71,7 @@ export function SignupFavoriteStepHeader({
             >
               <p
                 className="text-[12px] md:text-[15px] font-bold text-left md:col-start-1"
-                style={{ color: '#111111' }}
+                style={{ color: titleColor }}
               >
                 {selectedCount}件選択中
               </p>
@@ -75,13 +84,13 @@ export function SignupFavoriteStepHeader({
           <div className="mt-1 md:mt-2 flex flex-col md:flex-row md:items-center md:justify-center md:gap-3 w-full">
             <p
               className="text-[12px] md:text-[13px] font-bold text-center md:text-left"
-              style={{ color: '#64748b' }}
+              style={{ color: titleColor }}
             >
               いつでも追加できます
             </p>
             <p
               className="mt-2 md:mt-0 text-[12px] md:text-[13px] font-bold text-left w-full md:w-auto"
-              style={{ color: '#111111' }}
+              style={{ color: titleColor }}
             >
               {selectedCount}件選択中
             </p>

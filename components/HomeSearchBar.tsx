@@ -161,74 +161,78 @@ export function HomeSearchBar({
   const showDrop = focused && suggestions.length > 0;
 
   return (
-    <div className={`relative px-4 py-1.5 lg:py-2 ${wrapperClassName ?? ''}`}>
-      <div className="flex items-center gap-1.5">
-        {filterActive && onDismissFilter && (
-          <button
-            type="button"
-            onClick={dismissFilter}
-            aria-label="検索を解除"
-            style={{
-              width: 32, height: 32, borderRadius: 16, border: 'none', flexShrink: 0,
-              background: 'rgba(0,0,0,0.07)', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}
-          >
-            <ArrowLeft size={16} color="#555" />
-          </button>
-        )}
-        <div className="relative flex-1 min-w-0">
-          <div
-            className="flex items-center gap-2 px-3 py-1.5 lg:py-2.5 rounded-2xl"
-            style={{ background: '#F5F3ED' }}
-          >
-            <input
-              type="text"
-              value={value}
-              onChange={e => { setValue(e.target.value); fetchSuggestions(e.target.value); }}
-              onFocus={() => { setFocused(true); fetchSuggestions(value); }}
-              onBlur={() => setTimeout(() => setFocused(false), 200)}
-              onKeyDown={e => e.key === 'Enter' && resolveByQuery(value)}
-              placeholder={placeholder}
-              disabled={navigating}
-              className="flex-1 bg-transparent border-none outline-none text-xs lg:text-sm text-gray-800 min-w-0"
-            />
-            {value && (
-              <button
-                type="button"
-                onMouseDown={e => { e.preventDefault(); clearInput(); }}
-                aria-label="入力をクリア"
-                style={{ padding: 0, background: 'none', border: 'none', cursor: 'pointer', lineHeight: 0, flexShrink: 0 }}
-              >
-                <X size={13} color="#bbb" />
-              </button>
-            )}
-          </div>
-          {showDrop && (
-            <div
-              className="absolute z-50 rounded-xl overflow-hidden"
-              style={{ top: 'calc(100% - 4px)', left: 0, right: 0, background: 'white', boxShadow: '0 6px 24px rgba(0,0,0,0.14)', border: '1px solid #f0f0f0', maxHeight: 280, overflowY: 'auto' }}
+    <div className={`px-4 py-1.5 lg:py-2 ${wrapperClassName ?? ''}`}>
+      <div className="relative">
+        <div className="flex items-center gap-1.5">
+          {filterActive && onDismissFilter && (
+            <button
+              type="button"
+              onClick={dismissFilter}
+              className="community-search-back-btn flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full text-gray-500 hover:bg-gray-100 active:opacity-70 transition-colors"
+              aria-label="検索を解除"
             >
-              <div className="px-3 py-1 lg:py-1.5 text-[10px] lg:text-xs font-bold text-gray-400 bg-gray-50 border-b border-gray-100">ガチャ・IP</div>
-              {suggestions.map((s, i) => (
-                <button
-                  key={i}
-                  className={'w-full flex items-center justify-between px-3 py-2 lg:py-2.5 active:bg-amber-50 text-left ' + (i < suggestions.length - 1 ? 'border-b border-gray-100' : '')}
-                  onMouseDown={e => { e.preventDefault(); resolveBySuggestion(s); }}
-                >
-                  <span className="text-xs lg:text-sm font-medium text-gray-800 min-w-0 pr-2">{s.label}</span>
-                  {s.type === 'genre' ? (
-                    <span className="text-[9px] lg:text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 bg-blue-100 text-blue-700">IP</span>
-                  ) : s.imageUrl ? (
-                    <img src={s.imageUrl} alt={s.label}
-                      className="w-6 h-6 lg:w-7 lg:h-7 rounded-md object-cover flex-shrink-0"
-                      onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                  ) : null}
-                </button>
-              ))}
-            </div>
+              <ArrowLeft size={16} />
+            </button>
           )}
+          <div className="flex-1 min-w-0">
+            <div className="community-search-input-shell flex items-center gap-2 px-3 py-1.5 lg:py-2.5 rounded-full">
+              {navigating ? (
+                <div className="animate-spin rounded-full border-2 border-t-transparent flex-shrink-0" style={{ width: 15, height: 15, borderColor: '#F2B800', borderTopColor: 'transparent' }} />
+              ) : (
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2.5" className="flex-shrink-0">
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="16.65" y1="16.65" x2="21" y2="21" />
+                </svg>
+              )}
+              <input
+                type="text"
+                value={value}
+                onChange={e => { setValue(e.target.value); fetchSuggestions(e.target.value); }}
+                onFocus={() => { setFocused(true); fetchSuggestions(value); }}
+                onBlur={() => setTimeout(() => setFocused(false), 200)}
+                onKeyDown={e => e.key === 'Enter' && resolveByQuery(value)}
+                placeholder={placeholder}
+                disabled={navigating}
+                className="community-search-input shell-field flex-1 bg-transparent text-xs lg:text-sm outline-none min-w-0"
+                style={{ fontSize: 13, textAlign: 'left' }}
+              />
+              {value && (
+                <button
+                  type="button"
+                  onMouseDown={e => { e.preventDefault(); clearInput(); }}
+                  aria-label="入力をクリア"
+                  className="home-search-clear-btn p-0 bg-transparent border-none cursor-pointer leading-none flex-shrink-0"
+                >
+                  <X size={13} />
+                </button>
+              )}
+            </div>
+          </div>
         </div>
+        {showDrop && (
+          <div
+            className="search-suggest-dropdown community-search-dropdown absolute top-full left-0 right-0 z-[100] mt-1 rounded-2xl shadow-xl"
+            style={{ maxHeight: 280, overflowY: 'auto' }}
+          >
+            <div className="search-suggest-section px-3 py-1 lg:py-1.5 text-[10px] lg:text-xs">ガチャ・IP</div>
+            {suggestions.map((s, i) => (
+              <button
+                key={i}
+                className="search-suggest-item flex items-center justify-between px-3 py-2 lg:py-2.5"
+                onMouseDown={e => { e.preventDefault(); resolveBySuggestion(s); }}
+              >
+                <span className="search-suggest-label text-xs lg:text-sm font-medium min-w-0 pr-2">{s.label}</span>
+                {s.type === 'genre' ? (
+                  <span className="text-[9px] lg:text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 bg-blue-100 text-blue-700">IP</span>
+                ) : s.imageUrl ? (
+                  <img src={s.imageUrl} alt={s.label}
+                    className="w-6 h-6 lg:w-7 lg:h-7 rounded-md object-cover flex-shrink-0"
+                    onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                ) : null}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>

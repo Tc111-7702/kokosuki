@@ -51,7 +51,7 @@ export async function fetchPostSpotSuggestions(
   userPos: { lat: number; lng: number } | null,
 ): Promise<PostSpotSuggestion[]> {
   const q = query.trim();
-  if (!q || !gachaId) return [];
+  if (!q || q.length < 2 || !gachaId) return [];
 
   const lat = userPos?.lat ?? 0;
   const lng = userPos?.lng ?? 0;

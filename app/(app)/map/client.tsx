@@ -657,8 +657,8 @@ export default function MapPage() {
                 if (!v) { setSelectedSpot(null); setSearchOverrideIds(null); }
                 return !v;
               })}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-bold"
-                style={{ background: showList ? '#F2B800' : '#F5F3ED', color: showList ? 'white' : '#555' }}>
+                className={`map-list-toggle-btn flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-bold active:scale-95 transition-transform ${showList ? 'map-list-toggle-btn--active' : ''}`}
+                style={showList ? undefined : { background: 'rgba(245, 243, 237, 0.28)', border: '1px solid rgba(237, 233, 216, 0.45)' }}>
                 {showList ? <><MapIcon size={14} />マップ</> : <><List size={14} />リスト</>}
               </button>
               <button onClick={goToCurrentLocation}
@@ -681,8 +681,8 @@ export default function MapPage() {
           <div className="flex items-center justify-between gap-2 px-4">
             <div className="flex items-center gap-2 flex-shrink-0">
               <button onClick={() => setFilterOpen(true)}
-                className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[13px] font-bold active:scale-95 transition-transform"
-                style={{ background: isFiltered ? '#F2B800' : '#F5F3ED', color: isFiltered ? 'white' : '#888' }}>
+                className={`map-list-toggle-btn flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-bold active:scale-95 transition-transform ${isFiltered ? 'map-list-toggle-btn--active' : ''}`}
+                style={isFiltered ? undefined : { background: 'rgba(245, 243, 237, 0.28)', border: '1px solid rgba(237, 233, 216, 0.45)' }}>
                 <SlidersHorizontal size={13} />
                 {isFiltered ? `フィルター中 (${filterGachaIds.length})` : 'フィルター'}
               </button>
@@ -729,15 +729,13 @@ export default function MapPage() {
             <div className="absolute right-3 flex flex-col items-center gap-1"
               style={{ top: '50%', transform: 'translateY(-50%)', zIndex: 10 }}>
               <button onClick={() => mapRef.current?.zoomIn({ duration: 200 })}
-                className="w-9 h-9 rounded-full flex items-center justify-center text-lg font-bold shadow-md active:scale-90 transition-transform"
-                style={{ background: 'white', color: '#555', boxShadow: '0 2px 8px rgba(0,0,0,0.18)' }}>+</button>
+                className="map-control-light w-9 h-9 rounded-full flex items-center justify-center text-lg font-bold shadow-md active:scale-90 transition-transform">+</button>
               <input type="range" min={8} max={20} step={0.5} value={zoom}
                 onChange={e => { const z = parseFloat(e.target.value); setZoom(z); mapRef.current?.setZoom(z, { duration: 100 }); }}
-                className="zoom-slider appearance-none rounded-full cursor-pointer"
+                className="zoom-slider map-zoom-slider appearance-none rounded-full cursor-pointer"
                 style={{ writingMode: 'vertical-lr', direction: 'rtl', width: 6, height: 120 }} />
               <button onClick={() => mapRef.current?.zoomOut({ duration: 200 })}
-                className="w-9 h-9 rounded-full flex items-center justify-center text-lg font-bold shadow-md active:scale-90 transition-transform"
-                style={{ background: 'white', color: '#555', boxShadow: '0 2px 8px rgba(0,0,0,0.18)' }}>-</button>
+                className="map-control-light w-9 h-9 rounded-full flex items-center justify-center text-lg font-bold shadow-md active:scale-90 transition-transform">-</button>
             </div>
 
             {/* 十字キー */}
@@ -746,15 +744,13 @@ export default function MapPage() {
               <div />
               <button onMouseDown={() => startPan(0, -PAN_STEP)} onMouseUp={stopPan} onMouseLeave={stopPan}
                 onTouchStart={() => startPan(0, -PAN_STEP)} onTouchEnd={stopPan}
-                className="flex items-center justify-center rounded-xl shadow active:scale-90 transition-transform select-none"
-                style={{ background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.18)' }}>
+                className="map-control-light flex items-center justify-center rounded-xl shadow active:scale-90 transition-transform select-none">
                 <svg viewBox="0 0 24 24" width={18} height={18}><path d="M12 5l7 7H5z" fill="#555"/></svg>
               </button>
               <div />
               <button onMouseDown={() => startPan(-PAN_STEP, 0)} onMouseUp={stopPan} onMouseLeave={stopPan}
                 onTouchStart={() => startPan(-PAN_STEP, 0)} onTouchEnd={stopPan}
-                className="flex items-center justify-center rounded-xl shadow active:scale-90 transition-transform select-none"
-                style={{ background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.18)' }}>
+                className="map-control-light flex items-center justify-center rounded-xl shadow active:scale-90 transition-transform select-none">
                 <svg viewBox="0 0 24 24" width={18} height={18}><path d="M5 12l7-7v14z" fill="#555"/></svg>
               </button>
               <button onClick={goToCurrentLocation}
@@ -764,15 +760,13 @@ export default function MapPage() {
               </button>
               <button onMouseDown={() => startPan(PAN_STEP, 0)} onMouseUp={stopPan} onMouseLeave={stopPan}
                 onTouchStart={() => startPan(PAN_STEP, 0)} onTouchEnd={stopPan}
-                className="flex items-center justify-center rounded-xl shadow active:scale-90 transition-transform select-none"
-                style={{ background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.18)' }}>
+                className="map-control-light flex items-center justify-center rounded-xl shadow active:scale-90 transition-transform select-none">
                 <svg viewBox="0 0 24 24" width={18} height={18}><path d="M19 12l-7-7v14z" fill="#555"/></svg>
               </button>
               <div />
               <button onMouseDown={() => startPan(0, PAN_STEP)} onMouseUp={stopPan} onMouseLeave={stopPan}
                 onTouchStart={() => startPan(0, PAN_STEP)} onTouchEnd={stopPan}
-                className="flex items-center justify-center rounded-xl shadow active:scale-90 transition-transform select-none"
-                style={{ background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.18)' }}>
+                className="map-control-light flex items-center justify-center rounded-xl shadow active:scale-90 transition-transform select-none">
                 <svg viewBox="0 0 24 24" width={18} height={18}><path d="M12 19l7-7H5z" fill="#555"/></svg>
               </button>
               <div />
