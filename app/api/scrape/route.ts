@@ -1,4 +1,10 @@
 import { spawn, type ChildProcess } from 'node:child_process';
+import {
+  getKokosukiApiToken,
+  hasValidKokosukiApiToken,
+  isKokosukiApiTokenDevBypass,
+  isKokosukiApiTokenRequired,
+} from '@/lib/kokosukiApiAuth';
 
 // スクレイピング即時実行 API（admin から呼ばれる）。
 //  - npm run scrape:gacha / scrape:phone を「mikke 自身の cwd で」子プロセス起動し、
@@ -9,8 +15,8 @@ import { spawn, type ChildProcess } from 'node:child_process';
 //  - shop-sync 中など可視ログが無出力になる区間があるため、一定間隔で不可視ハートビートを
 //    送り、接続のアイドルタイムアウト（fetch/プロキシ）で切れないようにする。
 //
-// 認証: SCRAPE_TRIGGER_TOKEN が設定されていれば Authorization: Bearer で照合する。
-//       未設定なら素通し（開発用）。本番では必ず設定すること。
+// 認証: KOKOSUKI_API_TOKEN が設定されていれば Authorization: Bearer で照合する。
+//       未設定なら素通し（開発用）。本番では必ず設定すること（proxy でも検証）。
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // スクレイピングは長時間かかるため上限を延長
@@ -25,8 +31,13 @@ let running = false;
 
 export async function POST(req: Request) {
   // ---- 認証（トークンが設定されている場合のみ照合） ----
-  const token = process.env.SCRAPE_TRIGGER_TOKEN;
-  if (token && req.headers.get('authorization') !== `Bearer ${token}`) {
+  if (isKokosukiApiTokenRequired() && !getKokosukiApiToken()) {
+    return new Response('KOKOSUKI_API_TOKEN is not configured\n', {
+      status: 503,
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+    });
+  }
+  if (!isKokosukiApiTokenDevBypass() && !hasValidKokosukiApiToken(req)) {
     return new Response('Unauthorized\n', {
       status: 401,
       headers: { 'Content-Type': 'text/plain; charset=utf-8' },

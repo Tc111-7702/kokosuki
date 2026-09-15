@@ -1,23 +1,54 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-// Better Auth のセッションCookie名
-const SESSION_COOKIE = 'better-auth.session_token';
+import {
+  hasKokosukiSession,
+  hasValidKokosukiApiToken,
+  isKokosukiApiTokenRequired,
+  isKokosukiApiTokenDevBypass,
+  getKokosukiApiToken,
+  kokosukiApiMisconfigured,
+  kokosukiApiUnauthorized,
+} from '@/lib/kokosukiApiAuth';
+import { isKokosukiApiTokenOnlyPath, isPublicKokosukiApiPath } from '@/lib/kokosukiApiPublicPaths';
 
 // (app) 配下のルート（ログイン必須）
 const APP_PREFIX = ['/home', '/mypage', '/map', '/feed', '/gacha'];
 // (auth) 配下のルート（ログイン済みならアプリへ）
 const AUTH_PATHS = ['/login', '/signup'];
 
+function handleApiAuth(request: NextRequest): NextResponse | null {
+  const { pathname } = request.nextUrl;
+
+  if (isKokosukiApiTokenOnlyPath(pathname)) {
+    if (isKokosukiApiTokenRequired() && !getKokosukiApiToken()) {
+      return kokosukiApiMisconfigured();
+    }
+    if (isKokosukiApiTokenDevBypass()) {
+      return null;
+    }
+    if (!hasValidKokosukiApiToken(request)) {
+      return kokosukiApiUnauthorized();
+    }
+    return null;
+  }
+
+  if (isPublicKokosukiApiPath(pathname, request.method)) {
+    return null;
+  }
+
+  if (hasKokosukiSession(request) || hasValidKokosukiApiToken(request)) {
+    return null;
+  }
+
+  return kokosukiApiUnauthorized();
+}
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const hasSession = !!request.cookies.get(SESSION_COOKIE)?.value;
+  const hasSession = hasKokosukiSession(request);
 
-  // 認証API・パスワード再設定（セッション不要）
-  if (
-    pathname.startsWith('/api/auth') ||
-    pathname === '/api/profile/reset-password' ||
-    /^\/resetPassword\/[^/]+$/.test(pathname)
-  ) {
+  if (pathname.startsWith('/api/')) {
+    const apiResult = handleApiAuth(request);
+    if (apiResult) return apiResult;
     return NextResponse.next();
   }
 
@@ -68,5 +99,6 @@ export const config = {
     '/reset-password/:path*',
     '/api/profile/reset-password',
     '/api/auth/:path*',
+    '/api/:path*',
   ],
 };

@@ -30,6 +30,7 @@ export function Register({ likedGachaIds, onBack }: Props) {
   const [error, setError]       = useState('');
   const [loading, setLoading]   = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [emailTaken, setEmailTaken] = useState(false);
   const [handleStatus, setHandleStatus] = useState<HandleStatus>('idle');
@@ -60,21 +61,11 @@ export function Register({ likedGachaIds, onBack }: Props) {
     }, 400);
   };
 
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setUploading(true);
-    try {
-      const form = new FormData();
-      form.append('file', file);
-      const res = await fetch('/api/upload', { method: 'POST', body: form });
-      const data = await res.json();
-      if (res.ok && data.url) setAvatarUrl(data.url);
-    } catch {
-      /* silent */
-    } finally {
-      setUploading(false);
-    }
+    setAvatarFile(file);
+    setAvatarUrl(URL.createObjectURL(file));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -134,12 +125,29 @@ export function Register({ likedGachaIds, onBack }: Props) {
       signedUpRef.current = true;
     }
 
+    // アバターは signUp 後（セッション取得後）にアップロード
+    let resolvedAvatarUrl = avatarUrl?.startsWith('blob:') ? null : avatarUrl;
+    if (avatarFile) {
+      setUploading(true);
+      try {
+        const form = new FormData();
+        form.append('file', avatarFile);
+        const uploadRes = await fetch('/api/upload', { method: 'POST', body: form });
+        const uploadData = await uploadRes.json();
+        if (uploadRes.ok && uploadData.url) resolvedAvatarUrl = uploadData.url;
+      } catch {
+        /* アバター失敗はプロフィール作成は続行 */
+      } finally {
+        setUploading(false);
+      }
+    }
+
     // プロフィール作成（失敗を握りつぶさずハンドリング）
     try {
       const res = await fetch('/api/profile/init', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ likedGachaIds, handle: trimmedHandle || null, avatarUrl }),
+        body: JSON.stringify({ likedGachaIds, handle: trimmedHandle || null, avatarUrl: resolvedAvatarUrl }),
       });
       if (res.status === 409) {
         setError('このアカウントIDはすでに使われています。別のIDを試してください。');
