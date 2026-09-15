@@ -264,7 +264,6 @@ export default function StorePage() {
   const storeNameColor = isDark ? '#FFFFFF' : '#1a1a1a';
   const sectionBg = isDark ? '#0a0a0a' : '#FAFAFA';
   const sectionBorder = isDark ? '#262626' : '#F0F0F0';
-  const postCardBorder = isDark ? '#262626' : '#e5e7eb';
   // 通知から来たとき（返信欄を開く指定あり）は「口コミ・投稿」タブを初期表示に
   const [activeTab,     setActiveTab]     = useState<'products' | 'posts'>(openReplyId || openReviewId ? 'posts' : 'products');
 
@@ -497,29 +496,29 @@ export default function StorePage() {
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', padding: 2, marginRight: 2, flexShrink: 0 }}>
                 <ChevronLeft size={22} color="#888" strokeWidth={2} />
               </button>
-              {isFiltered && (
-                <button onClick={handleClearFilter}
-                  style={{ flexShrink: 0, fontSize: 12, padding: '6px 10px', borderRadius: 20, border: 'none', cursor: 'pointer', background: '#FFF0C0', color: '#B8860B', fontWeight: 700 }}>
-                  解除
-                </button>
-              )}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, marginLeft: 'auto', flexWrap: 'nowrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0, marginLeft: 'auto', flexWrap: 'nowrap' }}>
+                {isFiltered && (
+                  <button onClick={handleClearFilter}
+                    style={{ flexShrink: 0, fontSize: 11, padding: '5px 8px', borderRadius: 20, border: 'none', cursor: 'pointer', background: '#FFF0C0', color: '#B8860B', fontWeight: 700 }}>
+                    解除
+                  </button>
+                )}
                 <button onClick={() => setFilterOpen(true)}
-                  className={`map-list-toggle-btn flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-bold active:scale-95 transition-transform ${isFiltered ? 'map-list-toggle-btn--active' : ''}`}
+                  className={`map-list-toggle-btn flex items-center gap-1 px-2.5 py-1 rounded-full text-[12px] font-bold active:scale-95 transition-transform ${isFiltered ? 'map-list-toggle-btn--active' : ''}`}
                   style={isFiltered ? undefined : { background: 'rgba(245, 243, 237, 0.28)', border: '1px solid rgba(237, 233, 216, 0.45)' }}>
-                  <SlidersHorizontal size={13} />
+                  <SlidersHorizontal size={12} />
                   {isFiltered ? `フィルター中 (${filterGachaIds.length})` : 'フィルター'}
                 </button>
                 {spot.phone && (
                   <a href={`tel:${spot.phone.replace(/[^\d+]/g, '')}`}
                     aria-label="電話"
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '7px 12px', borderRadius: 12, background: '#E8F5E9', color: '#16a34a', textDecoration: 'none' }}>
-                    <Phone size={17} />
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '5px 10px', borderRadius: 10, background: '#E8F5E9', color: '#16a34a', textDecoration: 'none' }}>
+                    <Phone size={15} />
                   </a>
                 )}
                 <button onClick={() => setNavOpen(true)} aria-label="経路"
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '7px 12px', borderRadius: 12, background: '#E8F4FD', color: '#0891b2', border: 'none', cursor: 'pointer' }}>
-                  <Navigation size={17} />
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '5px 10px', borderRadius: 10, background: '#E8F4FD', color: '#0891b2', border: 'none', cursor: 'pointer' }}>
+                  <Navigation size={15} />
                 </button>
               </div>
             </div>
@@ -584,8 +583,8 @@ export default function StorePage() {
 
         {/* モバイル: タブ切り替え */}
         {isMobile && (
-          <div style={{ display: 'flex', borderTop: `1px solid ${postCardBorder}` }}>
-            {(['products', 'posts'] as const).map((tab, index) => (
+          <div style={{ display: 'flex' }}>
+            {(['products', 'posts'] as const).map((tab) => (
               <button key={tab} onClick={() => setActiveTab(tab)}
                 style={{
                   flex: 1,
@@ -595,7 +594,6 @@ export default function StorePage() {
                   border: 'none',
                   cursor: 'pointer',
                   background: 'none',
-                  borderRight: index === 0 ? `1px solid ${postCardBorder}` : undefined,
                   borderBottom: activeTab === tab ? '2px solid #F2B800' : '2px solid transparent',
                   color: activeTab === tab ? '#F2B800' : '#888',
                 }}>

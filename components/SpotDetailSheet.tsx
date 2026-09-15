@@ -353,13 +353,15 @@ export default function SpotDetailSheet({
                 const qs = params.toString();
                 router.push(qs ? `${base}?${qs}` : base);
               }}
-              className="map-list-toggle-btn w-full flex items-center justify-center gap-1.5 py-2.5 rounded-2xl text-[13px] font-bold active:scale-95 transition-transform"
-              style={{ background: 'rgba(245, 243, 237, 0.28)', border: '1px solid rgba(237, 233, 216, 0.45)', cursor: 'pointer' }}>
+              className={`w-full flex items-center justify-center gap-1.5 py-2.5 rounded-2xl text-[13px] font-bold active:scale-95 transition-transform${isDark ? ' map-list-toggle-btn' : ''}`}
+              style={isDark
+                ? { cursor: 'pointer' }
+                : { background: '#F5F3ED', color: '#555555', border: 'none', cursor: 'pointer' }}>
               店舗の詳細を確認する<ChevronRight size={15} />
             </button>
           </div>
 
-          <div className={`flex px-4 pb-6 pt-3 ${isMobile ? 'gap-1.5' : 'gap-2'}`} style={{ borderTop: '1px solid #F0F0F0' }}>
+          <div className={`flex px-4 pb-6 pt-3 ${isMobile ? 'gap-1.5' : 'gap-2'}`} style={{ borderTop: `1px solid ${sheetBorderColor}` }}>
             <button onClick={() => setNavOpen(true)}
               className={`flex shrink-0 items-center justify-center gap-1 rounded-2xl font-bold ${isMobile ? 'px-3.5 py-2.5 text-[11px]' : 'px-4 py-2.5 text-[14px]'}`}
               style={{ background: '#E8F4FD', color: '#0891b2', minWidth: isMobile ? undefined : 72 }}>

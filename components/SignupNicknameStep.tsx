@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import { X } from 'lucide-react';
 import { SignupProfileFieldStep } from '@/components/SignupProfileFieldStep';
+import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 import {
   isSignupPendingSessionExpiredResponse,
   redirectOnSignupPendingExpired,
@@ -24,6 +25,13 @@ export function SignupNicknameStep({ onBack, onContinue, onSessionExpired }: Pro
 
   const trimmed = name.trim();
   const canSubmit = trimmed.length > 0 && trimmed.length <= NAME_MAX && !saving;
+  const isDark = useSyncExternalStore(
+    subscribeTheme,
+    () => getThemeSnapshot() === 'dark',
+    () => false,
+  );
+  const clearBtnBg = isDark ? '#1a1a1a' : '#E8E8E8';
+  const clearBtnIcon = isDark ? '#a3a3a3' : '#888888';
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
@@ -91,10 +99,10 @@ export function SignupNicknameStep({ onBack, onContinue, onSessionExpired }: Pro
             }}
             disabled={saving}
             className="absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center active:opacity-60 disabled:opacity-50"
-            style={{ background: '#E8E8E8' }}
+            style={{ background: clearBtnBg }}
             aria-label="入力をクリア"
           >
-            <X size={14} color="#888" strokeWidth={2.5} />
+            <X size={14} color={clearBtnIcon} strokeWidth={2.5} />
           </button>
         ) : null}
       </div>
