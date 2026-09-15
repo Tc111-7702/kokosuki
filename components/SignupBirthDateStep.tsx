@@ -56,11 +56,18 @@ export function SignupBirthDateStep({ onBack, onContinue, onSessionExpired }: Pr
       .catch(() => undefined);
   }, []);
 
+  const maxBirthDate = new Date().toISOString().slice(0, 10);
+
   const openPicker = () => {
     const input = inputRef.current;
     if (!input || saving) return;
     input.showPicker?.();
     input.focus();
+  };
+
+  const handleBirthDateChange = (value: string) => {
+    setBirthDate(value);
+    setError(null);
   };
 
   const handleSubmit = async () => {
@@ -105,9 +112,22 @@ export function SignupBirthDateStep({ onBack, onContinue, onSessionExpired }: Pr
       onSubmit={handleSubmit}
       onSessionExpired={onSessionExpired}
     >
-      <div className="relative">
+      {/* モバイル: iOS/Android では透明 overlay + showPicker が効かないためネイティブ input を表示 */}
+      <input
+        type="date"
+        value={birthDate}
+        onChange={(e) => handleBirthDateChange(e.target.value)}
+        disabled={saving}
+        max={maxBirthDate}
+        className="login-email-input md:hidden w-full h-[52px] rounded-2xl px-4 text-[16px] outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+        style={{ ...fieldStyle, colorScheme: isDark ? 'dark' : 'light' }}
+        aria-label="生年月日"
+      />
+
+      {/* デスクトップ: カスタム表示 + showPicker */}
+      <div className="relative hidden md:block">
         <div
-          className="login-email-input w-full h-[52px] rounded-2xl px-4 pr-11 text-[14px] md:text-[15px] text-left flex items-center pointer-events-none"
+          className="login-email-input w-full h-[52px] rounded-2xl px-4 pr-11 text-[15px] text-left flex items-center pointer-events-none"
           style={fieldStyle}
           aria-hidden
         >
@@ -122,13 +142,10 @@ export function SignupBirthDateStep({ onBack, onContinue, onSessionExpired }: Pr
           ref={inputRef}
           type="date"
           value={birthDate}
-          onChange={(e) => {
-            setBirthDate(e.target.value);
-            setError(null);
-          }}
+          onChange={(e) => handleBirthDateChange(e.target.value)}
           onClick={openPicker}
           disabled={saving}
-          max={new Date().toISOString().slice(0, 10)}
+          max={maxBirthDate}
           className="absolute inset-0 opacity-0 w-full h-full cursor-pointer disabled:cursor-not-allowed"
           aria-label="生年月日"
         />
