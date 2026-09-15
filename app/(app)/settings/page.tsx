@@ -62,7 +62,11 @@ export default function SettingsPage() {
   };
 
   const handleLogout = async () => {
-    await authClient.signOut();
+    try {
+      await authClient.signOut();
+    } catch {
+      /* ネットワーク/CORS 失敗時もログイン画面へ誘導する */
+    }
     markLoginFromLogout();
     window.location.href = '/login';
   };
