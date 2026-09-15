@@ -1,8 +1,10 @@
 'use client';
 
+import { useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, SlidersHorizontal, MapPin, ChevronRight } from 'lucide-react';
 import type { NearbySpot } from '@/lib/map/markers';
+import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 
 // ─── 型定義 ────────────────────────────────────────────────────────────────────
 
@@ -12,8 +14,62 @@ interface SpotListPanelProps {
   hasSearchResult: boolean;
   isFiltered: boolean;
   contentSearchLabel: string | null;
-  searchGachaIds: string[];      // コンテンツ検索でヒットしたガチャID群
-  filterGachaIds: string[];      // フィルター中のガチャID群
+  searchGachaIds: string[];
+  filterGachaIds: string[];
+}
+
+interface ListTheme {
+  panelBg: string;
+  sectionBg: string;
+  sectionAccentBg: string;
+  sectionBorderColor: string;
+  rowBorderColor: string;
+  rowBg: string;
+  filterRowGlow: string | undefined;
+  rowPressBg: string;
+  nameColor: string;
+  mutedColor: string;
+  chevronColor: string;
+  mapPinColor: string;
+  sectionTitleColor: string;
+  sectionAccentTitleColor: string;
+  badgeBg: string;
+  badgeColor: string;
+  accentBadgeBg: string;
+  accentBadgeColor: string;
+  emptyColor: string;
+}
+
+function useListTheme(): ListTheme {
+  const isDark = useSyncExternalStore(
+    subscribeTheme,
+    () => getThemeSnapshot() === 'dark',
+    () => false,
+  );
+
+  return {
+    panelBg: isDark ? '#0a0a0a' : '#F8F8F8',
+    sectionBg: isDark ? '#0a0a0a' : '#FAFAFA',
+    sectionAccentBg: isDark ? '#141108' : '#FFFBEB',
+    sectionBorderColor: isDark ? '#262626' : '#F0F0F0',
+    rowBorderColor: isDark ? '#262626' : '#F5F5F5',
+    rowBg: isDark ? '#0a0a0a' : '#FFFFFF',
+    filterRowGlow: isDark
+      ? 'inset 0 0 0 1px rgba(242, 184, 0, 0.22), 0 0 18px rgba(242, 184, 0, 0.14)'
+      : undefined,
+    rowPressBg: isDark ? '#1a1a1a' : '#F9FAFB',
+    nameColor: isDark ? '#FFFFFF' : '#1a1a1a',
+    mutedColor: isDark ? '#737373' : '#aaaaaa',
+    chevronColor: isDark ? '#525252' : '#dddddd',
+    mapPinColor: isDark ? '#525252' : '#cccccc',
+    sectionTitleColor: isDark ? '#a3a3a3' : '#555555',
+    sectionAccentTitleColor: isDark ? '#e6b422' : '#B8860B',
+    badgeBg: isDark ? '#262626' : '#F0F0F0',
+    badgeColor: isDark ? '#a3a3a3' : '#888888',
+    accentBadgeBg: isDark ? '#3d3210' : '#FEF3C7',
+    accentBadgeColor: isDark ? '#F2B800' : '#B8860B',
+    emptyColor: isDark ? '#737373' : '#aaaaaa',
+  };
 }
 
 // ─── ユーティリティ ────────────────────────────────────────────────────────────
@@ -22,28 +78,51 @@ function fmtDistance(m: number): string {
   return m < 1000 ? `${m}m` : `${(m / 1000).toFixed(1)}km`;
 }
 
+function createRowPressHandlers(resetBg: string, pressBg: string) {
+  return {
+    onPointerDown: (e: React.PointerEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.backgroundColor = pressBg;
+    },
+    onPointerUp: (e: React.PointerEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.backgroundColor = resetBg;
+    },
+    onPointerLeave: (e: React.PointerEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.backgroundColor = resetBg;
+    },
+    onPointerCancel: (e: React.PointerEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.backgroundColor = resetBg;
+    },
+  };
+}
+
 // ─── 店舗行 ───────────────────────────────────────────────────────────────────
 
 function SpotRow({
-  spot, matchCount, onClick,
+  spot, matchCount, onClick, theme,
 }: {
   spot: NearbySpot;
-  matchCount: number | null; // null = 表示しない
+  matchCount: number | null;
   onClick: () => void;
+  theme: ListTheme;
 }) {
   return (
     <button
       onClick={onClick}
-      className="w-full text-left px-4 py-2 md:py-3 flex items-center gap-2 md:gap-3 active:bg-amber-50"
-      style={{ borderBottom: '1px solid #F5F5F5', background: 'white' }}
+      className="w-full text-left px-4 py-2 md:py-3 flex items-center gap-2 md:gap-3 transition-colors"
+      style={{
+        borderBottom: `1px solid ${theme.rowBorderColor}`,
+        background: theme.rowBg,
+        WebkitTapHighlightColor: 'transparent',
+      }}
+      {...createRowPressHandlers(theme.rowBg, theme.rowPressBg)}
     >
       <div className="flex-1 min-w-0">
-        <p className="text-[12px] md:text-[14px] font-bold truncate" style={{ color: '#1a1a1a', margin: 0 }}>
+        <p className="text-[12px] md:text-[14px] font-bold truncate" style={{ color: theme.nameColor, margin: 0 }}>
           {spot.name}
         </p>
         <div className="flex items-center gap-1 mt-0.5">
-          <MapPin color="#ccc" className="w-[9px] h-[9px] md:w-[10px] md:h-[10px] flex-shrink-0" />
-          <p className="text-[10px] md:text-[11px] truncate" style={{ color: '#aaa', margin: 0 }}>
+          <MapPin color={theme.mapPinColor} className="w-[9px] h-[9px] md:w-[10px] md:h-[10px] flex-shrink-0" />
+          <p className="text-[10px] md:text-[11px] truncate" style={{ color: theme.mutedColor, margin: 0 }}>
             {spot.address}
           </p>
         </div>
@@ -52,7 +131,10 @@ function SpotRow({
         {matchCount !== null && (
           <span
             className="text-[10px] md:text-[11px] font-bold px-1.5 md:px-2 py-0 rounded-full"
-            style={{ background: '#FEF3C7', color: '#B8860B' }}
+            style={{
+              background: theme.accentBadgeBg,
+              color: theme.accentBadgeColor,
+            }}
           >
             {matchCount}件
           </span>
@@ -60,7 +142,7 @@ function SpotRow({
         <span className="text-[11px] md:text-[12px] font-semibold" style={{ color: '#0891b2' }}>
           {fmtDistance(spot.distance)}
         </span>
-        <ChevronRight color="#ddd" className="w-3 h-3 md:w-[14px] md:h-[14px]" />
+        <ChevronRight color={theme.chevronColor} className="w-3 h-3 md:w-[14px] md:h-[14px]" />
       </div>
     </button>
   );
@@ -69,31 +151,37 @@ function SpotRow({
 // ─── セクションヘッダー ────────────────────────────────────────────────────────
 
 function SectionHeader({
-  icon, title, count, accent = false,
+  icon, title, count, accent = false, glow = false, theme,
 }: {
   icon: React.ReactNode;
   title: string;
   count: number;
   accent?: boolean;
+  glow?: boolean;
+  theme: ListTheme;
 }) {
   return (
     <div
       className="px-4 py-2 md:py-2.5 flex items-center gap-2 sticky top-0 z-10"
       style={{
-        background: accent ? '#FFFBEB' : '#FAFAFA',
-        borderBottom: '1px solid #F0F0F0',
-        borderTop: '1px solid #F0F0F0',
+        background: accent ? theme.sectionAccentBg : theme.sectionBg,
+        borderBottom: `1px solid ${theme.sectionBorderColor}`,
+        borderTop: `1px solid ${theme.sectionBorderColor}`,
+        boxShadow: glow ? theme.filterRowGlow : undefined,
       }}
     >
       {icon}
-      <span className="text-[11px] md:text-[13px] font-bold flex-1" style={{ color: accent ? '#B8860B' : '#555' }}>
+      <span
+        className="text-[11px] md:text-[13px] font-bold flex-1"
+        style={{ color: accent ? theme.sectionAccentTitleColor : theme.sectionTitleColor }}
+      >
         {title}
       </span>
       <span
         className="text-[10px] md:text-[11px] font-bold px-1.5 md:px-2 py-0 rounded-full"
         style={{
-          background: accent ? '#FEF3C7' : '#F0F0F0',
-          color: accent ? '#B8860B' : '#888',
+          background: accent ? theme.accentBadgeBg : theme.badgeBg,
+          color: accent ? theme.accentBadgeColor : theme.badgeColor,
         }}
       >
         {count}件
@@ -109,6 +197,7 @@ export default function SpotListPanel({
   contentSearchLabel, searchGachaIds, filterGachaIds,
 }: SpotListPanelProps) {
   const router = useRouter();
+  const theme = useListTheme();
 
   const searchSet = searchGachaIds.length > 0 ? new Set(searchGachaIds) : null;
   const filterSet = filterGachaIds.length > 0 ? new Set(filterGachaIds) : null;
@@ -133,16 +222,15 @@ export default function SpotListPanel({
   return (
     <div
       className="absolute inset-0 overflow-y-auto"
-      style={{ background: '#F8F8F8', zIndex: 5 }}
+      style={{ background: theme.panelBg, zIndex: 5 }}
     >
       {isEmpty ? (
         <div className="flex items-center justify-center h-full">
-          <p style={{ color: '#aaa', fontSize: 14 }}>近くに店舗が見つかりません</p>
+          <p style={{ color: theme.emptyColor, fontSize: 14 }}>近くに店舗が見つかりません</p>
         </div>
       ) : (
         <div className="pb-6">
 
-          {/* 検索セクション */}
           {showSearch && (
             <div>
               <SectionHeader
@@ -150,6 +238,7 @@ export default function SpotListPanel({
                 title={searchTitle}
                 count={searchSpots.length}
                 accent
+                theme={theme}
               />
               {searchSpots.map(spot => {
                 const matched = searchSet
@@ -161,13 +250,13 @@ export default function SpotListPanel({
                     spot={spot}
                     matchCount={matched}
                     onClick={() => navigateToStore(spot)}
+                    theme={theme}
                   />
                 );
               })}
             </div>
           )}
 
-          {/* フィルターセクション（フィルターON時） */}
           {showFilter && (
             <div>
               <SectionHeader
@@ -175,6 +264,8 @@ export default function SpotListPanel({
                 title="フィルター中の店舗"
                 count={filterSpots.length}
                 accent
+                glow
+                theme={theme}
               />
               {filterSpots.map(spot => {
                 const matched = filterSet
@@ -186,20 +277,20 @@ export default function SpotListPanel({
                     spot={spot}
                     matchCount={matched}
                     onClick={() => navigateToStore(spot)}
+                    theme={theme}
                   />
                 );
-
-          })}
+              })}
             </div>
           )}
 
-          {/* 通常セクション（フィルターOFF時） */}
           {showOther && (
             <div>
               <SectionHeader
-                icon={<MapPin size={13} color="#aaa" />}
+                icon={<MapPin size={13} color={theme.mapPinColor} />}
                 title="近くの店舗"
                 count={filterSpots.length}
+                theme={theme}
               />
               {filterSpots.map(spot => (
                 <SpotRow
@@ -207,6 +298,7 @@ export default function SpotListPanel({
                   spot={spot}
                   matchCount={null}
                   onClick={() => navigateToStore(spot)}
+                  theme={theme}
                 />
               ))}
             </div>

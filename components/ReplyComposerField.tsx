@@ -124,7 +124,7 @@ export function ReplyComposerField({
   if (plainText) {
     return (
       <div
-        className={`flex items-end gap-0.5 min-w-0 w-full ${rounded} border border-gray-200 bg-white py-0.5 pr-0.5`}
+        className={`reply-composer-input-shell flex items-end gap-0.5 min-w-0 w-full ${rounded} py-0.5 pr-0.5`}
       >
         <div ref={plainWrapRef} className="relative flex-1 min-w-0 overflow-hidden min-h-[1.45em]">
           {/* フロー内ミラー: 折り返し後の高さを決める */}
@@ -145,7 +145,7 @@ export function ReplyComposerField({
             placeholder={placeholder}
             rows={1}
             wrap="soft"
-            className={`absolute inset-0 block resize-none bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none ${plainPadClass}`}
+            className={`shell-field absolute inset-0 block resize-none bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none ${plainPadClass}`}
             style={{ ...WRAP_STYLE, overflowX: 'hidden', overflowY: 'hidden' }}
           />
         </div>
@@ -156,7 +156,7 @@ export function ReplyComposerField({
 
   return (
     <div
-      className={`flex items-end gap-0.5 min-w-0 w-full ${rounded} border border-gray-200 bg-white py-0.5 pr-0.5`}
+      className={`reply-composer-input-shell flex items-end gap-0.5 min-w-0 w-full ${rounded} py-0.5 pr-0.5`}
     >
       <div ref={wrapRef} className="relative flex-1 min-w-0 overflow-hidden min-h-[1.45em]">
         <div
@@ -189,7 +189,7 @@ export function ReplyComposerField({
             placeholder={placeholder}
             rows={1}
             wrap="soft"
-            className={`${cellClass} z-10 resize-none bg-transparent placeholder-gray-400 focus:outline-none`}
+            className={`shell-field ${cellClass} z-10 resize-none bg-transparent placeholder-gray-400 focus:outline-none`}
             style={{
               ...WRAP_STYLE,
               color: 'transparent',

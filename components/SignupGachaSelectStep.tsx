@@ -4,8 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { SignupFavoriteStepHeader } from '@/components/SignupFavoriteStepHeader';
 import { GachaCard, type GachaItem } from '@/components/ui/GachaCard';
-import { loginDisplayFont } from '@/lib/loginFonts';
 import { useIsMobile } from '@/lib/useIsMobile';
+import { useAuthBackIconColor, useAuthPrimaryButtonStyle } from '@/lib/useAuthPrimaryButtonStyle';
 
 type GachaGroup = {
   ipName: string;
@@ -127,9 +127,11 @@ export function SignupGachaSelectStep({
 
   const selectedCount = favoriteGachaIds.length;
   const canProceed = selectedCount > 0;
+  const submitStyle = useAuthPrimaryButtonStyle(canProceed);
+  const backIconColor = useAuthBackIconColor();
 
   return (
-    <div className={`login-email-step ${loginDisplayFont.className} flex flex-col min-h-[100dvh] max-md:h-[100dvh] max-md:overflow-hidden px-6 pt-4 max-md:pt-2 pb-8 max-md:pb-5 md:pb-10 bg-white`}>
+    <div className="login-email-step signup-app-font font-sans flex flex-col min-h-[100dvh] max-md:h-[100dvh] max-md:overflow-hidden px-6 pt-4 max-md:pt-2 pb-8 max-md:pb-5 md:pb-10 bg-white">
       <div className="w-full max-w-[360px] md:max-w-[720px] mx-auto flex flex-col flex-1 min-h-0 max-md:overflow-hidden md:justify-center md:py-4">
         <button
           type="button"
@@ -137,7 +139,7 @@ export function SignupGachaSelectStep({
           className="self-start -ml-1 p-1 active:opacity-60 disabled:opacity-50 md:hidden shrink-0"
           aria-label="戻る"
         >
-          <ChevronLeft size={28} strokeWidth={2} color="#111111" />
+          <ChevronLeft size={28} strokeWidth={2} color={backIconColor} />
         </button>
 
         <div className="flex flex-col items-center w-full flex-1 min-h-0 max-md:overflow-hidden md:flex-none max-md:-mt-1">
@@ -194,6 +196,7 @@ export function SignupGachaSelectStep({
             type="button"
             disabled={!canProceed}
             onClick={onContinue}
+            style={submitStyle}
             className="login-otp-send-btn w-full h-[48px] md:h-[52px] rounded-full text-[16px] font-bold text-white active:opacity-80 disabled:cursor-not-allowed shrink-0 max-md:mt-2 md:mt-10"
           >
             次へ

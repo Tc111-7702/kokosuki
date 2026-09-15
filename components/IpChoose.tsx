@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
+import { useAuthPrimaryButtonStyle } from '@/lib/useAuthPrimaryButtonStyle';
 
 interface CatItem  { id: string; name: string; count: number }
 interface Section  { id: string; name: string; count: number; children: CatItem[] }
@@ -15,6 +16,8 @@ interface Props {
 export function IpChoose({ selected, onToggle, onNext, onBack }: Props) {
   const [sections, setSections] = useState<Section[]>([]);
   const [loading, setLoading]   = useState(true);
+  const canProceed = selected.length > 0;
+  const submitStyle = useAuthPrimaryButtonStyle(canProceed);
 
   useEffect(() => {
     fetch('/api/gacha/wp-categories')
@@ -114,9 +117,9 @@ export function IpChoose({ selected, onToggle, onNext, onBack }: Props) {
       <div className="shrink-0 px-6 pt-3 pb-8" style={{ borderTop: '1.5px solid #EDE9D8' }}>
         <button
           onClick={onNext}
-          disabled={selected.length === 0}
-          className="w-full py-4 rounded-2xl font-black text-[16px] transition-opacity"
-          style={{ background: '#F2B800', color: 'white', opacity: selected.length === 0 ? 0.4 : 1 }}
+          disabled={!canProceed}
+          className="w-full py-4 rounded-2xl font-black text-[16px]"
+          style={submitStyle}
         >
           次へ（{selected.length}件選択）
         </button>

@@ -1,15 +1,18 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { ChevronLeft, Search, X } from 'lucide-react';
 import { SignupFavoriteStepHeader } from '@/components/SignupFavoriteStepHeader';
 import { ipGradient } from '@/components/SpotGachaCard';
-import { loginDisplayFont } from '@/lib/loginFonts';
+import { useAuthPrimaryButtonStyle } from '@/lib/useAuthPrimaryButtonStyle';
+import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 
 type SignupIpItem = {
   ipName: string;
   imageUrl: string | null;
 };
+
+const IP_SEARCH_RESULT_LIMIT = 9;
 
 interface Props {
   onBack: () => void;
@@ -119,7 +122,7 @@ export function SignupIpSelectStep({ onBack, onContinue }: Props) {
           .filter((s: { type?: string }) => s.type === 'genre')
           .map((s: { label: string }) => s.label.trim())
           .filter(Boolean),
-      )] as string[];
+      )].slice(0, IP_SEARCH_RESULT_LIMIT) as string[];
 
       if (ipNames.length === 0) {
         setDisplayedIps([]);
@@ -154,9 +157,18 @@ export function SignupIpSelectStep({ onBack, onContinue }: Props) {
 
   const selectedCount = selectedIps.size;
   const canProceed = selectedCount > 0;
+  const submitStyle = useAuthPrimaryButtonStyle(canProceed);
+  const isDark = useSyncExternalStore(
+    subscribeTheme,
+    () => getThemeSnapshot() === 'dark',
+    () => false,
+  );
+  const clearBtnBg = isDark ? '#2a2a2a' : '#d1d5db';
+  const clearBtnIcon = isDark ? '#a3a3a3' : '#888888';
+  const backIconColor = isDark ? '#ffffff' : '#111111';
 
   return (
-    <div className={`login-email-step ${loginDisplayFont.className} flex flex-col min-h-[100dvh] max-md:h-[100dvh] max-md:overflow-hidden px-6 pt-4 max-md:pt-2 pb-8 max-md:pb-5 md:pb-10 bg-white`}>
+    <div className="login-email-step signup-app-font font-sans flex flex-col min-h-[100dvh] max-md:h-[100dvh] max-md:overflow-hidden px-6 pt-4 max-md:pt-2 pb-8 max-md:pb-5 md:pb-10 bg-white">
       <div className="w-full max-w-[360px] md:max-w-[520px] mx-auto flex flex-col flex-1 min-h-0 max-md:overflow-hidden md:justify-center md:py-4">
         <button
           type="button"
@@ -164,7 +176,7 @@ export function SignupIpSelectStep({ onBack, onContinue }: Props) {
           className="self-start -ml-1 p-1 active:opacity-60 disabled:opacity-50 md:hidden shrink-0"
           aria-label="戻る"
         >
-          <ChevronLeft size={28} strokeWidth={2} color="#111111" />
+          <ChevronLeft size={28} strokeWidth={2} color={backIconColor} />
         </button>
 
         <div className="flex flex-col items-center w-full flex-1 min-h-0 max-md:overflow-hidden md:flex-none max-md:-mt-1">
@@ -178,7 +190,7 @@ export function SignupIpSelectStep({ onBack, onContinue }: Props) {
                 className="hidden md:block absolute left-0 bottom-full -ml-1 mb-8 p-1 active:opacity-60 disabled:opacity-50"
                 aria-label="戻る"
               >
-                <ChevronLeft size={28} strokeWidth={2} color="#111111" />
+                <ChevronLeft size={28} strokeWidth={2} color={backIconColor} />
               </button>
               <Search
                 size={18}
@@ -201,10 +213,10 @@ export function SignupIpSelectStep({ onBack, onContinue }: Props) {
                     setDisplayedIps(defaultIps);
                   }}
                   className="absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center active:opacity-60"
-                  style={{ background: '#E8E8E8' }}
+                  style={{ backgroundColor: clearBtnBg }}
                   aria-label="入力をクリア"
                 >
-                  <X size={14} color="#888" strokeWidth={2.5} />
+                  <X size={14} color={clearBtnIcon} strokeWidth={2.5} />
                 </button>
               ) : null}
             </div>
@@ -237,6 +249,7 @@ export function SignupIpSelectStep({ onBack, onContinue }: Props) {
             type="button"
             disabled={!canProceed}
             onClick={() => onContinue([...selectedIps])}
+            style={submitStyle}
             className="login-otp-send-btn w-full h-[48px] md:h-[52px] rounded-full text-[16px] font-bold text-white active:opacity-80 disabled:cursor-not-allowed shrink-0 max-md:mt-2 md:mt-5 md:-translate-y-2"
           >
             次へ

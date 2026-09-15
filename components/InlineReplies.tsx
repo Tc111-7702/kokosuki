@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useSyncExternalStore } from 'react';
+import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 import { ReplyComposerField } from '@/components/ReplyComposerField';
 import { ReplyCard } from '@/components/ReplyCard';
 import { Avatar } from '@/components/ui/Avatar';
@@ -27,6 +28,14 @@ export function InlineReplies({
   const [replies,    setReplies]    = useState<Reply[]>([]);
   const [loading,    setLoading]    = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const isDark = useSyncExternalStore(
+    subscribeTheme,
+    () => getThemeSnapshot() === 'dark',
+    () => false,
+  );
+  const shellStyle: React.CSSProperties | undefined = isDark
+    ? { background: '#0a0a0a', border: '1px solid #262626', boxShadow: 'none' }
+    : undefined;
 
   const base = postType === 'stock' ? '/api/stock-posts/' : '/api/posts/';
 
@@ -81,7 +90,10 @@ export function InlineReplies({
   const mentionNames = [...new Set(replies.map(x => x.user.name))];
 
   return (
-    <div className={(flushX ? 'mx-0' : 'mx-3') + ' -mt-2 ' + (compactY ? 'mb-1' : 'mb-2.5') + ' bg-white rounded-b-2xl shadow-sm overflow-hidden border-t border-gray-100'}>
+    <div
+      className={(flushX ? 'mx-0' : 'mx-3') + ' -mt-2 ' + (compactY ? 'mb-1' : 'mb-2.5') + ' post-card-shell rounded-b-2xl shadow-sm overflow-hidden border-t border-gray-100'}
+      style={shellStyle}
+    >
       {/* 返信一覧 */}
       {loading ? (
         <div className="flex justify-center py-4">
@@ -110,9 +122,9 @@ export function InlineReplies({
       )}
 
       {/* 返信入力欄（メンション対応） */}
-      <div className="relative border-t border-gray-100">
+      <div className="reply-composer-bar relative">
         {mentionQuery !== null && mentionCandidates.length > 0 && (
-          <div className="absolute bottom-full left-3 right-3 mb-1 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden z-20 max-h-44 overflow-y-auto">
+          <div className="reply-mention-dropdown absolute bottom-full left-3 right-3 mb-1 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden z-20 max-h-44 overflow-y-auto">
             {mentionCandidates.map(u => (
               <button key={u.id} onMouseDown={e => { e.preventDefault(); insertMention(u.profile?.handle ?? u.name); }} className="flex items-center gap-3 w-full px-4 py-2.5 hover:bg-gray-50 text-left">
                 <Avatar user={u} size={28} />

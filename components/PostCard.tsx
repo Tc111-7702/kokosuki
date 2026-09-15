@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useSyncExternalStore } from 'react';
+import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 import { useRouter } from 'next/navigation';
 import { PostImageFrame } from '@/components/PostImageFrame';
 import { MapPin, Heart, MessageCircle, MoreHorizontal } from 'lucide-react';
@@ -52,6 +53,14 @@ export function PostCard({
   compactY?: boolean;
 }) {
   const router = useRouter();
+  const isDark = useSyncExternalStore(
+    subscribeTheme,
+    () => getThemeSnapshot() === 'dark',
+    () => false,
+  );
+  const shellStyle: React.CSSProperties | undefined = isDark
+    ? { background: '#0a0a0a', border: '1px solid #262626', boxShadow: 'none' }
+    : undefined;
   const gradient = 'linear-gradient(135deg, ' + post.gacha.gradientFrom + ', ' + post.gacha.gradientTo + ')';
 
   const { liked, likeCount, replyCount, toggleLike } = useInteraction('post', post.id, {
@@ -94,7 +103,8 @@ export function PostCard({
 
   return (
     <article
-      className={(flushX ? 'mx-0' : 'mx-3') + ' ' + (compactY ? 'my-1' : 'my-2.5') + ' px-4 py-3 bg-white rounded-2xl shadow-sm transition-shadow ' + (interactive ? 'hover:shadow-md cursor-pointer' : '')}
+      className={(flushX ? 'mx-0' : 'mx-3') + ' ' + (compactY ? 'my-1' : 'my-2.5') + ' post-card-shell px-4 py-3 rounded-2xl shadow-sm transition-shadow ' + (interactive ? 'hover:shadow-md cursor-pointer' : '')}
+      style={shellStyle}
       onClick={() => interactive && onSelect?.(post)}
     >
       <div className="relative mb-2">

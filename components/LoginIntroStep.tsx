@@ -1,9 +1,11 @@
 'use client';
 
+import { useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { KokosukiLogo } from '@/components/ui/KokosukiLogo';
 import loginServiceIntro from '@/components/ui/assets/login-service-intro.png';
 import { loginDisplayFont } from '@/lib/loginFonts';
+import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 
 interface Props {
   onLogin: () => void;
@@ -11,6 +13,15 @@ interface Props {
 
 export function LoginIntroStep({ onLogin }: Props) {
   const router = useRouter();
+  const isDark = useSyncExternalStore(
+    subscribeTheme,
+    () => getThemeSnapshot() === 'dark',
+    () => false,
+  );
+  const titleColor = isDark ? '#ffffff' : '#111111';
+  const taglineColor = isDark ? '#ffffff' : '#555555';
+  const dividerTextColor = isDark ? '#ffffff' : '#111111';
+  const dividerLineColor = isDark ? '#ffffff' : '#111111';
 
   return (
     <div className={`login-intro ${loginDisplayFont.className} flex flex-col items-center min-h-[100dvh] bg-white px-6 py-10 max-md:pt-10 max-md:pb-16`}>
@@ -28,11 +39,11 @@ export function LoginIntroStep({ onLogin }: Props) {
 
         <div className="login-intro-content w-full flex flex-col items-center">
           <div className="login-intro-text w-full flex flex-col items-center md:-translate-y-10">
-            <p className="login-intro-tagline mt-6 md:mt-3 w-full text-center">
+            <p className="login-intro-tagline mt-6 md:mt-3 w-full text-center" style={{ color: taglineColor }}>
               あなたの好きが見つかる・広がる
             </p>
 
-            <h1 className="login-intro-title mt-3 w-full text-center">
+            <h1 className="login-intro-title mt-3 w-full text-center" style={{ color: titleColor }}>
               <span className="login-intro-brand">ココスキ</span>
               {' '}へようこそ！
             </h1>
@@ -48,9 +59,9 @@ export function LoginIntroStep({ onLogin }: Props) {
             </button>
 
             <div className="login-intro-divider mt-6 max-md:mt-3 md:mt-3 w-full flex items-center gap-3">
-              <span className="login-intro-divider-line flex-1" aria-hidden="true" />
-              <span className="login-intro-divider-text shrink-0">登録済みの方はこちら</span>
-              <span className="login-intro-divider-line flex-1" aria-hidden="true" />
+              <span className="login-intro-divider-line flex-1" style={{ backgroundColor: dividerLineColor }} aria-hidden="true" />
+              <span className="login-intro-divider-text shrink-0" style={{ color: dividerTextColor }}>登録済みの方はこちら</span>
+              <span className="login-intro-divider-line flex-1" style={{ backgroundColor: dividerLineColor }} aria-hidden="true" />
             </div>
 
             <button

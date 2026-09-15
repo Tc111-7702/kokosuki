@@ -82,17 +82,14 @@ export function CommunitySearchBar({
         <button
           type="button"
           onClick={handleClear}
-          className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full text-gray-500 hover:bg-gray-100 active:opacity-70 transition-colors"
+          className="community-search-back-btn flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full text-gray-500 hover:bg-gray-100 active:opacity-70 transition-colors"
           aria-label="検索を解除"
         >
           <ChevronLeft size={22} />
         </button>
       )}
       <div className="flex-1 min-w-0">
-        <div
-          className="flex items-center gap-2 px-3 py-1.5 lg:py-2.5 rounded-full"
-          style={{ background: '#F3F4F6' }}
-        >
+        <div className="community-search-input-shell flex items-center gap-2 px-3 py-1.5 lg:py-2.5 rounded-full">
           {busy ? (
             <div className="animate-spin rounded-full border-2 border-t-transparent" style={{ width: 15, height: 15, borderColor: '#F2B800', borderTopColor: 'transparent', flexShrink: 0 }} />
           ) : (
@@ -109,28 +106,28 @@ export function CommunitySearchBar({
             onBlur={() => setTimeout(() => setFocused(false), 200)}
             onKeyDown={e => e.key === 'Enter' && runSearch(value)}
             placeholder="アカウント / IP・ガチャの投稿を検索"
-            className="flex-1 bg-transparent text-sm outline-none"
-            style={{ color: '#111', fontSize: 13, textAlign: 'left' }}
+            className="community-search-input shell-field flex-1 bg-transparent text-sm outline-none"
+            style={{ fontSize: 13, textAlign: 'left' }}
           />
         </div>
       </div>
       {showDrop && (
-        <div className="absolute top-full left-0 right-0 z-[100] mt-1 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden" style={{ maxHeight: 300, overflowY: 'auto' }}>
+        <div className="search-suggest-dropdown community-search-dropdown absolute top-full left-0 right-0 z-[100] mt-1 rounded-2xl shadow-xl" style={{ maxHeight: 300, overflowY: 'auto' }}>
           {userSug.length > 0 && (
             <>
-              <div className="px-3 py-1 lg:py-1.5 text-[10px] lg:text-xs font-bold text-gray-400 bg-gray-50 border-b border-gray-100">{'アカウント'}</div>
+              <div className="search-suggest-section px-3 py-1 lg:py-1.5 text-[10px] lg:text-xs">{'アカウント'}</div>
               {userSug.slice(0, 4).map(u => (
-                <button key={u.id} className="w-full flex items-center gap-2.5 lg:gap-3 px-3 py-2 lg:py-2.5 hover:bg-gray-50 text-left border-b border-gray-50"
+                <button key={u.id} className="search-suggest-item flex items-center gap-2.5 lg:gap-3 px-3 py-2 lg:py-2.5"
                   onMouseDown={e => { e.preventDefault(); openProfile(u); }}>
                   <span className="lg:hidden flex-shrink-0"><UserAvatar user={u} size={28} /></span>
                   <span className="hidden lg:inline flex-shrink-0"><UserAvatar user={u} size={32} /></span>
                   <div className="min-w-0 lg:hidden">
-                    <p className="text-xs font-semibold text-gray-900 truncate">{u.name}</p>
-                    {u.handle && <p className="text-[10px] text-gray-400">@{u.handle}</p>}
+                    <p className="search-suggest-label text-xs font-semibold truncate">{u.name}</p>
+                    {u.handle && <p className="search-suggest-sublabel text-[10px]">@{u.handle}</p>}
                   </div>
                   <div className="min-w-0 hidden lg:block">
-                    <p className="text-sm font-semibold text-gray-900 truncate">{u.name}</p>
-                    {u.handle && <p className="text-xs text-gray-400">@{u.handle}</p>}
+                    <p className="search-suggest-label text-sm font-semibold truncate">{u.name}</p>
+                    {u.handle && <p className="search-suggest-sublabel text-xs">@{u.handle}</p>}
                   </div>
                 </button>
               ))}
@@ -138,11 +135,11 @@ export function CommunitySearchBar({
           )}
           {gachaSug.length > 0 && (
             <>
-              <div className="px-3 py-1 lg:py-1.5 text-[10px] lg:text-xs font-bold text-gray-400 bg-gray-50 border-b border-gray-100">{'ガチャ・IP'}</div>
+              <div className="search-suggest-section px-3 py-1 lg:py-1.5 text-[10px] lg:text-xs">{'ガチャ・IP'}</div>
               {gachaSug.map((s, i) => (
-                <button key={i} className="w-full flex items-center justify-between px-3 py-2 lg:py-2.5 hover:bg-gray-50 border-b border-gray-50 last:border-0 text-left"
+                <button key={i} className="search-suggest-item flex items-center justify-between px-3 py-2 lg:py-2.5"
                   onMouseDown={e => { e.preventDefault(); runSearch(s.label); }}>
-                  <span className="text-xs lg:text-sm font-medium text-gray-800">{s.label}</span>
+                  <span className="search-suggest-label text-xs lg:text-sm font-medium">{s.label}</span>
                   {s.type === 'genre' ? (
                     <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: '#DBEAFE', color: '#1D4ED8' }}>IP</span>
                   ) : s.imageUrl ? (

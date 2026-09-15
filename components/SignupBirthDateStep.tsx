@@ -1,13 +1,14 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import type { CSSProperties } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 import { SignupProfileFieldStep } from '@/components/SignupProfileFieldStep';
 import {
   isSignupPendingSessionExpiredResponse,
   redirectOnSignupPendingExpired,
 } from '@/lib/useSignupPendingExpiry';
-
 interface Props {
   onBack: () => void;
   onContinue: () => void;
@@ -28,6 +29,21 @@ export function SignupBirthDateStep({ onBack, onContinue, onSessionExpired }: Pr
   const [error, setError] = useState<string | null>(null);
 
   const canSubmit = birthDate.length > 0 && !saving;
+  const isDark = useSyncExternalStore(
+    subscribeTheme,
+    () => getThemeSnapshot() === 'dark',
+    () => false,
+  );
+
+  const fieldStyle: CSSProperties = isDark
+    ? {
+        backgroundColor: '#141414',
+        borderColor: '#262626',
+        color: birthDate ? '#ffffff' : '#737373',
+      }
+    : {
+        color: birthDate ? '#111111' : '#94a3b8',
+      };
 
   useEffect(() => {
     void fetch('/api/auth/signup/pending', { credentials: 'include' })
@@ -92,14 +108,14 @@ export function SignupBirthDateStep({ onBack, onContinue, onSessionExpired }: Pr
       <div className="relative">
         <div
           className="login-email-input w-full h-[52px] rounded-2xl px-4 pr-11 text-[14px] md:text-[15px] text-left flex items-center pointer-events-none"
-          style={{ borderColor: birthDate ? '#FFCD31' : undefined, color: birthDate ? '#111111' : '#94a3b8' }}
+          style={fieldStyle}
           aria-hidden
         >
           {birthDate ? formatBirthDateDisplay(birthDate) : '選択してください'}
         </div>
         <ChevronDown
           size={20}
-          color="#888"
+          color={isDark ? '#a3a3a3' : '#888'}
           className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none"
         />
         <input

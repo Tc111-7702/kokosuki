@@ -16,6 +16,12 @@ import { MailDeliveryNotice } from '@/components/MailDeliveryNotice';
 import { formatMailDeliveryNotice } from '@/lib/mailDeliveryNotice';
 import type { MailDeliveryResult } from '@/lib/mail';
 import { persistSavedLoginAccount } from '@/lib/persistSavedLoginAccount';
+import {
+  useAuthBackIconColor,
+  useAuthMutedTextColor,
+  useAuthPrimaryButtonStyle,
+  useAuthResendLinkColor,
+} from '@/lib/useAuthPrimaryButtonStyle';
 
 const OTP_MISMATCH = '認証コードが一致しません。';
 
@@ -60,6 +66,11 @@ export function LoginOtpStep({
 
   const busy = verifying || resending;
   const canSubmit = /^\d{6}$/.test(otp) && !busy;
+  const submitStyle = useAuthPrimaryButtonStyle(canSubmit);
+  const backIconColor = useAuthBackIconColor();
+  const backLinkColor = useAuthMutedTextColor();
+  const resendDisabled = !canResend || resending;
+  const resendLinkColor = useAuthResendLinkColor(resendDisabled);
   const prevOtpLenRef = useRef(0);
 
   const handleVerify = async () => {
@@ -152,8 +163,10 @@ export function LoginOtpStep({
     }
   };
 
+  const fontClass = flow === 'signup' ? 'signup-app-font font-sans' : '';
+
   return (
-    <div className="login-email-step flex flex-col min-h-screen px-6 pt-4 pb-8 bg-white">
+    <div className={`login-email-step flex flex-col min-h-screen px-6 pt-4 pb-8 bg-white ${fontClass}`}>
       <div className="w-full max-w-[360px] md:max-w-[520px] mx-auto flex flex-col">
         <button
           type="button"
@@ -162,7 +175,7 @@ export function LoginOtpStep({
           className="self-start -ml-1 p-1 active:opacity-60 disabled:opacity-50 md:hidden"
           aria-label="戻る"
         >
-          <ChevronLeft size={28} strokeWidth={2} color="#111111" />
+          <ChevronLeft size={28} strokeWidth={2} color={backIconColor} />
         </button>
 
         <div className="-mt-1 md:mt-0 flex flex-col items-center w-full">
@@ -170,16 +183,16 @@ export function LoginOtpStep({
 
           <h1
             className="mt-6 text-[22px] font-black text-center leading-snug w-full"
-            style={{ color: '#111111' }}
+            style={{ color: 'var(--app-text)' }}
           >
             認証コードを入力する
           </h1>
 
           <p
             className="mt-3 text-[13px] text-left md:text-center leading-relaxed px-1 w-full"
-            style={{ color: '#64748b' }}
+            style={{ color: 'var(--app-text-muted)' }}
           >
-            <span className="font-bold" style={{ color: '#111111' }}>{email}</span>
+            <span className="font-bold" style={{ color: 'var(--app-text)' }}>{email}</span>
             に送信された6桁の認証コードを入力してください。
           </p>
 
@@ -217,8 +230,9 @@ export function LoginOtpStep({
             <button
               type="button"
               onClick={() => void handleResend()}
-              disabled={!canResend || resending}
+              disabled={resendDisabled}
               className="login-otp-resend -mt-1 self-center disabled:cursor-not-allowed"
+              style={{ color: resendLinkColor }}
             >
               {resending
                 ? '再送信中…'
@@ -230,6 +244,7 @@ export function LoginOtpStep({
             <button
               type="submit"
               disabled={!canSubmit}
+              style={submitStyle}
               className="login-otp-send-btn w-full h-[52px] rounded-full text-[16px] font-bold text-white active:opacity-80 disabled:cursor-not-allowed"
             >
               {verifying ? '認証中…' : '認証する'}
@@ -240,6 +255,7 @@ export function LoginOtpStep({
               onClick={onBack}
               disabled={busy}
               className="login-email-back-link hidden md:block w-full disabled:opacity-50"
+              style={{ color: backLinkColor }}
             >
               戻る
             </button>

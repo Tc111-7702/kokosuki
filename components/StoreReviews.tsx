@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useSyncExternalStore } from 'react';
+import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 import { useRouter } from 'next/navigation';
 import { MessageCircle, MoreHorizontal, Pencil, X, ChevronDown } from 'lucide-react';
 import { Avatar, timeAgo } from '@/components/ui/Avatar';
@@ -30,6 +31,14 @@ interface Review {
 
 export function StoreReviews({ spotId, autoOpenReviewId }: { spotId: string; autoOpenReviewId?: string | null }) {
   const router = useRouter();
+  const isDark = useSyncExternalStore(
+    subscribeTheme,
+    () => getThemeSnapshot() === 'dark',
+    () => false,
+  );
+  const reviewCardStyle: React.CSSProperties = isDark
+    ? { background: '#0a0a0a', border: '1px solid #262626', boxShadow: 'none' }
+    : { background: 'white', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' };
   const [reviews,      setReviews]      = useState<Review[]>([]);
   const [autoOpenDone, setAutoOpenDone] = useState(false);
   const [total,        setTotal]        = useState(0);
@@ -159,7 +168,7 @@ export function StoreReviews({ spotId, autoOpenReviewId }: { spotId: string; aut
     <div style={{ paddingBottom: 4 }}>
       {/* ヘッダー */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0 8px' }}>
-        <span style={{ fontSize: 13, fontWeight: 800, color: '#1A1A1A' }}>
+        <span style={{ fontSize: 13, fontWeight: 800, color: isDark ? '#FFFFFF' : '#1A1A1A' }}>
           口コミ
         </span>
         {total > 0 && (
@@ -195,7 +204,7 @@ export function StoreReviews({ spotId, autoOpenReviewId }: { spotId: string; aut
             const isOwnReview = review.userId === currentUid;
             const canShowMenu = !!currentUid && editingId !== review.id;
             return (
-            <div key={review.id} id={`review-${review.id}`} style={{ background: 'white', borderRadius: 14, padding: '12px 14px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+            <div key={review.id} id={`review-${review.id}`} style={{ ...reviewCardStyle, borderRadius: 14, padding: '12px 14px' }}>
 
               {/* 投稿者行 */}
               <div style={{ position: 'relative', marginBottom: 8 }}>
@@ -210,7 +219,7 @@ export function StoreReviews({ spotId, autoOpenReviewId }: { spotId: string; aut
                 >
                   <Avatar user={review.user} size={28} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: '#333' }}>{review.user.name}</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: isDark ? '#FFFFFF' : '#333' }}>{review.user.name}</span>
                     <span style={{ fontSize: 11, color: '#AAA', marginLeft: 6 }}>{timeAgo(review.createdAt)}</span>
                     {review.updatedAt !== review.createdAt && (
                       <span style={{ fontSize: 10, color: '#CCC', marginLeft: 4 }}>（編集済）</span>
@@ -298,7 +307,7 @@ export function StoreReviews({ spotId, autoOpenReviewId }: { spotId: string; aut
                   </div>
                 </div>
               ) : (
-                <p style={{ margin: '0 0 10px', fontSize: 13, color: '#333', lineHeight: 1.7, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                <p style={{ margin: '0 0 10px', fontSize: 13, color: isDark ? '#d4d4d4' : '#333', lineHeight: 1.7, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                   {review.text}
                 </p>
               )}
@@ -349,8 +358,10 @@ export function StoreReviews({ spotId, autoOpenReviewId }: { spotId: string; aut
           onClick={loadMore}
           disabled={loadingMore}
           style={{
-            width: '100%', marginTop: 10, padding: '9px 0', borderRadius: 12, border: '1px solid #E8E8E8',
-            background: 'white', fontSize: 12, fontWeight: 700, color: '#888', cursor: 'pointer',
+            width: '100%', marginTop: 10, padding: '9px 0', borderRadius: 12,
+            border: isDark ? '1px solid #262626' : '1px solid #E8E8E8',
+            background: isDark ? '#0a0a0a' : 'white',
+            fontSize: 12, fontWeight: 700, color: isDark ? '#737373' : '#888', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
           }}
         >

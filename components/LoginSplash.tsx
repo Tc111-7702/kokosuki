@@ -1,7 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import passwordResetComplete from '@/components/ui/assets/password-reset-complete.svg';
+import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 
 const SPLASH_DURATION_MS = 3_000;
 const DESKTOP_ILLUSTRATION_WIDTH = 280;
@@ -11,6 +12,12 @@ type LoginSplashProps = {
 };
 
 export function LoginSplash({ onFinish }: LoginSplashProps) {
+  const isDark = useSyncExternalStore(
+    subscribeTheme,
+    () => getThemeSnapshot() === 'dark',
+    () => false,
+  );
+  const splashBg = isDark ? '#0a0a0a' : '#ffcd31';
   const [visible, setVisible] = useState(true);
   const countdownStartedRef = useRef(false);
   const timersRef = useRef<{ fade: number; finish: number } | null>(null);
@@ -49,6 +56,7 @@ export function LoginSplash({ onFinish }: LoginSplashProps) {
     <div
       className="login-splash fixed inset-0 z-50 flex flex-col items-center justify-center px-6 transition-opacity duration-500"
       style={{
+        backgroundColor: splashBg,
         opacity: visible ? 1 : 0,
         pointerEvents: visible ? 'auto' : 'none',
       }}

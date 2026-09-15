@@ -1,7 +1,9 @@
 'use client';
 
+import { useSyncExternalStore } from 'react';
 import { Phone } from 'lucide-react';
 import type { GachaDetail, NearbySpot } from '@/components/gacha-types';
+import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 
 export function NearbyButton({ gacha, alwaysOpen, nearbyOpen, nearbyLoading, nearbyError, nearbySpots, onToggle, onSpotClick, isMobile }: {
   gacha: GachaDetail; alwaysOpen?: boolean; nearbyOpen: boolean; nearbyLoading: boolean;
@@ -9,13 +11,20 @@ export function NearbyButton({ gacha, alwaysOpen, nearbyOpen, nearbyLoading, nea
   onSpotClick: (spotId: string) => void; isMobile: boolean;
 }) {
   const isOpen = alwaysOpen || nearbyOpen;
+  const isDark = useSyncExternalStore(
+    subscribeTheme,
+    () => getThemeSnapshot() === 'dark',
+    () => false,
+  );
+  const shellBorder = isDark ? '#262626' : '#e5e7eb';
+
   return (
-    <div>
+    <div style={isOpen ? { border: `1px solid ${shellBorder}`, borderRadius: 14, overflow: 'hidden' } : undefined}>
       <button
         onClick={alwaysOpen ? undefined : onToggle}
         style={{
           width: '100%', padding: '12px 0', border: 'none',
-          borderRadius: isOpen ? '14px 14px 0 0' : 14,
+          borderRadius: isOpen ? 0 : 14,
           background: 'linear-gradient(135deg, ' + gacha.gradientFrom + ', ' + gacha.gradientTo + ')',
           color: '#fff', fontWeight: 800, fontSize: 15,
           cursor: alwaysOpen ? 'default' : 'pointer',
@@ -29,8 +38,8 @@ export function NearbyButton({ gacha, alwaysOpen, nearbyOpen, nearbyLoading, nea
       </button>
       {isOpen && (
         <div style={{
-          border: '1.5px solid ' + gacha.gradientFrom + '44', borderTop: 'none',
-          borderRadius: '0 0 14px 14px', background: '#fff', overflow: 'hidden',
+          borderTop: `1px solid ${shellBorder}`,
+          background: '#fff', overflow: 'hidden',
         }}>
           {nearbyLoading && (
             <p style={{ textAlign: 'center', padding: '16px 0', fontSize: 13, color: '#999' }}>
@@ -51,12 +60,12 @@ export function NearbyButton({ gacha, alwaysOpen, nearbyOpen, nearbyLoading, nea
               onClick={() => onSpotClick(spot.id)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 10, padding: isMobile ? '9px 16px' : '12px 16px',
-                borderTop: i > 0 ? '1px solid #F0F0F0' : 'none',
+                borderTop: i > 0 ? `1px solid ${shellBorder}` : 'none',
                 cursor: 'pointer',
               }}
             >
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: isMobile ? 12 : 14, fontWeight: 700, color: '#1A1A1A', margin: '0 0 2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <p style={{ fontSize: isMobile ? 12 : 14, fontWeight: 700, color: isDark ? '#FFFFFF' : '#1A1A1A', margin: '0 0 2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {spot.name}
                 </p>
                 {(!isMobile || spot.distance != null) && (

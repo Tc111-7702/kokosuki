@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useEffect, useCallback } from 'react';
+import { useRef, useState, useEffect, useCallback, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { X, MapPin, Navigation, Phone, ChevronRight } from 'lucide-react';
 import { ipGradient } from '@/components/SpotGachaCard';
@@ -9,6 +9,8 @@ import { ReplyComposerField } from '@/components/ReplyComposerField';
 import NavPickerModal from '@/components/NavPickerModal';
 import { Avatar } from '@/components/ui/Avatar';
 import { useIsMobile } from '@/lib/useIsMobile';
+import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
+import { DESKTOP_PAGE_NAV_WIDTH } from '@/lib/desktopPageNav';
 
 type SheetReview = {
   id: string;
@@ -77,6 +79,15 @@ export default function SpotDetailSheet({
   const NARROW_BREAKPOINT = 341;
   const isMobile = useIsMobile(MOBILE_BREAKPOINT);
   const isNarrow = useIsMobile(NARROW_BREAKPOINT);
+  const isDark = useSyncExternalStore(
+    subscribeTheme,
+    () => getThemeSnapshot() === 'dark',
+    () => false,
+  );
+  const storeNameColor = isDark ? '#FFFFFF' : '#1a1a1a';
+  const sheetSectionBg = isDark ? '#0a0a0a' : '#FAFAFA';
+  const sheetBorderColor = isDark ? '#262626' : '#F0F0F0';
+  const sheetMutedColor = isDark ? '#737373' : '#888888';
   const [expanded,    setExpanded]    = useState(false);
   const dragStartY = useRef<number | null>(null);
   const [reviews,     setReviews]     = useState<SheetReview[]>([]);
@@ -146,14 +157,16 @@ export default function SpotDetailSheet({
 
   // デスクトップはボトムナビがないので bottom: 0、モバイルは bottom: 64
   const bottomOffset = isMobile ? 64 : 0;
+  const mainAreaLeft = isMobile ? 0 : DESKTOP_PAGE_NAV_WIDTH;
 
   return (
     <>
       <div className="fixed z-40"
-        style={{ inset: 0, bottom: bottomOffset, background: 'rgba(0,0,0,0.25)' }}
+        style={{ top: 0, right: 0, bottom: bottomOffset, left: mainAreaLeft, background: 'rgba(0,0,0,0.25)' }}
         onClick={onClose} />
-      <div ref={sheetRef} className="fixed left-0 right-0 z-50 flex flex-col min-w-0 overflow-hidden"
+      <div ref={sheetRef} className="fixed right-0 z-50 flex flex-col min-w-0 overflow-hidden"
         style={{
+          left: mainAreaLeft,
           bottom: bottomOffset,
           background: 'white',
           borderRadius: '20px 20px 0 0',
@@ -212,7 +225,7 @@ export default function SpotDetailSheet({
           onPointerUp={() => { dragStartY.current = null; }}
         >
           <div className="flex-1 min-w-0 pr-2">
-            <h2 className="text-[16px] md:text-[18px] font-black leading-tight" style={{ color: '#1a1a1a' }}>{spot.name}</h2>
+            <h2 className="text-[16px] md:text-[18px] font-black leading-tight" style={{ color: storeNameColor }}>{spot.name}</h2>
             <div className="flex items-center gap-1 mt-1">
               <MapPin size={12} color="#aaa" />
               <p className="text-[12px] truncate" style={{ color: '#888' }}>{spot.address}</p>
@@ -236,7 +249,7 @@ export default function SpotDetailSheet({
           }}
         >
           <div className="px-4 py-2 text-[13px] font-bold flex items-center justify-between"
-            style={{ color: '#888', background: '#FAFAFA', borderBottom: '1px solid #F0F0F0' }}>
+            style={{ color: sheetMutedColor, background: sheetSectionBg, borderBottom: `1px solid ${sheetBorderColor}` }}>
             <span>{isSearchMode ? '検索結果' : '取扱商品'} {isEmpty ? 0 : matchedGacha.length}件</span>
             <div className="flex items-center gap-2">
               {knownCount > 0 && (
@@ -292,7 +305,7 @@ export default function SpotDetailSheet({
           )}
 
           <div className={`px-4 text-[13px] font-bold ${isMobile ? 'py-1.5 mt-1' : 'py-2 mt-2'}`}
-            style={{ color: '#888', background: '#FAFAFA', borderBottom: '1px solid #F0F0F0' }}>
+            style={{ color: sheetMutedColor, background: sheetSectionBg, borderBottom: `1px solid ${sheetBorderColor}` }}>
             口コミ
           </div>
           {/* 口コミ投稿欄 */}
@@ -340,8 +353,8 @@ export default function SpotDetailSheet({
                 const qs = params.toString();
                 router.push(qs ? `${base}?${qs}` : base);
               }}
-              className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-2xl text-[13px] font-bold"
-              style={{ background: '#F5F3ED', color: '#555', border: 'none', cursor: 'pointer' }}>
+              className="map-list-toggle-btn w-full flex items-center justify-center gap-1.5 py-2.5 rounded-2xl text-[13px] font-bold active:scale-95 transition-transform"
+              style={{ background: 'rgba(245, 243, 237, 0.28)', border: '1px solid rgba(237, 233, 216, 0.45)', cursor: 'pointer' }}>
               店舗の詳細を確認する<ChevronRight size={15} />
             </button>
           </div>

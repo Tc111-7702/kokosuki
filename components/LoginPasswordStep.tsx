@@ -10,6 +10,12 @@ import type { MailDeliveryResult } from '@/lib/mail';
 import { useOtpResendCooldown } from '@/lib/useOtpResendCooldown';
 import { PasswordResetGlobeIllustration } from '@/components/ui/PasswordResetGlobeIllustration';
 import { persistSavedLoginAccount } from '@/lib/persistSavedLoginAccount';
+import {
+  useAuthBackIconColor,
+  useAuthMutedTextColor,
+  useAuthPrimaryButtonStyle,
+  useAuthResendLinkColor,
+} from '@/lib/useAuthPrimaryButtonStyle';
 
 function formatPasswordSignInError(error: { code?: string; message?: string } | null | undefined): string {
   const code = error?.code ?? '';
@@ -39,6 +45,11 @@ export function LoginPasswordStep({
 
   const busy = signingIn || forgotBusy;
   const canSubmit = password.length > 0 && !busy;
+  const submitStyle = useAuthPrimaryButtonStyle(canSubmit);
+  const backIconColor = useAuthBackIconColor();
+  const backLinkColor = useAuthMutedTextColor();
+  const forgotLinkDisabled = busy || !canResend;
+  const forgotLinkColor = useAuthResendLinkColor(forgotLinkDisabled);
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
@@ -99,7 +110,7 @@ export function LoginPasswordStep({
           className="self-start -ml-1 p-1 active:opacity-60 disabled:opacity-50 md:hidden"
           aria-label="戻る"
         >
-          <ChevronLeft size={28} strokeWidth={2} color="#111111" />
+          <ChevronLeft size={28} strokeWidth={2} color={backIconColor} />
         </button>
 
         <div className="-mt-1 md:mt-0 flex flex-col items-center w-full">
@@ -107,16 +118,16 @@ export function LoginPasswordStep({
 
           <h1
             className="mt-6 text-[22px] font-black text-center leading-snug w-full"
-            style={{ color: '#111111' }}
+            style={{ color: 'var(--app-text)' }}
           >
             パスワードでログイン
           </h1>
 
           <p
             className="mt-3 text-[13px] text-left md:text-center leading-relaxed px-1 w-full"
-            style={{ color: '#64748b' }}
+            style={{ color: 'var(--app-text-muted)' }}
           >
-            <span className="font-bold" style={{ color: '#111111' }}>{email}</span>
+            <span className="font-bold" style={{ color: 'var(--app-text)' }}>{email}</span>
             {' '}のパスワードを入力してください
           </p>
 
@@ -159,6 +170,7 @@ export function LoginPasswordStep({
             <button
               type="submit"
               disabled={!canSubmit}
+              style={submitStyle}
               className="login-otp-send-btn w-full h-[52px] rounded-full text-[16px] font-bold text-white active:opacity-80 disabled:cursor-not-allowed"
             >
               {signingIn ? 'ログイン中…' : 'ログイン'}
@@ -168,8 +180,9 @@ export function LoginPasswordStep({
               <button
                 type="button"
                 onClick={() => void handleForgotPassword()}
-                disabled={busy || !canResend}
+                disabled={forgotLinkDisabled}
                 className="login-otp-resend self-center disabled:cursor-not-allowed"
+                style={{ color: forgotLinkColor }}
               >
                 {forgotBusy
                   ? '送信中…'
@@ -192,6 +205,7 @@ export function LoginPasswordStep({
               onClick={onBack}
               disabled={busy}
               className="login-email-back-link hidden md:block w-full disabled:opacity-50"
+              style={{ color: backLinkColor }}
             >
               戻る
             </button>

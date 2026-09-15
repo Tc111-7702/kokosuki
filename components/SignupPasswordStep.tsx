@@ -8,6 +8,7 @@ import {
   isSignupPendingSessionExpiredResponse,
   useSignupPendingExpiry,
 } from '@/lib/useSignupPendingExpiry';
+import { useAuthBackIconColor, useAuthMutedTextColor, useAuthPrimaryButtonStyle, useAuthTextColor } from '@/lib/useAuthPrimaryButtonStyle';
 
 interface Props {
   onBack: () => void;
@@ -31,6 +32,10 @@ export function SignupPasswordStep({ onBack, onContinue, onSessionExpired }: Pro
     && password === confirm
     && confirm.length > 0
     && !busy;
+  const submitStyle = useAuthPrimaryButtonStyle(canSubmit);
+  const backIconColor = useAuthBackIconColor();
+  const backLinkColor = useAuthMutedTextColor();
+  const titleColor = useAuthTextColor();
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
@@ -72,7 +77,7 @@ export function SignupPasswordStep({ onBack, onContinue, onSessionExpired }: Pro
   };
 
   return (
-    <div className="login-email-step flex flex-col min-h-[100dvh] px-6 pt-4 pb-8 bg-white">
+    <div className="login-email-step signup-app-font font-sans flex flex-col min-h-[100dvh] px-6 pt-4 pb-8 bg-white">
       <div className="w-full max-w-[360px] md:max-w-[520px] mx-auto flex flex-col flex-1 min-h-0">
         <button
           type="button"
@@ -81,20 +86,20 @@ export function SignupPasswordStep({ onBack, onContinue, onSessionExpired }: Pro
           className="self-start -ml-1 p-1 active:opacity-60 disabled:opacity-50 md:hidden"
           aria-label="戻る"
         >
-          <ChevronLeft size={28} strokeWidth={2} color="#111111" />
+          <ChevronLeft size={28} strokeWidth={2} color={backIconColor} />
         </button>
 
         <div className="flex flex-col items-center w-full flex-1 justify-center">
           <h1
             className="text-[22px] font-black text-center leading-snug w-full"
-            style={{ color: '#111111' }}
+            style={{ color: titleColor }}
           >
             パスワードを設定する
           </h1>
 
           <p
             className="mt-3 text-[13px] text-left md:text-center leading-relaxed px-1 w-full"
-            style={{ color: '#64748b' }}
+            style={{ color: 'var(--app-text-muted)' }}
           >
             ログイン時に使用するパスワードを設定してください
           </p>
@@ -172,6 +177,7 @@ export function SignupPasswordStep({ onBack, onContinue, onSessionExpired }: Pro
             <button
               type="submit"
               disabled={!canSubmit}
+              style={submitStyle}
               className="login-otp-send-btn w-full h-[52px] rounded-full text-[16px] font-bold text-white active:opacity-80 disabled:cursor-not-allowed"
             >
               {saving ? '保存中…' : '次へ'}
@@ -182,6 +188,7 @@ export function SignupPasswordStep({ onBack, onContinue, onSessionExpired }: Pro
               onClick={onBack}
               disabled={busy}
               className="login-email-back-link hidden md:block w-full disabled:opacity-50"
+              style={{ color: backLinkColor }}
             >
               戻る
             </button>

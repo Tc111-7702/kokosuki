@@ -1,8 +1,11 @@
 'use client';
 
+import { useSyncExternalStore } from 'react';
 import { ChevronLeft, Mail } from 'lucide-react';
 import { KokosukiLogo } from '@/components/ui/KokosukiLogo';
 import { loginDisplayFont } from '@/lib/loginFonts';
+import { useAuthBackIconColor } from '@/lib/useAuthPrimaryButtonStyle';
+import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 
 export type LoginSignInProvider = 'google' | 'apple' | 'email';
 
@@ -35,7 +38,7 @@ function GoogleIcon() {
   );
 }
 
-function AppleIcon({ className }: { className?: string }) {
+function AppleIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
   return (
     <svg
       width="20"
@@ -44,6 +47,7 @@ function AppleIcon({ className }: { className?: string }) {
       fill="currentColor"
       aria-hidden="true"
       className={className}
+      style={style}
     >
       <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
     </svg>
@@ -51,10 +55,25 @@ function AppleIcon({ className }: { className?: string }) {
 }
 
 export function LoginSignInStep({ onBack, onSelectProvider, intent = 'login' }: Props) {
+  const backIconColor = useAuthBackIconColor();
+  const isDark = useSyncExternalStore(
+    subscribeTheme,
+    () => getThemeSnapshot() === 'dark',
+    () => false,
+  );
+  const pageBg = isDark ? '#0a0a0a' : '#fffbf0';
+  const taglineColor = isDark ? '#ffffff' : '#111111';
+  const appleBtnStyle = isDark
+    ? { backgroundColor: '#ffffff', color: '#000000', borderColor: '#000000' }
+    : undefined;
   const actionLabel = intent === 'signup' ? '新規登録' : '続ける';
+  const fontClass = intent === 'signup' ? 'signup-app-font font-sans' : loginDisplayFont.className;
 
   return (
-    <div className={`login-signin ${loginDisplayFont.className} flex flex-col min-h-[100dvh] px-6`}>
+    <div
+      className={`login-signin ${fontClass} flex flex-col min-h-[100dvh] px-6`}
+      style={{ backgroundColor: pageBg }}
+    >
       <div className="login-signin-inner w-full mx-auto flex flex-col flex-1">
         <header className="login-signin-header relative flex flex-col items-center pt-10 max-md:pt-8 w-full">
           <button
@@ -63,7 +82,7 @@ export function LoginSignInStep({ onBack, onSelectProvider, intent = 'login' }: 
             className="login-signin-back absolute -left-1 top-8 max-md:top-6 p-1 active:opacity-60"
             aria-label="戻る"
           >
-            <ChevronLeft size={28} strokeWidth={2} color="#111111" />
+            <ChevronLeft size={28} strokeWidth={2} color={backIconColor} />
           </button>
           <div className="login-signin-logo">
             <KokosukiLogo width={180} />
@@ -71,8 +90,8 @@ export function LoginSignInStep({ onBack, onSelectProvider, intent = 'login' }: 
         </header>
 
         <div className="login-signin-below-logo flex flex-col items-center w-full flex-1 max-md:flex-none">
-          <div className="login-signin-tagline-wrap flex-1 max-md:flex-none flex items-center justify-center py-8 max-md:justify-start max-md:py-0 w-full">
-            <p className="login-signin-tagline text-center">
+          <div className="login-signin-tagline-wrap flex-1 max-md:flex-none flex items-center justify-center py-8 max-md:py-0 w-full">
+            <p className="login-signin-tagline w-full text-center" style={{ color: taglineColor }}>
               あなたの「好き」が
               <br />
               見つかる。つながる。もっと推せる。
@@ -93,9 +112,10 @@ export function LoginSignInStep({ onBack, onSelectProvider, intent = 'login' }: 
               type="button"
               onClick={() => onSelectProvider('apple')}
               className="login-signin-btn login-signin-btn-apple"
+              style={appleBtnStyle}
             >
-              <AppleIcon className="shrink-0" />
-              <span>{`Appleで${actionLabel}`}</span>
+              <AppleIcon className="shrink-0" style={isDark ? { color: '#000000' } : undefined} />
+              <span style={isDark ? { color: '#000000' } : undefined}>{`Appleで${actionLabel}`}</span>
             </button>
 
             <button

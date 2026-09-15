@@ -5,6 +5,7 @@ import { ChevronLeft } from 'lucide-react';
 import { SignupProfileProgress } from '@/components/SignupProfileProgress';
 import { PasswordResetCompleteIllustration } from '@/components/ui/PasswordResetCompleteIllustration';
 import { useSignupPendingExpiry } from '@/lib/useSignupPendingExpiry';
+import { useAuthBackIconColor, useAuthMutedTextColor, useAuthPrimaryButtonStyle, useAuthTextColor } from '@/lib/useAuthPrimaryButtonStyle';
 
 interface Props {
   step: 1 | 2 | 3;
@@ -41,10 +42,14 @@ export function SignupProfileFieldStep({
   onSessionExpired,
 }: Props) {
   useSignupPendingExpiry(onSessionExpired);
+  const submitStyle = useAuthPrimaryButtonStyle(canSubmit);
+  const backIconColor = useAuthBackIconColor();
+  const backLinkColor = useAuthMutedTextColor();
+  const titleColor = useAuthTextColor();
 
   return (
     <div
-      className="signup-profile-field-step font-sans flex flex-col min-h-[100dvh] bg-white px-6 pt-4 pb-8"
+      className="signup-profile-field-step signup-app-font font-sans flex flex-col min-h-[100dvh] bg-white px-6 pt-4 pb-8"
     >
       <div className="w-full max-w-[360px] md:max-w-[400px] mx-auto flex flex-col flex-1 min-h-0 md:translate-y-6">
         <div className="shrink-0">
@@ -56,7 +61,7 @@ export function SignupProfileFieldStep({
               className="-ml-1 p-1 active:opacity-60 disabled:opacity-50 md:hidden shrink-0"
               aria-label="戻る"
             >
-              <ChevronLeft size={28} strokeWidth={2} color="#111111" />
+              <ChevronLeft size={28} strokeWidth={2} color={backIconColor} />
             </button>
             <SignupProfileProgress step={step} />
           </div>
@@ -68,11 +73,17 @@ export function SignupProfileFieldStep({
             className="w-[140px] md:w-[200px]"
           />
 
-          <h1 className="mt-6 text-[19px] md:text-[22px] font-black text-center leading-snug w-full text-[#111111]">
+          <h1
+            className="mt-6 text-[19px] md:text-[22px] font-black text-center leading-snug w-full"
+            style={{ color: titleColor }}
+          >
             {title}
           </h1>
 
-          <p className="mt-3 text-[12px] md:text-[13px] text-left leading-relaxed px-1 w-full text-[#64748b]">
+          <p
+            className="mt-3 text-[12px] md:text-[13px] text-left leading-relaxed px-1 w-full"
+            style={{ color: 'var(--app-text-muted)' }}
+          >
             {description}
           </p>
 
@@ -96,6 +107,7 @@ export function SignupProfileFieldStep({
             <button
               type="submit"
               disabled={!canSubmit}
+              style={submitStyle}
               className={`login-otp-send-btn w-full h-[52px] rounded-full text-[16px] font-bold text-white active:opacity-80 disabled:cursor-not-allowed ${submitButtonClassName}`}
             >
               {busy ? busyLabel : submitLabel}
@@ -106,6 +118,7 @@ export function SignupProfileFieldStep({
               onClick={onBack}
               disabled={busy}
               className="login-email-back-link hidden md:block w-full disabled:opacity-50"
+              style={{ color: backLinkColor }}
             >
               戻る
             </button>

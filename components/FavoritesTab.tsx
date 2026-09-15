@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { X } from 'lucide-react';
 import { useIsMobile } from '@/lib/useIsMobile';
-import { GachaStatusBadge } from '@/components/ui/GachaCard';
+import { GachaCard } from '@/components/ui/GachaCard';
 
 interface FavoriteGacha {
   favoriteId: string;
@@ -25,69 +25,46 @@ function FavoriteCard({
   editing,
   deleting,
   onDelete,
+  isMobile,
 }: {
   gacha: FavoriteGacha;
   editing: boolean;
   deleting: boolean;
   onDelete: () => void;
+  isMobile: boolean;
 }) {
   const router = useRouter();
 
   return (
-    <div>
-      {/* カードの上に小さくIP名（無い場合も1行分の高さを確保して揃える） */}
-      <p className="px-0.5 mb-1 truncate" style={{ fontSize: 10, color: '#999', fontWeight: 700 }}>{gacha.ipName || ' '}</p>
-      <div className="relative">
+    <div
+      className="relative"
+      style={{
+        opacity: deleting ? 0.4 : 1,
+        transform: editing ? 'scale(0.97)' : 'scale(1)',
+        transition: 'opacity 0.2s, transform 0.2s',
+        pointerEvents: deleting ? 'none' : 'auto',
+      }}
+    >
+      <GachaCard
+        gacha={{ ...gacha, likeCount: 0 }}
+        rank={0}
+        showRank={false}
+        isMobile={isMobile}
+        variant="favorite"
+        fullWidth
+        showLike={false}
+        onClick={editing ? () => undefined : () => router.push(`/gacha/${gacha.id}`)}
+      />
+      {editing ? (
         <button
-          onClick={() => !editing && router.push(`/gacha/${gacha.id}`)}
-          className="flex flex-col rounded-2xl overflow-hidden w-full text-left transition-transform"
-          style={{
-            background: 'white',
-            boxShadow: '0 2px 12px rgba(0,0,0,0.07)',
-            opacity: deleting ? 0.4 : 1,
-            transform: editing ? 'scale(0.97)' : 'scale(1)',
-            transition: 'opacity 0.2s, transform 0.2s',
-            pointerEvents: deleting ? 'none' : 'auto',
-          }}
+          onClick={onDelete}
+          disabled={deleting}
+          className="absolute top-3 right-0 w-6 h-6 rounded-full flex items-center justify-center shadow-md z-20"
+          style={{ background: '#ef4444', border: '2px solid white' }}
         >
-          {/* 画像エリア */}
-          <div className="relative w-full" style={{ paddingBottom: '100%' }}>
-            <div
-              className="absolute inset-0"
-              style={{ background: `linear-gradient(135deg, ${gacha.gradientFrom}, ${gacha.gradientTo})` }}
-            />
-            {gacha.imageUrl && (
-              <img
-                src={gacha.imageUrl}
-                alt={gacha.seriesName}
-                className="absolute inset-0 w-full h-full object-cover"
-              />
-            )}
-            {/* 発売状況タグ（左上） */}
-            <div className="absolute top-1.5 left-1.5">
-              <GachaStatusBadge status={gacha.status} isMobile />
-            </div>
-          </div>
-          {/* テキスト */}
-          <div className="px-2 py-1.5">
-            <p style={{ fontSize: 11, color: '#222', fontWeight: 700, lineHeight: 1.3 }} className="line-clamp-2">
-              {gacha.seriesName}
-            </p>
-          </div>
+          <X size={11} color="white" strokeWidth={3} />
         </button>
-
-        {/* 削除ボタン（編集モード） */}
-        {editing && (
-          <button
-            onClick={onDelete}
-            disabled={deleting}
-            className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full flex items-center justify-center shadow-md z-10"
-            style={{ background: '#ef4444', border: '2px solid white' }}
-          >
-            <X size={11} color="white" strokeWidth={3} />
-          </button>
-        )}
-      </div>
+      ) : null}
     </div>
   );
 }
@@ -180,6 +157,7 @@ export function FavoritesTab({ userId, editable = true }: { userId?: string; edi
                 editing={editing}
                 deleting={deleting.has(g.id)}
                 onDelete={() => handleDelete(g.id)}
+                isMobile={isMobile}
               />
             ))}
           </div>

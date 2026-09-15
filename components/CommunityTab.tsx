@@ -50,6 +50,7 @@ function RightSidebar({
               <TrendingRow
                 key={ip.ipName}
                 rank={i + 1}
+                isLast={i === trendingIPs.length - 1}
                 avatar={
                   <GachaAvatar
                     imageUrl={ip.imageUrl}
@@ -73,6 +74,7 @@ function RightSidebar({
               <TrendingRow
                 key={g.id}
                 rank={i + 1}
+                isLast={i === trendingGachas.length - 1}
                 avatar={
                   <GachaAvatar
                     imageUrl={g.imageUrl}
@@ -151,12 +153,12 @@ export function CommunityTab() {
   return (
     <InteractionProvider>
     <div className="flex w-full h-full overflow-hidden">
-      <div className="flex-1 min-w-0 relative overflow-hidden bg-[#F5F5F0]">
+      <div className="community-feed-bg flex-1 min-w-0 relative overflow-hidden">
 
         {/* フィード — 常時マウント、detail open 中は背面に隠す */}
         <div className="absolute inset-0 overflow-y-auto flex flex-col" style={{ visibility: detailOpen ? 'hidden' : 'visible' }}>
           {/* モバイルのみ: 検索バー */}
-          <div className="lg:hidden sticky top-0 z-30 bg-white/90 backdrop-blur-sm border-b border-gray-100 px-3 py-2.5">
+          <div className="community-search-header lg:hidden sticky top-0 z-30 px-3 py-2.5">
             <CommunitySearchBar onSearch={handleSearch} onClear={handleClearSearch} searchActive={searchActive} initialValue={initLabel} />
           </div>
 
@@ -185,7 +187,7 @@ export function CommunityTab() {
 
         {/* 詳細ビュー — absolute overlay でフィードの上に重ねる */}
         {detailOpen && (
-          <div className="absolute inset-0 overflow-y-auto flex flex-col bg-[#F5F5F0] z-10">
+          <div className="community-feed-bg absolute inset-0 overflow-y-auto flex flex-col z-10">
             {selectedStock
               ? <StockPostDetail post={selectedStock} onBack={() => setSelectedStock(null)} onDeleted={handleDeleted} />
               : selectedPost

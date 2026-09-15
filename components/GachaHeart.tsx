@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { ArrowLeft, Heart } from 'lucide-react';
+import { useAuthPrimaryButtonStyle } from '@/lib/useAuthPrimaryButtonStyle';
 
 interface GachaItem {
   id: string;
@@ -56,6 +57,7 @@ export function GachaHeart({ liked, selectedIps, onToggle, onNext, onBack, onPru
     return count < required;
   });
   const canProceed = !loading && groups.length > 0 && unmetGroups.length === 0;
+  const submitStyle = useAuthPrimaryButtonStyle(canProceed);
 
   return (
     <div className="flex flex-col h-screen bg-[#FFFFFF]">
@@ -155,8 +157,8 @@ export function GachaHeart({ liked, selectedIps, onToggle, onNext, onBack, onPru
         <button
           onClick={onNext}
           disabled={!canProceed}
-          className="w-full py-4 rounded-2xl font-black text-[16px] transition-opacity"
-          style={{ background: '#F2B800', color: 'white', opacity: canProceed ? 1 : 0.4 }}
+          className="w-full py-4 rounded-2xl font-black text-[16px]"
+          style={submitStyle}
         >
           次へ（{liked.length}件）
         </button>

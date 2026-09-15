@@ -129,8 +129,8 @@ function HomePageInner() {
       )}
 
       <div
-        className="flex-shrink-0 bg-white"
-        style={{ borderBottom: '1.5px solid #EDE9D8', paddingTop: isMobile ? MOBILE_HEADER_PADDING_TOP : 16 }}
+        className="home-header-bar relative flex-shrink-0 bg-white"
+        style={{ paddingTop: isMobile ? MOBILE_HEADER_PADDING_TOP : 16 }}
       >
         {isMobile && showSearchBar ? (
           <div className="overflow-visible" style={{ height: MOBILE_HEADER_CONTENT_HEIGHT }}>
