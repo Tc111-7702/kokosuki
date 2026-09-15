@@ -17,6 +17,14 @@ const SUBJECTS: Record<OtpMailType, string> = {
 
 const DEFAULT_FROM = 'kokosuki <onboarding@resend.dev>';
 
+/** RESEND_FROM の旧 mikke 表示名を kokosuki に正規化 */
+function resolveMailFrom(): string {
+  const from = process.env.RESEND_FROM ?? DEFAULT_FROM;
+  return from
+    .replace(/^mikke Admin/i, 'kokosuki Admin')
+    .replace(/^mikke\b/i, 'kokosuki');
+}
+
 export type MailDeliveryMode = 'resend' | 'dev-redirect' | 'dev-console';
 
 export type MailDeliveryResult = {
@@ -45,7 +53,7 @@ async function sendResendEmail(params: {
   devFallbackLog: string[];
 }): Promise<MailDeliveryResult> {
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.RESEND_FROM ?? DEFAULT_FROM;
+  const from = resolveMailFrom();
   if (!apiKey) {
     if (isDevMailFallback()) {
       logDevFallback(params.devFallbackLog);
