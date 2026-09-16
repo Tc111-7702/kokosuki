@@ -38,7 +38,7 @@ function SignupIpCircle({
       aria-pressed={selected}
     >
       <span
-        className="flex items-center justify-center rounded-full overflow-hidden w-[60px] h-[60px] md:w-[72px] md:h-[72px]"
+        className="flex items-center justify-center rounded-full overflow-hidden w-[76px] h-[76px] md:w-[72px] md:h-[72px]"
         style={{
           border: selected ? '2.5px solid #F2B800' : '1.5px solid #EDE9D8',
           background: item.imageUrl ? '#fff' : `linear-gradient(135deg, ${from}, ${to})`,
