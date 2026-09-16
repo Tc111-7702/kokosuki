@@ -17,8 +17,10 @@ import {
   type NearbySpot,
 } from '@/lib/map/markers';
 import SpotListPanel from '@/components/SpotListPanel';
+import { MapLocationPermissionCard } from '@/components/MapLocationPermissionCard';
 import { makeCircleGeoJSON } from '@/lib/map/geojson';
 import { reverseGeocode, resolveLocation, resolveContent, type ContentResult } from '@/lib/map/geo';
+import { getGeolocationPermission } from '@/lib/map/geolocationPermission';
 
 // accessToken は page.tsx から props 経由で受け取る（下記 MapClient を参照）
 
@@ -72,6 +74,9 @@ export default function MapPage() {
   const [searchContentGachaIds, setSearchContentGachaIds] = useState<string[]>([]);
   const [currentAddress, setCurrentAddress]       = useState<string | null>(null);
   const [currentPos, setCurrentPos]               = useState<{ lat: number; lng: number } | null>(null);
+  /** null = 確認中, true = 許可済み, false = 未許可 */
+  const [locationGranted, setLocationGranted]     = useState<boolean | null>(null);
+  const [locationCardDismissed, setLocationCardDismissed] = useState(false);
 
   filterRef.current          = filterGachaIds;
   hasSearchResultRef.current = hasSearchResult;
@@ -80,6 +85,50 @@ export default function MapPage() {
     currentPosRef.current = { lat, lng };
     setCurrentPos({ lat, lng });
   }, []);
+
+  const applyGeolocationPosition = useCallback((latitude: number, longitude: number, opts?: { fly?: boolean }) => {
+    if (!mapRef.current) return;
+    const map = mapRef.current;
+    updateCurrentPos(latitude, longitude);
+    if (opts?.fly) {
+      map.flyTo({ center: [longitude, latitude], zoom: 15, speed: 1.4 });
+    } else if (!spotIdParam) {
+      map.setCenter([longitude, latitude]);
+    }
+    if (currentPinRef.current) {
+      currentPinRef.current.setLngLat([longitude, latitude]);
+    } else {
+      currentPinRef.current = new mapboxgl.Marker({ color: '#F2B800' })
+        .setLngLat([longitude, latitude])
+        .addTo(map);
+    }
+    reverseGeocode(latitude, longitude, mapboxToken).then(addr => { if (addr) setCurrentAddress(addr); });
+    (map.getSource('station-range') as mapboxgl.GeoJSONSource | undefined)?.setData({ type: 'FeatureCollection', features: [] });
+    if (!hasSearchResultRef.current && !spotIdModeRef.current) {
+      loadNearbySpots(map, latitude, longitude, spotMarkersRef, filterRef.current, gachaMapRef.current, setSelectedSpot,
+        { onSpotsLoaded: setFilterSpotList });
+    }
+  }, [mapboxToken, spotIdParam, updateCurrentPos]);
+
+  const requestLocationPermissionRef = useRef<(opts?: { fly?: boolean }) => void>(() => {});
+
+  const requestLocationPermission = useCallback((opts?: { fly?: boolean }) => {
+    if (!navigator.geolocation) {
+      setLocationGranted(false);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        setLocationGranted(true);
+        setLocationCardDismissed(false);
+        applyGeolocationPosition(pos.coords.latitude, pos.coords.longitude, opts);
+      },
+      () => setLocationGranted(false),
+      { enableHighAccuracy: true },
+    );
+  }, [applyGeolocationPosition]);
+
+  requestLocationPermissionRef.current = requestLocationPermission;
 
   const [zoom, setZoom] = useState(14);
   const panTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -561,32 +610,20 @@ export default function MapPage() {
         });
         map.on('mouseleave', 'poi-label', () => { map.getCanvas().style.cursor = ''; });
       }
-    });
 
-    navigator.geolocation.getCurrentPosition(
-      pos => {
-        if (!mapRef.current) return;
-        const { longitude, latitude } = pos.coords;
-        updateCurrentPos(latitude, longitude);
-        if (!spotIdParam) mapRef.current.setCenter([longitude, latitude]);
-        if (currentPinRef.current) {
-          currentPinRef.current.setLngLat([longitude, latitude]);
+      // 位置情報: 許可済みなら現在地を取得、未許可ならカードを表示
+      void (async () => {
+        const perm = await getGeolocationPermission();
+        if (perm === 'granted') {
+          setLocationGranted(true);
+          requestLocationPermissionRef.current();
+        } else if (perm === 'unsupported') {
+          setLocationGranted(null);
         } else {
-          currentPinRef.current = new mapboxgl.Marker({ color: '#F2B800' })
-            .setLngLat([longitude, latitude])
-            .addTo(mapRef.current);
+          setLocationGranted(false);
         }
-        reverseGeocode(latitude, longitude, mapboxToken).then(addr => { if (addr) setCurrentAddress(addr); });
-        (mapRef.current.getSource('station-range') as mapboxgl.GeoJSONSource)?.setData({ type: 'FeatureCollection', features: [] });
-        // コンテンツ検索中・spotIdモード中はスポットマーカーを上書きしない
-        if (!hasSearchResultRef.current && !spotIdModeRef.current) {
-          loadNearbySpots(mapRef.current, latitude, longitude, spotMarkersRef, filterRef.current, gachaMapRef.current, setSelectedSpot,
-            { onSpotsLoaded: setFilterSpotList });
-        }
-      },
-      err => console.warn('位置情報取得失敗:', err),
-      { enableHighAccuracy: true },
-    );
+      })();
+    });
 
     return () => {
       spotMarkersRef.current.forEach(m => m.remove());
@@ -600,31 +637,14 @@ export default function MapPage() {
 
   const goToCurrentLocation = useCallback(() => {
     if (!mapRef.current) return;
+    if (locationGranted !== true) {
+      setLocationCardDismissed(false);
+      return;
+    }
     tempSearchPosRef.current = null;
-    navigator.geolocation.getCurrentPosition(
-      pos => {
-        if (!mapRef.current) return;
-        const { longitude, latitude } = pos.coords;
-        updateCurrentPos(latitude, longitude);
-        mapRef.current.flyTo({ center: [longitude, latitude], zoom: 15, speed: 1.4 });
-        if (currentPinRef.current) {
-          currentPinRef.current.setLngLat([longitude, latitude]);
-        } else {
-          currentPinRef.current = new mapboxgl.Marker({ color: '#F2B800' })
-            .setLngLat([longitude, latitude])
-            .addTo(mapRef.current);
-        }
-        reverseGeocode(latitude, longitude, mapboxToken).then(addr => { if (addr) setCurrentAddress(addr); });
-        (mapRef.current.getSource('station-range') as mapboxgl.GeoJSONSource)?.setData({ type: 'FeatureCollection', features: [] });
-        // 現在地ボタン押下: コンテンツ検索を終了してフィルターマーカーを表示
-        clearSearchResults();
-        loadNearbySpots(mapRef.current, latitude, longitude, spotMarkersRef, filterRef.current, gachaMapRef.current, setSelectedSpot,
-          { onSpotsLoaded: setFilterSpotList });
-      },
-      err => console.warn('位置情報取得失敗:', err),
-      { enableHighAccuracy: true },
-    );
-  }, [clearSearchResults]);
+    clearSearchResults();
+    requestLocationPermission({ fly: true });
+  }, [clearSearchResults, locationGranted, requestLocationPermission]);
 
   const handleFilterApply = useCallback((ids: string[]) => {
     setFilterGachaIds(ids); filterRef.current = ids;
@@ -642,6 +662,7 @@ export default function MapPage() {
   }, [clearSearchResults]);
 
   const isFiltered = filterGachaIds.length > 0;
+  const showLocationCard = locationGranted === false && !locationCardDismissed;
 
   return (
     <div className="flex flex-col w-full h-full">
@@ -709,6 +730,13 @@ export default function MapPage() {
       {/* マップ + オーバーレイコントロール */}
       <div className="flex-1 min-h-0 relative">
         <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+
+        {showLocationCard && (
+          <MapLocationPermissionCard
+            onAllow={() => requestLocationPermission()}
+            onCancel={() => setLocationCardDismissed(true)}
+          />
+        )}
 
         {/* リストパネル（マップの上にオーバーレイ） */}
         {showList && (
