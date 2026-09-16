@@ -326,10 +326,10 @@ export async function getPopularIpsWithTopGachaImage(limit = 9): Promise<SignupI
   }));
 }
 
-/** 新規登録 IP 検索: 名前部分一致 → 販売中ガチャ数が多い順（最大 limit 件）+ 代表画像 */
-export async function searchSignupIpsByName(q: string, limit = 9): Promise<SignupIpOption[]> {
-  const term = q.trim();
-  if (!term) return [];
+/** 新規登録 IP 検索: 名前部分一致（複数語 OR）→ 販売中ガチャ数が多い順（最大 limit 件）+ 代表画像 */
+export async function searchSignupIpsByName(terms: string[], limit = 9): Promise<SignupIpOption[]> {
+  const normalized = [...new Set(terms.map((t) => t.trim()).filter(Boolean))];
+  if (normalized.length === 0) return [];
 
   const capped = Math.min(20, Math.max(1, limit));
   const grouped = await prisma.gacha.groupBy({
@@ -337,7 +337,7 @@ export async function searchSignupIpsByName(q: string, limit = 9): Promise<Signu
     where: {
       status: 'on_sale',
       ipNameId: { not: null },
-      ip: { name: { contains: term, mode: 'insensitive' } },
+      ...ipTermsWhere(normalized),
     },
     _count: { id: true },
     orderBy: { _count: { id: 'desc' } },
