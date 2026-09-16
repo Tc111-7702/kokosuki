@@ -219,7 +219,7 @@ export function LoginOtpStep({
             />
 
             {mailNotice ? (
-              <MailDeliveryNotice className="-mt-1">{mailNotice}</MailDeliveryNotice>
+              <MailDeliveryNotice className="-mt-1" centerOnMobile>{mailNotice}</MailDeliveryNotice>
             ) : null}
             {error ? (
               <p className="md:hidden text-[13px] font-bold -mt-1 text-center w-full" style={{ color: '#C4483C' }}>

@@ -118,7 +118,7 @@ export function EmailOtpPanel({
         />
       </div>
       {mailNotice ? (
-        <MailDeliveryNotice color={EMAIL_NOTICE_COLOR}>{mailNotice}</MailDeliveryNotice>
+        <MailDeliveryNotice color={EMAIL_NOTICE_COLOR} centerOnMobile>{mailNotice}</MailDeliveryNotice>
       ) : null}
       {error ? (
         <p className={emailErrorClass} style={{ color: '#C4483C' }}>{error}</p>
