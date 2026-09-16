@@ -627,18 +627,6 @@ html, body {
     margin-top: 1.75rem;
     gap: 1rem;
   }
-
-  .login-signin-btn {
-    padding-top: 2.25rem;
-    padding-bottom: 2.25rem;
-    font-size: 24px;
-  }
-
-  .login-signin-btn > svg,
-  .login-signin-btn > .login-signin-btn-email-icon {
-    width: 28px;
-    height: 28px;
-  }
 }
 
 .login-signin-btn {
@@ -684,6 +672,20 @@ html, body {
 .login-signin-btn.login-signin-btn-email-signup > .login-signin-btn-email-icon {
   position: static;
   left: auto;
+}
+
+@media (max-width: 767px) {
+  .login-signin-btn {
+    padding-top: 2.25rem;
+    padding-bottom: 2.25rem;
+    font-size: 24px;
+  }
+
+  .login-signin-btn > svg,
+  .login-signin-btn > .login-signin-btn-email-icon {
+    width: 28px;
+    height: 28px;
+  }
 }
 
 .login-signin-notice {
