@@ -11,13 +11,26 @@ import { revokeQuickLoginTokensForUser } from '@/lib/quickLoginToken';
 import { isSavedLoginProviderEmail } from '@/lib/savedLoginAccounts';
 
 export async function GET() {
-  try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session?.user) return NextResponse.json({ user: null });
-    return NextResponse.json({ user: { id: session.user.id, name: session.user.name } });
-  } catch {
-    return NextResponse.json({ user: null });
+  const h = await headers();
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const session = await auth.api.getSession({ headers: h });
+      if (!session?.user) return NextResponse.json({ user: null });
+      return NextResponse.json({ user: { id: session.user.id, name: session.user.name } });
+    } catch (e) {
+      // 一時的な DB 接続エラーでセッション判定に失敗した場合は少し待って再試行。
+      if (attempt < 2) {
+        await new Promise((r) => setTimeout(r, 300));
+        continue;
+      }
+      // 恒久的に失敗: ここで 200 {user:null} を返すと SessionGuard 等が「未ログイン」と
+      // 誤認して追放（signOut→/login）してしまう。一時エラーと分かるよう 503 を返し、
+      // 呼び出し側にはリトライ/無視させる。
+      console.error('[me GET] session unavailable:', e instanceof Error ? e.message : e);
+      return NextResponse.json({ user: null, error: 'session_unavailable' }, { status: 503 });
+    }
   }
+  return NextResponse.json({ user: null, error: 'session_unavailable' }, { status: 503 });
 }
 
 // DELETE /api/me — 退会（関連データはスキーマのonDelete: Cascadeで連鎖削除）
