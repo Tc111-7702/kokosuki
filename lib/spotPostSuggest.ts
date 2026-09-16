@@ -32,16 +32,34 @@ function toSuggestions(spots: RawSpot[], userPos: { lat: number; lng: number } |
   return mapped.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
 }
 
-function isStationIntent(q: string, stationLabel: string): boolean {
-  const cleanQ = q.replace(/駅$/, '').trim().toLowerCase();
-  const stName = stationLabel.replace(/駅$/, '').trim().toLowerCase();
-  return q.endsWith('駅') || (cleanQ.length >= 2 && stName === cleanQ);
+/** 駅名検索意図: 「◯◯駅」と明示したときのみ */
+function isStationIntent(q: string): boolean {
+  return q.endsWith('駅');
 }
 
+/** エリアサジェストと完全一致したときのみ住所フィルタ */
 function isAreaIntent(q: string, areaLabels: string[]): boolean {
-  if (/[都道府県]$/.test(q)) return true;
-  if (/[市区町村]$/.test(q) && q.length >= 3) return true;
   return areaLabels.some(label => label === q);
+}
+
+async function fetchSpotsByNameSearch(
+  q: string,
+  gachaId: string,
+  latParam: string,
+  areaLabels: string[],
+): Promise<RawSpot[]> {
+  const data = await fetch(
+    `/api/spots/search?name=${encodeURIComponent(q)}&suggest=1&gachaId=${encodeURIComponent(gachaId)}${latParam}`,
+  ).then(r => r.json());
+
+  let spots: RawSpot[] = data.suggestions ?? [];
+
+  if (isAreaIntent(q, areaLabels)) {
+    const filtered = spots.filter(s => s.address.includes(q));
+    if (filtered.length > 0) spots = filtered;
+  }
+
+  return spots;
 }
 
 /** 投稿フォーム用：サジェストは店舗名のみ（ガチャ設置店・近い順） */
@@ -65,26 +83,16 @@ export async function fetchPostSpotSuggestions(
   const bestStation = stationData.suggestions?.[0] as { label: string; lat: number; lng: number } | undefined;
   const areaLabels: string[] = (areaData.suggestions ?? []).map((a: { label: string }) => a.label);
 
-  // 駅名 → マップと同じ 1km 圏内
-  if (bestStation && isStationIntent(q, bestStation.label)) {
+  // 「◯◯駅」入力時のみ駅周辺 1km。0 件なら店舗名検索へフォールバック
+  if (bestStation && isStationIntent(q)) {
     const data = await fetch(
       `/api/spots/nearby?lat=${bestStation.lat}&lng=${bestStation.lng}` +
       `&radius=${STATION_SEARCH_RADIUS}&gachaId=${encodeURIComponent(gachaId)}&limit=50`,
     ).then(r => r.json());
-    return toSuggestions(data.spots ?? [], userPos).slice(0, 50);
+    const stationSpots = toSuggestions(data.spots ?? [], userPos);
+    if (stationSpots.length > 0) return stationSpots.slice(0, 50);
   }
 
-  // 店舗名 / 都道府県 / 市区町村
-  const data = await fetch(
-    `/api/spots/search?name=${encodeURIComponent(q)}&suggest=1&gachaId=${encodeURIComponent(gachaId)}${latParam}`,
-  ).then(r => r.json());
-
-  let spots: RawSpot[] = data.suggestions ?? [];
-
-  // 都道府県・市区町村入力時は住所一致を優先
-  if (isAreaIntent(q, areaLabels)) {
-    spots = spots.filter(s => s.address.includes(q));
-  }
-
+  const spots = await fetchSpotsByNameSearch(q, gachaId, latParam, areaLabels);
   return toSuggestions(spots, userPos).slice(0, 50);
 }

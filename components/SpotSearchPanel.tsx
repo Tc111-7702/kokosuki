@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { MapPin, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { useIsMobile } from '@/lib/useIsMobile';
 import { fetchPostSpotSuggestions, type PostSpotSuggestion } from '@/lib/spotPostSuggest';
@@ -21,7 +21,7 @@ function fmtDist(d?: number): string {
 }
 
 const MIN_SPOT_QUERY_LEN = 2;
-const SPOT_SUGGEST_DEBOUNCE_MS = 600;
+const SPOT_SUGGEST_DEBOUNCE_MS = 250;
 
 function isSpotQueryReady(v: string): boolean {
   return v.trim().length >= MIN_SPOT_QUERY_LEN;
@@ -47,6 +47,7 @@ export function SpotSearchPanel({
   const [focused, setFocused]           = useState(false);
   const [suggestions, setSuggestions]   = useState<PostSpotSuggestion[]>([]);
   const [suggestLoading, setSuggestLoading] = useState(false);
+  const [suggestFetched, setSuggestFetched] = useState(false);
   const [spots, setSpots]               = useState<SpotResult[]>([]);
   const [spotMessage, setSpotMessage]   = useState<string | null>(null);
   const [nearbyLoading, setNearbyLoading] = useState(false);
@@ -54,9 +55,15 @@ export function SpotSearchPanel({
   const [userPos, setUserPos]           = useState<{ lat: number; lng: number } | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const requestGen = useRef(0);
+  const inflightRef = useRef(0);
   const composingRef = useRef(false);
+  const userPosRef = useRef<{ lat: number; lng: number } | null>(null);
   const searchRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
+
+  useEffect(() => {
+    userPosRef.current = userPos;
+  }, [userPos]);
 
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -67,7 +74,40 @@ export function SpotSearchPanel({
     );
   }, []);
 
-  // 現在地取得後に距離順を再計算
+  const fetchSuggestions = useCallback((v: string) => {
+    if (timer.current) clearTimeout(timer.current);
+
+    if (!v.trim() || !isSpotQueryReady(v)) {
+      requestGen.current += 1;
+      setSuggestions([]);
+      setSuggestLoading(false);
+      setSuggestFetched(false);
+      return;
+    }
+
+    setSuggestFetched(false);
+
+    timer.current = setTimeout(async () => {
+      const gen = ++requestGen.current;
+      inflightRef.current += 1;
+      setSuggestLoading(true);
+      try {
+        const results = await fetchPostSpotSuggestions(v, gachaId, userPosRef.current);
+        if (gen !== requestGen.current) return;
+        setSuggestions(results);
+        setSuggestFetched(true);
+      } catch {
+        if (gen !== requestGen.current) return;
+        setSuggestions([]);
+        setSuggestFetched(true);
+      } finally {
+        inflightRef.current = Math.max(0, inflightRef.current - 1);
+        if (inflightRef.current === 0) setSuggestLoading(false);
+      }
+    }, SPOT_SUGGEST_DEBOUNCE_MS);
+  }, [gachaId]);
+
+  // 現在地取得後に距離順を再計算（query 変更時は handleQueryChange が担当）
   useEffect(() => {
     if (!isSpotQueryReady(query) || !userPos) return;
     fetchSuggestions(query);
@@ -88,37 +128,25 @@ export function SpotSearchPanel({
     };
   }, [focused, query]);
 
-  const fetchSuggestions = (v: string) => {
-    if (timer.current) clearTimeout(timer.current);
-    const gen = ++requestGen.current;
-
-    if (!v.trim() || !isSpotQueryReady(v)) {
-      setSuggestions([]);
-      setSuggestLoading(false);
-      return;
-    }
-
-    timer.current = setTimeout(async () => {
-      if (gen !== requestGen.current) return;
-      setSuggestLoading(true);
-      try {
-        const results = await fetchPostSpotSuggestions(v, gachaId, userPos);
-        if (gen !== requestGen.current) return;
-        setSuggestions(results);
-      } catch {
-        if (gen === requestGen.current) setSuggestions([]);
-      } finally {
-        if (gen === requestGen.current) setSuggestLoading(false);
-      }
-    }, SPOT_SUGGEST_DEBOUNCE_MS);
-  };
-
   const handleQueryChange = (v: string) => {
     setQuery(v);
     setSpots([]);
     setSpotMessage(null);
     setNearbyOpen(false);
     if (!composingRef.current) fetchSuggestions(v);
+  };
+
+  const clearSearch = () => {
+    if (timer.current) clearTimeout(timer.current);
+    requestGen.current += 1;
+    inflightRef.current = 0;
+    setQuery('');
+    setSuggestions([]);
+    setSuggestLoading(false);
+    setSuggestFetched(false);
+    setSpots([]);
+    setSpotMessage(null);
+    setNearbyOpen(false);
   };
 
   const handleNearbyToggle = () => {
@@ -135,6 +163,7 @@ export function SpotSearchPanel({
     setSpotMessage(null);
     setQuery('');
     setSuggestions([]);
+    setSuggestFetched(false);
     setFocused(false);
     navigator.geolocation.getCurrentPosition(
       async pos => {
@@ -161,8 +190,9 @@ export function SpotSearchPanel({
     );
   };
 
-  const showDrop = focused && isSpotQueryReady(query) && !suggestLoading;
-  const showEmptySuggest = showDrop && suggestions.length === 0;
+  const showDrop = focused && isSpotQueryReady(query);
+  const showLoadingSuggest = showDrop && suggestLoading && suggestions.length === 0;
+  const showEmptySuggest = showDrop && suggestFetched && !suggestLoading && suggestions.length === 0;
 
   const chipBg = accentColor === '#F2B800' ? '#FFF8D0' : '#EFF6FF';
   const chipText = accentColor === '#F2B800' ? '#8A6800' : '#1D4ED8';
@@ -210,19 +240,12 @@ export function SpotSearchPanel({
               className="community-search-input shell-field flex-1 bg-transparent text-xs lg:text-sm outline-none min-w-0"
               style={{ fontSize: isMobile ? 12 : 14, textAlign: 'left' }}
             />
-            {query && !suggestLoading && (
+            {query && (
               <button
                 type="button"
                 onMouseDown={e => {
                   e.preventDefault();
-                  if (timer.current) clearTimeout(timer.current);
-                  requestGen.current += 1;
-                  setQuery('');
-                  setSuggestions([]);
-                  setSuggestLoading(false);
-                  setSpots([]);
-                  setSpotMessage(null);
-                  setNearbyOpen(false);
+                  clearSearch();
                 }}
                 aria-label="入力をクリア"
                 className="home-search-clear-btn p-0 bg-transparent border-none cursor-pointer leading-none flex-shrink-0"
@@ -233,12 +256,16 @@ export function SpotSearchPanel({
           </div>
         </div>
 
-        {showDrop && (
+        {showDrop && (showLoadingSuggest || showEmptySuggest || suggestions.length > 0) && (
           <div
             className="search-suggest-dropdown absolute z-50 left-0 right-0 rounded-xl shadow-xl"
             style={{ top: 'calc(100% - 4px)', maxHeight: 280, overflowY: 'auto' }}
           >
-            {showEmptySuggest ? (
+            {showLoadingSuggest ? (
+              <p style={{ margin: 0, padding: isMobile ? '12px 12px' : '14px 12px', fontSize: isMobile ? 11 : 12, color: '#AAA', textAlign: 'center' }}>
+                検索中…
+              </p>
+            ) : showEmptySuggest ? (
               <p style={{ margin: 0, padding: isMobile ? '12px 12px' : '14px 12px', fontSize: isMobile ? 11 : 12, color: '#AAA', textAlign: 'center' }}>
                 店舗が見つかりませんでした
               </p>
@@ -251,6 +278,7 @@ export function SpotSearchPanel({
                     e.preventDefault();
                     setQuery(s.name);
                     setSuggestions([]);
+                    setSuggestFetched(false);
                     setFocused(false);
                     onSelect(s.id, s.name);
                   }}
