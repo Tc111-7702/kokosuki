@@ -419,6 +419,18 @@
   color: #ffffff !important;
 }
 
+/* 位置情報カード表示中は Mapbox がクリックを奪わないようにする */
+.map-location-card-open .mapboxgl-canvas-container,
+.map-location-card-open .mapboxgl-canvas,
+.map-location-card-open .mapboxgl-control-container,
+.map-location-card-open .mapboxgl-marker {
+  pointer-events: none !important;
+}
+
+.map-location-permission-layer {
+  pointer-events: auto !important;
+}
+
 
 
 

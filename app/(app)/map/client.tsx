@@ -20,7 +20,7 @@ import SpotListPanel from '@/components/SpotListPanel';
 import { MapLocationPermissionCard } from '@/components/MapLocationPermissionCard';
 import { makeCircleGeoJSON } from '@/lib/map/geojson';
 import { reverseGeocode, resolveLocation, resolveContent, type ContentResult } from '@/lib/map/geo';
-import { getGeolocationPermission } from '@/lib/map/geolocationPermission';
+import { getGeolocationPermission, type GeolocationPermissionState } from '@/lib/map/geolocationPermission';
 
 // accessToken は page.tsx から props 経由で受け取る（下記 MapClient を参照）
 
@@ -74,8 +74,7 @@ export default function MapPage() {
   const [searchContentGachaIds, setSearchContentGachaIds] = useState<string[]>([]);
   const [currentAddress, setCurrentAddress]       = useState<string | null>(null);
   const [currentPos, setCurrentPos]               = useState<{ lat: number; lng: number } | null>(null);
-  /** null = 確認中, true = 許可済み, false = 未許可 */
-  const [locationGranted, setLocationGranted]     = useState<boolean | null>(null);
+  const [geoPermissionState, setGeoPermissionState] = useState<GeolocationPermissionState | 'checking'>('checking');
   const [locationCardDismissed, setLocationCardDismissed] = useState(false);
 
   filterRef.current          = filterGachaIds;
@@ -114,17 +113,20 @@ export default function MapPage() {
 
   const requestLocationPermission = useCallback((opts?: { fly?: boolean }) => {
     if (!navigator.geolocation) {
-      setLocationGranted(false);
+      setGeoPermissionState('unsupported');
       return;
     }
     navigator.geolocation.getCurrentPosition(
       pos => {
-        setLocationGranted(true);
+        setGeoPermissionState('granted');
         setLocationCardDismissed(false);
         applyGeolocationPosition(pos.coords.latitude, pos.coords.longitude, opts);
       },
-      () => setLocationGranted(false),
-      { enableHighAccuracy: true },
+      () => {
+        setGeoPermissionState('denied');
+        setLocationCardDismissed(false);
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
     );
   }, [applyGeolocationPosition]);
 
@@ -614,13 +616,9 @@ export default function MapPage() {
       // 位置情報: 許可済みなら現在地を取得、未許可ならカードを表示
       void (async () => {
         const perm = await getGeolocationPermission();
+        setGeoPermissionState(perm);
         if (perm === 'granted') {
-          setLocationGranted(true);
           requestLocationPermissionRef.current();
-        } else if (perm === 'unsupported') {
-          setLocationGranted(null);
-        } else {
-          setLocationGranted(false);
         }
       })();
     });
@@ -637,14 +635,14 @@ export default function MapPage() {
 
   const goToCurrentLocation = useCallback(() => {
     if (!mapRef.current) return;
-    if (locationGranted !== true) {
+    if (geoPermissionState !== 'granted') {
       setLocationCardDismissed(false);
       return;
     }
     tempSearchPosRef.current = null;
     clearSearchResults();
     requestLocationPermission({ fly: true });
-  }, [clearSearchResults, locationGranted, requestLocationPermission]);
+  }, [clearSearchResults, geoPermissionState, requestLocationPermission]);
 
   const handleFilterApply = useCallback((ids: string[]) => {
     setFilterGachaIds(ids); filterRef.current = ids;
@@ -662,7 +660,9 @@ export default function MapPage() {
   }, [clearSearchResults]);
 
   const isFiltered = filterGachaIds.length > 0;
-  const showLocationCard = locationGranted === false && !locationCardDismissed;
+  // 未許可(denied)・未選択(prompt)のときにカードを表示（許可済み/確認中/未対応は非表示）
+  const showLocationCard =
+    (geoPermissionState === 'denied' || geoPermissionState === 'prompt') && !locationCardDismissed;
 
   // Mapbox canvas がオーバーレイのクリックを奪うのを防ぐ
   useEffect(() => {
@@ -747,11 +747,12 @@ export default function MapPage() {
       </div>
 
       {/* マップ + オーバーレイコントロール */}
-      <div className="flex-1 min-h-0 relative">
+      <div className={`flex-1 min-h-0 relative${showLocationCard ? ' map-location-card-open' : ''}`}>
         <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
 
         {showLocationCard && (
           <MapLocationPermissionCard
+            browserDenied={geoPermissionState === 'denied'}
             onAllow={() => requestLocationPermission()}
             onCancel={() => setLocationCardDismissed(true)}
           />
