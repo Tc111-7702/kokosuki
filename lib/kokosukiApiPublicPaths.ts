@@ -7,6 +7,7 @@ export function isPublicKokosukiApiPath(pathname: string, method: string): boole
   if (pathname === '/api/profile/reset-password') return true;
   if (pathname === '/api/gacha/signup-gachas') return true;
   if (pathname === '/api/gacha/signup-popular-ips') return true;
+  if (pathname === '/api/gacha/signup-ip-search') return true;
 
   if (pathname === '/api/area-suggest') return true;
   if (pathname === '/api/station-suggest') return true;

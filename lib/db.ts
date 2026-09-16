@@ -284,32 +284,87 @@ export type SignupIpOption = {
   imageUrl: string | null;
 };
 
-/** 総いいね数が多い順に IP を返す。各 IP の imageUrl は配下で最もいいね数が多いガチャのアイコン */
-export async function getPopularIpsWithTopGachaImage(limit = 9): Promise<SignupIpOption[]> {
-  const rows = await prisma.gacha.findMany({
-    where: { status: 'on_sale', ipNameId: { not: null } },
+/** 各 IP の代表 imageUrl（配下で最もいいね数が多い on_sale ガチャ） */
+async function signupIpImagesByIpNameIds(ids: string[]): Promise<Map<string, string | null>> {
+  if (ids.length === 0) return new Map();
+  const gachaRows = await prisma.gacha.findMany({
+    where: { status: 'on_sale', ipNameId: { in: ids } },
     select: {
+      ipNameId: true,
       imageUrl: true,
       _count: { select: { gachaLikes: true } },
-      ...IP_NAME_SELECT,
     },
     orderBy: { gachaLikes: { _count: 'desc' } },
   });
-  const likeMap = new Map<string, number>();
-  const imageMap = new Map<string, string | null>();
-  for (const g of rows) {
-    const name = g.ip?.name;
-    if (!name) continue;
-    likeMap.set(name, (likeMap.get(name) ?? 0) + g._count.gachaLikes);
-    if (!imageMap.has(name)) imageMap.set(name, g.imageUrl);
+  const imageByIpId = new Map<string, string | null>();
+  for (const g of gachaRows) {
+    if (!g.ipNameId || imageByIpId.has(g.ipNameId)) continue;
+    imageByIpId.set(g.ipNameId, g.imageUrl);
   }
-  return [...likeMap.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, limit)
-    .map(([ipName]) => ({
-      ipName,
-      imageUrl: imageMap.get(ipName) ?? null,
-    }));
+  return imageByIpId;
+}
+
+/** 総いいね数が多い順に IP を返す。各 IP の imageUrl は配下で最もいいね数が多いガチャのアイコン */
+export async function getPopularIpsWithTopGachaImage(limit = 9): Promise<SignupIpOption[]> {
+  const capped = Math.min(20, Math.max(1, limit));
+  const rows = await prisma.$queryRaw<{ ipNameId: string; ipName: string }[]>`
+    SELECT ipn.id AS "ipNameId", ipn.name AS "ipName"
+    FROM "Gacha" g
+    JOIN "IpName" ipn ON ipn.id = g."ipNameId"
+    LEFT JOIN "GachaLike" gl ON gl."gachaId" = g.id
+    WHERE g.status = 'on_sale' AND g."ipNameId" IS NOT NULL
+    GROUP BY ipn.id, ipn.name
+    ORDER BY COUNT(gl.id) DESC, ipn.name ASC
+    LIMIT ${capped}
+  `;
+  if (rows.length === 0) return [];
+
+  const imageByIpId = await signupIpImagesByIpNameIds(rows.map((r) => r.ipNameId));
+  return rows.map((r) => ({
+    ipName: r.ipName,
+    imageUrl: imageByIpId.get(r.ipNameId) ?? null,
+  }));
+}
+
+/** 新規登録 IP 検索: 名前部分一致（複数語 OR）→ 販売中ガチャ数が多い順（最大 limit 件）+ 代表画像 */
+export async function searchSignupIpsByName(terms: string[], limit = 9): Promise<SignupIpOption[]> {
+  const normalized = [...new Set(terms.map((t) => t.trim()).filter(Boolean))];
+  if (normalized.length === 0) return [];
+
+  const capped = Math.min(20, Math.max(1, limit));
+  const grouped = await prisma.gacha.groupBy({
+    by: ['ipNameId'],
+    where: {
+      status: 'on_sale',
+      ipNameId: { not: null },
+      ...ipTermsWhere(normalized),
+    },
+    _count: { id: true },
+    orderBy: { _count: { id: 'desc' } },
+    take: capped,
+  });
+
+  const ids = grouped
+    .map((g) => g.ipNameId)
+    .filter((id): id is string => id !== null);
+  if (ids.length === 0) return [];
+
+  const [names, imageByIpId] = await Promise.all([
+    prisma.ipName.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, name: true },
+    }),
+    signupIpImagesByIpNameIds(ids),
+  ]);
+
+  const nameById = new Map(names.map((n) => [n.id, n.name]));
+
+  return ids
+    .map((id) => ({
+      ipName: nameById.get(id) ?? '',
+      imageUrl: imageByIpId.get(id) ?? null,
+    }))
+    .filter((row) => row.ipName);
 }
 
 /** 指定 IP ごとに、配下で最もいいね数が多いガチャのアイコンを返す（検索結果用） */

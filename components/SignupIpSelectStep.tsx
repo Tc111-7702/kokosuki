@@ -97,15 +97,6 @@ export function SignupIpSelectStep({ onBack, onContinue }: Props) {
     return () => { cancelled = true; };
   }, []);
 
-  const fetchIconsForIpNames = useCallback(async (ipNames: string[]) => {
-    if (ipNames.length === 0) return [] as SignupIpItem[];
-    const params = new URLSearchParams();
-    ipNames.forEach((name) => params.append('ipName', name));
-    const res = await fetch(`/api/gacha/signup-popular-ips?${params.toString()}`);
-    const data = await res.json().catch(() => null);
-    return (data?.ips ?? []) as SignupIpItem[];
-  }, []);
-
   const runSearch = useCallback(async (value: string) => {
     const trimmed = value.trim();
     if (!trimmed) {
@@ -115,30 +106,19 @@ export function SignupIpSelectStep({ onBack, onContinue }: Props) {
 
     setSearching(true);
     try {
-      const res = await fetch(`/api/gacha/search?q=${encodeURIComponent(trimmed)}&suggest=1`);
+      const params = new URLSearchParams({
+        q: trimmed,
+        limit: String(IP_SEARCH_RESULT_LIMIT),
+      });
+      const res = await fetch(`/api/gacha/signup-ip-search?${params.toString()}`);
       const data = await res.json().catch(() => null);
-      const ipNames = [...new Set(
-        (data?.suggestions ?? [])
-          .filter((s: { type?: string }) => s.type === 'genre')
-          .map((s: { label: string }) => s.label.trim())
-          .filter(Boolean),
-      )].slice(0, IP_SEARCH_RESULT_LIMIT) as string[];
-
-      if (ipNames.length === 0) {
-        setDisplayedIps([]);
-        return;
-      }
-
-      const ips = await fetchIconsForIpNames(ipNames);
-      const order = new Map(ipNames.map((name, i) => [name.toLowerCase(), i]));
-      ips.sort((a, b) => (order.get(a.ipName.toLowerCase()) ?? 999) - (order.get(b.ipName.toLowerCase()) ?? 999));
-      setDisplayedIps(ips);
+      setDisplayedIps((data?.ips ?? []) as SignupIpItem[]);
     } catch {
       setDisplayedIps([]);
     } finally {
       setSearching(false);
     }
-  }, [defaultIps, fetchIconsForIpNames]);
+  }, [defaultIps]);
 
   const handleQueryChange = (value: string) => {
     setQuery(value);
