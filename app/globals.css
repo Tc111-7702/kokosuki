@@ -431,11 +431,15 @@
   pointer-events: auto !important;
 }
 
-/* 検索バーの iOS 自動ズーム対策：モバイルでは input の font-size を 16px 以上にする。
-   （iOS Safari は font-size 16px 未満の input にフォーカスすると画面を拡大するため）
-   .community-search-input を使う全検索バーに一括適用。desktop は各 input の指定のまま。 */
+/* iOS 自動ズーム対策：モバイルでは全入力欄の font-size を 16px 以上にする。
+   （iOS Safari は font-size 16px 未満の入力欄にフォーカスすると画面を拡大するため）
+   アプリ内の全 input（テキスト系）/ textarea / select / contenteditable に一括適用。
+   チェックボックス等の非テキスト入力は除外。desktop（>=768px）は各要素の指定のまま。 */
 @media (max-width: 767px) {
-  .community-search-input {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+  textarea,
+  select,
+  [contenteditable="true"] {
     font-size: 16px !important;
   }
 }
