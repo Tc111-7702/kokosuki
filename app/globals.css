@@ -607,9 +607,13 @@ html, body {
 }
 
 @media (max-width: 767px) {
+  .login-signin-header {
+    padding-top: 3.25rem;
+  }
+
   .login-signin-below-logo {
     flex: 0 0 auto;
-    margin-top: 1.25rem;
+    margin-top: 2.25rem;
   }
 
   .login-signin-tagline-wrap {
@@ -620,14 +624,14 @@ html, body {
   }
 
   .login-signin-actions {
-    margin-top: 1.5rem;
-    gap: 0.875rem;
+    margin-top: 1.75rem;
+    gap: 1rem;
   }
 
   .login-signin-btn {
-    padding-top: 0.9375rem;
-    padding-bottom: 0.9375rem;
-    font-size: 17px;
+    padding-top: 1.1875rem;
+    padding-bottom: 1.1875rem;
+    font-size: 18px;
   }
 }
 
