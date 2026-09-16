@@ -1,7 +1,5 @@
 'use client';
 
-import mapImg from '@/components/ui/assets/signup-feature-map.png';
-
 interface Props {
   onAllow: () => void;
   onCancel: () => void;
@@ -30,14 +28,6 @@ export function MapLocationPermissionCard({ onAllow, onCancel, browserDenied = f
         style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.12)', pointerEvents: 'auto' }}
         onPointerDown={stop}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={mapImg.src}
-          alt=""
-          width={mapImg.width}
-          height={mapImg.height}
-          className="w-full max-w-[200px] mx-auto h-auto mb-4 pointer-events-none"
-        />
         <p
           id="map-location-permission-title"
           className="text-center text-[13px] md:text-[14px] font-bold leading-relaxed text-[#333] mb-3"
