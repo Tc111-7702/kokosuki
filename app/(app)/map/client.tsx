@@ -664,6 +664,25 @@ export default function MapPage() {
   const isFiltered = filterGachaIds.length > 0;
   const showLocationCard = locationGranted === false && !locationCardDismissed;
 
+  // Mapbox canvas がオーバーレイのクリックを奪うのを防ぐ
+  useEffect(() => {
+    const container = containerRef.current;
+    const map = mapRef.current;
+    if (!container) return;
+
+    if (showLocationCard) {
+      container.style.pointerEvents = 'none';
+      map?.dragPan.disable();
+      map?.scrollZoom.disable();
+      map?.doubleClickZoom.disable();
+    } else {
+      container.style.pointerEvents = '';
+      map?.dragPan.enable();
+      map?.scrollZoom.enable();
+      map?.doubleClickZoom.enable();
+    }
+  }, [showLocationCard]);
+
   return (
     <div className="flex flex-col w-full h-full">
       <div className="flex-shrink-0 z-10">
