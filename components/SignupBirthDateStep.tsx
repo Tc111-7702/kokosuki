@@ -119,8 +119,8 @@ export function SignupBirthDateStep({ onBack, onContinue, onSessionExpired }: Pr
         onChange={(e) => handleBirthDateChange(e.target.value)}
         disabled={saving}
         max={maxBirthDate}
-        className="login-email-input md:hidden w-full h-[52px] rounded-2xl px-4 text-[16px] outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-        style={{ ...fieldStyle, colorScheme: isDark ? 'dark' : 'light' }}
+        className="login-email-input md:hidden w-full h-[52px] rounded-2xl px-4 text-[16px] text-center outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+        style={{ ...fieldStyle, colorScheme: isDark ? 'dark' : 'light', textAlignLast: 'center' }}
         aria-label="生年月日"
       />
 

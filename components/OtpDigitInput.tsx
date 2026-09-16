@@ -71,7 +71,7 @@ export function OtpDigitInput({
   };
 
   return (
-    <div className="flex gap-1.5 md:gap-2.5 justify-start md:justify-center w-full" onPaste={handlePaste}>
+    <div className="flex gap-1.5 md:gap-2.5 justify-center w-full" onPaste={handlePaste}>
       {digits.map((digit, index) => (
         <input
           key={index}
