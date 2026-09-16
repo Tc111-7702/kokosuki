@@ -14,9 +14,13 @@ function createPrisma() {
     keepAlive: true,
     keepAliveInitialDelayMillis: 10_000,
   });
+  // アイドル接続が Supabase / プーラー側で切断されると発火する（正常事象）。
+  // node-postgres の Pool は該当クライアントを自動で破棄し、次のクエリで張り直すため、
+  // ここではログのみで十分。以前は prisma シングルトンごと undefined にして破棄していたが、
+  // 1 本のアイドル切断で全リクエストが巻き添え失敗する（少人数でも同時ダウンする）原因に
+  // なっていたため止めた。
   pool.on('error', (err) => {
-    console.error('[db] idle client error:', err.message);
-    globalForPrisma.prisma = undefined;
+    console.error('[db] idle client error (自動回復):', err.message);
   });
   return new PrismaClient({
     adapter: new PrismaPg(pool),
