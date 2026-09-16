@@ -230,7 +230,7 @@ export function SignupIpSelectStep({ onBack, onContinue }: Props) {
             disabled={!canProceed}
             onClick={() => onContinue([...selectedIps])}
             style={submitStyle}
-            className="login-otp-send-btn w-full h-[48px] md:h-[52px] rounded-full text-[16px] font-bold text-white active:opacity-80 disabled:cursor-not-allowed shrink-0 max-md:mt-2 md:mt-5 md:-translate-y-2"
+            className="login-otp-send-btn w-full h-[48px] md:h-[52px] rounded-full text-[16px] font-bold text-white active:opacity-80 disabled:cursor-not-allowed shrink-0 max-md:mt-2 max-md:-translate-y-3 md:mt-5 md:-translate-y-2"
           >
             次へ
           </button>
