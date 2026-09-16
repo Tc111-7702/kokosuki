@@ -4,6 +4,26 @@ import pg from 'pg';
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined };
 
+// リトライ対象にする「読み取り（冪等）」操作。書き込みは二重実行を避けるためリトライしない。
+const RETRYABLE_READ_OPERATIONS = new Set<string>([
+  'findUnique', 'findUniqueOrThrow', 'findFirst', 'findFirstOrThrow',
+  'findMany', 'count', 'aggregate', 'groupBy',
+  '$queryRaw', '$queryRawUnsafe', 'findRaw', 'aggregateRaw',
+]);
+
+// 接続リセット系（Supabase/プーラーがアイドル接続を切る、サーバーレス凍結後の古い接続 等）の
+// 一時エラーか判定する。08006 = connection_failure（"Connection reset by peer" など）。
+function isTransientConnectionError(e: unknown): boolean {
+  const code = (e as { code?: unknown })?.code;
+  if (typeof code === 'string' && ['08006', '08003', '08000', '57P01', '57P03', 'ECONNRESET', 'EPIPE', 'ETIMEDOUT'].includes(code)) {
+    return true;
+  }
+  const msg = e instanceof Error ? e.message : String(e ?? '');
+  return /connection reset|could not receive data|connection terminated|connection closed|server closed the connection|closed the connection|ECONNRESET|EPIPE|Timed out fetching a new connection|Can't reach database server|terminating connection|the database system is (starting up|shutting down)/i.test(msg);
+}
+
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
 function createPrisma() {
   const pool = new pg.Pool({
     connectionString: process.env.DATABASE_URL!,
@@ -22,15 +42,43 @@ function createPrisma() {
   pool.on('error', (err) => {
     console.error('[db] idle client error (自動回復):', err.message);
   });
-  return new PrismaClient({
+  const base = new PrismaClient({
     adapter: new PrismaPg(pool),
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
   });
+  // 接続リセット(08006 等)で失敗した「読み取り」クエリを自動で握り直す。
+  // 古い/切れた接続を掴んで一瞬 500 になるのを、次の生きた接続で再試行して吸収する。
+  // 書き込みは二重実行の恐れがあるためリトライしない（読み取りのみ・冪等）。
+  const client = base.$extends({
+    name: 'retry-transient-connection',
+    query: {
+      async $allOperations({ operation, args, query }) {
+        if (!RETRYABLE_READ_OPERATIONS.has(operation)) return query(args);
+        let lastErr: unknown;
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            return await query(args);
+          } catch (e) {
+            lastErr = e;
+            if (attempt < 2 && isTransientConnectionError(e)) {
+              await sleep(150 * (attempt + 1));
+              continue;
+            }
+            throw e;
+          }
+        }
+        throw lastErr;
+      },
+    },
+  });
+  return client as unknown as PrismaClient;
 }
 
-/** dev ホットリロードで古い PrismaClient が残ったとき delegate 欠落を検知する */
+/** dev ホットリロードで古い PrismaClient が残ったとき delegate 欠落を検知する。
+ *  $extends 済みクライアントでも壊れないよう in 演算子ではなくプロパティアクセスで判定する。 */
 function hasSignupPendingDelegate(client: PrismaClient): boolean {
-  return 'signupPending' in (client as object);
+  const delegate = (client as unknown as Record<string, { findUnique?: unknown } | undefined>).signupPending;
+  return typeof delegate?.findUnique === 'function';
 }
 
 function getPrisma(): PrismaClient {
