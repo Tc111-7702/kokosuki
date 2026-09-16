@@ -107,7 +107,7 @@ export function useMentionInput(participants: MentionUser[], currentUid?: string
       const regex = new RegExp('(' + escaped.join('|') + ')', 'g');
       return t.split(regex).map((part, i) =>
         insertedMentions.includes(part)
-          ? <span key={i} className="text-blue-500 font-medium">{part}</span>
+          ? <span key={i} className="text-[#3d9bff] font-medium">{part}</span>
           : <span key={i}>{part}</span>,
       );
     },

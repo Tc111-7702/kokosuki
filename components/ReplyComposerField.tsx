@@ -124,7 +124,7 @@ export function ReplyComposerField({
   if (plainText) {
     return (
       <div
-        className={`reply-composer-input-shell flex items-end gap-0.5 min-w-0 w-full ${rounded} py-0.5 pr-0.5`}
+        className={`reply-composer-input-shell flex items-center gap-0.5 min-w-0 w-full ${rounded} py-0.5 pr-0.5`}
       >
         <div ref={plainWrapRef} className="relative flex-1 min-w-0 overflow-hidden min-h-[1.45em]">
           {/* フロー内ミラー: 折り返し後の高さを決める */}
@@ -145,7 +145,7 @@ export function ReplyComposerField({
             placeholder={placeholder}
             rows={1}
             wrap="soft"
-            className={`shell-field absolute inset-0 block resize-none bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none ${plainPadClass}`}
+            className={`shell-field absolute inset-0 block resize-none bg-transparent text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none ${plainPadClass}`}
             style={{ ...WRAP_STYLE, overflowX: 'hidden', overflowY: 'hidden' }}
           />
         </div>
@@ -156,7 +156,7 @@ export function ReplyComposerField({
 
   return (
     <div
-      className={`reply-composer-input-shell flex items-end gap-0.5 min-w-0 w-full ${rounded} py-0.5 pr-0.5`}
+      className={`reply-composer-input-shell flex items-center gap-0.5 min-w-0 w-full ${rounded} py-0.5 pr-0.5`}
     >
       <div ref={wrapRef} className="relative flex-1 min-w-0 overflow-hidden min-h-[1.45em]">
         <div
@@ -174,7 +174,7 @@ export function ReplyComposerField({
           <div
             ref={visibleRef}
             aria-hidden
-            className={`${cellClass} pointer-events-none text-gray-800 overflow-hidden`}
+            className={`${cellClass} pointer-events-none text-gray-800 dark:text-gray-100 overflow-hidden`}
             style={WRAP_STYLE}
           >
             {renderMentionText(text)}
@@ -189,11 +189,14 @@ export function ReplyComposerField({
             placeholder={placeholder}
             rows={1}
             wrap="soft"
-            className={`shell-field ${cellClass} z-10 resize-none bg-transparent placeholder-gray-400 focus:outline-none`}
+            className={`shell-field ${cellClass} z-10 resize-none bg-transparent placeholder-gray-400 dark:placeholder-gray-500 caret-[#374151] dark:caret-gray-100 focus:outline-none`}
             style={{
               ...WRAP_STYLE,
+              // 表示は上の visible div が担い、textarea 自体の文字は隠す。
+              // iOS のダークモード自動調整で color:transparent が上書きされ「文字が二重」に
+              // 見える問題を防ぐため WebkitTextFillColor も透明にする。
               color: 'transparent',
-              caretColor: '#374151',
+              WebkitTextFillColor: 'transparent',
               overflow: 'hidden',
             }}
           />

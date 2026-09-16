@@ -26,7 +26,7 @@ export function renderWithMentions(text: string, names: string[] = []) {
     : /(@\S+)/g;
   return text.split(pattern).map((part, i) =>
     part.startsWith('@')
-      ? <span key={i} className="text-blue-500 font-medium">{part}</span>
+      ? <span key={i} className="text-[#3d9bff] font-medium">{part}</span>
       : <span key={i}>{part}</span>
   );
 }

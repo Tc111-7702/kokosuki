@@ -24,13 +24,13 @@ export function MapLocationPermissionCard({ onAllow, onCancel, browserDenied = f
       onPointerDown={stop}
     >
       <div
-        className="w-full max-w-[320px] bg-white rounded-[20px] px-6 pt-5 pb-6"
+        className="w-full max-w-[320px] bg-white dark:bg-[#1c1c1e] rounded-[20px] px-6 pt-5 pb-6"
         style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.12)', pointerEvents: 'auto' }}
         onPointerDown={stop}
       >
         <p
           id="map-location-permission-title"
-          className="text-center text-[13px] md:text-[14px] font-bold leading-relaxed text-[#333] mb-3"
+          className="text-center text-[13px] md:text-[14px] font-bold leading-relaxed text-[#333] dark:text-white mb-3"
         >
           近くのガチャ情報を表示するために、現在地の情報を使用します。
         </p>
@@ -39,7 +39,7 @@ export function MapLocationPermissionCard({ onAllow, onCancel, browserDenied = f
             ブラウザで位置情報がブロックされています。アドレスバー横の設定から、このサイトの位置情報を許可してください。
           </p>
         ) : (
-          <p className="text-center text-[11px] md:text-[12px] leading-relaxed text-[#888] mb-4">
+          <p className="text-center text-[11px] md:text-[12px] leading-relaxed text-[#888] dark:text-[#b3b3b3] mb-4">
             「位置情報を許可」を押すと、ブラウザの許可ダイアログが表示されます。
           </p>
         )}
