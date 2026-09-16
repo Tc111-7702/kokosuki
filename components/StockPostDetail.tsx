@@ -88,7 +88,7 @@ export function StockPostDetail({ post, onBack, onReplied, onDeleted }: { post: 
     if (insertedMentions.length === 0) return t;
     const escaped = [...insertedMentions].sort((a,b) => b.length - a.length).map(m => m.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'));
     const regex = new RegExp('(' + escaped.join('|') + ')','g');
-    return t.split(regex).map((part, i) => insertedMentions.includes(part) ? <span key={i} className="text-[#3d9bff] font-medium">{part}</span> : <span key={i}>{part}</span>);
+    return t.split(regex).map((part, i) => insertedMentions.includes(part) ? <span key={i} className="text-[#3d9bff] dark:text-[#66b2ff] font-medium">{part}</span> : <span key={i}>{part}</span>);
   }, [insertedMentions]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
