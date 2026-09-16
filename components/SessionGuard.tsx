@@ -43,8 +43,10 @@ export function SessionGuard() {
     };
 
     // ── 401 インターセプト ──
-    // 同一オリジンの API 呼び出し（/api/auth/* を除く）が 401 を返したら、セッション無効とみなす。
-    // 追加のポーリングをせず、アプリが普段行う通信に便乗して検知する。
+    // 同一オリジンの API 呼び出し（/api/auth/* を除く）が 401 を返したら、セッション無効の疑い。
+    // ただし即追放はしない。一時的な DB エラー等でも 401 が返り得るため、必ず checkMe() で
+    // /api/me に確認し、本当にセッションが無い（200 かつ user:null）ときだけ追放する。
+    // これにより「一時エラーで複数ブラウザが同時追放される」誤爆を防ぐ。
     const origFetch = window.fetch;
     const isGuardedApi = (url: string): boolean => {
       try {
@@ -61,7 +63,7 @@ export function SessionGuard() {
       try {
         if (res.status === 401) {
           const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
-          if (isGuardedApi(url)) handleInvalid();
+          if (isGuardedApi(url)) void checkMe(); // 即追放せず /api/me で確認してから
         }
       } catch { /* 判定失敗は無視 */ }
       return res;
