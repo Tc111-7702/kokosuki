@@ -490,45 +490,31 @@ export default function StorePage() {
       <div style={{ background: 'white', borderBottom: '1px solid #F0F0F0', flexShrink: 0 }}>
         {isMobile ? (
           <>
-            {/* モバイル: 戻る + 解除・フィルター・電話・経路 */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '8px 16px 0', flexWrap: 'nowrap' }}>
+            {/* モバイル: 戻る+店名（左） / フィルター+解除（右）を1行に。電話・経路は非表示 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px' }}>
               <button onClick={() => router.back()} aria-label="戻る"
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', padding: 2, marginRight: 2, flexShrink: 0 }}>
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', padding: 2, flexShrink: 0 }}>
                 <ChevronLeft size={22} color="#888" strokeWidth={2} />
               </button>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0, marginLeft: 'auto', flexWrap: 'nowrap' }}>
-                {isFiltered && (
-                  <button onClick={handleClearFilter}
-                    style={{ flexShrink: 0, fontSize: 11, padding: '5px 8px', borderRadius: 20, border: 'none', cursor: 'pointer', background: '#FFF0C0', color: '#B8860B', fontWeight: 700 }}>
-                    解除
-                  </button>
-                )}
-                <button onClick={() => setFilterOpen(true)}
-                  className={`map-list-toggle-btn flex items-center gap-1 px-2.5 py-1 rounded-full text-[12px] font-bold active:scale-95 transition-transform ${isFiltered ? 'map-list-toggle-btn--active' : ''}`}
-                  style={isFiltered ? undefined : { background: 'rgba(245, 243, 237, 0.28)', border: '1px solid rgba(237, 233, 216, 0.45)' }}>
-                  <SlidersHorizontal size={12} />
-                  {isFiltered ? `フィルター中 (${filterGachaIds.length})` : 'フィルター'}
+              <h1 style={{ flex: 1, minWidth: 0, fontSize: 17, fontWeight: 900, color: storeNameColor, margin: 0, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{spot.name}</h1>
+              <button onClick={() => setFilterOpen(true)}
+                className={`map-list-toggle-btn flex items-center gap-1 px-2.5 py-1 rounded-full text-[12px] font-bold active:scale-95 transition-transform ${isFiltered ? 'map-list-toggle-btn--active' : ''}`}
+                style={{ flexShrink: 0, ...(isFiltered ? {} : { background: 'rgba(245, 243, 237, 0.28)', border: '1px solid rgba(237, 233, 216, 0.45)' }) }}>
+                <SlidersHorizontal size={12} />
+                {isFiltered ? `フィルター中 (${filterGachaIds.length})` : 'フィルター'}
+              </button>
+              {isFiltered && (
+                <button onClick={handleClearFilter}
+                  style={{ flexShrink: 0, fontSize: 11, padding: '5px 8px', borderRadius: 20, border: 'none', cursor: 'pointer', background: '#FFF0C0', color: '#B8860B', fontWeight: 700 }}>
+                  解除
                 </button>
-                {spot.phone && (
-                  <a href={`tel:${spot.phone.replace(/[^\d+]/g, '')}`}
-                    aria-label="電話"
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '5px 10px', borderRadius: 10, background: '#E8F5E9', color: '#16a34a', textDecoration: 'none' }}>
-                    <Phone size={15} />
-                  </a>
-                )}
-                <button onClick={() => setNavOpen(true)} aria-label="経路"
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '5px 10px', borderRadius: 10, background: '#E8F4FD', color: '#0891b2', border: 'none', cursor: 'pointer' }}>
-                  <Navigation size={15} />
-                </button>
-              </div>
-            </div>
-            {/* モバイル: 店舗名 */}
-            <div style={{ padding: '4px 16px 8px', minWidth: 0 }}>
-              <h1 style={{ fontSize: 17, fontWeight: 900, color: storeNameColor, margin: 0, lineHeight: 1.2, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{spot.name}</h1>
-              {distance !== null && (
-                <span style={{ display: 'block', marginTop: 3, fontSize: 11, fontWeight: 600, color: '#0891b2' }}>現在地から {fmtDistance(distance)}</span>
               )}
             </div>
+            {distance !== null && (
+              <div style={{ padding: '0 16px 8px' }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: '#0891b2' }}>現在地から {fmtDistance(distance)}</span>
+              </div>
+            )}
           </>
         ) : (
           <>

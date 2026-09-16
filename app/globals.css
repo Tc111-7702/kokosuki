@@ -431,6 +431,15 @@
   pointer-events: auto !important;
 }
 
+/* 検索バーの iOS 自動ズーム対策：モバイルでは input の font-size を 16px 以上にする。
+   （iOS Safari は font-size 16px 未満の input にフォーカスすると画面を拡大するため）
+   .community-search-input を使う全検索バーに一括適用。desktop は各 input の指定のまま。 */
+@media (max-width: 767px) {
+  .community-search-input {
+    font-size: 16px !important;
+  }
+}
+
 
 
 
