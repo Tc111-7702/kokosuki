@@ -4,8 +4,8 @@ import { useEffect, useState, useSyncExternalStore } from 'react';
 import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, ChevronRight } from 'lucide-react';
-import { authClient } from '@/lib/auth-client';
 import { markLoginFromLogout } from '@/lib/loginSplash';
+import { signOutAndClearSession } from '@/lib/signOutClient';
 import { clearSavedLoginAccount } from '@/lib/persistSavedLoginAccount';
 import { SettingsSheet } from '@/components/SettingsSheet';
 import { DisplaySettingsSheet } from '@/components/DisplaySettingsSheet';
@@ -62,11 +62,7 @@ export default function SettingsPage() {
   };
 
   const handleLogout = async () => {
-    try {
-      await authClient.signOut();
-    } catch {
-      /* ネットワーク/CORS 失敗時もログイン画面へ誘導する */
-    }
+    await signOutAndClearSession();
     markLoginFromLogout();
     window.location.href = '/login';
   };
@@ -78,7 +74,7 @@ export default function SettingsPage() {
     const res = await fetch('/api/me', { method: 'DELETE', credentials: 'include' }).catch(() => null);
     if (res?.ok) {
       await clearSavedLoginAccount(email);
-      await authClient.signOut().catch(() => {});
+      await signOutAndClearSession();
       markLoginFromLogout();
       window.location.href = '/login';
     } else {

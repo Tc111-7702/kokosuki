@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import * as db from '@/lib/db';
 import { headers } from 'next/headers';
+import { appendKokosukiSessionClear } from '@/lib/kokosukiSignOut';
 import {
   quickLoginCookieName,
   quickLoginCookieOptions,
@@ -33,7 +34,9 @@ export async function DELETE() {
     await revokeQuickLoginTokensForUser(userId);
     await db.deleteUser(userId);
 
+    const h = await headers();
     const res = NextResponse.json({ ok: true });
+    await appendKokosukiSessionClear(res, h);
     if (userEmail && isSavedLoginProviderEmail(userEmail)) {
       res.cookies.set(quickLoginCookieName(userEmail), '', quickLoginCookieOptions(0));
     }

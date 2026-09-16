@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect } from 'react';
-import { authClient } from '@/lib/auth-client';
 import { markLoginFromLogout } from '@/lib/loginSplash';
+import { signOutAndClearSession } from '@/lib/signOutClient';
 
 // (app) 配下の全ページ共通のセッションガード。
 // サーバー側のセッションが失われたら（BAN でのセッション削除・期限切れ・別端末でのログアウト等）
@@ -24,7 +24,7 @@ export function SessionGuard() {
     const handleInvalid = async () => {
       if (redirecting) return;
       redirecting = true;
-      try { await authClient.signOut(); } catch {}
+      await signOutAndClearSession();
       markLoginFromLogout();
       window.location.href = '/login';
     };
