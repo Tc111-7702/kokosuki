@@ -68,13 +68,32 @@ export default function ProfilePage() {
   const accountMenuRef = useRef<HTMLDivElement>(null);
 
   // プロフィール概要
+  // 本物の 404（ユーザー不在）だけ「見つからない」にする。起動直後の一時的な 500 /
+  // ネットワーク失敗はリトライして解決させる（/api/me と同じ方針。DB接続ウォームアップ中の
+  // 一時エラーでマイページが「見つからない」になる問題の対策）。
   useEffect(() => {
     setSummary(null);
     setNotFound(false);
-    fetch(`/api/users/${userId}/summary`)
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then(setSummary)
-      .catch(() => setNotFound(true));
+    let alive = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const load = (attempt: number) => {
+      fetch(`/api/users/${userId}/summary`)
+        .then(async (r) => {
+          if (!alive) return;
+          if (r.ok) { setSummary(await r.json()); return; }
+          if (r.status === 404) { setNotFound(true); return; } // 本当に不在
+          // 500 等の一時エラー: リトライ、尽きたら見つからない扱い
+          if (attempt < 5) { timer = setTimeout(() => load(attempt + 1), 500); }
+          else setNotFound(true);
+        })
+        .catch(() => {
+          if (!alive) return;
+          if (attempt < 5) { timer = setTimeout(() => load(attempt + 1), 500); }
+          else setNotFound(true);
+        });
+    };
+    load(0);
+    return () => { alive = false; if (timer) clearTimeout(timer); };
   }, [userId]);
 
   // userId変更時にリセット
