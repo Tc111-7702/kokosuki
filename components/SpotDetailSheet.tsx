@@ -166,15 +166,13 @@ export default function SpotDetailSheet({
   const knownCount   = matchedGacha.filter(g => spot.stockMap[g.id]).length;
   const isSearchMode = searchOverrideIds != null;
   const isEmpty      = matchedGacha.length === 0;
-  // 表示用の距離は fresh 優先、無ければ従来の currentPos / spot.distance にフォールバック。
-  const displayPos   = freshPos ?? currentPos ?? null;
-  const distanceM    = displayPos
-    ? haversineM(displayPos.lat, displayPos.lng, spot.lat, spot.lng)
-    : spot.distance;
-  const distText     = fmtDistance(distanceM);
-  // 在庫報告の可否は「その場で取り直した現在地(freshPos)」のみで厳密判定する。
-  // freshPos が無い（未取得・許可拒否・失敗）場合は、位置を検証できないため報告不可。
+  // 距離は「その場で取り直した現在地(freshPos)」だけで計算する。渡された currentPos は
+  // 偽装され得るためここでは使わない。fresh が無いときの表示のみ、サーバー算出の
+  // spot.distance にフォールバックする（表示が空にならないように）。
   const freshDistanceM = freshPos ? haversineM(freshPos.lat, freshPos.lng, spot.lat, spot.lng) : null;
+  const distanceM    = freshDistanceM ?? spot.distance;
+  const distText     = fmtDistance(distanceM);
+  // 在庫報告の可否は freshPos のみで厳密判定。未取得・許可拒否・失敗時は報告不可。
   const tooFarForStock = freshDistanceM === null || freshDistanceM > 500;
 
   // デスクトップはボトムナビがないので bottom: 0、モバイルは bottom: 64
