@@ -4,10 +4,10 @@ import { useEffect } from 'react';
 
 // Map / 店舗詳細ページで共有する、在庫状態の自動失効トリガー。
 // マウント時に /api/machines/expire-stale-stock を叩き、最新の在庫報告が7日を過ぎた Machine の
-// stockStatus を「不明」に戻す。ナビゲーション毎の連打で無料DBに負荷をかけないよう、
-// ブラウザごとに一定間隔でスロットリングする（値はここで調整可能）。
+// stockStatus を「不明」に戻す。既読通知の自動クリーンアップ（useUnreadNotificationCount）と同じく
+// cron の代わりに「開いた時に1日1回」方式。ブラウザごとに localStorage でスロットリングする。
 const THROTTLE_KEY = 'kokosuki-expire-stale-stock-at';
-const THROTTLE_MS = 10 * 60 * 1000; // 10分に1回まで
+const THROTTLE_MS = 24 * 60 * 60 * 1000; // 24hに1回まで（1日1回で十分）
 
 export function useExpireStaleStock() {
   useEffect(() => {
