@@ -1107,16 +1107,16 @@ export const STOCK_FEED_FRESH_DAYS = 7;
  */
 export async function expireStaleMachineStock(): Promise<number> {
   const cutoff = new Date(Date.now() - STOCK_FEED_FRESH_DAYS * 24 * 60 * 60 * 1000);
-  // stockStatus が非null かつ、cutoff 以降の StockPost が1件も無い Machine を null に更新。
-  return prisma.$executeRaw`
-    UPDATE "Machine" AS m
-    SET "stockStatus" = NULL, "updatedAt" = NOW()
-    WHERE m."stockStatus" IS NOT NULL
-      AND NOT EXISTS (
-        SELECT 1 FROM "StockPost" AS sp
-        WHERE sp."machineId" = m."id" AND sp."createdAt" >= ${cutoff}
-      )
-  `;
+  // stockStatus が非null かつ、cutoff 以降の StockPost が1件も無い（＝最新報告が7日超）Machine を
+  // 不明(null)に更新。none リレーションフィルタが NOT EXISTS を生成する。@updatedAt は自動更新。
+  const { count } = await prisma.machine.updateMany({
+    where: {
+      stockStatus: { not: null },
+      stockPosts: { none: { createdAt: { gte: cutoff } } },
+    },
+    data: { stockStatus: null },
+  });
+  return count;
 }
 
 const FEED_INCLUDE = {
