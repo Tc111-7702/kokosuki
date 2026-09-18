@@ -21,6 +21,7 @@ import { MapLocationPermissionCard } from '@/components/MapLocationPermissionCar
 import { makeCircleGeoJSON } from '@/lib/map/geojson';
 import { reverseGeocode, resolveLocation, resolveContent, type ContentResult } from '@/lib/map/geo';
 import { getGeolocationPermission, type GeolocationPermissionState } from '@/lib/map/geolocationPermission';
+import { useExpireStaleStock } from '@/lib/useExpireStaleStock';
 
 // accessToken は page.tsx から props 経由で受け取る（下記 MapClient を参照）
 
@@ -41,6 +42,8 @@ if (typeof window !== 'undefined' && !localStorage.getItem(MIGRATION_KEY)) {
 // ─── MapClient ───────────────────────────────────────────────────────────────
 
 export default function MapPage() {
+  // 開いた時に、7日以上更新の無い在庫状態を「不明」に戻す（Map/店舗詳細で共有）。
+  useExpireStaleStock();
   const searchParams   = useSearchParams();
   const spotIdParam        = searchParams.get('spotId');
   const highlightGachaId   = searchParams.get('highlightGachaId') ?? undefined;
