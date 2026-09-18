@@ -76,7 +76,8 @@ export default function NavPickerModal({ lat, lng, name, currentPos, onClose }: 
       if (touchStartY.current === null) return;
       const y = e.touches[0]?.clientY;
       if (y == null) return;
-      if (touchStartY.current - y > SWIPE_CLOSE_DELTA) {
+      // 指を下にスワイプ（＝上方向スクロール）で閉じる。wheel の closeOnScrollUp と揃える。
+      if (y - touchStartY.current > SWIPE_CLOSE_DELTA) {
         touchStartY.current = null;
         requestClose();
       }
