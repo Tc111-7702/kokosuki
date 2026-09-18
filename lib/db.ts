@@ -1099,6 +1099,26 @@ export async function getUserGachaLikesWithIp(userId: string) {
 // 量が増えたらここを縮める。通常投稿は制限なし（新着＋カーソルで自然に沈む）。
 export const STOCK_FEED_FRESH_DAYS = 7;
 
+/**
+ * 在庫状態の自動失効：直近 STOCK_FEED_FRESH_DAYS(7日) 以内の StockPost が無い（＝最新の在庫報告が
+ * 7日を過ぎている）Machine のうち、stockStatus が「不明(null)」でないものを不明(null)に戻す。
+ * Map / 店舗詳細ページを開いた時に呼ばれる想定。誤った古い在庫情報の掲示を防ぐ。冪等。
+ * @returns 更新した Machine 件数
+ */
+export async function expireStaleMachineStock(): Promise<number> {
+  const cutoff = new Date(Date.now() - STOCK_FEED_FRESH_DAYS * 24 * 60 * 60 * 1000);
+  // stockStatus が非null かつ、cutoff 以降の StockPost が1件も無い（＝最新報告が7日超）Machine を
+  // 不明(null)に更新。none リレーションフィルタが NOT EXISTS を生成する。@updatedAt は自動更新。
+  const { count } = await prisma.machine.updateMany({
+    where: {
+      stockStatus: { not: null },
+      stockPosts: { none: { createdAt: { gte: cutoff } } },
+    },
+    data: { stockStatus: null },
+  });
+  return count;
+}
+
 const FEED_INCLUDE = {
   user:   { select: FEED_USER_SELECT },
   spot:   { select: FEED_SPOT_SELECT },

@@ -15,6 +15,7 @@ import { type FeedPost, type FeedItem } from '@/components/community-types';
 import { useIsMobile } from '@/lib/useIsMobile';
 import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 import { StoreReviews } from '@/components/StoreReviews';
+import { useExpireStaleStock } from '@/lib/useExpireStaleStock';
 
 // ─── 型定義 ──────────────────────────────────────────────────
 
@@ -235,6 +236,8 @@ function StorePosts({
 // ─── メインページ ───────────────────────────────────────────────────
 
 export default function StorePage() {
+  // 開いた時に、7日以上更新の無い在庫状態を「不明」に戻す（Map/店舗詳細で共有）。
+  useExpireStaleStock();
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
