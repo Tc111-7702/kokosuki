@@ -1225,11 +1225,26 @@ export const getStockPostOwnerId = (id: string) =>
   prisma.stockPost.findUnique({ where: { id }, select: { userId: true } });
 
 export const deleteStockPost = (id: string) =>
-  // 在庫報告本体と、それを参照する通知（お気に入り在庫/いいね/返信）を同時に削除
-  prisma.$transaction([
-    prisma.notification.deleteMany({ where: { stockPostId: id } }),
-    prisma.stockPost.delete({ where: { id } }),
-  ]);
+  // 在庫報告本体と、それを参照する通知（お気に入り在庫/いいね/返信）を削除し、
+  // 削除後に Machine.stockStatus を再計算する：
+  //   - 残存する最新の StockPost が7日以内 → その stockStatus に合わせる
+  //   - 最新が7日より前 / 残存投稿が0 → null（不明）に戻す
+  prisma.$transaction(async (tx) => {
+    const target = await tx.stockPost.findUnique({ where: { id }, select: { machineId: true } });
+    if (!target) return; // 既に無ければ何もしない
+    await tx.notification.deleteMany({ where: { stockPostId: id } });
+    await tx.stockPost.delete({ where: { id } });
+
+    // 削除後に残る、その Machine の最新 StockPost を見て stockStatus を再計算
+    const latest = await tx.stockPost.findFirst({
+      where: { machineId: target.machineId },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      select: { stockStatus: true, createdAt: true },
+    });
+    const cutoff = new Date(Date.now() - STOCK_FEED_FRESH_DAYS * 24 * 60 * 60 * 1000);
+    const nextStatus = latest && latest.createdAt >= cutoff ? latest.stockStatus : null;
+    await tx.machine.update({ where: { id: target.machineId }, data: { stockStatus: nextStatus } });
+  });
 
 /** 在庫報告いいねをトグル */
 export async function toggleStockPostLike(userId: string, stockPostId: string) {
