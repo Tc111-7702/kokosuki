@@ -9,6 +9,19 @@ import { SpotGachaPicker } from '@/components/SpotGachaPicker';
 import { useIsMobile } from '@/lib/useIsMobile';
 import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 
+// 在庫報告の距離検証用に、その場の現在地を1回だけ取得する（キャッシュ不使用）。
+// サーバー側(/api/stock-posts)が lat/lng で距離を検証するため、投稿時に付与する。
+function getFreshPosition(): Promise<{ lat: number; lng: number } | null> {
+  return new Promise((resolve) => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) { resolve(null); return; }
+    navigator.geolocation.getCurrentPosition(
+      (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
+      () => resolve(null),
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 },
+    );
+  });
+}
+
 // ─── 型 ────────────────────────────────────────────────────────────────
 
 interface GachaSuggestion { id?: string; label: string; type: 'gacha' | 'genre'; imageUrl?: string | null }
@@ -270,10 +283,12 @@ export function DesktopStockForm({ onDone, initialSpotId = '', initialSpotName =
     setVErr({});
     setSubmitting(true); setError('');
     try {
+      const pos = await getFreshPosition();
+      if (!pos) { setError('現在地を取得できませんでした。位置情報を許可して再度お試しください'); return; }
       const res = await fetch('/api/stock-posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gachaId, spotId, stockStatus }),
+        body: JSON.stringify({ gachaId, spotId, stockStatus, lat: pos.lat, lng: pos.lng }),
       });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? '投稿に失敗しました'); }
       if (onDone) onDone();
@@ -467,10 +482,12 @@ export function StockPostForm({ onDone, initialSpotId = '', initialSpotName = ''
     setSubmitting(true);
     setError('');
     try {
+      const pos = await getFreshPosition();
+      if (!pos) { setError('現在地を取得できませんでした。位置情報を許可して再度お試しください'); return; }
       const res = await fetch('/api/stock-posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gachaId, spotId, stockStatus }),
+        body: JSON.stringify({ gachaId, spotId, stockStatus, lat: pos.lat, lng: pos.lng }),
       });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? '投稿に失敗しました'); }
       if (onDone) onDone();
