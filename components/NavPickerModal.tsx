@@ -160,7 +160,8 @@ export default function NavPickerModal({ lat, lng, name, currentPos, onClose }: 
           }}
           onPointerMove={e => {
             if (dragStartY.current === null) return;
-            if (dragStartY.current - e.clientY > SWIPE_CLOSE_DELTA) {
+            // 下方向スワイプ（＝上方向スクロール／シートを下げる動き）で閉じる。
+            if (e.clientY - dragStartY.current > SWIPE_CLOSE_DELTA) {
               dragStartY.current = null;
               requestClose();
             }
