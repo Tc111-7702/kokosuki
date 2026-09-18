@@ -94,8 +94,25 @@ export default function SpotDetailSheet({
   const [reviewText,  setReviewText]  = useState('');
   const [submittingR, setSubmittingR] = useState(false);
   const reviewTextareaRef = useRef<HTMLTextAreaElement>(null);
+  // 在庫報告の距離判定は、渡された currentPos ではなく「カードを開いた時にその場で取り直した
+  // 現在地」で行う。マップ上のクリック等で偽装した位置での不正な在庫報告を防ぐため。
+  const [freshPos, setFreshPos] = useState<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => { setExpanded(false); setReviews([]); setReviewText(''); }, [spot?.id]);
+
+  // カードを開く（spot が変わる）たびに現在地を取り直す。maximumAge:0 でキャッシュを使わず必ず新規取得。
+  useEffect(() => {
+    if (!spot) return;
+    setFreshPos(null);
+    if (typeof navigator === 'undefined' || !navigator.geolocation) return;
+    let cancelled = false;
+    navigator.geolocation.getCurrentPosition(
+      (p) => { if (!cancelled) setFreshPos({ lat: p.coords.latitude, lng: p.coords.longitude }); },
+      () => { /* 取得失敗（許可拒否・タイムアウト等）時は freshPos=null のまま＝在庫報告は不可（安全側） */ },
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 },
+    );
+    return () => { cancelled = true; };
+  }, [spot?.id]);
 
   useEffect(() => {
     if (!spot) return;
@@ -149,11 +166,16 @@ export default function SpotDetailSheet({
   const knownCount   = matchedGacha.filter(g => spot.stockMap[g.id]).length;
   const isSearchMode = searchOverrideIds != null;
   const isEmpty      = matchedGacha.length === 0;
-  const distanceM    = currentPos
-    ? haversineM(currentPos.lat, currentPos.lng, spot.lat, spot.lng)
+  // 表示用の距離は fresh 優先、無ければ従来の currentPos / spot.distance にフォールバック。
+  const displayPos   = freshPos ?? currentPos ?? null;
+  const distanceM    = displayPos
+    ? haversineM(displayPos.lat, displayPos.lng, spot.lat, spot.lng)
     : spot.distance;
   const distText     = fmtDistance(distanceM);
-  const tooFarForStock = distanceM > 500;
+  // 在庫報告の可否は「その場で取り直した現在地(freshPos)」のみで厳密判定する。
+  // freshPos が無い（未取得・許可拒否・失敗）場合は、位置を検証できないため報告不可。
+  const freshDistanceM = freshPos ? haversineM(freshPos.lat, freshPos.lng, spot.lat, spot.lng) : null;
+  const tooFarForStock = freshDistanceM === null || freshDistanceM > 500;
 
   // デスクトップはボトムナビがないので bottom: 0、モバイルは bottom: 64
   const bottomOffset = isMobile ? 64 : 0;
