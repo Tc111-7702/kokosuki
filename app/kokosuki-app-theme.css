@@ -283,6 +283,14 @@ html.dark [data-kokosuki-app] [style*="background: rgb(250, 250, 245)"] {
   background-color: var(--app-cream-bg) !important;
 }
 
+/* マップの店舗カード「在庫を報告」ボタン：ダークでもアクティブ時はライトと同じ明るい色に。
+   上の属性セレクタ（#F5F3ED→暗色 / #555→グレー）を、より高詳細度で打ち消す。
+   disabled（=距離オーバー/該当ガチャ無し）のときは従来どおり暗く残す。 */
+html.dark [data-kokosuki-app] .stock-report-btn:not(:disabled) {
+  background-color: #f5f3ed !important;
+  color: #555555 !important;
+}
+
 html.dark [data-kokosuki-app] [style*="background: #E5E1D0"],
 html.dark [data-kokosuki-app] [style*="background:#E5E1D0"],
 html.dark [data-kokosuki-app] [style*="background: rgb(229, 225, 208)"] {

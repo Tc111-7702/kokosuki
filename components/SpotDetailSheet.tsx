@@ -378,7 +378,7 @@ export default function SpotDetailSheet({
             <button
               disabled={isEmpty || tooFarForStock}
               onClick={() => router.push(`/post?mode=stock&spotId=${spot.id}&spotName=${encodeURIComponent(spot.name)}&filterGachaIds=${filterGachaIds.join(',')}${searchLabel ? `&contentSearch=${encodeURIComponent(searchLabel)}` : ''}`)}
-              className={`min-w-0 flex-1 rounded-2xl font-bold ${isMobile ? 'px-2 py-2.5 text-[12px]' : 'py-2.5 text-[14px]'}`}
+              className={`stock-report-btn min-w-0 flex-1 rounded-2xl font-bold ${isMobile ? 'px-2 py-2.5 text-[12px]' : 'py-2.5 text-[14px]'}`}
               style={{ background: '#F5F3ED', color: '#555', opacity: isEmpty || tooFarForStock ? 0.4 : 1, cursor: isEmpty || tooFarForStock ? 'not-allowed' : 'pointer' }}>
               在庫を報告
             </button>
