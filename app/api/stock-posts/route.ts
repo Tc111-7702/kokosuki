@@ -4,10 +4,9 @@ import { headers } from 'next/headers';
 import * as db from '@/lib/db';
 import { notifyFavoriteStock } from '@/lib/notifications';
 
-// 在庫報告を許可する店舗からの最大距離（メートル）。クライアント側(SpotDetailSheet / StockSpotPanel)は
-// 500m で制限しているが、直接 API を叩かれても弾けるようサーバーでも検証する。
-// クライアントとサーバーで現在地取得のタイミングがずれるため、GPS 誤差ぶんの猶予を持たせる。
-const STOCK_REPORT_MAX_DISTANCE_M = 700;
+// 在庫報告を許可する店舗からの最大距離（メートル）。クライアント側(SpotDetailSheet / StockSpotPanel)と
+// 揃えて 500m。直接 API を叩かれても弾けるようサーバーでも検証する。
+const STOCK_REPORT_MAX_DISTANCE_M = 500;
 
 function haversineM(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371000;
