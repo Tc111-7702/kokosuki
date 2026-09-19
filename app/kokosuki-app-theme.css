@@ -824,6 +824,14 @@ html.dark [data-kokosuki-app] .reply-mention-dropdown {
   border-color: #262626 !important;
 }
 
+/* サジェスト候補のユーザー名=白、@ハンドル=ほぼ白（親コンテナの gray 上書きにも勝つ） */
+html.dark [data-kokosuki-app] .reply-mention-dropdown .text-gray-800 {
+  color: #ffffff !important;
+}
+html.dark [data-kokosuki-app] .reply-mention-dropdown .text-gray-400 {
+  color: #e5e5e5 !important;
+}
+
 html.dark [data-kokosuki-app] .reply-mention-dropdown .hover\:bg-gray-50:hover {
   background-color: #262626 !important;
 }

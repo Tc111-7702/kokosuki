@@ -98,7 +98,7 @@ export function ReviewRepliesPanel({
 
       <div className="relative border-t border-gray-100">
         {mentionQuery !== null && mentionCandidates.length > 0 && (
-          <div className="absolute bottom-full left-3 right-3 mb-1 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden z-20 max-h-44 overflow-y-auto">
+          <div className="reply-mention-dropdown absolute bottom-full left-3 right-3 mb-1 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden z-20 max-h-44 overflow-y-auto">
             {mentionCandidates.map(u => (
               <button
                 key={u.id}
