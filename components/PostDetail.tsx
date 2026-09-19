@@ -220,8 +220,8 @@ export function PostDetail({ post, onBack, onReplied, onDeleted }: { post: FeedP
               >
                 <Avatar user={u} size={28} />
                 <span className="flex items-baseline gap-1.5 min-w-0">
-                  <span className="text-sm font-medium text-gray-800 truncate">{u.name}</span>
-                  {u.profile?.handle && <span className="text-xs text-gray-400 truncate">@{u.profile.handle}</span>}
+                  <span className="text-sm font-medium text-gray-800 dark:text-white truncate">{u.name}</span>
+                  {u.profile?.handle && <span className="text-xs text-gray-400 dark:text-gray-200 truncate">@{u.profile.handle}</span>}
                 </span>
               </button>
             ))}
