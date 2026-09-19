@@ -494,7 +494,7 @@ export default function MapPage() {
     const map = new mapboxgl.Map({
       container: containerRef.current,
       style: 'mapbox://styles/mapbox/streets-v12',
-      center: [139.6917, 35.6895],
+      center: [135.4959, 34.7025], // 位置情報が取れないときの初期地点（大阪・梅田周辺）
       zoom: 14, language: 'ja',
     });
     mapRef.current = map;
