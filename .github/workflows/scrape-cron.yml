@@ -2,11 +2,12 @@ name: scrape-cron
 
 on:
   schedule:
-    # 【テスト用】5分ごと（GitHubの最短間隔）。動作確認できたら下の12hに切り替える。
-    - cron: '*/5 * * * *'
-    # 【本番用】12時間ごと（00:00 / 12:00 UTC = 09:00 / 21:00 JST）。テスト後にこちらだけ有効化。
-    # - cron: '0 */12 * * *'
-  workflow_dispatch: {}   # 手動実行（Actionsタブ →「Run workflow」ですぐ試せる）
+    # GitHubのcronはUTC。実行時刻は scripts/scrape-cron.ts 側の SCRAPE_TIMES(JST) で判定する。
+    # gacha=03:00 JST / phone=05:00 JST の2回だけ発火する。
+    # ※ベストエフォート（数分遅延あり）。丸ごとスキップされた日も lastRunAt により翌トリガーで取り戻す。
+    - cron: '0 18 * * *'  # 18:00 UTC = 03:00 JST → gacha
+    - cron: '0 20 * * *'  # 20:00 UTC = 05:00 JST → phone
+  workflow_dispatch: {}   # 手動実行（Actionsタブ →「Run workflow」）
 
 # ワークフローの多重起動を禁止（前の実行が走っていたら重ねない）
 concurrency:
@@ -16,7 +17,8 @@ concurrency:
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # gacha フルスクレイプは約58分かかるため上限を延長（GH Actions のジョブ上限は6時間）。
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -24,7 +26,7 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - name: Run scrape-cron (due判定して必要時のみ実行)
+      - name: Run scrape-cron (予定時刻を過ぎていて本日未実行のものだけ実行)
         run: npx tsx scripts/scrape-cron.ts
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}

@@ -4,12 +4,11 @@ import { runGachaScraping } from '@/lib/scrapers/gacha-island';
 import { runPhoneScraping } from '@/lib/scrapers/phone';
 import type { ScrapeType } from '@/lib/scrapeSchedule';
 
-// GitHub Actions から定期的に呼ばれるハートビート用ランナー。
-// DBの予約(ScrapeSchedule)を見て「今実行すべきか(due)」を判定し、
-// due のときだけロックを取ってスクレイプ本体を1回実行する。
-// due判定/ロック/結果反映のSQLは lib/db に集約（claimDueScrapeRun / finishScrapeRun）。
-//
-// 既存の常駐worker(scraperPolling)とは独立。将来workerを退役してもこちらだけで回る。
+// GitHub Actions から1日2回(03:00/05:00 JST)呼ばれるランナー。
+// 実行時刻は lib/db の SCRAPE_TIMES(JST) で固定管理し、isScrapeDue で
+// 「予定時刻を過ぎていて本日未実行か」を判定。due のときだけスクレイプを1回実行する。
+// 予約設定(DB管理)は廃止。GHのトリガーがスキップされた日も lastRunAt により
+// 次のトリガーで取り戻す（キャッチアップ）。多重起動は GH の concurrency で防止。
 
 const RUNNERS: Record<ScrapeType, () => Promise<void>> = {
   gacha: runGachaScraping,
@@ -21,28 +20,28 @@ async function main() {
   let ranAny = false;
 
   for (const type of types) {
-    let claimed = false;
+    let due = false;
     try {
-      claimed = await db.claimDueScrapeRun(type);
+      due = await db.isScrapeDue(type);
     } catch (e) {
       console.error(`[scrape-cron] ${type}: due判定に失敗（DB接続断など）→ skip`, e);
       process.exitCode = 1;
       continue;
     }
-    if (!claimed) {
-      console.log(`[scrape-cron] ${type}: 実行不要 or ロック中 → skip`);
+    if (!due) {
+      console.log(`[scrape-cron] ${type}: 予定時刻前 or 本日実行済み → skip`);
       continue;
     }
 
     ranAny = true;
-    console.log(`[scrape-cron] ${type}: due → 実行開始 ${new Date().toISOString()}`);
+    console.log(`[scrape-cron] ${type}: 実行開始 ${new Date().toISOString()}`);
     try {
       await RUNNERS[type]();
-      await db.finishScrapeRun(type, true);
+      await db.markScrapeRan(type);
       console.log(`[scrape-cron] ${type}: 成功`);
     } catch (e) {
-      await db.finishScrapeRun(type, false).catch(() => undefined);
-      console.error(`[scrape-cron] ${type}: 失敗（ロック解放・次回リトライ）`, e);
+      // lastRunAt を進めない＝次トリガーで再試行される
+      console.error(`[scrape-cron] ${type}: 失敗（lastRunAt据え置き・次回リトライ）`, e);
       process.exitCode = 1;
     }
   }
