@@ -65,9 +65,9 @@ export function HorizontalGachaSection({ title, color, apiUrl, scrollId, showRan
   const rankScrollPaddingLeft = rankNumberInset != null ? rankNumberInset + (isMobile ? 4 : 8) : 0;
 
   return (
-    <div style={{ marginLeft: 16, marginRight: isMobile ? 0 : 16 }}>
-      {/* ヘッダー（簡素な黒文字タイトル） */}
-      <div style={{ paddingTop: isMobile ? 12 : 16, paddingBottom: isMobile ? 6 : 8, paddingLeft: isMobile ? 4 : 8 }}>
+    <div style={{ marginLeft: isMobile ? 0 : 16, marginRight: isMobile ? 0 : 16 }}>
+      {/* ヘッダー（簡素な黒文字タイトル）。モバイルは外側marginを外したので paddingLeft に 16 を足してタイトル位置を維持 */}
+      <div style={{ paddingTop: isMobile ? 12 : 16, paddingBottom: isMobile ? 6 : 8, paddingLeft: isMobile ? 20 : 8 }}>
         <p style={{ fontSize: isMobile ? 15 : 18, fontWeight: 700, color: '#111', margin: 0, letterSpacing: '-0.01em' }}>{title}</p>
       </div>
 
@@ -86,7 +86,10 @@ export function HorizontalGachaSection({ title, color, apiUrl, scrollId, showRan
           overflowX: 'auto',
           overflowY: 'hidden', // 上下方向のスクロールを出さない
           paddingBottom: 10,
-          paddingLeft: rankScrollPaddingLeft,
+          // モバイルは外側marginを外したぶん paddingLeft に 16 を足す。
+          // paddingLeft は中身と一緒にスクロールするため、1枚目は従来位置のまま、
+          // スクロール時はカードが画面端まで見切れる（マップの店舗カードと同じ挙動）。
+          paddingLeft: rankScrollPaddingLeft + (isMobile ? 16 : 0),
           scrollbarWidth: 'none',
         }}
       >

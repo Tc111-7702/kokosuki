@@ -68,8 +68,9 @@ export function OshiNewSection() {
         <p style={{ fontSize: isMobile ? 15 : 18, fontWeight: 700, color: '#111', margin: 0, letterSpacing: '-0.01em' }}>あなたへのおすすめ</p>
       </div>
 
-      {/* IP別セクション（モバイルは右marginを除去して横スクロールを右端まで見切れさせる） */}
-      <div style={{ margin: isMobile ? '0 0 0 16px' : '0 16px', paddingTop: 0 }}>
+      {/* IP別セクション（モバイルは左右marginを除去して横スクロールを画面端まで見切れさせる。
+          左端の余白は各スクロールの paddingLeft で担保する） */}
+      <div style={{ margin: isMobile ? '0' : '0 16px', paddingTop: 0 }}>
         {groups.map((group, i) => (
           <IpGroup key={group.ipName} group={group} isMobile={isMobile} narrow={isNarrow} isLast={i === groups.length - 1} />
         ))}
@@ -109,6 +110,9 @@ function IpGroup({ group, isMobile, narrow, isLast }: { group: Group; isMobile: 
         style={{
           display: 'flex', gap: isMobile ? 12 : 32, overflowX: 'auto',
           paddingBottom: isMobile ? 10 : 10,
+          // モバイルは親の左marginを外したぶん、1枚目の左余白を paddingLeft で担保。
+          // padding は中身と一緒にスクロールするのでカードは画面端まで見切れる。
+          paddingLeft: isMobile ? 16 : 0,
           scrollbarWidth: 'none',
         }}
       >
