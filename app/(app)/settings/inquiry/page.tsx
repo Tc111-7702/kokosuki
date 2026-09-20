@@ -1,10 +1,12 @@
 'use client';
+import { useSetNavActive } from '@/lib/navActiveStore';
 
 import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { InquiryForm } from '@/components/InquiryForm';
 
 export default function InquiryPage() {
+  useSetNavActive('mypage');
   const router = useRouter();
 
   return (

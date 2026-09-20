@@ -217,9 +217,20 @@ export function StoreReviews({ spotId, autoOpenReviewId }: { spotId: string; aut
                     paddingRight: canShowMenu ? 20 : (isOwnReview && editingId !== review.id ? 24 : 0),
                   }}
                 >
-                  <Avatar user={review.user} size={28} />
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); router.push(`/mypage/${review.user.id}`); }}
+                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', flexShrink: 0, lineHeight: 0 }}
+                    aria-label={`${review.user.name}のプロフィール`}
+                  >
+                    <Avatar user={review.user} size={28} />
+                  </button>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: isDark ? '#FFFFFF' : '#333' }}>{review.user.name}</span>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); router.push(`/mypage/${review.user.id}`); }}
+                      style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 12, fontWeight: 700, color: isDark ? '#FFFFFF' : '#333' }}
+                    >{review.user.name}</button>
                     <span style={{ fontSize: 11, color: '#AAA', marginLeft: 6 }}>{timeAgo(review.createdAt)}</span>
                     {review.updatedAt !== review.createdAt && (
                       <span style={{ fontSize: 10, color: '#CCC', marginLeft: 4 }}>（編集済）</span>

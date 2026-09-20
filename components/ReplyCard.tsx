@@ -85,13 +85,25 @@ export function ReplyCard({
       ? 'text-[13px] leading-[1.7] text-gray-800 whitespace-pre-wrap break-words [overflow-wrap:anywhere] max-w-full'
       : 'text-sm text-gray-800 leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] max-w-full';
 
+  const goToUser = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    router.push(`/mypage/${reply.user.id}`);
+  };
+
   const content = (
     <>
-      <Avatar user={reply.user} size={avatarSize} />
+      <button
+        type="button"
+        onClick={goToUser}
+        className="flex-shrink-0 active:opacity-60"
+        aria-label={`${reply.user.name}のプロフィール`}
+      >
+        <Avatar user={reply.user} size={avatarSize} />
+      </button>
       <div className="flex-1 min-w-0">
         <div className={`relative ${isCard ? 'pt-0.5' : compact ? 'mb-0.5' : 'mb-1'}`}>
           <div className={`flex items-center min-w-0 pr-5 ${isCard ? 'gap-1.5 mb-0.5' : compact ? 'gap-1.5' : 'gap-2'}`}>
-            <span className={nameClass}>{reply.user.name}</span>
+            <button type="button" onClick={goToUser} className={`${nameClass} text-left hover:underline`}>{reply.user.name}</button>
             <span className={timeClass}>{timeAgo(reply.createdAt)}</span>
           </div>
           <div

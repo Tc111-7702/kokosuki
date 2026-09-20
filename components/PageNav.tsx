@@ -3,18 +3,18 @@
 import { useSyncExternalStore } from 'react';
 import { Home, MapPin, User, Plus, Bell } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useNavActive } from '@/lib/useNavActive';
+import { useNavActiveKey, type NavKey } from '@/lib/navActiveStore';
 import { useUnreadNotificationCount } from '@/lib/useUnreadNotificationCount';
 import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 import { KokosukiLogo } from '@/components/ui/KokosukiLogo';
 import { DESKTOP_PAGE_NAV_WIDTH } from '@/lib/desktopPageNav';
 
-const NAV_ITEMS = [
-  { path: '/home',          label: 'ホーム',     icon: <Home size={20} /> },
-  { path: '/map',           label: 'さがす',     icon: <MapPin size={20} /> },
-  { path: '/post',          label: '投稿する',   icon: null },
-  { path: '/notifications', label: '通知',       icon: <Bell size={20} /> },
-  { path: '/mypage',        label: 'マイページ', icon: <User size={20} /> },
+const NAV_ITEMS: { path: string; key: NavKey | null; label: string; icon: React.ReactNode }[] = [
+  { path: '/home',          key: 'home',          label: 'ホーム',     icon: <Home size={20} /> },
+  { path: '/map',           key: 'map',           label: 'さがす',     icon: <MapPin size={20} /> },
+  { path: '/post',          key: null,            label: '投稿する',   icon: null },
+  { path: '/notifications', key: 'notifications', label: '通知',       icon: <Bell size={20} /> },
+  { path: '/mypage',        key: 'mypage',        label: 'マイページ', icon: <User size={20} /> },
 ];
 
 const POST_BG = '#FFCD31';        // 投稿ボタンの黄色
@@ -22,7 +22,7 @@ const POST_BG = '#FFCD31';        // 投稿ボタンの黄色
 export function PageNav() {
   const router   = useRouter();
   const unread = useUnreadNotificationCount();
-  const isNavActive = useNavActive();
+  const activeKey = useNavActiveKey();
   const isDark = useSyncExternalStore(
     subscribeTheme,
     () => getThemeSnapshot() === 'dark',
@@ -64,7 +64,7 @@ export function PageNav() {
             );
           }
 
-          const isActive = isNavActive(item.path);
+          const isActive = item.key != null && item.key === activeKey;
           const color = isActive ? activeColor : inactiveColor;
           return (
             <button
