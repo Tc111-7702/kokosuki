@@ -19,7 +19,9 @@ concurrency:
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # gacha フルスクレイプは約58分かかるため上限を延長（GH Actions のジョブ上限は6時間）。
+    # 30分だと gacha が途中で強制終了され、ended スイープ/古いmachine削除まで走らない。
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
