@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { claimDueScrapeRun, finishScrapeRun } from '@/lib/db';
+import * as db from '@/lib/db';
 import { runGachaScraping } from '@/lib/scrapers/gacha-island';
 import { runPhoneScraping } from '@/lib/scrapers/phone';
 import type { ScrapeType } from '@/lib/scrapeSchedule';
@@ -23,7 +23,7 @@ async function main() {
   for (const type of types) {
     let claimed = false;
     try {
-      claimed = await claimDueScrapeRun(type);
+      claimed = await db.claimDueScrapeRun(type);
     } catch (e) {
       console.error(`[scrape-cron] ${type}: due判定に失敗（DB接続断など）→ skip`, e);
       process.exitCode = 1;
@@ -38,10 +38,10 @@ async function main() {
     console.log(`[scrape-cron] ${type}: due → 実行開始 ${new Date().toISOString()}`);
     try {
       await RUNNERS[type]();
-      await finishScrapeRun(type, true);
+      await db.finishScrapeRun(type, true);
       console.log(`[scrape-cron] ${type}: 成功`);
     } catch (e) {
-      await finishScrapeRun(type, false).catch(() => undefined);
+      await db.finishScrapeRun(type, false).catch(() => undefined);
       console.error(`[scrape-cron] ${type}: 失敗（ロック解放・次回リトライ）`, e);
       process.exitCode = 1;
     }
