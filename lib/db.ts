@@ -1808,6 +1808,54 @@ export const upsertScrapeSchedule = (type: string, everyDays: number, atTime: st
     create: { type, everyDays, atTime },
   });
 
+/**
+ * due判定＋ロック取得を「1本の UPDATE ... RETURNING」で原子的に行う（scrape-cron用）。
+ * 返り true なら実行権を取得（＝スクレイプを実行してよい）。
+ * 条件: 今が今日の atTime(JST) 以降 / 前回実行から everyDays 日以上（未実行含む）/ ロック空 or 2h失効。
+ *
+ * ・「今日の atTime(JST)」の絶対時刻: AT TIME ZONE 'Asia/Tokyo' を2回使って算出（DST無しなので固定でOK）。
+ * ・lastRunAt/lockedAt は timestamp(3)（tz無し・UTC値）なので比較は AT TIME ZONE 'UTC' で明示（セッションTZ非依存）。
+ */
+export async function claimDueScrapeRun(type: string): Promise<boolean> {
+  const rows = await prisma.$queryRaw<{ type: string }[]>`
+    UPDATE "ScrapeSchedule" s
+    SET "lockedAt" = now() AT TIME ZONE 'UTC'
+    WHERE s."type" = ${type}
+      AND now() >= (
+        (date_trunc('day', now() AT TIME ZONE 'Asia/Tokyo') + s."atTime"::time)
+        AT TIME ZONE 'Asia/Tokyo'
+      )
+      AND (
+        s."lastRunAt" IS NULL
+        OR (s."lastRunAt" AT TIME ZONE 'UTC') < (
+             (date_trunc('day', now() AT TIME ZONE 'Asia/Tokyo') + s."atTime"::time)
+             AT TIME ZONE 'Asia/Tokyo'
+           ) - make_interval(days => GREATEST(s."everyDays" - 1, 0))
+      )
+      AND (
+        s."lockedAt" IS NULL
+        OR (s."lockedAt" AT TIME ZONE 'UTC') < now() - interval '2 hours'
+      )
+    RETURNING s."type" AS type
+  `;
+  return rows.length > 0;
+}
+
+/** スクレイプ実行の結果を反映。成功時のみ lastRunAt を進める。失敗時はロックだけ解放し次tickで再試行。 */
+export async function finishScrapeRun(type: string, ok: boolean): Promise<void> {
+  if (ok) {
+    await prisma.$executeRaw`
+      UPDATE "ScrapeSchedule"
+      SET "lastRunAt" = now() AT TIME ZONE 'UTC', "lockedAt" = NULL
+      WHERE "type" = ${type}
+    `;
+  } else {
+    await prisma.$executeRaw`
+      UPDATE "ScrapeSchedule" SET "lockedAt" = NULL WHERE "type" = ${type}
+    `;
+  }
+}
+
 // ─── 通報 ─────────────────────────────────────────────────────────────────────
 
 export const createReport = (data: {
