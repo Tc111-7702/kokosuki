@@ -731,14 +731,15 @@ export const upsertMachine = (spotId: string, gachaId: string) =>
  */
 export async function pruneShopMachines(spotId: string, liveWpPostIds: number[]): Promise<number> {
   if (liveWpPostIds.length === 0) return 0; // 安全ガード: 空なら何も消さない
-  return prisma.$executeRaw`
-    DELETE FROM "Machine" m
-    USING "Gacha" g
-    WHERE m."gachaId" = g."id"
-      AND m."spotId" = ${spotId}
-      AND g."wpPostId" IS NOT NULL
-      AND g."wpPostId" <> ALL(${liveWpPostIds}::int[])
-  `;
+  const res = await prisma.machine.deleteMany({
+    where: {
+      spotId,
+      // scraper由来(wpPostId有り)で、この店の live に該当しないものだけ削除。
+      // wpPostId=null（手動追加）は notIn/not:null により対象外。
+      gacha: { wpPostId: { not: null, notIn: liveWpPostIds } },
+    },
+  });
+  return res.count;
 }
 
 // ─── Notification ─────────────────────────────────────────────────────────────
