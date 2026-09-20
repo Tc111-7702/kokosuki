@@ -7,75 +7,76 @@ import type { ScrapeType } from '@/lib/scrapeSchedule';
 // GitHub Actions から定期的に呼ばれるハートビート用ランナー。
 // DBの予約(ScrapeSchedule)を見て「今実行すべきか(due)」を判定し、
 // due のときだけロックを取ってスクレイプ本体を1回実行する。
-// 予約時刻はJST。日本はDST無しなので固定+9hでよい。
+// 予約時刻はJST。日本はDST無しなので Asia/Tokyo 固定でよい。
 //
 // 既存の常駐worker(scraperPolling)とは独立。将来workerを退役してもこちらだけで回る。
+//
+// ─ SQLメモ ─
+// 「今日の atTime(JST)」を絶対時刻(timestamptz)にする式（AT TIME ZONE を2回使う）:
+//   ( date_trunc('day', now() AT TIME ZONE 'Asia/Tokyo')  -- 今日(JST)の0時（naive）
+//     + s."atTime"::time )                                 -- + HH:MM
+//   AT TIME ZONE 'Asia/Tokyo'                              -- JST壁時計→絶対時刻(timestamptz)
+// 列 lastRunAt/lockedAt は timestamp(3)（tz無し・PrismaのUTC値）なので、比較時は
+//   (s."col" AT TIME ZONE 'UTC') でUTC絶対時刻に直してから比較する（セッションTZ非依存）。
 
 const RUNNERS: Record<ScrapeType, () => Promise<void>> = {
   gacha: runGachaScraping,
   phone: runPhoneScraping,
 };
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-const LOCK_TIMEOUT_MS = 2 * 60 * 60 * 1000; // 2時間で古いロックを失効
-const JST_OFFSET_MS = 9 * 60 * 60 * 1000;   // 日本はDST無しなので固定+9h
-
-/** 「今日の atTime(JST)」を絶対時刻(Date)で返す。atTime は "HH:MM"。 */
-function scheduledTodayJst(atTime: string, now: Date): Date {
-  const [h, m] = atTime.split(':').map((v) => parseInt(v, 10));
-  const jst = new Date(now.getTime() + JST_OFFSET_MS); // JSTの壁時計
-  const y = jst.getUTCFullYear();
-  const mo = jst.getUTCMonth();
-  const d = jst.getUTCDate();
-  return new Date(Date.UTC(y, mo, d, Number.isFinite(h) ? h : 0, Number.isFinite(m) ? m : 0, 0) - JST_OFFSET_MS);
-}
-
 /**
- * due判定＋ロック取得を updateMany（1本のUPDATE）で原子的に行う。
- * count>0 なら「このプロセスが実行権を取得」＝実行してよい。
- * 同時実行が来ても、ロック条件をWHEREに入れているので1本しか通らない。
+ * due判定＋ロック取得を「1本の UPDATE ... RETURNING」で原子的に行う。
+ * 返り行があれば「このプロセスが実行権を取得」＝実行してよい。
+ * 条件: 今が今日のatTime(JST)以降 / 前回実行から everyDays 日以上（未実行含む）/ ロック空 or 2h失効
  */
-async function claimDueRun(type: ScrapeType, now: Date): Promise<boolean> {
-  const row = await prisma.scrapeSchedule.findUnique({ where: { type } });
-  if (!row) return false;
-
-  // 条件1：今日の atTime(JST) を過ぎているか
-  const scheduled = scheduledTodayJst(row.atTime, now);
-  if (now < scheduled) return false;
-
-  // 条件2の閾値：前回実行が「今日のatTime −(everyDays−1)日」より前か（未実行含む）
-  const dueThreshold = new Date(scheduled.getTime() - Math.max(row.everyDays - 1, 0) * DAY_MS);
-  // 条件3の閾値：この時刻より古いロックは失効扱い
-  const staleLock = new Date(now.getTime() - LOCK_TIMEOUT_MS);
-
-  const res = await prisma.scrapeSchedule.updateMany({
-    where: {
-      type,
-      OR: [{ lastRunAt: null }, { lastRunAt: { lt: dueThreshold } }],       // 条件2
-      AND: [{ OR: [{ lockedAt: null }, { lockedAt: { lt: staleLock } }] }], // 条件3
-    },
-    data: { lockedAt: now },
-  });
-  return res.count > 0;
+async function claimDueRun(type: ScrapeType): Promise<boolean> {
+  const rows = await prisma.$queryRaw<{ type: string }[]>`
+    UPDATE "ScrapeSchedule" s
+    SET "lockedAt" = now() AT TIME ZONE 'UTC'
+    WHERE s."type" = ${type}
+      AND now() >= (
+        (date_trunc('day', now() AT TIME ZONE 'Asia/Tokyo') + s."atTime"::time)
+        AT TIME ZONE 'Asia/Tokyo'
+      )
+      AND (
+        s."lastRunAt" IS NULL
+        OR (s."lastRunAt" AT TIME ZONE 'UTC') < (
+             (date_trunc('day', now() AT TIME ZONE 'Asia/Tokyo') + s."atTime"::time)
+             AT TIME ZONE 'Asia/Tokyo'
+           ) - make_interval(days => GREATEST(s."everyDays" - 1, 0))
+      )
+      AND (
+        s."lockedAt" IS NULL
+        OR (s."lockedAt" AT TIME ZONE 'UTC') < now() - interval '2 hours'
+      )
+    RETURNING s."type" AS type
+  `;
+  return rows.length > 0;
 }
 
 /** 実行結果を反映。成功時のみ lastRunAt を進める。失敗時はロックだけ解放し次tickで再試行。 */
 async function finishRun(type: ScrapeType, ok: boolean): Promise<void> {
-  await prisma.scrapeSchedule.update({
-    where: { type },
-    data: ok ? { lastRunAt: new Date(), lockedAt: null } : { lockedAt: null },
-  });
+  if (ok) {
+    await prisma.$executeRaw`
+      UPDATE "ScrapeSchedule"
+      SET "lastRunAt" = now() AT TIME ZONE 'UTC', "lockedAt" = NULL
+      WHERE "type" = ${type}
+    `;
+  } else {
+    await prisma.$executeRaw`
+      UPDATE "ScrapeSchedule" SET "lockedAt" = NULL WHERE "type" = ${type}
+    `;
+  }
 }
 
 async function main() {
-  const now = new Date();
   const types: ScrapeType[] = ['gacha', 'phone'];
   let ranAny = false;
 
   for (const type of types) {
     let claimed = false;
     try {
-      claimed = await claimDueRun(type, now);
+      claimed = await claimDueRun(type);
     } catch (e) {
       console.error(`[scrape-cron] ${type}: due判定に失敗（DB接続断など）→ skip`, e);
       process.exitCode = 1;
