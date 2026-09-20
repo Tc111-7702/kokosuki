@@ -722,6 +722,25 @@ export const upsertMachine = (spotId: string, gachaId: string) =>
     create: { spotId, gachaId },
   });
 
+/**
+ * 店舗スクレイパー: この店舗の実ページ(live)に無くなった machine を削除する。
+ * liveWpPostIds = その店舗ページの入荷中 wpPostId 集合。
+ * scraper由来(wpPostId有り)のリンクのうち live に該当しないものだけを剥がし、
+ * 手動追加(wpPostId=null)は残す。呼び出し側で空配列(取得失敗/空)のときは呼ばないこと
+ * （空を渡すと全machineが削除されるため）。戻り値は削除件数。
+ */
+export async function pruneShopMachines(spotId: string, liveWpPostIds: number[]): Promise<number> {
+  if (liveWpPostIds.length === 0) return 0; // 安全ガード: 空なら何も消さない
+  return prisma.$executeRaw`
+    DELETE FROM "Machine" m
+    USING "Gacha" g
+    WHERE m."gachaId" = g."id"
+      AND m."spotId" = ${spotId}
+      AND g."wpPostId" IS NOT NULL
+      AND g."wpPostId" <> ALL(${liveWpPostIds}::int[])
+  `;
+}
+
 // ─── Notification ─────────────────────────────────────────────────────────────
 
 // 通知一覧の1件（表示用に整形済み）。actors[0] を左アバターに、
