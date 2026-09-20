@@ -315,20 +315,20 @@ export async function getGachaFilters() {
 
 /** 発売中ガチャのいいね（お気に入り）総数が多い順に IP 名を返す（投稿ページの人気IP用） */
 export async function getPopularIpsByLikes(limit = 12): Promise<string[]> {
-  const rows = await prisma.gacha.findMany({
-    where: { status: 'on_sale' },
-    select: { _count: { select: { gachaLikes: true } }, ...IP_NAME_SELECT },
-  });
-  const likeMap = new Map<string, number>();
-  for (const g of rows) {
-    const name = g.ip?.name;
-    if (!name) continue;
-    likeMap.set(name, (likeMap.get(name) ?? 0) + g._count.gachaLikes);
-  }
-  return [...likeMap.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .map(([ip]) => ip)
-    .slice(0, limit);
+  // IP単位のいいね合算・並べ替え・上位N件の絞り込みをすべてDBで行う。
+  // JOIN "IpName" で ipNameId=null（ジャンル/不明）のガチャは除外（従来の name なしスキップと一致）。
+  // LEFT JOIN + COUNT で、いいね0のIPも含めて集計する（従来仕様と一致）。
+  const rows = await prisma.$queryRaw<{ name: string }[]>`
+    SELECT n."name"
+    FROM "Gacha" g
+    JOIN "IpName" n ON n."id" = g."ipNameId"
+    LEFT JOIN "GachaLike" gl ON gl."gachaId" = g."id"
+    WHERE g."status" = 'on_sale'
+    GROUP BY n."name"
+    ORDER BY COUNT(gl."id") DESC, n."name" ASC
+    LIMIT ${limit}
+  `;
+  return rows.map((r) => r.name);
 }
 
 export type SignupIpOption = {
@@ -424,23 +424,27 @@ export async function getTopGachaImageByIpNames(ipNames: string[]): Promise<Sign
   const unique = [...new Set(ipNames.map((n) => n.trim()).filter(Boolean))];
   if (unique.length === 0) return [];
 
-  const rows = await prisma.gacha.findMany({
-    where: {
-      status: 'on_sale',
-      OR: unique.map((name) => ({ ip: { name: { equals: name, mode: 'insensitive' as const } } })),
-    },
-    select: {
-      imageUrl: true,
-      _count: { select: { gachaLikes: true } },
-      ...IP_NAME_SELECT,
-    },
-    orderBy: { gachaLikes: { _count: 'desc' } },
-  });
+  // IPごとに「いいね数が最も多い発売中ガチャ」を1件だけDBで選び、その画像を取得する。
+  // 大文字小文字を無視してマッチ（従来の mode:'insensitive' と一致）。
+  // DISTINCT ON (name) + ORDER BY いいね数DESC で、IPごとの最上位ガチャの行だけ残す。
+  const lowerNames = unique.map((n) => n.toLowerCase());
+  const rows = await prisma.$queryRaw<{ name: string; imageUrl: string | null }[]>`
+    SELECT DISTINCT ON (n."name")
+           n."name"     AS name,
+           g."imageUrl" AS "imageUrl"
+    FROM "Gacha" g
+    JOIN "IpName" n ON n."id" = g."ipNameId"
+    LEFT JOIN "GachaLike" gl ON gl."gachaId" = g."id"
+    WHERE g."status" = 'on_sale'
+      AND lower(n."name") = ANY(${lowerNames})
+    GROUP BY n."name", g."id", g."imageUrl"
+    ORDER BY n."name", COUNT(gl."id") DESC
+  `;
 
   const imageByCanonical = new Map<string, string | null>();
   const canonicalByLower = new Map<string, string>();
   for (const g of rows) {
-    const name = g.ip?.name;
+    const name = g.name;
     if (!name) continue;
     canonicalByLower.set(name.toLowerCase(), name);
     if (!imageByCanonical.has(name)) imageByCanonical.set(name, g.imageUrl);
