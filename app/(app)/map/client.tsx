@@ -400,8 +400,8 @@ export default function MapPage() {
       const sheetTopViewport = sheetEl
         ? sheetEl.getBoundingClientRect().top
         : window.innerHeight * 0.54;
-      // シート上端の 130px 上にピンを置き、確実に見えるようにする
-      const targetCanvasY = (sheetTopViewport - 130) - rect.top;
+      // 可視エリア（マップ上端〜シート上端）のちょうど中間にピンを置く
+      const targetCanvasY = (sheetTopViewport - rect.top) / 2;
       const delta = point.y - targetCanvasY;
       if (Math.abs(delta) > 5) {
         map.panBy([0, delta], { duration: 400 });
