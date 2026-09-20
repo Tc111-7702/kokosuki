@@ -113,6 +113,8 @@ function IpGroup({ group, isMobile, narrow, isLast }: { group: Group; isMobile: 
           // モバイルは親の左marginを外したぶん、1枚目の左余白を paddingLeft で担保。
           // padding は中身と一緒にスクロールするのでカードは画面端まで見切れる。
           paddingLeft: isMobile ? 16 : 0,
+          // 末尾カードの右にも左と同じ 16px の余白をつける
+          paddingRight: isMobile ? 16 : 0,
           scrollbarWidth: 'none',
         }}
       >

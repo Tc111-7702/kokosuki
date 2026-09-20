@@ -90,6 +90,8 @@ export function HorizontalGachaSection({ title, color, apiUrl, scrollId, showRan
           // paddingLeft は中身と一緒にスクロールするため、1枚目は従来位置のまま、
           // スクロール時はカードが画面端まで見切れる（マップの店舗カードと同じ挙動）。
           paddingLeft: rankScrollPaddingLeft + (isMobile ? 16 : 0),
+          // モバイルは末尾カードの右にも左と同じ 16px の余白をつける
+          paddingRight: isMobile ? 16 : 0,
           scrollbarWidth: 'none',
         }}
       >
