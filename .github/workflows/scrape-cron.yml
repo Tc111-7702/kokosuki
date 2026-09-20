@@ -1,0 +1,32 @@
+name: scrape-cron
+
+on:
+  schedule:
+    # 【テスト用】5分ごと（GitHubの最短間隔）。動作確認できたら下の12hに切り替える。
+    - cron: '*/5 * * * *'
+    # 【本番用】12時間ごと（00:00 / 12:00 UTC = 09:00 / 21:00 JST）。テスト後にこちらだけ有効化。
+    # - cron: '0 */12 * * *'
+  workflow_dispatch: {}   # 手動実行（Actionsタブ →「Run workflow」ですぐ試せる）
+
+# ワークフローの多重起動を禁止（前の実行が走っていたら重ねない）
+concurrency:
+  group: scrape-cron
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Run scrape-cron (due判定して必要時のみ実行)
+        run: npx tsx scripts/scrape-cron.ts
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          NODE_ENV: production
