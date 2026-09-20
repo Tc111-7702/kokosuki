@@ -184,7 +184,7 @@ export default function SpotDetailSheet({
       <div className="fixed z-40"
         style={{ top: 0, right: 0, bottom: bottomOffset, left: mainAreaLeft, background: 'rgba(0,0,0,0.25)' }}
         onClick={onClose} />
-      <div ref={sheetRef} className="fixed right-0 z-50 flex flex-col min-w-0 overflow-hidden"
+      <div ref={sheetRef} data-spot-sheet="1" className="fixed right-0 z-50 flex flex-col min-w-0 overflow-hidden"
         style={{
           left: mainAreaLeft,
           bottom: bottomOffset,
