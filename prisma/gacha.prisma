@@ -84,13 +84,10 @@ model HomePickup {
   @@index([section, sortOrder])
 }
 
-// スクレイピング予約設定（DB管理）。admin が書き込み、worker が読み込む共有テーブル。
-// type='gacha'|'phone' を主キーに、それぞれの頻度(everyDays 1〜7)と実行時刻(atTime)を保持。
+// スクレイプ実行の記録テーブル。実行時刻は GitHub Actions cron + コード定数(SCRAPE_TIMES)で
+// 固定管理するため、予約設定(everyDays/atTime)やロック(lockedAt)は廃止。
+// lastRunAt のみで「本日未実行か（due判定）」を判断する。
 model ScrapeSchedule {
   type      String    @id // 'gacha' | 'phone'
-  everyDays Int       @default(1)
-  atTime    String    @default("03:00")
   lastRunAt DateTime? // 最後に成功実行した時刻（due判定に使用）
-  lockedAt  DateTime? // 実行中ロック（二重起動防止・2hで失効）
-  updatedAt DateTime  @updatedAt
 }
