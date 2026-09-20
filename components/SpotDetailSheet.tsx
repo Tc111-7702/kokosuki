@@ -349,10 +349,17 @@ export default function SpotDetailSheet({
             <div className="min-w-0 px-4 pb-3 flex flex-col gap-2">
               {reviews.map(rv => (
                 <div key={rv.id} className="flex gap-2.5 min-w-0">
-                  <Avatar user={rv.user} size={28} />
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); router.push(`/mypage/${rv.user.id}`); }}
+                    className="flex-shrink-0 active:opacity-60"
+                    aria-label={`${rv.user.name}のプロフィール`}
+                  >
+                    <Avatar user={rv.user} size={28} />
+                  </button>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 mb-0.5">
-                      <span className="text-[12px] font-bold" style={{ color: '#333' }}>{rv.user.name}</span>
+                      <button type="button" onClick={(e) => { e.stopPropagation(); router.push(`/mypage/${rv.user.id}`); }} className="text-[12px] font-bold hover:underline" style={{ color: '#333' }}>{rv.user.name}</button>
                       <span className="text-[11px]" style={{ color: '#aaa' }}>
                         {new Date(rv.createdAt).toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })}
                       </span>

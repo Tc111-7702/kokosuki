@@ -1,4 +1,5 @@
 'use client';
+import { useSetNavActive } from '@/lib/navActiveStore';
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -592,6 +593,7 @@ function NotificationsPageInner() {
 }
 
 export default function NotificationsPage() {
+  useSetNavActive('notifications');
   return (
     <Suspense>
       <NotificationsPageInner />

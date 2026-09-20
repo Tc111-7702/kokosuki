@@ -1,4 +1,5 @@
 'use client';
+import { useSetNavActive } from '@/lib/navActiveStore';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -9,6 +10,7 @@ import { EmailOtpPanel } from '@/components/EmailOtpPanel';
 import { EmailChangeCompletePanel } from '@/components/EmailChangeCompletePanel';
 
 export default function SettingsEmailPage() {
+  useSetNavActive('mypage');
   const router = useRouter();
   const [email, setEmail] = useState<string | null | undefined>(undefined);
   const [profileName, setProfileName] = useState('');

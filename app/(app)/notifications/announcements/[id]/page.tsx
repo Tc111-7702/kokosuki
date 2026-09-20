@@ -1,4 +1,5 @@
 'use client';
+import { useSetNavActive } from '@/lib/navActiveStore';
 
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -155,6 +156,7 @@ function AnnouncementDetailFeed({ id }: { id: string }) {
 }
 
 export default function AnnouncementDetailPage() {
+  useSetNavActive('notifications');
   const router = useRouter();
   const params = useParams();
   const id = String(params.id ?? '');
