@@ -1,7 +1,8 @@
 import { PrismaClient, Prisma } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
-import type { ScrapeType } from '@/lib/scrapeSchedule';
+
+export type ScrapeType = 'gacha' | 'phone';
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined };
 
@@ -1795,19 +1796,7 @@ export const getIpCategoriesWithIpNames = () =>
     },
   });
 
-// ─── スクレイピング予約設定（DB管理） ─────────────────────────────────────────
-
-/** 予約設定を取得（type='gacha'|'phone'）。未設定なら null。 */
-export const getScrapeSchedule = (type: string) =>
-  prisma.scrapeSchedule.findUnique({ where: { type } });
-
-/** 予約設定を upsert（everyDays 1〜7 / atTime "HH:MM"）。 */
-export const upsertScrapeSchedule = (type: string, everyDays: number, atTime: string) =>
-  prisma.scrapeSchedule.upsert({
-    where:  { type },
-    update: { everyDays, atTime },
-    create: { type, everyDays, atTime },
-  });
+// ─── スクレイピング実行管理 ───────────────────────────────────────────────────
 
 // スクレイプの実行時刻(JST)。GH cron はこの時刻だけ発火し、ここで due 判定する。
 // 予約設定(DB管理)は廃止。時刻はコード内定数として固定で保持する。

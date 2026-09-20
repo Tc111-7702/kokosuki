@@ -2,7 +2,7 @@ import 'dotenv/config';
 import * as db from '@/lib/db';
 import { runGachaScraping } from '@/lib/scrapers/gacha-island';
 import { runPhoneScraping } from '@/lib/scrapers/phone';
-import type { ScrapeType } from '@/lib/scrapeSchedule';
+import type { ScrapeType } from '@/lib/db';
 
 // GitHub Actions から1日2回(03:00/05:00 JST)呼ばれるランナー。
 // 実行時刻は lib/db の SCRAPE_TIMES(JST) で固定管理し、isScrapeDue で
