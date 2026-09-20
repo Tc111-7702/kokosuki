@@ -13,6 +13,7 @@ import { FavoritesTab } from '@/components/FavoritesTab';
 import { type FeedPost } from '@/components/community-types';
 import { type StockFeedPost } from '@/components/StockPostCard';
 import { useIsMobile } from '@/lib/useIsMobile';
+import { useSetNavActive } from '@/lib/navActiveStore';
 
 // ─── 型 ──────────────────────────────────────────────────────────────────────
 
@@ -57,6 +58,8 @@ export default function ProfilePage() {
     return () => { alive = false; if (timer) clearTimeout(timer); };
   }, []);
   const isOwn = currentUserId != null && currentUserId === userId;
+  // 自分のマイページなら「マイページ」を点灯。他人のマイページは直前のセクションを保持する。
+  useSetNavActive(isOwn ? 'mypage' : null);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [tab, setTab] = useState<Tab>('posts');

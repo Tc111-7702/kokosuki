@@ -1,4 +1,5 @@
 'use client';
+import { useSetNavActive } from '@/lib/navActiveStore';
 
 import { useState, useEffect, useCallback, useMemo, useRef, useSyncExternalStore } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
@@ -236,6 +237,7 @@ function StorePosts({
 // ─── メインページ ───────────────────────────────────────────────────
 
 export default function StorePage() {
+  useSetNavActive('map');
   // 開いた時に、7日以上更新の無い在庫状態を「不明」に戻す（Map/店舗詳細で共有）。
   useExpireStaleStock();
   const router = useRouter();

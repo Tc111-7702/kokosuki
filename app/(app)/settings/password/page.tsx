@@ -1,4 +1,5 @@
 'use client';
+import { useSetNavActive } from '@/lib/navActiveStore';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -11,6 +12,7 @@ type ProfileSummary = {
 };
 
 export default function SettingsPasswordPage() {
+  useSetNavActive('mypage');
   const router = useRouter();
   const [profile, setProfile] = useState<ProfileSummary | null | undefined>(undefined);
 

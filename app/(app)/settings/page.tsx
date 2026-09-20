@@ -1,4 +1,5 @@
 'use client';
+import { useSetNavActive } from '@/lib/navActiveStore';
 
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
@@ -28,6 +29,7 @@ interface Settings {
 }
 
 export default function SettingsPage() {
+  useSetNavActive('mypage');
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [settings, setSettings] = useState<Settings | null>(null);
