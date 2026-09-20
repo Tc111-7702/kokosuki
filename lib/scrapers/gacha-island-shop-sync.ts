@@ -249,6 +249,13 @@ async function syncArea(pref: string, label: string, catTree: CatTree): Promise<
 
     const wpPostIds = await fetchWpPostIdsForShop(pref, shopId);
 
+    // この店舗の実ページ(live)に無くなった machine を先に剥がす。
+    // 取得失敗/空(0件)のときは剥がさない（通信エラーで全machine削除する事故を防止）。
+    if (wpPostIds.length > 0) {
+      const removed = await db.pruneShopMachines(spot.id, wpPostIds);
+      if (removed > 0) console.log(`[shop-sync] ${label} shop=${shopId}: 古いmachine ${removed}件を削除`);
+    }
+
     for (const wpPostId of wpPostIds) {
       try {
         // Gacha: wpPostId で重複排除。未登録なら WP API で取得して upsert
