@@ -394,8 +394,14 @@ export default function MapPage() {
       const rect = containerEl.getBoundingClientRect();
       // ピンのキャンバス上の現在位置
       const point = map.project([selectedSpot.lng, selectedSpot.lat]);
-      // シート上端の100px上を目標Y（ビューポート基準 → キャンバス基準に変換）
-      const targetCanvasY = (window.innerHeight * 0.54 - 100) - rect.top;
+      // 実際のシート上端を測る（シートは 46vh 指定で、モバイルSafariの vh と
+      // window.innerHeight の差でズレるため、DOMから実測してフォールバックを持つ）。
+      const sheetEl = document.querySelector('[data-spot-sheet]') as HTMLElement | null;
+      const sheetTopViewport = sheetEl
+        ? sheetEl.getBoundingClientRect().top
+        : window.innerHeight * 0.54;
+      // シート上端の 130px 上にピンを置き、確実に見えるようにする
+      const targetCanvasY = (sheetTopViewport - 130) - rect.top;
       const delta = point.y - targetCanvasY;
       if (Math.abs(delta) > 5) {
         map.panBy([0, delta], { duration: 400 });
