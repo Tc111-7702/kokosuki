@@ -493,31 +493,41 @@ export default function StorePage() {
       <div style={{ background: 'white', borderBottom: '1px solid #F0F0F0', flexShrink: 0 }}>
         {isMobile ? (
           <>
-            {/* モバイル: 戻る+店名（左） / フィルター+解除（右）を1行に。電話・経路は非表示 */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px' }}>
+            {/* モバイル: 1行目=戻る+店名 / 2行目=住所(小) / 3行目=現在地からの距離 + フィルター/解除 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px 0' }}>
               <button onClick={() => router.back()} aria-label="戻る"
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', padding: 2, flexShrink: 0 }}>
                 <ChevronLeft size={22} color="#888" strokeWidth={2} />
               </button>
               <h1 style={{ flex: 1, minWidth: 0, fontSize: 17, fontWeight: 900, color: storeNameColor, margin: 0, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{spot.name}</h1>
-              <button onClick={() => setFilterOpen(true)}
-                className={`map-list-toggle-btn flex items-center gap-1 px-2.5 py-1 rounded-full text-[12px] font-bold active:scale-95 transition-transform ${isFiltered ? 'map-list-toggle-btn--active' : ''}`}
-                style={{ flexShrink: 0, ...(isFiltered ? {} : { background: 'rgba(245, 243, 237, 0.28)', border: '1px solid rgba(237, 233, 216, 0.45)' }) }}>
-                <SlidersHorizontal size={12} />
-                {isFiltered ? `フィルター中 (${filterGachaIds.length})` : 'フィルター'}
-              </button>
-              {isFiltered && (
-                <button onClick={handleClearFilter}
-                  style={{ flexShrink: 0, fontSize: 11, padding: '5px 8px', borderRadius: 20, border: 'none', cursor: 'pointer', background: '#FFF0C0', color: '#B8860B', fontWeight: 700 }}>
-                  解除
-                </button>
-              )}
             </div>
-            {distance !== null && (
-              <div style={{ padding: '0 16px 8px' }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: '#0891b2' }}>現在地から {fmtDistance(distance)}</span>
+            {spot.address && (
+              <div style={{ padding: '2px 16px 0' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, color: '#888', minWidth: 0 }}>
+                  <MapPin size={11} color="#aaa" style={{ flexShrink: 0 }} />
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{spot.address}</span>
+                </span>
               </div>
             )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 16px 8px' }}>
+              {distance !== null && (
+                <span style={{ fontSize: 11, fontWeight: 600, color: '#0891b2' }}>現在地から {fmtDistance(distance)}</span>
+              )}
+              <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <button onClick={() => setFilterOpen(true)}
+                  className={`map-list-toggle-btn flex items-center gap-1 px-2.5 py-1 rounded-full text-[12px] font-bold active:scale-95 transition-transform ${isFiltered ? 'map-list-toggle-btn--active' : ''}`}
+                  style={{ flexShrink: 0, ...(isFiltered ? {} : { background: 'rgba(245, 243, 237, 0.28)', border: '1px solid rgba(237, 233, 216, 0.45)' }) }}>
+                  <SlidersHorizontal size={12} />
+                  {isFiltered ? `フィルター中 (${filterGachaIds.length})` : 'フィルター'}
+                </button>
+                {isFiltered && (
+                  <button onClick={handleClearFilter}
+                    style={{ flexShrink: 0, fontSize: 11, padding: '5px 8px', borderRadius: 20, border: 'none', cursor: 'pointer', background: '#FFF0C0', color: '#B8860B', fontWeight: 700 }}>
+                    解除
+                  </button>
+                )}
+              </div>
+            </div>
           </>
         ) : (
           <>
