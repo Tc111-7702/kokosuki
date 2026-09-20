@@ -1,10 +1,12 @@
 'use client';
+import { useSetNavActive } from '@/lib/navActiveStore';
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 // /mypage → ログイン中ユーザーの /mypage/[userId] へ置き換え遷移
 export default function MyPageRedirect() {
+  useSetNavActive('mypage');
   const router = useRouter();
 
   // 一時的な 503 / ネットワーク失敗ではログインへ飛ばさずリトライする。

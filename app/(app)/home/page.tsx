@@ -1,4 +1,5 @@
 'use client';
+import { useSetNavActive } from '@/lib/navActiveStore';
 
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -184,6 +185,7 @@ function HomePageInner() {
 }
 
 export default function HomePage() {
+  useSetNavActive('home');
   return (
     <Suspense>
       <HomePageInner />
