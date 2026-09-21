@@ -18,6 +18,7 @@ export interface StockFeedPost {
   user: { id: string; name: string; image: string | null; profile?: { handle: string | null } | null };
   spot: { id: string; name: string; address?: string | null };
   gacha: { id: string; ipName: string; seriesName: string; gradientFrom: string; gradientTo: string; imageUrl: string | null; status?: string };
+  machine?: { status?: string } | null; // マイページの「発売中止」タグ判定（フィードでは無し）
   _count: { likes: number; replies: number };
 }
 
@@ -206,7 +207,8 @@ export function StockPostCard({
                 {post.gacha.ipName}
               </button>
             )}
-            {post.gacha.status != null && post.gacha.status !== 'on_sale' && (
+            {((post.gacha.status != null && post.gacha.status !== 'on_sale') ||
+              (post.machine?.status != null && post.machine.status !== 'on_sale')) && (
               <span className="text-[10px] lg:text-xs leading-none px-1.5 py-0.5 lg:px-2 lg:py-1 rounded-full font-semibold border border-red-200 text-red-500 bg-red-50 flex-shrink-0">発売中止</span>
             )}
           </div>
