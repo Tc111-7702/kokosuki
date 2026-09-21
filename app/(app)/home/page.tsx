@@ -177,7 +177,7 @@ function HomePageInner() {
       <div className="flex-1 overflow-y-auto flex flex-col">
         {tab === 'new'       && <NewTab />}
         {tab === 'community' && <CommunityTab />}
-        {tab === 'favorites' && <FavoritesTab />}
+        {tab === 'favorites' && <FavoritesTab hideEnded />}
       </div>
 
     </div>
