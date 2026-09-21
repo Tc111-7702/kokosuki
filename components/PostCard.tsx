@@ -140,7 +140,8 @@ export function PostCard({
             {post.itemName && (
               <p className="text-[10px] lg:text-xs text-gray-400 mt-0.5 leading-tight">{post.itemName}</p>
             )}
-            {post.gacha.status != null && post.gacha.status !== 'on_sale' && (
+            {((post.gacha.status != null && post.gacha.status !== 'on_sale') ||
+              (post.machine?.status != null && post.machine.status !== 'on_sale')) && (
               <span className="inline-block mt-1 text-[10px] lg:text-xs px-1.5 py-0.5 lg:px-2 lg:py-1 rounded-full font-semibold border border-red-200 text-red-500 bg-red-50">発売中止</span>
             )}
           </div>

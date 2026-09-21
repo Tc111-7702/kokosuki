@@ -24,6 +24,10 @@ model Machine {
   id            String    @id @default(cuid())
   spotId        String
   gachaId       String
+  // 可用性（Gacha.status と対称）: 'on_sale' | 'ended'。店舗がその商品を扱わなくなったら
+  // ended にする（削除しない＝紐づく投稿/報告を Cascade で失わないため）。既定は on_sale。
+  // ※在庫(stockStatus)とは別軸。stockStatus は在庫あり/なし/不明(null)。
+  status        String    @default("on_sale")
   stockStatus   String?
   stockSyncedAt DateTime?
   createdAt     DateTime  @default(now())
