@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect, useSyncExternalStore } from 'react'
 import { useRouter } from 'next/navigation';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { PopularIpTagList, SearchTagsDivider } from '@/components/PopularIpTagList';
+import { POST_GACHA_BODY_HEIGHT } from '@/lib/postFormMobileLayout';
 import { StockSpotPanel } from '@/components/StockSpotPanel';
 import { SpotGachaPicker } from '@/components/SpotGachaPicker';
 import { useIsMobile } from '@/lib/useIsMobile';
@@ -127,6 +128,8 @@ function GachaSearch({ onSelect, onClear, accentColor = ACCENT, largeText = fals
   };
 
   const handleSelect = async (label: string) => {
+    // 選択確定(onSelect)まで親の gachaId を空へ戻し、解決中は「次へ」を押せないようにする。
+    onClear?.();
     setValue(label);
     setSuggestions([]);
     setResolving(true);
@@ -146,7 +149,8 @@ function GachaSearch({ onSelect, onClear, accentColor = ACCENT, largeText = fals
   const dividerBleed = isMobile ? 12 : 0;
 
   return (
-    <div>
+    // 人気IPタグの読み込み前後で「次へ」の位置が動かないよう、モバイルでは本文高さを予約する
+    <div style={{ minHeight: isMobile ? POST_GACHA_BODY_HEIGHT : undefined }}>
       {/* 検索バー（home/search と同じUI） */}
       <div ref={searchRef} style={{ position: 'relative' }}>
         <div style={{ paddingTop: isMobile ? 6 : 8 }}>
