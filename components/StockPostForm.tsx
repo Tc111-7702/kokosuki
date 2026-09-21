@@ -78,11 +78,13 @@ function StepHeader({ step, onBack }: { step: Step; onBack?: () => void }) {
 
 // ─── ガチャ検索 (共通) ────────────────────────────────────────────────
 
-function GachaSearch({ onSelect, onClear, accentColor = ACCENT, largeText = false }: {
+function GachaSearch({ onSelect, onClear, onResolvingChange, accentColor = ACCENT, largeText = false }: {
   accentColor?: string;
   largeText?: boolean;
   onSelect: (id: string, name: string, imageUrl: string | null) => void;
   onClear?: () => void;
+  /** ガチャ解決中(true)を親へ通知。解決中は「次へ」を無効化するために使う。 */
+  onResolvingChange?: (resolving: boolean) => void;
 }) {
   const [value, setValue]             = useState('');
   const [suggestions, setSuggestions] = useState<GachaSuggestion[]>([]);
@@ -128,11 +130,10 @@ function GachaSearch({ onSelect, onClear, accentColor = ACCENT, largeText = fals
   };
 
   const handleSelect = async (label: string) => {
-    // 選択確定(onSelect)まで親の gachaId を空へ戻し、解決中は「次へ」を押せないようにする。
-    onClear?.();
+    // 解決中は「次へ」を無効化（gachaId は消さず、確定時に onSelect で確実に有効へ戻す）。
     setValue(label);
     setSuggestions([]);
-    setResolving(true);
+    setResolving(true); onResolvingChange?.(true);
     try {
       const searchData = await fetch(`/api/gacha/search?q=${encodeURIComponent(label)}`).then(r => r.json());
       const id: string = searchData.gachaIds?.[0] ?? '';
@@ -142,7 +143,7 @@ function GachaSearch({ onSelect, onClear, accentColor = ACCENT, largeText = fals
         onSelect(id, label, imageUrl);
       }
     } catch { /* silent */ }
-    setResolving(false);
+    setResolving(false); onResolvingChange?.(false);
   };
 
   const hasPopularIps = shownIps.length > 0;
@@ -226,7 +227,7 @@ function GachaSearch({ onSelect, onClear, accentColor = ACCENT, largeText = fals
         ips={shownIps}
         largeText={largeText}
         marginBottom={48}
-        onIpClick={ip => { setValue(ip); setFocused(true); fetchSuggestions(ip); }}
+        onIpClick={ip => { onClear?.(); setValue(ip); setFocused(true); fetchSuggestions(ip); }}
       />
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
@@ -456,6 +457,7 @@ export function StockPostForm({ onDone, initialSpotId = '', initialSpotName = ''
   const [gachaId,       setGachaId]      = useState('');
   const [gachaName,     setGachaName]    = useState('');
   const [gachaImageUrl, setGachaImageUrl] = useState<string | null>(null);
+  const [gachaResolving, setGachaResolving] = useState(false);
   const [spotId,        setSpotId]       = useState(initialSpotId);
   const [spotName,      setSpotName]     = useState(initialSpotName);
   const [stockStatus,   setStockStatus]  = useState('');
@@ -543,9 +545,10 @@ export function StockPostForm({ onDone, initialSpotId = '', initialSpotName = ''
                   setGachaId(id); setGachaName(name); setGachaImageUrl(imgUrl);
                 }}
                 onClear={() => { setGachaId(''); setGachaName(''); setGachaImageUrl(null); }}
+                onResolvingChange={setGachaResolving}
               />
-              <button onClick={goNext} disabled={!gachaId}
-                style={{ ...nextBtnStyle(!!gachaId, isDark), width: '100%' }}>
+              <button onClick={goNext} disabled={!gachaId || gachaResolving}
+                style={{ ...nextBtnStyle(!!gachaId && !gachaResolving, isDark), width: '100%' }}>
                 次へ <ChevronRight size={14} />
               </button>
             </>

@@ -57,9 +57,11 @@ const EMPTY: FormState = {
 
 // ─── ガチャ検索（人気IP chips 付き） ─────────────────────────────────────
 
-function GachaSearch({ onSelect, onClear }: {
+function GachaSearch({ onSelect, onClear, onResolvingChange }: {
   onSelect: (id: string, name: string, imageUrl: string | null, lineup: string[]) => void;
   onClear?: () => void;
+  /** ガチャ解決中(true)を親へ通知。解決中は「次へ」を無効化するために使う。 */
+  onResolvingChange?: (resolving: boolean) => void;
 }) {
   const [query, setQuery]             = useState('');
   const [suggestions, setSuggestions] = useState<GachaSuggestion[]>([]);
@@ -104,9 +106,8 @@ function GachaSearch({ onSelect, onClear }: {
   };
 
   const handleSelect = async (label: string) => {
-    // 選択確定(onSelect)まで親の gachaId を空へ戻し、解決中は「次へ」を押せないようにする。
-    onClear?.();
-    setQuery(label); setSuggestions([]); setResolving(true);
+    // 解決中は「次へ」を無効化（gachaId は消さず、確定時に onSelect で確実に有効へ戻す）。
+    setQuery(label); setSuggestions([]); setResolving(true); onResolvingChange?.(true);
     try {
       const searchData = await fetch(`/api/gacha/search?q=${encodeURIComponent(label)}`).then(r => r.json());
       const id: string = searchData.gachaIds?.[0] ?? '';
@@ -115,7 +116,7 @@ function GachaSearch({ onSelect, onClear }: {
         onSelect(id, label, gd.gacha?.imageUrl ?? null, gd.gacha?.lineup ?? []);
       }
     } catch { /* silent */ }
-    setResolving(false);
+    setResolving(false); onResolvingChange?.(false);
   };
 
   const hasPopularIps = shownIps.length > 0;
@@ -197,7 +198,7 @@ function GachaSearch({ onSelect, onClear }: {
       <PopularIpTagList
         ips={shownIps}
         marginBottom={POST_STEP_NEXT_GAP}
-        onIpClick={ip => { setQuery(ip); setFocused(true); fetchSuggestions(ip); }}
+        onIpClick={ip => { onClear?.(); setQuery(ip); setFocused(true); fetchSuggestions(ip); }}
       />
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
@@ -415,6 +416,7 @@ function MobileForm({ onDone, initialSpotId = '', initialSpotName = '', initialF
 }) {
   const router = useRouter();
   const [step, setStep] = useState<Step>('gacha');
+  const [gachaResolving, setGachaResolving] = useState(false);
   const [form, setForm] = useState<FormState>(() => ({
     ...EMPTY,
     spotId: initialSpotId,
@@ -497,9 +499,10 @@ function MobileForm({ onDone, initialSpotId = '', initialSpotName = '', initialF
                 set({ gachaId: id, gachaName: name, gachaImageUrl: img, gachaLineup: lineup });
               }}
               onClear={() => set({ gachaId: '', gachaName: '', gachaImageUrl: null, gachaLineup: [] })}
+              onResolvingChange={setGachaResolving}
             />
-            <button onClick={goNext} disabled={!form.gachaId}
-              style={{ ...nextBtnStyle(!!form.gachaId, isDark), width: '100%' }}>
+            <button onClick={goNext} disabled={!form.gachaId || gachaResolving}
+              style={{ ...nextBtnStyle(!!form.gachaId && !gachaResolving, isDark), width: '100%' }}>
               次へ <ChevronRight size={14} />
             </button>
           </>
