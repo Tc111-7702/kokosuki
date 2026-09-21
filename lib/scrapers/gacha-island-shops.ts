@@ -1,5 +1,5 @@
 import * as db from '@/lib/db';
-import { KANSAI_PREFS, SHOP_BASE, GEOCODE_BASE } from './constants';
+import { TARGET_AREAS, SHOP_BASE, GEOCODE_BASE } from './constants';
 
 export interface ShopScrapeResult {
   saved: number;
@@ -62,7 +62,7 @@ export async function scrapeKansaiShops(): Promise<ShopScrapeResult> {
   let skipped = 0;
   const errors: string[] = [];
 
-  for (const pref of KANSAI_PREFS) {
+  for (const { pref, prefName } of TARGET_AREAS) {
     console.log(`[gacha-island-shops] ${pref} スクレイプ開始`);
     try {
       const shops = await fetchShopsForPref(pref);
@@ -83,8 +83,12 @@ export async function scrapeKansaiShops(): Promise<ShopScrapeResult> {
             continue;
           }
 
-          // ジオコーディング
-          const geo = await geocode(shop.address);
+          // 住所正規化: 都道府県が抜けている表記ゆれ（例「大阪市…」）を防ぐため、
+          // スクレイプ中の都道府県名を先頭に補う（都道府県検索で漏れないように）。
+          const address = shop.address.includes(prefName) ? shop.address : `${prefName}${shop.address}`;
+
+          // ジオコーディング（正規化後の住所で）
+          const geo = await geocode(address);
           if (!geo) {
             errors.push(`Shop ${shop.id} ${shop.name}: ジオコーディング失敗`);
             skipped++;
@@ -94,7 +98,7 @@ export async function scrapeKansaiShops(): Promise<ShopScrapeResult> {
           await db.upsertSpotFromGachaIsland({
             gachaIslandId: shop.id,
             name: shop.name,
-            address: shop.address,
+            address,
             lat: geo.lat,
             lng: geo.lng,
           });

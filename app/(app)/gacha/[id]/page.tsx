@@ -44,7 +44,7 @@ function GachaPostsSection({ gachaId, seriesName, isMobile }: { gachaId: string;
   }, []);
 
   useEffect(() => {
-    fetch(`/api/posts/feed?type=search&gachaIds=${gachaId}`)
+    fetch(`/api/posts/feed?type=search&gachaIds=${gachaId}&includeEnded=1`)
       .then(r => r.json())
       .then(d => {
         // feed API はバケツ分離（{stock, feed}）で返すのでここで結合する
