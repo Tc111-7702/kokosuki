@@ -2,6 +2,8 @@ import { PrismaClient, Prisma } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
 
+export type ScrapeType = 'gacha' | 'phone';
+
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined };
 
 // リトライ対象にする「読み取り（冪等）」操作。書き込みは二重実行を避けるためリトライしない。
@@ -721,6 +723,26 @@ export const upsertMachine = (spotId: string, gachaId: string) =>
     update: { updatedAt: new Date() },
     create: { spotId, gachaId },
   });
+
+/**
+ * 店舗スクレイパー: この店舗の実ページ(live)に無くなった machine を削除する。
+ * liveWpPostIds = その店舗ページの入荷中 wpPostId 集合。
+ * scraper由来(wpPostId有り)のリンクのうち live に該当しないものだけを剥がし、
+ * 手動追加(wpPostId=null)は残す。呼び出し側で空配列(取得失敗/空)のときは呼ばないこと
+ * （空を渡すと全machineが削除されるため）。戻り値は削除件数。
+ */
+export async function pruneShopMachines(spotId: string, liveWpPostIds: number[]): Promise<number> {
+  if (liveWpPostIds.length === 0) return 0; // 安全ガード: 空なら何も消さない
+  const res = await prisma.machine.deleteMany({
+    where: {
+      spotId,
+      // scraper由来(wpPostId有り)で、この店の live に該当しないものだけ削除。
+      // wpPostId=null（手動追加）は notIn/not:null により対象外。
+      gacha: { wpPostId: { not: null, notIn: liveWpPostIds } },
+    },
+  });
+  return res.count;
+}
 
 // ─── Notification ─────────────────────────────────────────────────────────────
 
@@ -1794,19 +1816,50 @@ export const getIpCategoriesWithIpNames = () =>
     },
   });
 
-// ─── スクレイピング予約設定（DB管理） ─────────────────────────────────────────
+// ─── スクレイピング実行管理 ───────────────────────────────────────────────────
 
-/** 予約設定を取得（type='gacha'|'phone'）。未設定なら null。 */
-export const getScrapeSchedule = (type: string) =>
-  prisma.scrapeSchedule.findUnique({ where: { type } });
+// スクレイプの実行時刻(JST)。GH cron はこの時刻だけ発火し、ここで due 判定する。
+// 予約設定(DB管理)は廃止。時刻はコード内定数として固定で保持する。
+export const SCRAPE_TIMES: Record<ScrapeType, string> = {
+  gacha: '03:00',
+  phone: '05:00',
+};
 
-/** 予約設定を upsert（everyDays 1〜7 / atTime "HH:MM"）。 */
-export const upsertScrapeSchedule = (type: string, everyDays: number, atTime: string) =>
-  prisma.scrapeSchedule.upsert({
-    where:  { type },
-    update: { everyDays, atTime },
-    create: { type, everyDays, atTime },
+// 日本(JST)は年間を通じて UTC+9 固定（サマータイム無し）。
+const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+
+/** 「今日(JST)の atTime」の絶対時刻(UTC instant)を返す。atTime は "HH:MM"。 */
+function todayScheduledUtc(atTime: string, now: Date): Date {
+  const jst = new Date(now.getTime() + JST_OFFSET_MS); // JSTの壁時計をUTCフィールドで読む
+  const [hh, mm] = atTime.split(':').map((n) => parseInt(n, 10));
+  const wallMs = Date.UTC(jst.getUTCFullYear(), jst.getUTCMonth(), jst.getUTCDate(), hh, mm, 0, 0);
+  return new Date(wallMs - JST_OFFSET_MS); // JSTの壁時計 → UTC instant
+}
+
+/**
+ * 今この種別を実行すべきか（scrape-cron用）。
+ * 条件: 今が「今日の予定時刻(JST)」以降 かつ 今日まだ実行していない（lastRunAt < 今日の予定時刻）。
+ * → 予定時刻を過ぎていれば実行、実行済みなら skip、GHがスキップした日も次トリガーで取り戻す。
+ */
+export async function isScrapeDue(type: ScrapeType, now: Date = new Date()): Promise<boolean> {
+  const sched = todayScheduledUtc(SCRAPE_TIMES[type], now);
+  if (now.getTime() < sched.getTime()) return false; // まだ予定時刻前
+  const row = await prisma.scrapeSchedule.findUnique({
+    where: { type },
+    select: { lastRunAt: true },
   });
+  const last = row?.lastRunAt ?? null;
+  return last === null || last.getTime() < sched.getTime(); // 今日まだ実行していない
+}
+
+/** スクレイプ成功時に lastRunAt を進める（失敗時は呼ばない＝次トリガーで再試行される）。 */
+export async function markScrapeRan(type: ScrapeType, now: Date = new Date()): Promise<void> {
+  await prisma.scrapeSchedule.upsert({
+    where: { type },
+    update: { lastRunAt: now },
+    create: { type, lastRunAt: now },
+  });
+}
 
 // ─── 通報 ─────────────────────────────────────────────────────────────────────
 
