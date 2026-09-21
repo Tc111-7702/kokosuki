@@ -199,7 +199,7 @@ export const getLikedGachaIds = (userId: string) =>
 export const getSpotById = (id: string) =>
   prisma.spot.findUnique({
     where: { id },
-    include: { machines: { select: { gachaId: true, stockStatus: true } } },
+    include: { machines: { where: { status: 'on_sale' }, select: { gachaId: true, stockStatus: true } } },
   });
 
 export const findSpotByGachaIslandId = (gachaIslandId: number) =>
@@ -255,7 +255,7 @@ export function findSpotsNearby(lat: number, lng: number, radiusMeters: number, 
       ...(addressContains ? { address: { contains: addressContains } } : {}),
     },
     include: {
-      machines: { select: { gachaId: true, stockStatus: true } },
+      machines: { where: { status: 'on_sale' }, select: { gachaId: true, stockStatus: true } },
     },
   });
 }
@@ -720,26 +720,30 @@ export async function getPostReplyLikedIds(userId: string, replyIds: string[]) {
 export const upsertMachine = (spotId: string, gachaId: string) =>
   prisma.machine.upsert({
     where:  { spotId_gachaId: { spotId, gachaId } },
-    update: { updatedAt: new Date() },
-    create: { spotId, gachaId },
+    // 新規作成 or 既存を on_sale に復活（再入荷・投稿・在庫報告で扱い再開したとみなす）。
+    update: { status: 'on_sale' },
+    create: { spotId, gachaId, status: 'on_sale' },
   });
 
 /**
- * 店舗スクレイパー: この店舗の実ページ(live)に無くなった machine を削除する。
+ * 店舗スクレイパー: この店舗の実ページ(live)に無くなった machine を ended にする（ソフト削除）。
  * liveWpPostIds = その店舗ページの入荷中 wpPostId 集合。
- * scraper由来(wpPostId有り)のリンクのうち live に該当しないものだけを剥がし、
- * 手動追加(wpPostId=null)は残す。呼び出し側で空配列(取得失敗/空)のときは呼ばないこと
- * （空を渡すと全machineが削除されるため）。戻り値は削除件数。
+ * scraper由来(wpPostId有り)のうち live に該当しないものだけを ended にし、
+ * 手動追加(wpPostId=null)は対象外。削除しないので紐づく投稿/報告は保持される。
+ * 呼び出し側で空配列(取得失敗/空)のときは呼ばないこと（空を渡すと全machineが ended になるため）。
+ * 戻り値は ended に更新した件数。
  */
-export async function pruneShopMachines(spotId: string, liveWpPostIds: number[]): Promise<number> {
-  if (liveWpPostIds.length === 0) return 0; // 安全ガード: 空なら何も消さない
-  const res = await prisma.machine.deleteMany({
+export async function markShopMachinesEnded(spotId: string, liveWpPostIds: number[]): Promise<number> {
+  if (liveWpPostIds.length === 0) return 0; // 安全ガード: 空なら何もしない
+  const res = await prisma.machine.updateMany({
     where: {
       spotId,
-      // scraper由来(wpPostId有り)で、この店の live に該当しないものだけ削除。
+      status: { not: 'ended' }, // 既に ended のものは触らない
+      // scraper由来(wpPostId有り)で、この店の live に該当しないものだけ ended。
       // wpPostId=null（手動追加）は notIn/not:null により対象外。
       gacha: { wpPostId: { not: null, notIn: liveWpPostIds } },
     },
+    data: { status: 'ended' },
   });
   return res.count;
 }
@@ -1169,6 +1173,7 @@ export async function getFeedStockIds(opts: FeedIdOpts): Promise<string[]> {
   const conds: Prisma.Sql[] = [
     Prisma.sql`sp."createdAt" >= ${freshSince}`,
     Prisma.sql`g."status" = 'on_sale'`,
+    Prisma.sql`m."status" = 'on_sale'`,
   ];
   if (spotId) conds.push(Prisma.sql`sp."spotId" = ${spotId}`);
   if (gachaIds && gachaIds.length > 0) conds.push(Prisma.sql`sp."gachaId" = ANY(${gachaIds}::text[])`);
@@ -1177,6 +1182,7 @@ export async function getFeedStockIds(opts: FeedIdOpts): Promise<string[]> {
       SELECT DISTINCT ON (sp."machineId") sp.id, sp."createdAt", sp."gachaId", ipn."name" AS "ipName"
       FROM "StockPost" sp
       JOIN "Gacha" g ON g.id = sp."gachaId"
+      JOIN "Machine" m ON m.id = sp."machineId"
       LEFT JOIN "IpName" ipn ON ipn.id = g."ipNameId"
       WHERE ${Prisma.join(conds, ' AND ')}
       ORDER BY sp."machineId", sp."createdAt" DESC, sp.id DESC
@@ -1194,13 +1200,17 @@ export async function getFeedStockIds(opts: FeedIdOpts): Promise<string[]> {
 // 好み＋新着 の順に並べた「通常投稿」の ID を limit 件だけ返す（鮮度窓なし・dedupなし）。
 export async function getFeedPostIds(opts: FeedIdOpts): Promise<string[]> {
   const { spotId, gachaIds, likedGachaIds, likedIps, limit, offset } = opts;
-  const conds: Prisma.Sql[] = [Prisma.sql`g."status" = 'on_sale'`];
+  const conds: Prisma.Sql[] = [
+    Prisma.sql`g."status" = 'on_sale'`,
+    Prisma.sql`m."status" = 'on_sale'`,
+  ];
   if (spotId) conds.push(Prisma.sql`p."spotId" = ${spotId}`);
   if (gachaIds && gachaIds.length > 0) conds.push(Prisma.sql`p."gachaId" = ANY(${gachaIds}::text[])`);
   const rows = await prisma.$queryRaw<{ id: string }[]>`
     SELECT p.id
     FROM "Post" p
     JOIN "Gacha" g ON g.id = p."gachaId"
+    JOIN "Machine" m ON m.id = p."machineId"
     LEFT JOIN "IpName" ipn ON ipn.id = g."ipNameId"
     WHERE ${Prisma.join(conds, ' AND ')}
     ORDER BY
@@ -1236,12 +1246,12 @@ export const getPostLikedIds = (userId: string, postIds: string[]) =>
 
 // ─── StockPost（在庫報告） ──────────────────────────────────────────────────────
 
-/** Machine を upsert し stockStatus を最新化 */
+/** Machine を upsert し stockStatus を最新化。在庫報告=扱いありなので status も on_sale に復活。 */
 export const upsertMachineWithStock = (spotId: string, gachaId: string, stockStatus: string) =>
   prisma.machine.upsert({
     where:  { spotId_gachaId: { spotId, gachaId } },
-    create: { spotId, gachaId, stockStatus },
-    update: { stockStatus },
+    create: { spotId, gachaId, stockStatus, status: 'on_sale' },
+    update: { stockStatus, status: 'on_sale' },
   });
 
 export const createStockPost = (data: Prisma.StockPostUncheckedCreateInput) =>
@@ -1457,6 +1467,7 @@ const PROFILE_POST_INCLUDE = {
   user:  { select: { id: true, name: true, image: true } },
   spot:  { select: { id: true, name: true, address: true } },
   gacha: { select: { id: true, ...IP_NAME_SELECT, seriesName: true, gradientFrom: true, gradientTo: true, imageUrl: true, status: true } },
+  machine: { select: { status: true } }, // マイページの「発売中止」タグ判定に使用
   _count: { select: { likes: true, replies: true } },
 } as const;
 
@@ -1572,7 +1583,7 @@ export const searchSpotsForSuggest = (name: string, gachaId?: string) =>
         { name:    { contains: name, mode: 'insensitive' } },
         { address: { contains: name, mode: 'insensitive' } },
       ],
-      ...(gachaId ? { machines: { some: { gachaId } } } : {}),
+      ...(gachaId ? { machines: { some: { gachaId, status: 'on_sale' } } } : {}),
     },
     select: { id: true, name: true, address: true, lat: true, lng: true },
     take: 100,
@@ -1581,7 +1592,7 @@ export const searchSpotsForSuggest = (name: string, gachaId?: string) =>
 export const searchSpotsByName = (name: string) =>
   prisma.spot.findMany({
     where: { name: { contains: name, mode: 'insensitive' } },
-    include: { machines: { select: { gachaId: true, stockStatus: true } } },
+    include: { machines: { where: { status: 'on_sale' }, select: { gachaId: true, stockStatus: true } } },
   });
 
 // ─── Gacha 検索 / お気に入り / IP ────────────────────────────────────────────────

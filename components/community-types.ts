@@ -14,6 +14,7 @@ export interface FeedPost {
   spot: { id: string; name: string };
   postType: 'post';
   gacha: { id: string; ipName: string; seriesName: string; gradientFrom: string; gradientTo: string; imageUrl: string | null; status?: string };
+  machine?: { status?: string } | null; // マイページの「発売中止」タグ判定（フィードでは無し）
   _count: { likes: number; replies: number };
 }
 
