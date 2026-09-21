@@ -57,13 +57,17 @@ const EMPTY: FormState = {
 
 // ─── ガチャ検索（人気IP chips 付き） ─────────────────────────────────────
 
-function GachaSearch({ onSelect, onClear, onResolvingChange }: {
+function GachaSearch({ onSelect, onClear, onResolvingChange, initialQuery = '' }: {
   onSelect: (id: string, name: string, imageUrl: string | null, lineup: string[]) => void;
   onClear?: () => void;
   /** ガチャ解決中(true)を親へ通知。解決中は「次へ」を無効化するために使う。 */
   onResolvingChange?: (resolving: boolean) => void;
+  /** 選択済みガチャ名（戻ってきた時に検索バーへ復元表示するため）。 */
+  initialQuery?: string;
 }) {
-  const [query, setQuery]             = useState('');
+  const [query, setQuery]             = useState(initialQuery);
+  // ガチャが確定選択されているか。確定中に文字編集/×されたら選択を無効化して全リセットする。
+  const confirmedRef = useRef(!!initialQuery);
   const [suggestions, setSuggestions] = useState<GachaSuggestion[]>([]);
   const [focused, setFocused]         = useState(false);
   const [resolving, setResolving]     = useState(false);
@@ -114,6 +118,7 @@ function GachaSearch({ onSelect, onClear, onResolvingChange }: {
       if (id) {
         const gd = await fetch(`/api/gacha/${id}`).then(r => r.json());
         onSelect(id, label, gd.gacha?.imageUrl ?? null, gd.gacha?.lineup ?? []);
+        confirmedRef.current = true;
       }
     } catch { /* silent */ }
     setResolving(false); onResolvingChange?.(false);
@@ -141,7 +146,12 @@ function GachaSearch({ onSelect, onClear, onResolvingChange }: {
               type="text"
               value={query}
               placeholder="引いたガチャをさがす"
-              onChange={e => { setQuery(e.target.value); fetchSuggestions(e.target.value); }}
+              onChange={e => {
+                const v = e.target.value;
+                // 確定済みガチャがある状態で文字を編集したら、選択を無効化して全リセット。
+                if (confirmedRef.current) { confirmedRef.current = false; onClear?.(); }
+                setQuery(v); fetchSuggestions(v);
+              }}
               onFocus={() => { setFocused(true); if (query) fetchSuggestions(query); }}
               onBlur={() => setTimeout(() => setFocused(false), 200)}
               disabled={resolving}
@@ -151,7 +161,7 @@ function GachaSearch({ onSelect, onClear, onResolvingChange }: {
             {query && !resolving && (
               <button
                 type="button"
-                onMouseDown={e => { e.preventDefault(); setQuery(''); setSuggestions([]); onClear?.(); }}
+                onMouseDown={e => { e.preventDefault(); confirmedRef.current = false; setQuery(''); setSuggestions([]); onClear?.(); }}
                 aria-label="入力をクリア"
                 className="home-search-clear-btn p-0 bg-transparent border-none cursor-pointer leading-none flex-shrink-0"
               >
@@ -198,7 +208,7 @@ function GachaSearch({ onSelect, onClear, onResolvingChange }: {
       <PopularIpTagList
         ips={shownIps}
         marginBottom={POST_STEP_NEXT_GAP}
-        onIpClick={ip => { onClear?.(); setQuery(ip); setFocused(true); fetchSuggestions(ip); }}
+        onIpClick={ip => { confirmedRef.current = false; onClear?.(); setQuery(ip); setFocused(true); fetchSuggestions(ip); }}
       />
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
@@ -498,6 +508,7 @@ function MobileForm({ onDone, initialSpotId = '', initialSpotName = '', initialF
         ) : (
           <>
             <GachaSearch
+              initialQuery={form.gachaName}
               onSelect={(id, name, img, lineup) => {
                 set({ gachaId: id, gachaName: name, gachaImageUrl: img, gachaLineup: lineup });
               }}
