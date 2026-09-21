@@ -53,7 +53,7 @@ function FavoriteCard({
         variant="favorite"
         fullWidth
         showLike={false}
-        onClick={editing ? () => undefined : () => router.push(`/gacha/${gacha.id}`)}
+        onClick={editing || gacha.status === 'ended' ? () => undefined : () => router.push(`/gacha/${gacha.id}`)}
       />
       {editing ? (
         <button
