@@ -170,8 +170,10 @@ export function SpotSearchPanel({
         const { latitude: lat, longitude: lng } = pos.coords;
         setUserPos({ lat, lng });
         try {
+          // 引いた!投稿は、距離に関わらず現在地から近い順に最大7店舗サジェストする
+          // （在庫報告の500m制約とは異なり、遠方でも候補を出す）。
           const data = await fetch(
-            `/api/spots/nearby?lat=${lat}&lng=${lng}&radius=5000&gachaId=${gachaId}`,
+            `/api/spots/nearby?lat=${lat}&lng=${lng}&radius=2000000&gachaId=${gachaId}&limit=7`,
           ).then(r => r.json());
           const results: SpotResult[] = (data.spots ?? []).slice(0, 7).map(
             (s: { id: string; name: string; address: string; distance?: number }) => ({

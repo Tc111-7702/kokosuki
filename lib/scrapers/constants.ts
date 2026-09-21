@@ -29,12 +29,12 @@ export const POST_LINK_RE = /href="https:\/\/gacha-island\.jp\/(\d{4,})\/" class
  * 追加したいエリアはここに1行足すだけでスクレイプ対象が広がる。例: { pref: 'tokyo', label: '東京' }
  */
 export const TARGET_AREAS = [
-  { pref: 'osaka',    label: '大阪' },
-  { pref: 'hyogo',    label: '兵庫' },
-  { pref: 'kyoto',    label: '京都' },
-  { pref: 'nara',     label: '奈良' },
-  { pref: 'shiga',    label: '滋賀' },
-  { pref: 'wakayama', label: '和歌山' },
+  { pref: 'osaka',    label: '大阪',   prefName: '大阪府' },
+  { pref: 'hyogo',    label: '兵庫',   prefName: '兵庫県' },
+  { pref: 'kyoto',    label: '京都',   prefName: '京都府' },
+  { pref: 'nara',     label: '奈良',   prefName: '奈良県' },
+  { pref: 'shiga',    label: '滋賀',   prefName: '滋賀県' },
+  { pref: 'wakayama', label: '和歌山', prefName: '和歌山県' },
 ] as const;
 
 /** 都道府県スラッグのみ（TARGET_AREAS から導出） */
