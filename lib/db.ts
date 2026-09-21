@@ -773,6 +773,39 @@ export interface NotificationView {
 // 集約時に下へ並べるアバターの保持上限（表示制限）
 const NOTIF_ACTOR_CAP = 8;
 
+/**
+ * 与えられた通知行のうち、参照先の gacha または machine が ended（発売中止）になっているものの
+ * 通知IDを返す。Notification は FK を張らず gachaId / postId / stockPostId のスナップショットidを
+ * 持つため、行が参照している id だけをまとめて解決して判定する（一覧・未読カウント用に軽量）。
+ * 一覧表示・未読数から発売中止の通知を除外するのに使う。判定は削除処理と同一
+ * （gacha または machine が ended = 除外／両方 on_sale のときだけ残す）。
+ */
+const resolveEndedNotificationIds = async (
+  rows: { id: string; gachaId: string | null; postId: string | null; stockPostId: string | null }[],
+): Promise<Set<string>> => {
+  const postIds  = [...new Set(rows.map(r => r.postId).filter((v): v is string => !!v))];
+  const stockIds = [...new Set(rows.map(r => r.stockPostId).filter((v): v is string => !!v))];
+  const gachaIds = [...new Set(rows.map(r => r.gachaId).filter((v): v is string => !!v))];
+  const endedOnPostOrStock = { OR: [{ gacha: { status: 'ended' } }, { machine: { status: 'ended' } }] };
+  const [endedPosts, endedStocks, endedGachas] = await Promise.all([
+    postIds.length  ? prisma.post.findMany({      where: { id: { in: postIds },  ...endedOnPostOrStock }, select: { id: true } }) : [],
+    stockIds.length ? prisma.stockPost.findMany({ where: { id: { in: stockIds }, ...endedOnPostOrStock }, select: { id: true } }) : [],
+    gachaIds.length ? prisma.gacha.findMany({     where: { id: { in: gachaIds }, status: 'ended' },       select: { id: true } }) : [],
+  ]);
+  const endedPostSet  = new Set(endedPosts.map(p => p.id));
+  const endedStockSet = new Set(endedStocks.map(s => s.id));
+  const endedGachaSet = new Set(endedGachas.map(g => g.id));
+  const hidden = new Set<string>();
+  for (const r of rows) {
+    if ((r.postId && endedPostSet.has(r.postId)) ||
+        (r.stockPostId && endedStockSet.has(r.stockPostId)) ||
+        (r.gachaId && endedGachaSet.has(r.gachaId))) {
+      hidden.add(r.id);
+    }
+  }
+  return hidden;
+};
+
 export const getNotificationsByUserId = async (userId: string, take = 50): Promise<NotificationView[]> => {
   const rows = await prisma.notification.findMany({
     where: { userId },
@@ -826,11 +859,15 @@ export const getNotificationsByUserId = async (userId: string, take = 50): Promi
     return null;
   };
 
-  // 参照先（投稿/在庫報告/口コミ）が削除済みの通知は一覧に出さない
+  // 参照先の gacha または machine が ended（発売中止）の通知は一覧に出さない
+  const hiddenEnded = await resolveEndedNotificationIds(rows);
+
+  // 参照先（投稿/在庫報告/口コミ）が削除済み、または発売中止の通知は一覧に出さない
   const alive = rows.filter(n => {
     if (n.postId       && !postMap.has(n.postId))         return false;
     if (n.stockPostId  && !stockMap.has(n.stockPostId))   return false;
     if (n.spotReviewId && !reviewSet.has(n.spotReviewId)) return false;
+    if (hiddenEnded.has(n.id))                            return false;
     return true;
   });
 
@@ -878,10 +915,17 @@ export const getNotificationsByUserId = async (userId: string, take = 50): Promi
   return out;
 };
 
-export const getUnreadNotificationCount = (userId: string) =>
-  prisma.notification.count({
+// 未読数（ベルバッジ/通知タブ用）。参照先の gacha または machine が ended（発売中止）の
+// 通知は一覧から除外されるため、カウントからも除外して表示と一致させる。
+export const getUnreadNotificationCount = async (userId: string): Promise<number> => {
+  const rows = await prisma.notification.findMany({
     where: { userId, read: false },
+    select: { id: true, gachaId: true, postId: true, stockPostId: true },
   });
+  if (rows.length === 0) return 0;
+  const hiddenEnded = await resolveEndedNotificationIds(rows);
+  return rows.length - hiddenEnded.size;
+};
 
 export const markNotificationsAsRead = (userId: string) =>
   prisma.notification.updateMany({
