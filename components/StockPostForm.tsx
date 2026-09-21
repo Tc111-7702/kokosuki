@@ -227,7 +227,7 @@ function GachaSearch({ onSelect, onClear, onResolvingChange, accentColor = ACCEN
         ips={shownIps}
         largeText={largeText}
         marginBottom={48}
-        onIpClick={ip => { setValue(ip); setFocused(true); fetchSuggestions(ip); }}
+        onIpClick={ip => { onClear?.(); setValue(ip); setFocused(true); fetchSuggestions(ip); }}
       />
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
