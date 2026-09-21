@@ -71,6 +71,11 @@ export function PostCard({
   const menuRef = useRef<HTMLDivElement>(null);
 
   const isOwner = !!currentUserId && post.user.id === currentUserId;
+  // 発売中止（gacha または machine が on_sale でない）。マイページのみ該当し得る。
+  // 発売中止の投稿は返信・いいねボタンを撤去し、操作できないようにする。
+  const isDiscontinued =
+    (post.gacha.status != null && post.gacha.status !== 'on_sale') ||
+    (post.machine?.status != null && post.machine.status !== 'on_sale');
   const canUseMenu = !!currentUserId;
 
   useEffect(() => {
@@ -140,8 +145,7 @@ export function PostCard({
             {post.itemName && (
               <p className="text-[10px] lg:text-xs text-gray-400 mt-0.5 leading-tight">{post.itemName}</p>
             )}
-            {((post.gacha.status != null && post.gacha.status !== 'on_sale') ||
-              (post.machine?.status != null && post.machine.status !== 'on_sale')) && (
+            {isDiscontinued && (
               <span className="inline-block mt-1 text-[10px] lg:text-xs px-1.5 py-0.5 lg:px-2 lg:py-1 rounded-full font-semibold border border-red-200 text-red-500 bg-red-50">発売中止</span>
             )}
           </div>
@@ -210,26 +214,29 @@ export function PostCard({
             {post.spot.name}
           </button>
         </div>
-        <div className="flex items-center gap-3 flex-shrink-0">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              if (onReplyClick) onReplyClick();
-              else if (onSelect) onSelect(post);
-            }}
-            className={'flex items-center gap-1 transition-colors ' + (replyOpen ? 'text-yellow-500' : 'text-gray-400 hover:text-yellow-500')}
-          >
-            <MessageCircle size={18} />
-            <span className="text-xs lg:text-sm font-medium">{replyCount}</span>
-          </button>
-          <button
-            onClick={handleLike}
-            className={'flex items-center gap-1 transition-colors ' + (liked ? 'text-red-500' : 'text-gray-400 hover:text-red-400')}
-          >
-            <Heart size={18} fill={liked ? 'currentColor' : 'none'} />
-            <span className="text-xs lg:text-sm font-medium">{likeCount}</span>
-          </button>
-        </div>
+        {/* 発売中止の投稿は返信・いいねボタンを撤去（操作不可） */}
+        {!isDiscontinued && (
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onReplyClick) onReplyClick();
+                else if (onSelect) onSelect(post);
+              }}
+              className={'flex items-center gap-1 transition-colors ' + (replyOpen ? 'text-yellow-500' : 'text-gray-400 hover:text-yellow-500')}
+            >
+              <MessageCircle size={18} />
+              <span className="text-xs lg:text-sm font-medium">{replyCount}</span>
+            </button>
+            <button
+              onClick={handleLike}
+              className={'flex items-center gap-1 transition-colors ' + (liked ? 'text-red-500' : 'text-gray-400 hover:text-red-400')}
+            >
+              <Heart size={18} fill={liked ? 'currentColor' : 'none'} />
+              <span className="text-xs lg:text-sm font-medium">{likeCount}</span>
+            </button>
+          </div>
+        )}
       </div>
     </article>
   );
