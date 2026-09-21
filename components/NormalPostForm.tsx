@@ -257,7 +257,9 @@ function ItemSelector({ items, value, onChange }: {
     );
   }
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+    // 中央配置・左揃え: タグ群を中央に置きつつ、改行したら各行は左から並べる
+    <div style={{ display: 'flex', justifyContent: 'center' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, justifyContent: 'flex-start', maxWidth: '100%' }}>
       {items.map(item => {
         const selected = value === item;
         return (
@@ -275,6 +277,7 @@ function ItemSelector({ items, value, onChange }: {
           </button>
         );
       })}
+      </div>
     </div>
   );
 }
@@ -437,7 +440,7 @@ function MobileForm({ onDone, initialSpotId = '', initialSpotName = '', initialF
     if (i <= 0) return;
     const prev = STEPS[i - 1];
     // スポットが事前入力済みの場合は 'spot' ステップをスキップ
-    if (prev === 'spot' && form.spotId) setStep(STEPS[i - 2] ?? STEPS[0]);
+    if (prev === 'spot' && initialSpotId) setStep(STEPS[i - 2] ?? STEPS[0]);
     else setStep(prev);
   };
   const goNext = () => {
@@ -445,7 +448,7 @@ function MobileForm({ onDone, initialSpotId = '', initialSpotName = '', initialF
     if (i >= STEPS.length - 1) return;
     const next = STEPS[i + 1];
     // スポットが事前入力済みの場合は 'spot' ステップをスキップ
-    if (next === 'spot' && form.spotId) setStep(STEPS[i + 2] ?? STEPS[STEPS.length - 1]);
+    if (next === 'spot' && initialSpotId) setStep(STEPS[i + 2] ?? STEPS[STEPS.length - 1]);
     else setStep(next);
   };
 
@@ -498,7 +501,11 @@ function MobileForm({ onDone, initialSpotId = '', initialSpotName = '', initialF
               onSelect={(id, name, img, lineup) => {
                 set({ gachaId: id, gachaName: name, gachaImageUrl: img, gachaLineup: lineup });
               }}
-              onClear={() => set({ gachaId: '', gachaName: '', gachaImageUrl: null, gachaLineup: [] })}
+              onClear={() => {
+                // ガチャ削除時は他の入力(店舗/結果/アイテム/写真/本文)も全てリセットしてバグを防ぐ。
+                // 事前入力の店舗(店舗ページ等からの遷移)だけは文脈として保持する。
+                setForm({ ...EMPTY, spotId: initialSpotId, spotName: initialSpotName });
+              }}
               onResolvingChange={setGachaResolving}
             />
             <button onClick={goNext} disabled={!form.gachaId || gachaResolving}

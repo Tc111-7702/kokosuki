@@ -473,14 +473,14 @@ export function StockPostForm({ onDone, initialSpotId = '', initialSpotName = ''
     const idx = STEPS.indexOf(step);
     if (idx <= 0) return;
     const prev = STEPS[idx - 1];
-    if (prev === 'spot' && spotId) setStep(STEPS[idx - 2] ?? STEPS[0]);
+    if (prev === 'spot' && initialSpotId) setStep(STEPS[idx - 2] ?? STEPS[0]);
     else setStep(prev);
   };
   const goNext = () => {
     const idx = STEPS.indexOf(step);
     if (idx >= STEPS.length - 1) return;
     const next = STEPS[idx + 1];
-    if (next === 'spot' && spotId) setStep(STEPS[idx + 2] ?? STEPS[STEPS.length - 1]);
+    if (next === 'spot' && initialSpotId) setStep(STEPS[idx + 2] ?? STEPS[STEPS.length - 1]);
     else setStep(next);
   };
 
@@ -544,7 +544,14 @@ export function StockPostForm({ onDone, initialSpotId = '', initialSpotName = ''
                 onSelect={(id, name, imgUrl) => {
                   setGachaId(id); setGachaName(name); setGachaImageUrl(imgUrl);
                 }}
-                onClear={() => { setGachaId(''); setGachaName(''); setGachaImageUrl(null); }}
+                onClear={() => {
+                  // ガチャ削除時は他の入力(店舗/在庫)も全てリセットしてバグを防ぐ。
+                  // 事前入力の店舗だけは文脈として保持する。
+                  setGachaId(''); setGachaName(''); setGachaImageUrl(null);
+                  setStockStatus('');
+                  if (!initialSpotId) { setSpotId(''); setSpotName(''); }
+                  setGachaResolving(false);
+                }}
                 onResolvingChange={setGachaResolving}
               />
               <button onClick={goNext} disabled={!gachaId || gachaResolving}
