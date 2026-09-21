@@ -1,14 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {
-  hasKokosukiSession,
-  hasValidKokosukiApiToken,
-  isKokosukiApiTokenRequired,
-  isKokosukiApiTokenDevBypass,
-  getKokosukiApiToken,
-  kokosukiApiMisconfigured,
-  kokosukiApiUnauthorized,
-} from '@/lib/kokosukiApiAuth';
-import { isKokosukiApiTokenOnlyPath, isPublicKokosukiApiPath } from '@/lib/kokosukiApiPublicPaths';
+import { hasKokosukiSession, kokosukiApiUnauthorized } from '@/lib/kokosukiApiAuth';
+import { isPublicKokosukiApiPath } from '@/lib/kokosukiApiPublicPaths';
 
 // (app) 配下のルート（ログイン必須）
 const APP_PREFIX = ['/home', '/mypage', '/map', '/feed', '/gacha'];
@@ -18,24 +10,11 @@ const AUTH_PATHS = ['/login', '/signup'];
 function handleApiAuth(request: NextRequest): NextResponse | null {
   const { pathname } = request.nextUrl;
 
-  if (isKokosukiApiTokenOnlyPath(pathname)) {
-    if (isKokosukiApiTokenRequired() && !getKokosukiApiToken()) {
-      return kokosukiApiMisconfigured();
-    }
-    if (isKokosukiApiTokenDevBypass()) {
-      return null;
-    }
-    if (!hasValidKokosukiApiToken(request)) {
-      return kokosukiApiUnauthorized();
-    }
-    return null;
-  }
-
   if (isPublicKokosukiApiPath(pathname, request.method)) {
     return null;
   }
 
-  if (hasKokosukiSession(request) || hasValidKokosukiApiToken(request)) {
+  if (hasKokosukiSession(request)) {
     return null;
   }
 

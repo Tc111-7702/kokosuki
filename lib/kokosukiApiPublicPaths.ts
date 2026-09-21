@@ -43,8 +43,3 @@ export function isPublicKokosukiApiPath(pathname: string, method: string): boole
 
   return false;
 }
-
-/** admin 等のサーバー間呼び出し専用。Bearer token のみ（セッション不可） */
-export function isKokosukiApiTokenOnlyPath(pathname: string): boolean {
-  return pathname === '/api/scrape';
-}
