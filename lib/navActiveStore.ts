@@ -2,8 +2,10 @@
 
 import { useEffect, useSyncExternalStore } from 'react';
 
-/** サイドバー/ボトムナビでアクティブ表示する主要セクション */
-export type NavKey = 'home' | 'map' | 'notifications' | 'mypage';
+/** サイドバー/ボトムナビでアクティブ表示する主要セクション。
+ * 'post' は投稿ページ用。4タブ(home/map/notifications/mypage)のどれにも一致しないため、
+ * 投稿ページでは「投稿する」以外のタブが一切アクティブにならない。 */
+export type NavKey = 'home' | 'map' | 'notifications' | 'mypage' | 'post';
 
 // 直近にマウントされた「確定ページ」のセクションを保持する軽量ストア。
 // gacha 詳細・他人のマイページはこの値を書き換えないため、それらのページでは

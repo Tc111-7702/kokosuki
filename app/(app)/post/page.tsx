@@ -7,6 +7,7 @@ import { NormalPostForm, DesktopNormalForm } from '@/components/NormalPostForm';
 import { StockPostForm,  DesktopStockForm  } from '@/components/StockPostForm';
 import { useIsMobile } from '@/lib/useIsMobile';
 import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
+import { useSetNavActive } from '@/lib/navActiveStore';
 
 type PostType = 'normal' | 'stock';
 
@@ -175,6 +176,8 @@ function MobilePostPage({ initialMode, initialSpotId, initialSpotName, initialFi
 // ─── searchParams を読む内部コンポーネント ────────────────────────────────
 
 function PostPageContent() {
+  // 投稿ページでは「投稿する」以外のタブを一切アクティブにしない（nav を 'post' に固定）。
+  useSetNavActive('post');
   const searchParams = useSearchParams();
   const mode      = searchParams.get('mode');                        // 'pull' | 'stock' | null
   const spotId    = searchParams.get('spotId')    ?? '';
