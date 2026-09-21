@@ -214,31 +214,36 @@ export async function loadNearbySpots(
         );
       }
 
-      const popupFonts = markerPopupFontSizes();
-      const popupTight = typeof window !== 'undefined' && window.innerWidth < MOBILE_BREAKPOINT;
-      const popup = new mapboxgl.Popup({
-        offset: 28, closeButton: false, closeOnClick: false, maxWidth: '200px',
-        className: 'kokosuki-spot-marker-popup',
-      })
-        .setHTML(
-          `<div style="font-size:${popupFonts.name}px;font-weight:700;color:#1a1a1a;margin-bottom:${popupTight ? 1 : 2}px;line-height:1.4;word-break:auto-phrase">${spot.name}</div>` +
-          `<div style="font-size:${popupFonts.sub}px;color:#888;margin-bottom:${firstGacha ? (popupTight ? 1 : 3) : 0}px;line-height:1.4">${spot.address}</div>` +
-          (firstGacha ? `<div style="font-size:${popupFonts.sub}px;color:#F2B800;font-weight:600;line-height:1.4;margin:0">${firstGacha.seriesName}</div>` : '')
-        );
+      // ホバー小カード（ポップアップ）はデスクトップのみ。モバイル(タッチ)では出さない。
+      const isMobile = typeof window !== 'undefined' && window.innerWidth < MOBILE_BREAKPOINT;
+      let removeHoverPopup = () => {};
+      if (!isMobile) {
+        const popupFonts = markerPopupFontSizes();
+        const popup = new mapboxgl.Popup({
+          offset: 28, closeButton: false, closeOnClick: false, maxWidth: '200px',
+          className: 'kokosuki-spot-marker-popup',
+        })
+          .setHTML(
+            `<div style="font-size:${popupFonts.name}px;font-weight:700;color:#1a1a1a;margin-bottom:2px;line-height:1.4;word-break:auto-phrase">${spot.name}</div>` +
+            `<div style="font-size:${popupFonts.sub}px;color:#888;margin-bottom:${firstGacha ? 3 : 0}px;line-height:1.4">${spot.address}</div>` +
+            (firstGacha ? `<div style="font-size:${popupFonts.sub}px;color:#F2B800;font-weight:600;line-height:1.4;margin:0">${firstGacha.seriesName}</div>` : '')
+          );
 
-      trackMarkerPopup(popup);
-      const safeRemove = () => { try { popup.remove(); } catch {} };
-      el.addEventListener('mouseenter', () => {
-        closeAllMarkerPopups();
-        activeMarkerPopups.add(popup);
-        popup.setLngLat([spot.lng, spot.lat]).addTo(map);
-      });
-      el.addEventListener('mouseleave', safeRemove);
-      el.addEventListener('pointerleave', safeRemove);
+        trackMarkerPopup(popup);
+        const safeRemove = () => { try { popup.remove(); } catch {} };
+        removeHoverPopup = safeRemove;
+        el.addEventListener('mouseenter', () => {
+          closeAllMarkerPopups();
+          activeMarkerPopups.add(popup);
+          popup.setLngLat([spot.lng, spot.lat]).addTo(map);
+        });
+        el.addEventListener('mouseleave', safeRemove);
+        el.addEventListener('pointerleave', safeRemove);
+      }
       el.addEventListener('click', () => {
         suppressDblclick = true;
         setTimeout(() => { suppressDblclick = false; }, 600);
-        safeRemove();
+        removeHoverPopup();
         map.flyTo({ center: [spot.lng, spot.lat], zoom: Math.max(map.getZoom(), 16), duration: 600 });
         onSpotClick({ id: spot.id, name: spot.name, address: spot.address, lat: spot.lat, lng: spot.lng, distance: spot.distance, phone: spot.phone, googleMapsUrl: spot.googleMapsUrl, gachaIds: spot.gachaIds, stockMap: spot.stockMap ?? {} });
       });
