@@ -8,7 +8,7 @@ import { SpotGachaPicker } from '@/components/SpotGachaPicker';
 import { PopularIpTagList, SearchTagsDivider } from '@/components/PopularIpTagList';
 import { useIsMobile } from '@/lib/useIsMobile';
 import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
-import { POST_STEP_NEXT_GAP, POST_SPOT_STEP_NEXT_GAP } from '@/lib/postFormMobileLayout';
+import { POST_STEP_NEXT_GAP, POST_SPOT_STEP_NEXT_GAP, POST_GACHA_BODY_HEIGHT, POST_STEP_CONTENT_BOTTOM } from '@/lib/postFormMobileLayout';
 import {
   PostImageFrame,
   POST_IMAGE_FEED_WIDTH_CLASS,
@@ -104,6 +104,8 @@ function GachaSearch({ onSelect, onClear }: {
   };
 
   const handleSelect = async (label: string) => {
+    // 選択確定(onSelect)まで親の gachaId を空へ戻し、解決中は「次へ」を押せないようにする。
+    onClear?.();
     setQuery(label); setSuggestions([]); setResolving(true);
     try {
       const searchData = await fetch(`/api/gacha/search?q=${encodeURIComponent(label)}`).then(r => r.json());
@@ -120,7 +122,8 @@ function GachaSearch({ onSelect, onClear }: {
   const dividerBleed = isMobile ? 12 : 0;
 
   return (
-    <div>
+    // 人気IPタグの読み込み前後で「次へ」の位置が動かないよう、モバイルでは本文高さを予約する
+    <div style={{ minHeight: isMobile ? POST_GACHA_BODY_HEIGHT : undefined }}>
       {/* 検索バー（home/search と同じUI） */}
       <div ref={searchRef} style={{ position: 'relative' }}>
         <div style={{ paddingTop: isMobile ? 6 : 8 }}>
@@ -253,7 +256,7 @@ function ItemSelector({ items, value, onChange }: {
     );
   }
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, maxHeight: 180, overflowY: 'auto' }}>
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
       {items.map(item => {
         const selected = value === item;
         return (
@@ -536,9 +539,12 @@ function MobileForm({ onDone, initialSpotId = '', initialSpotName = '', initialF
 
       {step === 'item' && card(<>
         <StepHeader step="item" onBack={goBack} />
-        <ItemSelector items={form.gachaLineup} value={form.itemName} onChange={v => set({ itemName: v })} />
+        {/* 本文高さを予約し、次へを他ステップと同じく下部に配置。アイテムは内部スクロールなしで全表示。 */}
+        <div style={{ minHeight: POST_STEP_CONTENT_BOTTOM }}>
+          <ItemSelector items={form.gachaLineup} value={form.itemName} onChange={v => set({ itemName: v })} />
+        </div>
         <button onClick={goNext} disabled={!form.itemName}
-          style={{ ...nextBtnStyle(!!form.itemName, isDark), marginTop: 16, width: '100%' }}>
+          style={{ ...nextBtnStyle(!!form.itemName, isDark), marginTop: POST_STEP_NEXT_GAP, width: '100%' }}>
           次へ <ChevronRight size={14} />
         </button>
       </>)}
