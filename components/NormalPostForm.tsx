@@ -198,7 +198,7 @@ function GachaSearch({ onSelect, onClear, onResolvingChange }: {
       <PopularIpTagList
         ips={shownIps}
         marginBottom={POST_STEP_NEXT_GAP}
-        onIpClick={ip => { setQuery(ip); setFocused(true); fetchSuggestions(ip); }}
+        onIpClick={ip => { onClear?.(); setQuery(ip); setFocused(true); fetchSuggestions(ip); }}
       />
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
