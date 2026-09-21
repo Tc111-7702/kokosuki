@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { usePolling } from '@/lib/usePolling';
 
 // サイドバー通知バッジの自動更新間隔（秒）。0以下で無効。
-export const NOTIFICATION_POLL_SECONDS = 30;
+export const NOTIFICATION_POLL_SECONDS = 10;
 
 // 通知の自動クリーンアップの最小実行間隔（クライアント側スロットル）。24hに1回。
 const CLEANUP_MIN_INTERVAL_MS = 24 * 60 * 60 * 1000;
