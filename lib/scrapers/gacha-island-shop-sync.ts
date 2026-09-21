@@ -249,11 +249,11 @@ async function syncArea(pref: string, label: string, catTree: CatTree): Promise<
 
     const wpPostIds = await fetchWpPostIdsForShop(pref, shopId);
 
-    // この店舗の実ページ(live)に無くなった machine を先に剥がす。
-    // 取得失敗/空(0件)のときは剥がさない（通信エラーで全machine削除する事故を防止）。
+    // この店舗の実ページ(live)に無くなった machine を ended にする（ソフト削除・投稿は保持）。
+    // 取得失敗/空(0件)のときは触らない（通信エラーで全machineが ended になる事故を防止）。
     if (wpPostIds.length > 0) {
-      const removed = await db.pruneShopMachines(spot.id, wpPostIds);
-      if (removed > 0) console.log(`[shop-sync] ${label} shop=${shopId}: 古いmachine ${removed}件を削除`);
+      const ended = await db.markShopMachinesEnded(spot.id, wpPostIds);
+      if (ended > 0) console.log(`[shop-sync] ${label} shop=${shopId}: 取扱終了machine ${ended}件を ended に更新`);
     }
 
     for (const wpPostId of wpPostIds) {
