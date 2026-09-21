@@ -71,7 +71,16 @@ function FavoriteCard({
 
 // ─── メイン ───────────────────────────────────────────────────────────────────
 
-export function FavoritesTab({ userId, editable = true }: { userId?: string; editable?: boolean }) {
+export function FavoritesTab({
+  userId,
+  editable = true,
+  hideEnded = false,
+}: {
+  userId?: string;
+  editable?: boolean;
+  /** true のとき発売終了(status='ended')のガチャを表示しない（ホームタブ用）。マイページは false のまま。 */
+  hideEnded?: boolean;
+}) {
   const [gachas,   setGachas]   = useState<FavoriteGacha[]>([]);
   const [loading,  setLoading]  = useState(true);
   const [editing,  setEditing]  = useState(false);
@@ -106,15 +115,17 @@ export function FavoritesTab({ userId, editable = true }: { userId?: string; edi
   };
 
   const cols = isMobile ? 2 : 4;
+  // ホームタブ(hideEnded)では発売終了ガチャを非表示。マイページは全件表示。
+  const visible = hideEnded ? gachas.filter(g => g.status !== 'ended') : gachas;
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
       {/* ヘッダー行 */}
       <div className="flex items-center justify-between px-4 py-3">
         <span style={{ fontSize: 13, fontWeight: 700, color: '#555' }}>
-          {editable ? '引きたいもの' : 'お気に入り'} {loading ? '…' : `${gachas.length}件`}
+          {editable ? '引きたいもの' : 'お気に入り'} {loading ? '…' : `${visible.length}件`}
         </span>
-        {editable && !loading && gachas.length > 0 && (
+        {editable && !loading && visible.length > 0 && (
           <button
             onClick={() => setEditing(e => !e)}
             style={{ fontSize: 13, fontWeight: 700, color: editing ? '#F2B800' : '#888' }}
@@ -130,7 +141,7 @@ export function FavoritesTab({ userId, editable = true }: { userId?: string; edi
           <div className="flex items-center justify-center py-20">
             <div style={{ width: 32, height: 32, border: '3px solid #F2B800', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
           </div>
-        ) : gachas.length === 0 ? (
+        ) : visible.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3">
             {editable ? (
               <>
@@ -150,7 +161,7 @@ export function FavoritesTab({ userId, editable = true }: { userId?: string; edi
               paddingTop: editing ? 8 : 0,
             }}
           >
-            {gachas.map(g => (
+            {visible.map(g => (
               <FavoriteCard
                 key={g.id}
                 gacha={g}
