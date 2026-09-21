@@ -1163,18 +1163,24 @@ type FeedIdOpts = {
   likedIps: string[];
   limit: number;
   offset: number;
+  // ガチャ詳細ページ用: そのガチャの投稿を出す画面なので gacha/machine の
+  // status(on_sale/ended) で絞らない。home/店舗詳細では false（既定）。
+  includeEnded?: boolean;
 };
 
 // 好み(いいねガチャ→同IP→その他)＋新着 の順に並べた「在庫」の ID を limit 件だけ返す。
 // 同一マシンは DISTINCT ON で最新のみに畳んでから並べる（15件に絞っても dedup で減らない）。
 export async function getFeedStockIds(opts: FeedIdOpts): Promise<string[]> {
-  const { spotId, gachaIds, likedGachaIds, likedIps, limit, offset } = opts;
+  const { spotId, gachaIds, likedGachaIds, likedIps, limit, offset, includeEnded } = opts;
   const freshSince = new Date(Date.now() - STOCK_FEED_FRESH_DAYS * 24 * 60 * 60 * 1000);
   const conds: Prisma.Sql[] = [
     Prisma.sql`sp."createdAt" >= ${freshSince}`,
-    Prisma.sql`g."status" = 'on_sale'`,
-    Prisma.sql`m."status" = 'on_sale'`,
   ];
+  if (!includeEnded) {
+    // home/店舗詳細では発売中(on_sale)の gacha/machine のみ。ガチャ詳細は絞らない。
+    conds.push(Prisma.sql`g."status" = 'on_sale'`);
+    conds.push(Prisma.sql`m."status" = 'on_sale'`);
+  }
   if (spotId) conds.push(Prisma.sql`sp."spotId" = ${spotId}`);
   if (gachaIds && gachaIds.length > 0) conds.push(Prisma.sql`sp."gachaId" = ANY(${gachaIds}::text[])`);
   const rows = await prisma.$queryRaw<{ id: string }[]>`
@@ -1199,13 +1205,16 @@ export async function getFeedStockIds(opts: FeedIdOpts): Promise<string[]> {
 
 // 好み＋新着 の順に並べた「通常投稿」の ID を limit 件だけ返す（鮮度窓なし・dedupなし）。
 export async function getFeedPostIds(opts: FeedIdOpts): Promise<string[]> {
-  const { spotId, gachaIds, likedGachaIds, likedIps, limit, offset } = opts;
-  const conds: Prisma.Sql[] = [
-    Prisma.sql`g."status" = 'on_sale'`,
-    Prisma.sql`m."status" = 'on_sale'`,
-  ];
+  const { spotId, gachaIds, likedGachaIds, likedIps, limit, offset, includeEnded } = opts;
+  const conds: Prisma.Sql[] = [];
+  if (!includeEnded) {
+    // home/店舗詳細では発売中(on_sale)の gacha/machine のみ。ガチャ詳細は絞らない。
+    conds.push(Prisma.sql`g."status" = 'on_sale'`);
+    conds.push(Prisma.sql`m."status" = 'on_sale'`);
+  }
   if (spotId) conds.push(Prisma.sql`p."spotId" = ${spotId}`);
   if (gachaIds && gachaIds.length > 0) conds.push(Prisma.sql`p."gachaId" = ANY(${gachaIds}::text[])`);
+  if (conds.length === 0) conds.push(Prisma.sql`TRUE`); // 空WHERE防止（通常は到達しない）
   const rows = await prisma.$queryRaw<{ id: string }[]>`
     SELECT p.id
     FROM "Post" p
