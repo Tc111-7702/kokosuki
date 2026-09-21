@@ -36,7 +36,9 @@ export async function GET(request: Request) {
     if (gachaIds.length === 0 && filterGachaIdsStore) {
       gachaIds = filterGachaIdsStore.split(',').filter(Boolean);
     }
-    const base = { spotId: filterSpotId, gachaIds, likedGachaIds, likedIps };
+    // includeEnded: ガチャ詳細ページからの取得時のみ true（gacha/machine の status で絞らない）。
+    const includeEnded = searchParams.get('includeEnded') === '1';
+    const base = { spotId: filterSpotId, gachaIds, likedGachaIds, likedIps, includeEnded };
 
     // 1段目: 並び替え済みの ID を limit 件だけ取得（在庫は DISTINCT ON machineId ＋ 7日窓）。
     const [stockIds, postIds] = await Promise.all([
