@@ -78,15 +78,19 @@ function StepHeader({ step, onBack }: { step: Step; onBack?: () => void }) {
 
 // ─── ガチャ検索 (共通) ────────────────────────────────────────────────
 
-function GachaSearch({ onSelect, onClear, onResolvingChange, accentColor = ACCENT, largeText = false }: {
+function GachaSearch({ onSelect, onClear, onResolvingChange, initialValue = '', accentColor = ACCENT, largeText = false }: {
   accentColor?: string;
   largeText?: boolean;
   onSelect: (id: string, name: string, imageUrl: string | null) => void;
   onClear?: () => void;
   /** ガチャ解決中(true)を親へ通知。解決中は「次へ」を無効化するために使う。 */
   onResolvingChange?: (resolving: boolean) => void;
+  /** 選択済みガチャ名（戻ってきた時に検索バーへ復元表示するため）。 */
+  initialValue?: string;
 }) {
-  const [value, setValue]             = useState('');
+  const [value, setValue]             = useState(initialValue);
+  // ガチャが確定選択されているか。確定中に文字編集/×されたら選択を無効化して全リセットする。
+  const confirmedRef = useRef(!!initialValue);
   const [suggestions, setSuggestions] = useState<GachaSuggestion[]>([]);
   const [focused, setFocused]         = useState(false);
   const [resolving, setResolving]     = useState(false);
@@ -141,6 +145,7 @@ function GachaSearch({ onSelect, onClear, onResolvingChange, accentColor = ACCEN
         const gachaData = await fetch(`/api/gacha/${id}`).then(r => r.json());
         const imageUrl: string | null = gachaData.gacha?.imageUrl ?? null;
         onSelect(id, label, imageUrl);
+        confirmedRef.current = true;
       }
     } catch { /* silent */ }
     setResolving(false); onResolvingChange?.(false);
@@ -168,7 +173,12 @@ function GachaSearch({ onSelect, onClear, onResolvingChange, accentColor = ACCEN
               type="text"
               value={value}
               placeholder="気になっているガチャをさがす"
-              onChange={e => { setValue(e.target.value); fetchSuggestions(e.target.value); }}
+              onChange={e => {
+                const v = e.target.value;
+                // 確定済みガチャがある状態で文字を編集したら、選択を無効化して全リセット。
+                if (confirmedRef.current) { confirmedRef.current = false; onClear?.(); }
+                setValue(v); fetchSuggestions(v);
+              }}
               onFocus={() => { setFocused(true); fetchSuggestions(value); }}
               onBlur={() => setTimeout(() => setFocused(false), 200)}
               disabled={resolving}
@@ -178,7 +188,7 @@ function GachaSearch({ onSelect, onClear, onResolvingChange, accentColor = ACCEN
             {value && !resolving && (
               <button
                 type="button"
-                onMouseDown={e => { e.preventDefault(); setValue(''); setSuggestions([]); onClear?.(); }}
+                onMouseDown={e => { e.preventDefault(); confirmedRef.current = false; setValue(''); setSuggestions([]); onClear?.(); }}
                 aria-label="入力をクリア"
                 className="home-search-clear-btn p-0 bg-transparent border-none cursor-pointer leading-none flex-shrink-0"
               >
@@ -227,7 +237,7 @@ function GachaSearch({ onSelect, onClear, onResolvingChange, accentColor = ACCEN
         ips={shownIps}
         largeText={largeText}
         marginBottom={48}
-        onIpClick={ip => { onClear?.(); setValue(ip); setFocused(true); fetchSuggestions(ip); }}
+        onIpClick={ip => { confirmedRef.current = false; onClear?.(); setValue(ip); setFocused(true); fetchSuggestions(ip); }}
       />
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
@@ -541,6 +551,7 @@ export function StockPostForm({ onDone, initialSpotId = '', initialSpotName = ''
           ) : (
             <>
               <GachaSearch
+                initialValue={gachaName}
                 onSelect={(id, name, imgUrl) => {
                   setGachaId(id); setGachaName(name); setGachaImageUrl(imgUrl);
                 }}
