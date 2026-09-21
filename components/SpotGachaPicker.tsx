@@ -40,8 +40,17 @@ export function SpotGachaPicker({ spotId, filterGachaIds, onSelect, selectedId, 
   const [activeFilterIds, setActiveFilterIds] = useState<string[]>(filterGachaIds);
   const [filterOpen,      setFilterOpen]      = useState(false);
   const [query,           setQuery]           = useState(initialQuery);
+  const [focused,         setFocused]         = useState(false);
 
   const isFiltered = activeFilterIds.length > 0;
+
+  // この店舗に置かれているガチャのIP一覧（件数の多い順）。検索バーが空＋フォーカス時のみ
+  // サジェストとして表示する（店舗詳細ページの focusSuggestions と同じ挙動）。
+  const ipSuggestions = useMemo(
+    () => groupByIp(allGachas).map(([ip]) => ip).filter(ip => ip && ip !== 'その他'),
+    [allGachas],
+  );
+  const showIpSuggest = focused && !query.trim() && ipSuggestions.length > 0;
 
   useEffect(() => {
     Promise.all([
@@ -128,7 +137,7 @@ export function SpotGachaPicker({ spotId, filterGachaIds, onSelect, selectedId, 
   return (
     <div>
       {/* 検索バー（ホームと同じUI） */}
-      <div className="mb-1.5 md:mb-2">
+      <div className="mb-1.5 md:mb-2" style={{ position: 'relative' }}>
         <div className="community-search-input-shell flex items-center gap-2 px-3 py-1.5 lg:py-2.5 rounded-full">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2.5" className="flex-shrink-0">
             <circle cx="11" cy="11" r="8" />
@@ -138,6 +147,8 @@ export function SpotGachaPicker({ spotId, filterGachaIds, onSelect, selectedId, 
             type="text"
             value={query}
             onChange={e => setQuery(e.target.value)}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setTimeout(() => setFocused(false), 150)}
             placeholder="ガチャ名・IPで検索…"
             className="community-search-input shell-field flex-1 bg-transparent text-xs lg:text-sm outline-none min-w-0"
             style={{ fontSize: isMobile ? 12 : 13, textAlign: 'left' }}
@@ -153,6 +164,30 @@ export function SpotGachaPicker({ spotId, filterGachaIds, onSelect, selectedId, 
             </button>
           )}
         </div>
+
+        {/* 空＋フォーカス時のみ: この店舗のガチャIP一覧をサジェスト（入力すると消える） */}
+        {showIpSuggest && (
+          <div
+            className="search-suggest-dropdown absolute z-50 left-0 right-0 rounded-xl shadow-xl"
+            style={{ top: 'calc(100% - 4px)', maxHeight: 280, overflow: 'hidden' }}
+          >
+            <div style={{ maxHeight: 280, overflowY: 'auto' }}>
+              <div className="search-suggest-section" style={{ fontSize: isMobile ? 10 : 12 }}>この店舗のIP</div>
+              {ipSuggestions.map(ip => (
+                <button
+                  key={ip}
+                  type="button"
+                  onMouseDown={e => { e.preventDefault(); setQuery(ip); setFocused(false); }}
+                  className="search-suggest-item flex items-center justify-between"
+                  style={{ padding: isMobile ? '8px 12px' : '10px 14px' }}
+                >
+                  <span className="search-suggest-label min-w-0 flex-1 truncate font-medium" style={{ fontSize: isMobile ? 12 : 14, paddingRight: 8 }}>{ip}</span>
+                  <span style={{ fontSize: isMobile ? 9 : 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99, flexShrink: 0, background: '#DBEAFE', color: '#1D4ED8' }}>IP</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* フィルター行（マップと同じUI） */}
