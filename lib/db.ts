@@ -953,6 +953,34 @@ export const deleteLikeNotification = (where: Prisma.NotificationWhereInput) =>
 export const deleteReadNotificationsBefore = (cutoff: Date) =>
   prisma.notification.deleteMany({ where: { read: true, createdAt: { lt: cutoff } } });
 
+/**
+ * gacha または machine が ended になった通知を削除（既読/未読問わず・自動クリーンアップ用）。
+ * Notification は FK を張らず gachaId / postId / stockPostId のスナップショットidを持つため、
+ * 直接の gachaId と、post/stockPost 経由の gacha・machine を subquery で判定して削除する。冪等。
+ * @returns 削除件数
+ */
+export const deleteEndedGachaMachineNotifications = (): Promise<number> =>
+  prisma.$executeRawUnsafe(`
+    DELETE FROM "Notification" n
+    WHERE n."gachaId" IN (SELECT id FROM "Gacha" WHERE "status" = 'ended')
+       OR n."postId" IN (
+            SELECT p.id FROM "Post" p
+            JOIN "Gacha" g ON g.id = p."gachaId"
+            WHERE g."status" = 'ended')
+       OR n."postId" IN (
+            SELECT p.id FROM "Post" p
+            JOIN "Machine" m ON m.id = p."machineId"
+            WHERE m."status" = 'ended')
+       OR n."stockPostId" IN (
+            SELECT sp.id FROM "StockPost" sp
+            JOIN "Gacha" g ON g.id = sp."gachaId"
+            WHERE g."status" = 'ended')
+       OR n."stockPostId" IN (
+            SELECT sp.id FROM "StockPost" sp
+            JOIN "Machine" m ON m.id = sp."machineId"
+            WHERE m."status" = 'ended')
+  `);
+
 // ─── Announcement（お知らせ） ───────────────────────────────────────────────────
 
 export interface PublishedAnnouncementRow {

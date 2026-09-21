@@ -16,6 +16,8 @@ export async function POST() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   const cutoff = new Date(Date.now() - RETENTION_MS);
-  const { count } = await db.deleteReadNotificationsBefore(cutoff);
-  return NextResponse.json({ ok: true, deleted: count });
+  // 1) 既読かつ30日経過を削除、2) gacha/machine が ended の通知を削除（既読/未読問わず）
+  const { count: deletedRead } = await db.deleteReadNotificationsBefore(cutoff);
+  const deletedEnded = await db.deleteEndedGachaMachineNotifications();
+  return NextResponse.json({ ok: true, deletedRead, deletedEnded });
 }
