@@ -162,10 +162,12 @@ export default function SpotDetailSheet({
       }
       return 0;
     });
+  // 表示するガチャカードは10枚に制限するが、件数は制限せず全件（allMatchedGacha）で数える
   const matchedGacha = allMatchedGacha.slice(0, 10);
-  const knownCount   = matchedGacha.filter(g => spot.stockMap[g.id]).length;
+  const totalCount   = allMatchedGacha.length;
+  const knownCount   = allMatchedGacha.filter(g => spot.stockMap[g.id]).length;
   const isSearchMode = searchOverrideIds != null;
-  const isEmpty      = matchedGacha.length === 0;
+  const isEmpty      = allMatchedGacha.length === 0;
   // 距離は「その場で取り直した現在地(freshPos)」だけで計算する。渡された currentPos は
   // 偽装され得るためここでは使わない。fresh が無いときの表示のみ、サーバー算出の
   // spot.distance にフォールバックする（表示が空にならないように）。
@@ -270,7 +272,7 @@ export default function SpotDetailSheet({
         >
           <div className="px-4 py-2 text-[13px] font-bold flex items-center justify-between"
             style={{ color: sheetMutedColor, background: sheetSectionBg, borderBottom: `1px solid ${sheetBorderColor}` }}>
-            <span>{isSearchMode ? '検索結果' : '取扱商品'} {isEmpty ? 0 : matchedGacha.length}件</span>
+            <span>{isSearchMode ? '検索結果' : '取扱商品'} {isEmpty ? 0 : totalCount}件</span>
             <div className="flex items-center gap-2">
               {knownCount > 0 && (
                 <span style={{ fontSize: 10, color: '#16a34a', fontWeight: 600 }}>在庫情報あり {knownCount}件</span>
