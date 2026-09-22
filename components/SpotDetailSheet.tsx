@@ -90,6 +90,8 @@ export default function SpotDetailSheet({
   const sheetMutedColor = isDark ? '#737373' : '#888888';
   const [expanded,    setExpanded]    = useState(false);
   const dragStartY = useRef<number | null>(null);
+  // 本文（ガチャカード等）をタッチでスワイプしたときの縮小/展開判定用。ヘッダーと同じ操作感にする。
+  const bodyTouchStartY = useRef<number | null>(null);
   const [reviews,     setReviews]     = useState<SheetReview[]>([]);
   const [reviewText,  setReviewText]  = useState('');
   const [submittingR, setSubmittingR] = useState(false);
@@ -269,6 +271,24 @@ export default function SpotDetailSheet({
             const el = e.currentTarget as HTMLDivElement;
             if (el.scrollTop === 0 && e.deltaY < 0 && expanded) setExpanded(false);
           }}
+          // タッチ操作: ヘッダーだけでなくガチャカード等の本文でも、最上部で下方向スワイプ
+          // （＝上スクロールの動き）すると縮小する。ヘッダーの pointer 操作と同じ操作感。
+          onTouchStart={e => {
+            if ((e.target as HTMLElement).closest('button, a')) return;
+            bodyTouchStartY.current = e.touches[0]?.clientY ?? null;
+          }}
+          onTouchMove={e => {
+            if (bodyTouchStartY.current === null) return;
+            const el = e.currentTarget as HTMLDivElement;
+            const y = e.touches[0]?.clientY;
+            if (y == null) return;
+            if (el.scrollTop <= 0 && y - bodyTouchStartY.current > 40 && expanded) {
+              bodyTouchStartY.current = null;
+              setExpanded(false);
+            }
+          }}
+          onTouchEnd={() => { bodyTouchStartY.current = null; }}
+          onTouchCancel={() => { bodyTouchStartY.current = null; }}
         >
           <div className="px-4 py-2 text-[13px] font-bold flex items-center justify-between"
             style={{ color: sheetMutedColor, background: sheetSectionBg, borderBottom: `1px solid ${sheetBorderColor}` }}>
