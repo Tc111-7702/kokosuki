@@ -9,7 +9,6 @@ import { formatMailDeliveryNotice } from '@/lib/mailDeliveryNotice';
 import type { MailDeliveryResult } from '@/lib/mail';
 import { useOtpResendCooldown } from '@/lib/useOtpResendCooldown';
 import { PasswordResetGlobeIllustration } from '@/components/ui/PasswordResetGlobeIllustration';
-import { persistSavedLoginAccount } from '@/lib/persistSavedLoginAccount';
 import {
   useAuthBackIconColor,
   useAuthMutedTextColor,
@@ -61,7 +60,6 @@ export function LoginPasswordStep({
         setError(formatPasswordSignInError(signInError));
         return;
       }
-      await persistSavedLoginAccount(email);
       router.replace('/home');
       router.refresh();
     } catch {

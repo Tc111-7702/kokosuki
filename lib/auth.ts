@@ -8,11 +8,10 @@ import {
   isExternalMailDelivery,
 } from './mailDeliveryContext';
 import { sendOtpEmail, sendPasswordResetEmail } from './mail';
-import { quickLoginAuthPlugin } from './quickLoginAuthPlugin';
 import { prisma } from './db';
 import * as db from './db';
 
-/** Better Auth の Origin 検証用。www/apex 両方と env を許可（即時ログイン等の Cookie 付き POST 向け） */
+/** Better Auth の Origin 検証用。www/apex 両方と env を許可（Cookie 付き POST 向け） */
 function getKokosukiTrustedOrigins(): string[] {
   const origins = new Set<string>([
     'https://www.kokosuki.app',
@@ -84,7 +83,6 @@ export const auth = betterAuth({
     },
   },
   plugins: [
-    quickLoginAuthPlugin(),
     emailOTP({
       disableSignUp: true,
       changeEmail: { enabled: true },

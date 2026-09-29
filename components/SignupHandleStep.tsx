@@ -9,7 +9,6 @@ import {
   normalizeSignupHandleInput,
 } from '@/lib/signupHandle';
 import { SignupCompleteStep } from '@/components/SignupCompleteStep';
-import { persistSavedLoginAccount } from '@/lib/persistSavedLoginAccount';
 import {
   isSignupPendingSessionExpiredResponse,
   redirectOnSignupPendingExpired,
@@ -116,7 +115,6 @@ export function SignupHandleStep({ email, favoriteGachaIds, onBack, onSessionExp
         setError(typeof completeData?.error === 'string' ? completeData.error : 'アカウントの作成に失敗しました');
         return;
       }
-      await persistSavedLoginAccount(email);
       setCompleteOpen(true);
     } catch {
       setError('アカウントの作成に失敗しました');

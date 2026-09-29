@@ -15,7 +15,6 @@ import { PasswordResetGlobeIllustration } from '@/components/ui/PasswordResetGlo
 import { MailDeliveryNotice } from '@/components/MailDeliveryNotice';
 import { formatMailDeliveryNotice } from '@/lib/mailDeliveryNotice';
 import type { MailDeliveryResult } from '@/lib/mail';
-import { persistSavedLoginAccount } from '@/lib/persistSavedLoginAccount';
 import {
   useAuthBackIconColor,
   useAuthMutedTextColor,
@@ -115,7 +114,6 @@ export function LoginOtpStep({
           return;
         }
       }
-      await persistSavedLoginAccount(email);
       router.replace('/home');
       router.refresh();
     } catch {

@@ -1,15 +1,10 @@
 'use client';
 
-import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { emailButtonClass, emailPanelClass } from '@/components/emailChangeLayout';
-import { syncLoginEmailChange } from '@/lib/savedLoginAccounts';
 
 export function EmailChangeCompletePanel({
-  oldEmail,
   newEmail,
-  name,
-  avatarUrl,
 }: {
   oldEmail: string;
   newEmail: string;
@@ -17,26 +12,6 @@ export function EmailChangeCompletePanel({
   avatarUrl: string | null;
 }) {
   const router = useRouter();
-
-  useEffect(() => {
-    void (async () => {
-      try {
-        await fetch('/api/auth/login/revoke-quick-tokens', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ clearEmail: oldEmail }),
-        });
-        await fetch('/api/auth/login/register-quick-token', {
-          method: 'POST',
-          credentials: 'include',
-        });
-      } catch {
-        /* 端末保存の更新のみ続行 */
-      }
-      syncLoginEmailChange(oldEmail, newEmail, { name, avatarUrl });
-    })();
-  }, [oldEmail, newEmail, name, avatarUrl]);
 
   return (
     <div className={emailPanelClass}>
