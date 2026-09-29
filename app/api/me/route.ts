@@ -3,12 +3,6 @@ import { auth } from '@/lib/auth';
 import * as db from '@/lib/db';
 import { headers } from 'next/headers';
 import { appendKokosukiSessionClear } from '@/lib/kokosukiSignOut';
-import {
-  quickLoginCookieName,
-  quickLoginCookieOptions,
-} from '@/lib/quickLoginCookie';
-import { revokeQuickLoginTokensForUser } from '@/lib/quickLoginToken';
-import { isSavedLoginProviderEmail } from '@/lib/savedLoginAccounts';
 
 export async function GET() {
   const h = await headers();
@@ -42,17 +36,12 @@ export async function DELETE() {
     }
 
     const userId = session.user.id;
-    const userEmail = session.user.email?.trim().toLowerCase() ?? '';
 
-    await revokeQuickLoginTokensForUser(userId);
     await db.deleteUser(userId);
 
     const h = await headers();
     const res = NextResponse.json({ ok: true });
     await appendKokosukiSessionClear(res, h);
-    if (userEmail && isSavedLoginProviderEmail(userEmail)) {
-      res.cookies.set(quickLoginCookieName(userEmail), '', quickLoginCookieOptions(0));
-    }
     return res;
   } catch (e) {
     console.error('[me DELETE]', e);

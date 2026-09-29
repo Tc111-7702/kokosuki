@@ -1991,9 +1991,6 @@ export const findUserIdByEmail = (email: string) =>
 export const findUserAuthByEmail = (email: string) =>
   prisma.user.findUnique({ where: { email }, select: { id: true, isActive: true } });
 
-export const findUserAuthById = (id: string) =>
-  prisma.user.findUnique({ where: { id }, select: { id: true, email: true, isActive: true } });
-
 export const getUserIsActiveById = (id: string) =>
   prisma.user.findUnique({ where: { id }, select: { isActive: true } });
 
@@ -2060,7 +2057,7 @@ export const updateSignupPendingByTokenHash = (
     select: signupPendingPublicSelect,
   });
 
-// ─── Verification（OTP / quick login） ───────────────────────────────────────
+// ─── Verification（OTP） ───────────────────────────────────────
 
 export const findVerificationByIdentifier = (identifier: string) =>
   prisma.verification.findFirst({
@@ -2076,17 +2073,6 @@ export const createVerificationRow = (data: {
   value: string;
   expiresAt: Date;
 }) => prisma.verification.create({ data });
-
-export const deleteVerificationById = (id: string) =>
-  prisma.verification.delete({ where: { id } });
-
-export const deleteQuickLoginVerificationsForUser = (identifierPrefix: string, userId: string) =>
-  prisma.verification.deleteMany({
-    where: {
-      identifier: { startsWith: identifierPrefix },
-      value: userId,
-    },
-  });
 
 // ─── 通報対象のユーザー解決 ───────────────────────────────────────────────────
 

@@ -7,7 +7,6 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, ChevronRight } from 'lucide-react';
 import { markLoginFromLogout } from '@/lib/loginSplash';
 import { signOutAndClearSession } from '@/lib/signOutClient';
-import { clearSavedLoginAccount } from '@/lib/persistSavedLoginAccount';
 import { SettingsSheet } from '@/components/SettingsSheet';
 import { DisplaySettingsSheet } from '@/components/DisplaySettingsSheet';
 import { ProfileSettingsSheet } from '@/components/ProfileSettingsSheet';
@@ -75,7 +74,6 @@ export default function SettingsPage() {
     setDeleting(true);
     const res = await fetch('/api/me', { method: 'DELETE', credentials: 'include' }).catch(() => null);
     if (res?.ok) {
-      await clearSavedLoginAccount(email);
       await signOutAndClearSession();
       markLoginFromLogout();
       window.location.href = '/login';
