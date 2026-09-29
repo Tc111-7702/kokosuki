@@ -94,6 +94,23 @@ model SignupPending {
   @@index([expiresAt])
 }
 
+// ログイン: メール送信/確認後〜OTP・パスワード入力ページまでの一時状態。
+// Cookie には不透明トークンだけを置き、メール(PII)は DB のこの行に保持する。
+// 認証コードページの案内文は保存せず、mailMode/mailRedirectTo から再生成する。
+model LoginFlowPending {
+  id             String   @id @default(cuid())
+  tokenHash      String   @unique
+  email          String
+  step           String // 'otp' | 'password'
+  provider       String   @default("email") // 'email' | 'google' | 'apple'（戻る動線のサフィックスUI用・非PII）
+  mailMode       String? // 'resend' | 'dev-redirect' | 'dev-console'（otp のみ）
+  mailRedirectTo String? // dev-redirect 時の転送先メール
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
+
+  @@index([expiresAt])
+}
+
 // ─── ユーザープロフィール ──────────────────────────────────────────────────────
 
 model UserProfile {

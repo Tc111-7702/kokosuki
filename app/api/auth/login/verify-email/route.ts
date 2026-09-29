@@ -1,11 +1,7 @@
 import { NextResponse } from 'next/server';
 import * as db from '@/lib/db';
-import {
-  LOGIN_FLOW_COOKIE_NAME,
-  createLoginFlowTicket,
-  loginFlowCookieOptions,
-  normalizeLoginFlowProvider,
-} from '@/lib/loginFlowTicket';
+import { LOGIN_FLOW_COOKIE_NAME, loginFlowCookieOptions } from '@/lib/loginFlowCookie';
+import { createLoginFlowPending, normalizeLoginFlowProvider } from '@/lib/loginFlowPending';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -28,12 +24,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'このアカウントは無効化されています。' }, { status: 400 });
   }
 
-  // パスワード入力ページ(/login/password)への遷移を許可するチケットを発行。
+  // パスワード入力ページ(/login/password)への遷移を許可する一時状態を発行。
+  // メール(PII)は DB に保持し、Cookie には不透明トークンのみを載せる。
+  const token = await createLoginFlowPending({ email, step: 'password', provider });
   const res = NextResponse.json({ success: true });
-  res.cookies.set(
-    LOGIN_FLOW_COOKIE_NAME,
-    createLoginFlowTicket({ email, step: 'password', provider }),
-    loginFlowCookieOptions(),
-  );
+  res.cookies.set(LOGIN_FLOW_COOKIE_NAME, token, loginFlowCookieOptions());
   return res;
 }

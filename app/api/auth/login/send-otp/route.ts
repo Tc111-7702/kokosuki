@@ -4,12 +4,8 @@ import { auth } from '@/lib/auth';
 import * as db from '@/lib/db';
 import { runWithMailDeliveryContext } from '@/lib/mailDeliveryContext';
 import { formatMailSendError } from '@/lib/mailDeliveryNotice';
-import {
-  LOGIN_FLOW_COOKIE_NAME,
-  createLoginFlowTicket,
-  loginFlowCookieOptions,
-  normalizeLoginFlowProvider,
-} from '@/lib/loginFlowTicket';
+import { LOGIN_FLOW_COOKIE_NAME, loginFlowCookieOptions } from '@/lib/loginFlowCookie';
+import { createLoginFlowPending, normalizeLoginFlowProvider } from '@/lib/loginFlowPending';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -40,13 +36,18 @@ export async function POST(req: Request) {
         headers: headersList,
       });
     });
-    // 認証コード入力ページ(/login/otp)への遷移を許可するチケットを発行。
+    // 認証コード入力ページ(/login/otp)への遷移を許可する一時状態を発行。
+    // メール(PII)は DB に保持し、Cookie には不透明トークンのみを載せる。
+    // 案内文は保存せず、mailMode/mailRedirectTo から OTP ページで再生成する。
+    const token = await createLoginFlowPending({
+      email,
+      step: 'otp',
+      provider,
+      mailMode: mail?.mode ?? null,
+      mailRedirectTo: mail?.devRedirectTo ?? null,
+    });
     const res = NextResponse.json({ success: true, mail });
-    res.cookies.set(
-      LOGIN_FLOW_COOKIE_NAME,
-      createLoginFlowTicket({ email, step: 'otp', provider }),
-      loginFlowCookieOptions(),
-    );
+    res.cookies.set(LOGIN_FLOW_COOKIE_NAME, token, loginFlowCookieOptions());
     return res;
   } catch (e) {
     console.error('[login send-otp]', e);
