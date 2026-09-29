@@ -1,10 +1,12 @@
 'use client';
 
-import { useSyncExternalStore } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { KokosukiLogo } from '@/components/ui/KokosukiLogo';
 import loginServiceIntro from '@/components/ui/assets/login-service-intro.png';
+import { LoginSplash } from '@/components/LoginSplash';
 import { loginDisplayFont } from '@/lib/loginFonts';
+import { markLoginSplashSeen, shouldShowLoginSplash } from '@/lib/loginSplash';
 import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 
 interface Props {
@@ -13,11 +15,33 @@ interface Props {
 
 export function LoginIntroStep({ onLogin }: Props) {
   const router = useRouter();
+  // スプラッシュ演出はイントロ内で制御する。初回入場時のみ表示し、他ページから戻って
+  // きた場合（＝このセッションで表示済み）やログアウト直後は演出を出さない。
+  // sessionStorage 依存の判定はクライアントでのみ確定させ、初回はちらつき防止で空表示。
+  const [showSplash, setShowSplash] = useState<boolean | null>(null);
+  useEffect(() => {
+    setShowSplash(shouldShowLoginSplash());
+  }, []);
+
   const isDark = useSyncExternalStore(
     subscribeTheme,
     () => getThemeSnapshot() === 'dark',
     () => false,
   );
+
+  if (showSplash === null) {
+    return <div className="min-h-screen bg-white" aria-busy="true" />;
+  }
+  if (showSplash) {
+    return (
+      <LoginSplash
+        onFinish={() => {
+          markLoginSplashSeen();
+          setShowSplash(false);
+        }}
+      />
+    );
+  }
   const titleColor = isDark ? '#ffffff' : '#111111';
   const taglineColor = isDark ? '#ffffff' : '#555555';
   const dividerTextColor = isDark ? '#ffffff' : '#111111';

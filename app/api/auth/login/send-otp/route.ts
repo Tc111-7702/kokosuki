@@ -4,6 +4,12 @@ import { auth } from '@/lib/auth';
 import * as db from '@/lib/db';
 import { runWithMailDeliveryContext } from '@/lib/mailDeliveryContext';
 import { formatMailSendError } from '@/lib/mailDeliveryNotice';
+import {
+  LOGIN_FLOW_COOKIE_NAME,
+  createLoginFlowTicket,
+  loginFlowCookieOptions,
+  normalizeLoginFlowProvider,
+} from '@/lib/loginFlowTicket';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -12,6 +18,7 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
   const raw = typeof body?.email === 'string' ? body.email.trim() : '';
   const email = raw.toLowerCase();
+  const provider = normalizeLoginFlowProvider(body?.provider);
 
   if (!email || !EMAIL_RE.test(email)) {
     return NextResponse.json({ error: '有効なメールアドレスを入力してください' }, { status: 400 });
@@ -33,7 +40,14 @@ export async function POST(req: Request) {
         headers: headersList,
       });
     });
-    return NextResponse.json({ success: true, mail });
+    // 認証コード入力ページ(/login/otp)への遷移を許可するチケットを発行。
+    const res = NextResponse.json({ success: true, mail });
+    res.cookies.set(
+      LOGIN_FLOW_COOKIE_NAME,
+      createLoginFlowTicket({ email, step: 'otp', provider }),
+      loginFlowCookieOptions(),
+    );
+    return res;
   } catch (e) {
     console.error('[login send-otp]', e);
     return NextResponse.json(
