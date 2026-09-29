@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { hasKokosukiSession, kokosukiApiUnauthorized } from '@/lib/kokosukiApiAuth';
 import { isPublicKokosukiApiPath } from '@/lib/kokosukiApiPublicPaths';
+import { LOGIN_FLOW_COOKIE_NAME } from '@/lib/loginFlowCookie';
 
 // (app) 配下のルート（ログイン必須）
 const APP_PREFIX = ['/home', '/mypage', '/map', '/feed', '/gacha'];
@@ -59,6 +60,15 @@ export function proxy(request: NextRequest) {
     if (hasSession) {
       return NextResponse.redirect(new URL('/home', request.url));
     }
+  }
+
+  // ④ メール入力ページに入った時点で、前回の送信で残ったログインフローチケットを破棄する。
+  //    「認証コード/パスワードページへの遷移可否」は送信/確認の成功時に再発行されるため、
+  //    メール入力に戻る・直打ちで来た時点の古いチケットは無効化しておく（戻る操作の後始末）。
+  if (pathname === '/login/email') {
+    const res = NextResponse.next();
+    res.cookies.set(LOGIN_FLOW_COOKIE_NAME, '', { path: '/', maxAge: 0 });
+    return res;
   }
 
   return NextResponse.next();

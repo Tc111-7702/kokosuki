@@ -1,13 +1,14 @@
 import { createHmac, timingSafeEqual } from 'crypto';
+import { LOGIN_FLOW_COOKIE_NAME, LOGIN_FLOW_TTL_SEC } from '@/lib/loginFlowCookie';
 
 // ログインのステップをページ化するにあたり、「メール認証（コード送信）／メール確認が
 // 済んでいない状態で認証コード・パスワード入力ページに直接来られる」のを防ぐための
 // 短命チケット。DB は使わず、BETTER_AUTH_SECRET で署名した HttpOnly Cookie に載せる
 // （ステートレスなのでマイグレーション不要）。実際の認証はサーバー側で行われるため、
 // このチケットは「文脈のない裸のステップページに着地させない」ための遷移ガード。
-
-export const LOGIN_FLOW_COOKIE_NAME = 'kokosuki_login_flow';
-export const LOGIN_FLOW_TTL_SEC = 10 * 60; // 10分
+// Cookie名/TTL は Edge(middleware) からも使うため lib/loginFlowCookie.ts に分離し、
+// ここで再エクスポートして既存の import を維持する。
+export { LOGIN_FLOW_COOKIE_NAME, LOGIN_FLOW_TTL_SEC };
 
 export type LoginFlowStep = 'otp' | 'password';
 export type LoginFlowProvider = 'email' | 'google' | 'apple';
