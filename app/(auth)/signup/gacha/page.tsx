@@ -2,23 +2,18 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { SignupFavoriteStepHeader } from '@/components/SignupFavoriteStepHeader';
 import { GachaCard, type GachaItem } from '@/components/ui/GachaCard';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { useAuthBackIconColor, useAuthPrimaryButtonStyle } from '@/hooks/useAuthPrimaryButtonStyle';
+import { useSignupStepGuard } from '@/hooks/useSignupStepGuard';
+import { getSignupFavorites, setSignupGachaIds } from '@/lib/signupFavorites';
 
 type GachaGroup = {
   ipName: string;
   gachas: GachaItem[];
 };
-
-interface Props {
-  selectedIpNames: string[];
-  favoriteGachaIds: string[];
-  onFavoriteGachaIdsChange: (ids: string[]) => void;
-  onBack: () => void;
-  onContinue?: () => void;
-}
 
 function SignupGachaIpNav({
   onPrev,
@@ -61,14 +56,22 @@ function SignupGachaIpNav({
   );
 }
 
-/** 新規登録: 選択 IP ごとにいいね上位4件のガチャを選ぶ */
-export function SignupGachaSelectStep({
-  selectedIpNames,
-  favoriteGachaIds,
-  onFavoriteGachaIdsChange,
-  onBack,
-  onContinue,
-}: Props) {
+// 新規登録: お気に入りガチャ選択（旧 SignupGachaSelectStep を直書き）。
+// IP未選択（お気に入り無効）なら /signup へ戻る。選択 IP ごとにいいね上位4件を選ぶ。
+export default function SignupGachaPage() {
+  const router = useRouter();
+  const { ready } = useSignupStepGuard({ requireFavorites: true });
+  const [selectedIpNames] = useState<string[]>(() => getSignupFavorites()?.ipNames ?? []);
+  const [favoriteGachaIds, setFavoriteGachaIds] = useState<string[]>(
+    () => getSignupFavorites()?.gachaIds ?? [],
+  );
+  const onBack = () => router.push('/signup');
+  const onContinue = () => router.push('/signup/intro');
+  const onFavoriteGachaIdsChange = (ids: string[]) => {
+    setFavoriteGachaIds(ids);
+    setSignupGachaIds(ids);
+  };
+
   const isMobile = useIsMobile();
   const [groups, setGroups] = useState<GachaGroup[]>([]);
   const [loading, setLoading] = useState(true);
@@ -129,6 +132,8 @@ export function SignupGachaSelectStep({
   const canProceed = selectedCount > 0;
   const submitStyle = useAuthPrimaryButtonStyle(canProceed);
   const backIconColor = useAuthBackIconColor();
+
+  if (!ready) return <div className="min-h-screen bg-white" aria-busy="true" />;
 
   return (
     <div className="login-email-step signup-app-font font-sans flex flex-col min-h-[100dvh] max-md:h-[100dvh] max-md:overflow-hidden px-6 pt-4 max-md:pt-2 pb-8 max-md:pb-5 md:pb-10 bg-white">

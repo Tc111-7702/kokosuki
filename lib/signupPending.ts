@@ -7,6 +7,7 @@ type SignupPendingCancelStep = 'otp' | 'password' | 'name' | 'birthDate' | 'hand
 type SignupPendingPublic = {
   email: string;
   expiresAt: string;
+  emailVerified: boolean;
   hasPassword: boolean;
   name: string | null;
   birthDate: string | null;
@@ -26,6 +27,7 @@ import {
 type SignupPendingRecord = {
   email: string;
   expiresAt: Date;
+  emailVerified: boolean;
   passwordEnc: string | null;
   name: string | null;
   birthDate: Date | null;
@@ -48,6 +50,7 @@ function toPublicPending(record: SignupPendingRecord): SignupPendingPublic {
   return {
     email: record.email,
     expiresAt: record.expiresAt.toISOString(),
+    emailVerified: record.emailVerified,
     hasPassword: !!record.passwordEnc,
     name: record.name,
     birthDate: record.birthDate
@@ -61,15 +64,33 @@ export async function deleteExpiredSignupPending(): Promise<void> {
   await db.deleteExpiredSignupPendingRows();
 }
 
-export async function upsertSignupPending(email: string, token: string): Promise<Date> {
+export async function upsertSignupPending(
+  email: string,
+  token: string,
+  opts?: { emailVerified?: boolean },
+): Promise<Date> {
   const normalizedEmail = normalizeSignupEmail(email);
   const tokenHash = hashSignupPendingToken(token);
   const expiresAt = new Date(Date.now() + SIGNUP_PENDING_COOKIE_MAX_AGE_SEC * 1000);
 
   await deleteExpiredSignupPending();
-  await db.upsertSignupPendingRow({ email: normalizedEmail, tokenHash, expiresAt });
+  await db.upsertSignupPendingRow({
+    email: normalizedEmail,
+    tokenHash,
+    expiresAt,
+    emailVerified: opts?.emailVerified ?? false,
+  });
 
   return expiresAt;
+}
+
+/** touch: token が有効なら expiresAt を延長し、最新の公開情報を返す（無効なら null） */
+export async function touchSignupPending(token: string): Promise<{ public: SignupPendingPublic; expiresAt: Date } | null> {
+  const record = await findSignupPendingByToken(token);
+  if (!record) return null;
+  const expiresAt = new Date(Date.now() + SIGNUP_PENDING_COOKIE_MAX_AGE_SEC * 1000);
+  await db.extendSignupPendingExpiry(record.tokenHash, expiresAt);
+  return { public: toPublicPending({ ...record, expiresAt }), expiresAt };
 }
 
 async function findSignupPendingByToken(token: string): Promise<(SignupPendingRecord & { tokenHash: string }) | null> {

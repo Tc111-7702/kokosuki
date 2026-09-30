@@ -1,163 +1,250 @@
 'use client';
 
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { ChevronLeft, Search, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { LoginEmailStep, type LoginEmailProvider } from '@/components/LoginEmailStep';
-import { LoginOtpStep } from '@/components/LoginOtpStep';
-import { LoginSignInStep } from '@/components/LoginSignInStep';
-import { SignupFeatureIntroStep } from '@/components/SignupFeatureIntroStep';
-import { SignupGachaSelectStep } from '@/components/SignupGachaSelectStep';
-import { SignupIpSelectStep } from '@/components/SignupIpSelectStep';
-import { SignupBirthDateStep } from '@/components/SignupBirthDateStep';
-import { SignupHandleStep } from '@/components/SignupHandleStep';
-import { SignupNicknameStep } from '@/components/SignupNicknameStep';
-import { SignupPasswordStep } from '@/components/SignupPasswordStep';
-import { SignupProfileIntroStep } from '@/components/SignupProfileIntroStep';
-import { cancelSignupPending } from '@/lib/signupPendingCancel';
-type SignupPendingCancelStep = 'otp' | 'password' | 'name' | 'birthDate' | 'handle';
+import { SignupFavoriteStepHeader } from '@/components/SignupFavoriteStepHeader';
+import { ipGradient } from '@/components/SpotGachaCard';
+import { useAuthPrimaryButtonStyle } from '@/hooks/useAuthPrimaryButtonStyle';
+import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
+import { clearSignupGachaIds, setSignupIpNames } from '@/lib/signupFavorites';
 
-type SignupPhase =
-  | 'ip-select'
-  | 'gacha-select'
-  | 'feature-intro'
-  | 'signin'
-  | 'email'
-  | 'otp'
-  | 'password'
-  | 'profile-intro'
-  | 'name'
-  | 'birthDate'
-  | 'handle';
+type SignupIpItem = {
+  ipName: string;
+  imageUrl: string | null;
+};
 
-export default function SignupPage() {
-  const router = useRouter();
-  const [phase, setPhase] = useState<SignupPhase>('ip-select');
-  const [selectedIpNames, setSelectedIpNames] = useState<string[]>([]);
-  const [favoriteGachaIds, setFavoriteGachaIds] = useState<string[]>([]);
-  const [emailProvider, setEmailProvider] = useState<LoginEmailProvider>('email');
-  const [email, setEmail] = useState('');
-  const [mailNotice, setMailNotice] = useState<string | null>(null);
-  const [featureIntroStep, setFeatureIntroStep] = useState(0);
+const IP_SEARCH_RESULT_LIMIT = 9;
 
-  const handleSignupBack = async (fromStep: SignupPendingCancelStep, nextPhase: SignupPhase) => {
-    await cancelSignupPending(fromStep);
-    setPhase(nextPhase);
-  };
-
-  const handleSignupSessionExpired = () => {
-    setPhase('email');
-  };
-
-  const handleSelectProvider = (provider: LoginEmailProvider) => {
-    setEmailProvider(provider);
-    setPhase('email');
-  };
+function SignupIpCircle({
+  item,
+  selected,
+  onToggle,
+}: {
+  item: SignupIpItem;
+  selected: boolean;
+  onToggle: () => void;
+}) {
+  const [from, to] = ipGradient(item.ipName);
 
   return (
-    <>
-      {phase === 'ip-select' && (
-        <SignupIpSelectStep
-          onBack={() => router.push('/login')}
-          onContinue={(ips) => {
-            setSelectedIpNames(ips);
-            setPhase('gacha-select');
-          }}
-        />
-      )}
-      {phase === 'gacha-select' && (
-        <SignupGachaSelectStep
-          selectedIpNames={selectedIpNames}
-          favoriteGachaIds={favoriteGachaIds}
-          onFavoriteGachaIdsChange={setFavoriteGachaIds}
-          onBack={() => {
-            setFavoriteGachaIds([]);
-            setPhase('ip-select');
-          }}
-          onContinue={() => {
-            setFeatureIntroStep(0);
-            setPhase('feature-intro');
-          }}
-        />
-      )}
-      {phase === 'feature-intro' && (
-        <SignupFeatureIntroStep
-          key={featureIntroStep}
-          initialStep={featureIntroStep}
-          onBack={() => setPhase('gacha-select')}
-          onComplete={() => setPhase('signin')}
-        />
-      )}
-      {phase === 'signin' && (
-        <LoginSignInStep
-          intent="signup"
-          onBack={() => {
-            setFeatureIntroStep(2);
-            setPhase('feature-intro');
-          }}
-          onSelectProvider={handleSelectProvider}
-        />
-      )}
-      {phase === 'email' && (
-        <LoginEmailStep
-          flow="signup"
-          provider={emailProvider}
-          onBack={() => setPhase('signin')}
-          onSent={(sentEmail, notice) => {
-            setEmail(sentEmail);
-            setMailNotice(notice ?? null);
-            setPhase('otp');
-          }}
-        />
-      )}
-      {phase === 'otp' && (
-        <LoginOtpStep
-          flow="signup"
-          email={email}
-          initialMailNotice={mailNotice}
-          onBack={() => { void handleSignupBack('otp', 'email'); }}
-          onSessionExpired={handleSignupSessionExpired}
-          onVerified={(verifiedEmail) => {
-            setEmail(verifiedEmail);
-            setPhase('password');
-          }}
-        />
-      )}
-      {phase === 'password' && (
-        <SignupPasswordStep
-          onBack={() => { void handleSignupBack('password', 'otp'); }}
-          onContinue={() => setPhase('profile-intro')}
-          onSessionExpired={handleSignupSessionExpired}
-        />
-      )}
-      {phase === 'profile-intro' && (
-        <SignupProfileIntroStep
-          onBack={() => setPhase('password')}
-          onContinue={() => setPhase('name')}
-          onSessionExpired={handleSignupSessionExpired}
-        />
-      )}
-      {phase === 'name' && (
-        <SignupNicknameStep
-          onBack={() => { void handleSignupBack('name', 'profile-intro'); }}
-          onContinue={() => setPhase('birthDate')}
-          onSessionExpired={handleSignupSessionExpired}
-        />
-      )}
-      {phase === 'birthDate' && (
-        <SignupBirthDateStep
-          onBack={() => { void handleSignupBack('birthDate', 'name'); }}
-          onContinue={() => setPhase('handle')}
-          onSessionExpired={handleSignupSessionExpired}
-        />
-      )}
-      {phase === 'handle' && (
-        <SignupHandleStep
-          email={email}
-          favoriteGachaIds={favoriteGachaIds}
-          onBack={() => { void handleSignupBack('handle', 'birthDate'); }}
-          onSessionExpired={handleSignupSessionExpired}
-        />
-      )}
-    </>
+    <button
+      type="button"
+      onClick={onToggle}
+      className="flex flex-col items-center gap-1 max-md:gap-0.5 md:gap-2 active:opacity-80 w-full"
+      aria-pressed={selected}
+    >
+      <span
+        className="flex items-center justify-center rounded-full overflow-hidden w-[76px] h-[76px] md:w-[72px] md:h-[72px]"
+        style={{
+          border: selected ? '2.5px solid #F2B800' : '1.5px solid #EDE9D8',
+          background: item.imageUrl ? '#fff' : `linear-gradient(135deg, ${from}, ${to})`,
+        }}
+      >
+        {item.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={item.imageUrl}
+            alt=""
+            className="w-full h-full object-cover"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+          />
+        ) : null}
+      </span>
+      <span
+        className="text-[9px] md:text-[11px] font-bold text-center leading-tight w-full break-words"
+        style={{ color: '#333' }}
+      >
+        {item.ipName}
+      </span>
+    </button>
+  );
+}
+
+// 新規登録: 推しIP選択（エントリ・旧 SignupIpSelectStep を直書き）。
+// 再訪時はガチャ選択をクリアして最新IPへ整合させる。
+export default function SignupIpSelectPage() {
+  const router = useRouter();
+  const onBack = () => router.push('/login');
+  const onContinue = (selectedIpNames: string[]) => {
+    setSignupIpNames(selectedIpNames);
+    router.push('/signup/gacha');
+  };
+
+  useEffect(() => {
+    clearSignupGachaIds();
+  }, []);
+
+  const [defaultIps, setDefaultIps] = useState<SignupIpItem[]>([]);
+  const [displayedIps, setDisplayedIps] = useState<SignupIpItem[]>([]);
+  const [selectedIps, setSelectedIps] = useState<Set<string>>(new Set());
+  const [query, setQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [searching, setSearching] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/gacha/signup-popular-ips?limit=9');
+        const data = await res.json().catch(() => null);
+        const ips: SignupIpItem[] = data?.ips ?? [];
+        if (!cancelled) {
+          setDefaultIps(ips);
+          setDisplayedIps(ips);
+        }
+      } catch {
+        if (!cancelled) {
+          setDefaultIps([]);
+          setDisplayedIps([]);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const runSearch = useCallback(async (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      setDisplayedIps(defaultIps);
+      return;
+    }
+
+    setSearching(true);
+    try {
+      const params = new URLSearchParams({
+        q: trimmed,
+        limit: String(IP_SEARCH_RESULT_LIMIT),
+      });
+      const res = await fetch(`/api/gacha/signup-ip-search?${params.toString()}`);
+      const data = await res.json().catch(() => null);
+      setDisplayedIps((data?.ips ?? []) as SignupIpItem[]);
+    } catch {
+      setDisplayedIps([]);
+    } finally {
+      setSearching(false);
+    }
+  }, [defaultIps]);
+
+  const handleQueryChange = (value: string) => {
+    setQuery(value);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => { void runSearch(value); }, 150);
+  };
+
+  const toggleIp = (ipName: string) => {
+    setSelectedIps((prev) => {
+      const next = new Set(prev);
+      if (next.has(ipName)) next.delete(ipName);
+      else next.add(ipName);
+      return next;
+    });
+  };
+
+  const selectedCount = selectedIps.size;
+  const canProceed = selectedCount > 0;
+  const submitStyle = useAuthPrimaryButtonStyle(canProceed);
+  const isDark = useSyncExternalStore(
+    subscribeTheme,
+    () => getThemeSnapshot() === 'dark',
+    () => false,
+  );
+  const clearBtnBg = isDark ? '#2a2a2a' : '#d1d5db';
+  const clearBtnIcon = isDark ? '#a3a3a3' : '#888888';
+  const backIconColor = isDark ? '#ffffff' : '#111111';
+
+  return (
+    <div className="login-email-step signup-app-font font-sans flex flex-col min-h-[100dvh] max-md:h-[100dvh] max-md:overflow-hidden px-6 pt-4 max-md:pt-2 pb-8 max-md:pb-5 md:pb-10 bg-white">
+      <div className="w-full max-w-[360px] md:max-w-[520px] mx-auto flex flex-col flex-1 min-h-0 max-md:overflow-hidden md:justify-center md:py-4">
+        <button
+          type="button"
+          onClick={onBack}
+          className="self-start -ml-1 p-1 active:opacity-60 disabled:opacity-50 md:hidden shrink-0"
+          aria-label="戻る"
+        >
+          <ChevronLeft size={28} strokeWidth={2} color={backIconColor} />
+        </button>
+
+        <div className="flex flex-col items-center w-full flex-1 min-h-0 max-md:overflow-hidden md:flex-none max-md:-mt-1">
+          <div className="w-full flex flex-col flex-1 min-h-0 max-md:overflow-hidden md:translate-y-6">
+          <SignupFavoriteStepHeader title="好きなキャラクターは？" selectedCount={selectedCount} layout="ip" />
+
+            <div className="relative w-full mt-2 md:mt-3 max-md:translate-y-4">
+              <button
+                type="button"
+                onClick={onBack}
+                className="hidden md:block absolute left-0 bottom-full -ml-1 mb-8 p-1 active:opacity-60 disabled:opacity-50"
+                aria-label="戻る"
+              >
+                <ChevronLeft size={28} strokeWidth={2} color={backIconColor} />
+              </button>
+              <Search
+                size={18}
+                strokeWidth={2.25}
+                className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none"
+                style={{ color: '#94a3b8' }}
+              />
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => handleQueryChange(e.target.value)}
+                placeholder="キャラクター・IP検索"
+                className="login-email-input w-full h-[44px] md:h-[48px] rounded-2xl pl-11 pr-11 text-[16px] md:text-[14px] outline-none"
+              />
+              {query ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQuery('');
+                    setDisplayedIps(defaultIps);
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center active:opacity-60"
+                  style={{ backgroundColor: clearBtnBg }}
+                  aria-label="入力をクリア"
+                >
+                  <X size={14} color={clearBtnIcon} strokeWidth={2.5} />
+                </button>
+              ) : null}
+            </div>
+
+          <div className="w-full flex-1 min-h-0 max-md:overflow-hidden md:flex-none md:overflow-visible mt-3 md:mt-3 max-md:pb-2 flex flex-col justify-center md:h-[358px] md:shrink-0">
+            <div className="grid grid-cols-3 gap-x-2 gap-y-2.5 md:gap-x-3 md:gap-y-5 justify-items-center content-start w-full min-h-[242px] md:min-h-[358px] md:pt-1 md:-translate-y-1">
+              {loading || searching ? (
+                <p className="col-span-3 text-[13px] text-center w-full" style={{ color: '#94a3b8' }}>
+                  {loading ? '読み込み中…' : '検索中…'}
+                </p>
+              ) : displayedIps.length === 0 ? (
+                <p className="col-span-3 text-[13px] text-center w-full" style={{ color: '#94a3b8' }}>
+                  {query.trim() ? '該当するIPが見つかりません' : '表示できるIPがありません'}
+                </p>
+              ) : (
+                displayedIps.map((item) => (
+                  <SignupIpCircle
+                    key={item.ipName}
+                    item={item}
+                    selected={selectedIps.has(item.ipName)}
+                    onToggle={() => toggleIp(item.ipName)}
+                  />
+                ))
+              )}
+            </div>
+          </div>
+          </div>
+
+          <button
+            type="button"
+            disabled={!canProceed}
+            onClick={() => onContinue([...selectedIps])}
+            style={submitStyle}
+            className="login-otp-send-btn w-full h-[48px] md:h-[52px] rounded-full text-[16px] font-bold text-white active:opacity-80 disabled:cursor-not-allowed shrink-0 max-md:mt-2 max-md:-translate-y-3 md:mt-5 md:-translate-y-2"
+          >
+            次へ
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

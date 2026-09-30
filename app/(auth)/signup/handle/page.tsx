@@ -2,29 +2,37 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Check, X } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { SignupProfileFieldStep } from '@/components/SignupProfileFieldStep';
+import { SignupCompleteStep } from '@/components/SignupCompleteStep';
 import {
   HANDLE_FORMAT_ERROR,
   isSignupHandleFormatValid,
   normalizeSignupHandleInput,
 } from '@/lib/signupHandle';
-import { SignupCompleteStep } from '@/components/SignupCompleteStep';
 import {
   isSignupPendingSessionExpiredResponse,
   redirectOnSignupPendingExpired,
 } from '@/hooks/useSignupPendingExpiry';
-
-interface Props {
-  email: string;
-  favoriteGachaIds: string[];
-  onBack: () => void;
-  onSessionExpired: () => void;
-}
+import { useSignupStepGuard } from '@/hooks/useSignupStepGuard';
+import { clearSignupFavorites, getSignupFavorites } from '@/lib/signupFavorites';
 
 type HandleStatus = 'idle' | 'checking' | 'ok' | 'taken' | 'invalid';
 
-/** 新規登録: ユーザーID入力 */
-export function SignupHandleStep({ email, favoriteGachaIds, onBack, onSessionExpired }: Props) {
+// 新規登録: ユーザーID入力＋本登録（旧 SignupHandleStep を直書き）。
+// birthDate までが揃っていなければ /signup/email へ。email は pending、
+// favoriteGachaIds は sessionStorage から取得して complete に渡す。
+export default function SignupHandlePage() {
+  const router = useRouter();
+  const { ready, pending } = useSignupStepGuard({
+    requireFavorites: true,
+    requirePending: true,
+    requireFields: ['emailVerified', 'password', 'name', 'birthDate'],
+  });
+  const [favoriteGachaIds] = useState<string[]>(() => getSignupFavorites()?.gachaIds ?? []);
+  const onBack = () => router.push('/signup/birthdate');
+  const onSessionExpired = () => router.replace('/signup/email');
+
   const [handle, setHandle] = useState('');
   const [handleStatus, setHandleStatus] = useState<HandleStatus>('idle');
   const [saving, setSaving] = useState(false);
@@ -115,6 +123,8 @@ export function SignupHandleStep({ email, favoriteGachaIds, onBack, onSessionExp
         setError(typeof completeData?.error === 'string' ? completeData.error : 'アカウントの作成に失敗しました');
         return;
       }
+      // 本登録成功: sessionStorage のお気に入りを破棄（signupPending Cookie はサーバーで破棄）。
+      clearSignupFavorites();
       setCompleteOpen(true);
     } catch {
       setError('アカウントの作成に失敗しました');
@@ -122,6 +132,8 @@ export function SignupHandleStep({ email, favoriteGachaIds, onBack, onSessionExp
       setSaving(false);
     }
   };
+
+  if (!ready || !pending) return <div className="min-h-screen bg-white" aria-busy="true" />;
 
   return (
     <>

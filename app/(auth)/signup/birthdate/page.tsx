@@ -3,17 +3,14 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type { CSSProperties } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 import { SignupProfileFieldStep } from '@/components/SignupProfileFieldStep';
 import {
   isSignupPendingSessionExpiredResponse,
   redirectOnSignupPendingExpired,
 } from '@/hooks/useSignupPendingExpiry';
-interface Props {
-  onBack: () => void;
-  onContinue: () => void;
-  onSessionExpired: () => void;
-}
+import { useSignupStepGuard } from '@/hooks/useSignupStepGuard';
 
 function formatBirthDateDisplay(iso: string): string {
   const [year, month, day] = iso.split('-');
@@ -21,8 +18,18 @@ function formatBirthDateDisplay(iso: string): string {
   return `${year} / ${month} / ${day}`;
 }
 
-/** 新規登録: 生年月日入力 */
-export function SignupBirthDateStep({ onBack, onContinue, onSessionExpired }: Props) {
+// 新規登録: 生年月日入力（旧 SignupBirthDateStep を直書き）。
+export default function SignupBirthDatePage() {
+  const router = useRouter();
+  const onBack = () => router.push('/signup/name');
+  const onContinue = () => router.push('/signup/handle');
+  const onSessionExpired = () => router.replace('/signup/email');
+
+  const { ready } = useSignupStepGuard({
+    requireFavorites: true,
+    requirePending: true,
+    requireFields: ['emailVerified', 'password', 'name'],
+  });
   const inputRef = useRef<HTMLInputElement>(null);
   const [birthDate, setBirthDate] = useState('');
   const [saving, setSaving] = useState(false);
@@ -98,6 +105,8 @@ export function SignupBirthDateStep({ onBack, onContinue, onSessionExpired }: Pr
       setSaving(false);
     }
   };
+
+  if (!ready) return <div className="min-h-screen bg-white" aria-busy="true" />;
 
   return (
     <SignupProfileFieldStep

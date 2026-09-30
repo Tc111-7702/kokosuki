@@ -1,27 +1,34 @@
 'use client';
 
 import { ChevronLeft } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { PasswordResetCompleteIllustration } from '@/components/ui/PasswordResetCompleteIllustration';
 import { useSignupPendingExpiry } from '@/hooks/useSignupPendingExpiry';
 import { useAuthBackIconColor, useAuthMutedTextColor, useAuthTextColor } from '@/hooks/useAuthPrimaryButtonStyle';
+import { useSignupStepGuard } from '@/hooks/useSignupStepGuard';
 
-interface Props {
-  onBack: () => void;
-  onContinue: () => void;
-  onSessionExpired: () => void;
-}
+// 新規登録: プロフィール入力の導入（旧 SignupProfileIntroStep を直書き）。
+// password までが揃っていなければ /signup/email、お気に入り無効なら /signup へ。
+export default function SignupProfileIntroPage() {
+  const router = useRouter();
+  const onBack = () => router.push('/signup/password');
+  const onContinue = () => router.push('/signup/name');
+  const onSessionExpired = () => router.replace('/signup/email');
 
-/** 新規登録: パスワード設定後のプロフィール作成イントロ */
-export function SignupProfileIntroStep({ onBack, onContinue, onSessionExpired }: Props) {
+  const { ready } = useSignupStepGuard({
+    requireFavorites: true,
+    requirePending: true,
+    requireFields: ['emailVerified', 'password'],
+  });
   useSignupPendingExpiry(onSessionExpired);
   const backIconColor = useAuthBackIconColor();
   const backLinkColor = useAuthMutedTextColor();
   const titleColor = useAuthTextColor();
 
+  if (!ready) return <div className="min-h-screen bg-white" aria-busy="true" />;
+
   return (
-    <div
-      className="signup-profile-intro signup-app-font font-sans flex flex-col min-h-[100dvh] bg-white px-6 pt-4 pb-8"
-    >
+    <div className="signup-profile-intro signup-app-font font-sans flex flex-col min-h-[100dvh] bg-white px-6 pt-4 pb-8">
       <div className="w-full max-w-[360px] md:max-w-[400px] mx-auto flex flex-col flex-1 min-h-0">
         <button
           type="button"

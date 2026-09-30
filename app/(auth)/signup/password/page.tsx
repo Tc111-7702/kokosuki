@@ -2,21 +2,33 @@
 
 import { useState } from 'react';
 import { ChevronLeft, Eye, EyeOff } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { PasswordPolicyHint } from '@/components/PasswordPolicyHint';
 import { isPasswordPolicyValid, validatePasswordPolicy } from '@/lib/passwordPolicy';
 import {
   isSignupPendingSessionExpiredResponse,
   useSignupPendingExpiry,
 } from '@/hooks/useSignupPendingExpiry';
-import { useAuthBackIconColor, useAuthMutedTextColor, useAuthPrimaryButtonStyle, useAuthTextColor } from '@/hooks/useAuthPrimaryButtonStyle';
+import {
+  useAuthBackIconColor,
+  useAuthMutedTextColor,
+  useAuthPrimaryButtonStyle,
+  useAuthTextColor,
+} from '@/hooks/useAuthPrimaryButtonStyle';
+import { useSignupStepGuard } from '@/hooks/useSignupStepGuard';
 
-interface Props {
-  onBack: () => void;
-  onContinue: () => void;
-  onSessionExpired: () => void;
-}
+// 新規登録: パスワード入力（旧 SignupPasswordStep を直書き）。OTP未検証なら /signup/email へ。
+export default function SignupPasswordPage() {
+  const router = useRouter();
+  const onBack = () => router.push('/signup/otp');
+  const onContinue = () => router.push('/signup/profile-intro');
+  const onSessionExpired = () => router.replace('/signup/email');
 
-export function SignupPasswordStep({ onBack, onContinue, onSessionExpired }: Props) {
+  const { ready } = useSignupStepGuard({
+    requireFavorites: true,
+    requirePending: true,
+    requireFields: ['emailVerified'],
+  });
   const { handleExpired } = useSignupPendingExpiry(onSessionExpired);
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -28,10 +40,7 @@ export function SignupPasswordStep({ onBack, onContinue, onSessionExpired }: Pro
   const busy = saving;
   const passwordsMatch = !confirm || password === confirm;
   const canSubmit =
-    isPasswordPolicyValid(password)
-    && password === confirm
-    && confirm.length > 0
-    && !busy;
+    isPasswordPolicyValid(password) && password === confirm && confirm.length > 0 && !busy;
   const submitStyle = useAuthPrimaryButtonStyle(canSubmit);
   const backIconColor = useAuthBackIconColor();
   const backLinkColor = useAuthMutedTextColor();
@@ -75,6 +84,8 @@ export function SignupPasswordStep({ onBack, onContinue, onSessionExpired }: Pro
       setSaving(false);
     }
   };
+
+  if (!ready) return <div className="min-h-screen bg-white" aria-busy="true" />;
 
   return (
     <div className="login-email-step signup-app-font font-sans flex flex-col min-h-[100dvh] px-6 pt-4 pb-8 bg-white">

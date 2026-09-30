@@ -2,23 +2,29 @@
 
 import { useState, useSyncExternalStore } from 'react';
 import { X } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { SignupProfileFieldStep } from '@/components/SignupProfileFieldStep';
 import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 import {
   isSignupPendingSessionExpiredResponse,
   redirectOnSignupPendingExpired,
 } from '@/hooks/useSignupPendingExpiry';
+import { useSignupStepGuard } from '@/hooks/useSignupStepGuard';
 
 const NAME_MAX = 30;
 
-interface Props {
-  onBack: () => void;
-  onContinue: () => void;
-  onSessionExpired: () => void;
-}
+// 新規登録: ニックネーム入力（旧 SignupNicknameStep を直書き）。
+export default function SignupNamePage() {
+  const router = useRouter();
+  const onBack = () => router.push('/signup/profile-intro');
+  const onContinue = () => router.push('/signup/birthdate');
+  const onSessionExpired = () => router.replace('/signup/email');
 
-/** 新規登録: ニックネーム入力 */
-export function SignupNicknameStep({ onBack, onContinue, onSessionExpired }: Props) {
+  const { ready } = useSignupStepGuard({
+    requireFavorites: true,
+    requirePending: true,
+    requireFields: ['emailVerified', 'password'],
+  });
   const [name, setName] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,6 +67,8 @@ export function SignupNicknameStep({ onBack, onContinue, onSessionExpired }: Pro
       setSaving(false);
     }
   };
+
+  if (!ready) return <div className="min-h-screen bg-white" aria-busy="true" />;
 
   return (
     <SignupProfileFieldStep

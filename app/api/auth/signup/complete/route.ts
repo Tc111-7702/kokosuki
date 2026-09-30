@@ -27,7 +27,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: '有効な新規登録セッションがありません' }, { status: 401 });
   }
 
-  const { email, passwordEnc, name, birthDate, handle } = record;
+  const { email, emailVerified, passwordEnc, name, birthDate, handle } = record;
+  if (!emailVerified) {
+    return NextResponse.json({ error: 'メールアドレスの認証が完了していません' }, { status: 400 });
+  }
   if (!passwordEnc || !name?.trim() || !birthDate || !handle?.trim()) {
     return NextResponse.json({ error: '登録情報が不足しています' }, { status: 400 });
   }

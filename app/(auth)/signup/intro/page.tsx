@@ -2,10 +2,12 @@
 
 import { useState } from 'react';
 import { ChevronLeft } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import discoverImg from '@/components/ui/assets/signup-feature-discover.png';
 import mapImg from '@/components/ui/assets/signup-feature-map.png';
 import shareImg from '@/components/ui/assets/login-service-intro.png';
 import { useAuthBackIconColor, useAuthTextColor } from '@/hooks/useAuthPrimaryButtonStyle';
+import { useSignupStepGuard } from '@/hooks/useSignupStepGuard';
 
 type Slide = {
   image: { src: string; width: number; height: number };
@@ -55,15 +57,14 @@ function SignupFeaturePageIndicator({ activeIndex, total }: { activeIndex: numbe
   );
 }
 
-interface Props {
-  initialStep?: number;
-  onBack: () => void;
-  onComplete: () => void;
-}
+// 新規登録: 機能紹介（旧 SignupFeatureIntroStep を直書き）。お気に入り無効なら /signup へ。
+export default function SignupIntroPage() {
+  const router = useRouter();
+  const onBack = () => router.push('/signup/gacha');
+  const onComplete = () => router.push('/signup/signin');
 
-/** 新規登録: ガチャ選択後の3画面機能紹介 */
-export function SignupFeatureIntroStep({ initialStep = 0, onBack, onComplete }: Props) {
-  const [step, setStep] = useState(initialStep);
+  const { ready } = useSignupStepGuard({ requireFavorites: true });
+  const [step, setStep] = useState(0);
   const slide = SLIDES[step] ?? SLIDES[0];
   const backIconColor = useAuthBackIconColor();
   const textColor = useAuthTextColor();
@@ -84,10 +85,10 @@ export function SignupFeatureIntroStep({ initialStep = 0, onBack, onComplete }: 
     setStep((current) => current + 1);
   };
 
+  if (!ready) return <div className="min-h-screen bg-white" aria-busy="true" />;
+
   return (
-    <div
-      className="signup-feature-intro signup-app-font font-sans flex flex-col min-h-[100dvh] bg-white px-6 pt-6 pb-8 max-md:pb-6 md:pb-10"
-    >
+    <div className="signup-feature-intro signup-app-font font-sans flex flex-col min-h-[100dvh] bg-white px-6 pt-6 pb-8 max-md:pb-6 md:pb-10">
       <div className="w-full max-w-[360px] md:max-w-[400px] mx-auto flex flex-col flex-1 min-h-0">
         <div className="flex-1 min-h-0 flex flex-col items-center justify-center md:justify-start md:pt-4">
           <div className="relative w-full flex items-center justify-center shrink-0">

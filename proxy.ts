@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { hasKokosukiSession, kokosukiApiUnauthorized } from '@/lib/kokosukiApiAuth';
 import { isPublicKokosukiApiPath } from '@/lib/kokosukiApiPublicPaths';
 import { LOGIN_FLOW_COOKIE_NAME } from '@/lib/loginFlowCookie';
+import { SIGNUP_PENDING_COOKIE_NAME } from '@/lib/signupPendingCookie';
 
 // (app) 配下のルート（ログイン必須）
 const APP_PREFIX = ['/home', '/mypage', '/map', '/feed', '/gacha'];
@@ -60,6 +61,15 @@ export function proxy(request: NextRequest) {
     if (hasSession) {
       return NextResponse.redirect(new URL('/home', request.url));
     }
+  }
+
+  // ③' ログイントップ `/login` に来たら、signup / login フローの Cookie を全部破棄して
+  //     クリーンな入口にする（sessionStorage はページ側で破棄）。HttpOnly のため middleware で行う。
+  if (pathname === '/login') {
+    const res = NextResponse.next();
+    res.cookies.set(SIGNUP_PENDING_COOKIE_NAME, '', { path: '/', maxAge: 0 });
+    res.cookies.set(LOGIN_FLOW_COOKIE_NAME, '', { path: '/', maxAge: 0 });
+    return res;
   }
 
   // ④ メール入力ページに入った時点で、前回の送信で残ったログインフローチケットを破棄する。
