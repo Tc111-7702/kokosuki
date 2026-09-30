@@ -19,8 +19,12 @@ export function LoginIntroStep({ onLogin }: Props) {
   // きた場合（＝このセッションで表示済み）やログアウト直後は演出を出さない。
   // sessionStorage 依存の判定はクライアントでのみ確定させ、初回はちらつき防止で空表示。
   const [showSplash, setShowSplash] = useState<boolean | null>(null);
+  // 判定は sessionStorage 依存でクライアントのみ。ハイドレーション不一致を避けるため
+  // マウント後に確定させる。エフェクト同期での setState を避けるためタイマーで遅延する
+  // （react-hooks/set-state-in-effect 回避。既存のログイン画面と同じ手法）。
   useEffect(() => {
-    setShowSplash(shouldShowLoginSplash());
+    const t = window.setTimeout(() => setShowSplash(shouldShowLoginSplash()), 0);
+    return () => window.clearTimeout(t);
   }, []);
 
   const isDark = useSyncExternalStore(
