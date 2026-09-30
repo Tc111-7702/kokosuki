@@ -1999,6 +1999,7 @@ export const getUserIsActiveById = (id: string) =>
 export const signupPendingPublicSelect = {
   email: true,
   expiresAt: true,
+  emailVerified: true,
   passwordEnc: true,
   name: true,
   birthDate: true,
@@ -2012,6 +2013,7 @@ export const upsertSignupPendingRow = (args: {
   email: string;
   tokenHash: string;
   expiresAt: Date;
+  emailVerified: boolean;
 }) =>
   prisma.signupPending.upsert({
     where: { email: args.email },
@@ -2019,10 +2021,12 @@ export const upsertSignupPendingRow = (args: {
       email: args.email,
       tokenHash: args.tokenHash,
       expiresAt: args.expiresAt,
+      emailVerified: args.emailVerified,
     },
     update: {
       tokenHash: args.tokenHash,
       expiresAt: args.expiresAt,
+      emailVerified: args.emailVerified,
       passwordEnc: null,
       name: null,
       birthDate: null,
@@ -2035,6 +2039,10 @@ export const findSignupPendingByTokenHash = (tokenHash: string) =>
     where: { tokenHash },
     select: { ...signupPendingPublicSelect, tokenHash: true },
   });
+
+/** touch 用: profile 項目はそのままに expiresAt だけ延長する */
+export const extendSignupPendingExpiry = (tokenHash: string, expiresAt: Date) =>
+  prisma.signupPending.updateMany({ where: { tokenHash }, data: { expiresAt } });
 
 export const deleteSignupPendingByTokenHash = (tokenHash: string) =>
   prisma.signupPending.deleteMany({ where: { tokenHash } });

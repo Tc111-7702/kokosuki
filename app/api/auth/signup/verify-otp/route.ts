@@ -34,7 +34,7 @@ export async function POST(req: Request) {
   try {
     await verifySignInOtp(email, otp);
     const token = generateSignupPendingToken();
-    const expiresAt = await upsertSignupPending(email, token);
+    const expiresAt = await upsertSignupPending(email, token, { emailVerified: true });
 
     const response = NextResponse.json({
       success: true,

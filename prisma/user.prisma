@@ -83,6 +83,7 @@ model SignupPending {
   id               String    @id @default(cuid())
   email            String    @unique
   tokenHash        String    @unique
+  emailVerified    Boolean   @default(false)
   passwordEnc      String?
   name             String?
   birthDate        DateTime? @db.Date

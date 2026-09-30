@@ -9,6 +9,7 @@ import {
   normalizeSignupHandleInput,
 } from '@/lib/signupHandle';
 import { SignupCompleteStep } from '@/components/SignupCompleteStep';
+import { clearSignupFavorites } from '@/lib/signupFavorites';
 import {
   isSignupPendingSessionExpiredResponse,
   redirectOnSignupPendingExpired,
@@ -115,6 +116,8 @@ export function SignupHandleStep({ email, favoriteGachaIds, onBack, onSessionExp
         setError(typeof completeData?.error === 'string' ? completeData.error : 'アカウントの作成に失敗しました');
         return;
       }
+      // 本登録成功: sessionStorage のお気に入りを破棄（signupPending Cookie はサーバーで破棄）。
+      clearSignupFavorites();
       setCompleteOpen(true);
     } catch {
       setError('アカウントの作成に失敗しました');
