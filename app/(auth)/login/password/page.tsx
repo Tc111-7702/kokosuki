@@ -2,7 +2,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { LOGIN_FLOW_COOKIE_NAME } from '@/lib/loginFlowCookie';
 import { resolveLoginFlowPending } from '@/lib/loginFlowPending';
-import { LoginPasswordPageClient } from './LoginPasswordPageClient';
+import { LoginPasswordPageClient } from './client';
 
 // ログイン: パスワード入力ページ。Cookie の不透明トークンから DB(LoginFlowPending) を引き、
 // メール確認が済んでいない直接アクセス／期限切れはメール入力へ戻す。
