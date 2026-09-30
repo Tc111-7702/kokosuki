@@ -37,6 +37,9 @@ function getKokosukiTrustedOrigins(): string[] {
   return [...origins];
 }
 
+const googleClientId = process.env.GOOGLE_CLIENT_ID;
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: 'postgresql',
@@ -54,6 +57,20 @@ export const auth = betterAuth({
       finalizeMailDelivery(result);
     },
   },
+  // Google ログイン（ログイン専用）。環境変数が揃っている場合のみ有効化する。
+  // disableImplicitSignUp: 未登録の Google アカウントではユーザーを作成せず、
+  // errorCallbackURL に error=signup_disabled を付けて戻す（＝新規登録はさせない）。
+  ...(googleClientId && googleClientSecret
+    ? {
+        socialProviders: {
+          google: {
+            clientId: googleClientId,
+            clientSecret: googleClientSecret,
+            disableImplicitSignUp: true,
+          },
+        },
+      }
+    : {}),
   baseURL: process.env.BETTER_AUTH_URL ?? 'http://localhost:3000',
   trustedOrigins: getKokosukiTrustedOrigins(),
   secret: process.env.BETTER_AUTH_SECRET,
