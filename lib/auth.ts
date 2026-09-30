@@ -1,6 +1,6 @@
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
-import { emailOTP } from 'better-auth/plugins';
+import { customSession, emailOTP } from 'better-auth/plugins';
 import { APIError } from 'better-auth/api';
 import {
   captureExternalPasswordReset,
@@ -91,6 +91,21 @@ export const auth = betterAuth({
         finalizeMailDelivery(result);
       },
     }),
+    // get-session のレスポンスから機微情報を除外する。
+    // Better Auth 既定では session トークン・ipAddress・userAgent まで JSON で返るため、
+    // Cookie を HttpOnly にしていても、これらがクライアント JS から読めてしまう。
+    // アプリ側は session の有無しか参照しないので、必要な項目だけを返す。
+    // 注意: customSession は必ずプラグイン配列の末尾に置く（Better Auth の仕様）。
+    customSession(async ({ user, session }) => ({
+      user,
+      session: {
+        id: session.id,
+        userId: session.userId,
+        expiresAt: session.expiresAt,
+        createdAt: session.createdAt,
+        updatedAt: session.updatedAt,
+      },
+    })),
   ],
 });
 
