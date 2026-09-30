@@ -1,25 +1,82 @@
 'use client';
 
+import { ChevronLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { SignupProfileIntroStep } from '@/components/SignupProfileIntroStep';
+import { PasswordResetCompleteIllustration } from '@/components/ui/PasswordResetCompleteIllustration';
+import { useSignupPendingExpiry } from '@/hooks/useSignupPendingExpiry';
+import { useAuthBackIconColor, useAuthMutedTextColor, useAuthTextColor } from '@/hooks/useAuthPrimaryButtonStyle';
 import { useSignupStepGuard } from '@/hooks/useSignupStepGuard';
 
-// 新規登録: プロフィール入力の導入。password までが揃っていなければ /signup/email へ。
+// 新規登録: プロフィール入力の導入（旧 SignupProfileIntroStep を直書き）。
+// password までが揃っていなければ /signup/email、お気に入り無効なら /signup へ。
 export default function SignupProfileIntroPage() {
   const router = useRouter();
+  const onBack = () => router.push('/signup/password');
+  const onContinue = () => router.push('/signup/name');
+  const onSessionExpired = () => router.replace('/signup/email');
+
   const { ready } = useSignupStepGuard({
     requireFavorites: true,
     requirePending: true,
     requireFields: ['emailVerified', 'password'],
   });
+  useSignupPendingExpiry(onSessionExpired);
+  const backIconColor = useAuthBackIconColor();
+  const backLinkColor = useAuthMutedTextColor();
+  const titleColor = useAuthTextColor();
 
   if (!ready) return <div className="min-h-screen bg-white" aria-busy="true" />;
 
   return (
-    <SignupProfileIntroStep
-      onBack={() => router.push('/signup/password')}
-      onContinue={() => router.push('/signup/name')}
-      onSessionExpired={() => router.replace('/signup/email')}
-    />
+    <div className="signup-profile-intro signup-app-font font-sans flex flex-col min-h-[100dvh] bg-white px-6 pt-4 pb-8">
+      <div className="w-full max-w-[360px] md:max-w-[400px] mx-auto flex flex-col flex-1 min-h-0">
+        <button
+          type="button"
+          onClick={onBack}
+          className="self-start -ml-1 p-1 active:opacity-60 md:hidden"
+          aria-label="戻る"
+        >
+          <ChevronLeft size={28} strokeWidth={2} color={backIconColor} />
+        </button>
+
+        <div className="flex-1 min-h-0 flex flex-col items-center justify-center text-center">
+          <PasswordResetCompleteIllustration
+            width={200}
+            className="w-[140px] md:w-[200px]"
+          />
+
+          <h1
+            className="mt-8 text-[19px] md:text-[22px] font-black leading-snug"
+            style={{ color: titleColor }}
+          >
+            プロフィールをつくろう！
+          </h1>
+          <p
+            className="mt-3 text-[12px] md:text-[13px] font-bold leading-relaxed px-1"
+            style={{ color: 'var(--app-text-muted)' }}
+          >
+            ココスキで使う基本情報を一緒に設定しましょう
+          </p>
+        </div>
+
+        <div className="w-full shrink-0 flex flex-col gap-4 max-md:-translate-y-4">
+          <button
+            type="button"
+            onClick={onContinue}
+            className="login-otp-send-btn w-full h-[52px] rounded-full text-[16px] font-bold text-white active:opacity-80"
+          >
+            次へ
+          </button>
+          <button
+            type="button"
+            onClick={onBack}
+            className="login-email-back-link hidden md:block w-full"
+            style={{ color: backLinkColor }}
+          >
+            戻る
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
