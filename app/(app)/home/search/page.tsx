@@ -6,7 +6,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { HomeSearchBar } from '@/components/HomeSearchBar';
 import { GachaCard, type GachaItem } from '@/components/ui/GachaCard';
-import { useIsMobile } from '@/lib/useIsMobile';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import {
   MOBILE_HEADER_PADDING_TOP,
   MOBILE_HEADER_TITLE_ROW_HEIGHT,

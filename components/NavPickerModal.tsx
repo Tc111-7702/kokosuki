@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
-import { useIsMobile } from '@/lib/useIsMobile';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import { DESKTOP_PAGE_NAV_WIDTH } from '@/lib/layout';
 
 const SCROLL_CLOSE_DELTA = 28;

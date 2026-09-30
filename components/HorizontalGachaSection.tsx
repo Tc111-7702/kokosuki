@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { GachaCard, type GachaItem as Gacha } from '@/components/ui/GachaCard';
-import { useIsMobile } from '@/lib/useIsMobile';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 interface Props {
   title: string;

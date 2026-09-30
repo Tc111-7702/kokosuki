@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation';
 import { PageNav } from '@/components/PageNav';
 import { BottomNav } from '@/components/BottomNav';
 import { SessionGuard } from '@/components/SessionGuard';
-import { useIsMobile } from '@/lib/useIsMobile';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const MOBILE_BREAKPOINT = 768;

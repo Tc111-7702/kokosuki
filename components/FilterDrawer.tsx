@@ -4,7 +4,7 @@ import { useState, useEffect, useSyncExternalStore } from 'react';
 import { X, ChevronRight, ChevronLeft, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { expandQuery } from '@/lib/gacha-aliases';
 import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
-import { useIsMobile } from '@/lib/useIsMobile';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import { DESKTOP_PAGE_NAV_WIDTH } from '@/lib/layout';
 
 const MOBILE_BREAKPOINT = 768;

@@ -12,7 +12,7 @@ import { StockPostDetail } from '@/components/StockPostDetail';
 import { FavoritesTab } from '@/components/FavoritesTab';
 import { type FeedPost } from '@/components/community-types';
 import { type StockFeedPost } from '@/components/StockPostCard';
-import { useIsMobile } from '@/lib/useIsMobile';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import { useSetNavActive } from '@/lib/navActiveStore';
 
 // ─── 型 ──────────────────────────────────────────────────────────────────────

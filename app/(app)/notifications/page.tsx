@@ -6,8 +6,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Bell, Heart, MessageCircle, Package, AtSign } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { NOTIFICATION_POLL_SECONDS, reloadUnreadNotificationCount } from '@/hooks/useUnreadNotificationCount';
-import { useIsMobile } from '@/lib/useIsMobile';
-import { usePolling } from '@/lib/usePolling';
+import { useIsMobile } from '@/hooks/useIsMobile';
+import { usePolling } from '@/hooks/usePolling';
 
 /** notif-shine の animation 時間に合わせる */
 const NOTIF_SHINE_MS = 1200;

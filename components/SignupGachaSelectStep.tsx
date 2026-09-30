@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { SignupFavoriteStepHeader } from '@/components/SignupFavoriteStepHeader';
 import { GachaCard, type GachaItem } from '@/components/ui/GachaCard';
-import { useIsMobile } from '@/lib/useIsMobile';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import { useAuthBackIconColor, useAuthPrimaryButtonStyle } from '@/hooks/useAuthPrimaryButtonStyle';
 
 type GachaGroup = {

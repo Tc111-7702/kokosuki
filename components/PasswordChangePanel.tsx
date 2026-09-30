@@ -7,7 +7,7 @@ import { PasswordPolicyHint } from '@/components/PasswordPolicyHint';
 import { formatMailDeliveryNotice } from '@/lib/mailDeliveryNotice';
 import type { MailDeliveryResult } from '@/lib/mail';
 import { isPasswordPolicyValid, validatePasswordPolicy } from '@/lib/passwordPolicy';
-import { useOtpResendCooldown } from '@/lib/useOtpResendCooldown';
+import { useOtpResendCooldown } from '@/hooks/useOtpResendCooldown';
 import { MailDeliveryNotice } from '@/components/MailDeliveryNotice';
 import {
   EMAIL_NOTICE_COLOR,

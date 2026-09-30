@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { Heart } from 'lucide-react';
 import { useAppTheme } from '@/components/AppThemeProvider';
-import { useLikedGachas } from '@/lib/useLikedGachas';
+import { useLikedGachas } from '@/hooks/useLikedGachas';
 import { SpotStockBadge } from '@/components/SpotGachaCard';
 
 function gachaCardShellStyle(isDark: boolean, opts: { highlight?: boolean; favorite?: boolean } = {}) {

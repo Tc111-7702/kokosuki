@@ -7,7 +7,7 @@ import { isPasswordPolicyValid, validatePasswordPolicy } from '@/lib/passwordPol
 import {
   isSignupPendingSessionExpiredResponse,
   useSignupPendingExpiry,
-} from '@/lib/useSignupPendingExpiry';
+} from '@/hooks/useSignupPendingExpiry';
 import { useAuthBackIconColor, useAuthMutedTextColor, useAuthPrimaryButtonStyle, useAuthTextColor } from '@/hooks/useAuthPrimaryButtonStyle';
 
 interface Props {

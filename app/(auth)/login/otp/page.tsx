@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { LOGIN_FLOW_COOKIE_NAME } from '@/lib/loginFlowCookie';
 import { resolveLoginFlowPending } from '@/lib/loginFlowPending';
 import { formatMailDeliveryNotice } from '@/lib/mailDeliveryNotice';
-import { LoginOtpPageClient } from './LoginOtpPageClient';
+import { LoginOtpPageClient } from './client';
 
 // ログイン: 認証コード入力ページ。Cookie の不透明トークンから DB(LoginFlowPending) を引き、
 // メール送信が済んでいない直接アクセス／期限切れはメール入力へ戻す。

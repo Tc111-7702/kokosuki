@@ -21,7 +21,7 @@ import { MapLocationPermissionCard } from '@/components/MapLocationPermissionCar
 import { makeCircleGeoJSON } from '@/map/geojson';
 import { reverseGeocode, resolveLocation, resolveContent, type ContentResult } from '@/map/geo';
 import { getGeolocationPermission, type GeolocationPermissionState } from '@/map/geolocationPermission';
-import { useExpireStaleStock } from '@/lib/useExpireStaleStock';
+import { useExpireStaleStock } from '@/hooks/useExpireStaleStock';
 
 // accessToken は page.tsx から props 経由で受け取る（下記 MapClient を参照）
 

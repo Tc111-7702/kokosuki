@@ -12,7 +12,7 @@ import { SignupCompleteStep } from '@/components/SignupCompleteStep';
 import {
   isSignupPendingSessionExpiredResponse,
   redirectOnSignupPendingExpired,
-} from '@/lib/useSignupPendingExpiry';
+} from '@/hooks/useSignupPendingExpiry';
 
 interface Props {
   email: string;

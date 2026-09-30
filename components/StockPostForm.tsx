@@ -7,7 +7,7 @@ import { PopularIpTagList, SearchTagsDivider } from '@/components/PopularIpTagLi
 import { POST_GACHA_BODY_HEIGHT } from '@/lib/layout';
 import { StockSpotPanel } from '@/components/StockSpotPanel';
 import { SpotGachaPicker } from '@/components/SpotGachaPicker';
-import { useIsMobile } from '@/lib/useIsMobile';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 
 // 在庫報告の距離検証用に、その場の現在地を1回だけ取得する（キャッシュ不使用）。

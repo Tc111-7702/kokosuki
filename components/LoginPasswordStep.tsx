@@ -7,7 +7,7 @@ import { authClient } from '@/lib/auth-client';
 import { MailDeliveryNotice } from '@/components/MailDeliveryNotice';
 import { formatMailDeliveryNotice } from '@/lib/mailDeliveryNotice';
 import type { MailDeliveryResult } from '@/lib/mail';
-import { useOtpResendCooldown } from '@/lib/useOtpResendCooldown';
+import { useOtpResendCooldown } from '@/hooks/useOtpResendCooldown';
 import { PasswordResetGlobeIllustration } from '@/components/ui/PasswordResetGlobeIllustration';
 import {
   useAuthBackIconColor,

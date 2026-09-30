@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { MapPin, X, ChevronDown, ChevronUp } from 'lucide-react';
-import { useIsMobile } from '@/lib/useIsMobile';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import { fetchPostSpotSuggestions, type PostSpotSuggestion } from '@/lib/spotPostSuggest';
 import { POST_SPOT_STEP_NEXT_GAP, POST_STEP_NEXT_GAP } from '@/lib/layout';
 
