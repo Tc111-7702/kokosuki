@@ -5,7 +5,7 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Bell, Heart, MessageCircle, Package, AtSign } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
-import { NOTIFICATION_POLL_SECONDS, reloadUnreadNotificationCount } from '@/lib/useUnreadNotificationCount';
+import { NOTIFICATION_POLL_SECONDS, reloadUnreadNotificationCount } from '@/hooks/useUnreadNotificationCount';
 import { useIsMobile } from '@/lib/useIsMobile';
 import { usePolling } from '@/lib/usePolling';
 

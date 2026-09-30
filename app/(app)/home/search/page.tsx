@@ -11,7 +11,7 @@ import {
   MOBILE_HEADER_PADDING_TOP,
   MOBILE_HEADER_TITLE_ROW_HEIGHT,
   MOBILE_HEADER_SEARCH_BAR_HEIGHT,
-} from '@/lib/mobileHeaderLayout';
+} from '@/lib/layout';
 import { PopularIpTagList } from '@/components/PopularIpTagList';
 
 // ─── 人気IP（投稿サジェストと同じ取得・件数） ─────────────────────────────────

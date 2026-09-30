@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, useSyncExternalStore } from 'react'
 import { useRouter } from 'next/navigation';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { PopularIpTagList, SearchTagsDivider } from '@/components/PopularIpTagList';
-import { POST_GACHA_BODY_HEIGHT } from '@/lib/postFormMobileLayout';
+import { POST_GACHA_BODY_HEIGHT } from '@/lib/layout';
 import { StockSpotPanel } from '@/components/StockSpotPanel';
 import { SpotGachaPicker } from '@/components/SpotGachaPicker';
 import { useIsMobile } from '@/lib/useIsMobile';

@@ -5,7 +5,7 @@ import { X, ChevronRight, ChevronLeft, Check, ChevronDown, ChevronUp } from 'luc
 import { expandQuery } from '@/lib/gacha-aliases';
 import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 import { useIsMobile } from '@/lib/useIsMobile';
-import { DESKTOP_PAGE_NAV_WIDTH } from '@/lib/desktopPageNav';
+import { DESKTOP_PAGE_NAV_WIDTH } from '@/lib/layout';
 
 const MOBILE_BREAKPOINT = 768;
 const MOBILE_BOTTOM_NAV_HEIGHT = 64;

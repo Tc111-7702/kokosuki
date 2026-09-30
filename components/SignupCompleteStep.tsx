@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuthTextColor } from '@/lib/useAuthPrimaryButtonStyle';
+import { useAuthTextColor } from '@/hooks/useAuthPrimaryButtonStyle';
 
 interface Props {
   onContinue: () => void;

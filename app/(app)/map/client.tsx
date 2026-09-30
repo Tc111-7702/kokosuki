@@ -15,12 +15,12 @@ import {
   loadNearbySpots,
   loadSearchContentMarkers,
   type NearbySpot,
-} from '@/lib/map/markers';
+} from '@/map/markers';
 import SpotListPanel from '@/components/SpotListPanel';
 import { MapLocationPermissionCard } from '@/components/MapLocationPermissionCard';
-import { makeCircleGeoJSON } from '@/lib/map/geojson';
-import { reverseGeocode, resolveLocation, resolveContent, type ContentResult } from '@/lib/map/geo';
-import { getGeolocationPermission, type GeolocationPermissionState } from '@/lib/map/geolocationPermission';
+import { makeCircleGeoJSON } from '@/map/geojson';
+import { reverseGeocode, resolveLocation, resolveContent, type ContentResult } from '@/map/geo';
+import { getGeolocationPermission, type GeolocationPermissionState } from '@/map/geolocationPermission';
 import { useExpireStaleStock } from '@/lib/useExpireStaleStock';
 
 // accessToken は page.tsx から props 経由で受け取る（下記 MapClient を参照）

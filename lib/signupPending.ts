@@ -2,11 +2,22 @@ import { createHash, randomBytes } from 'crypto';
 import * as db from '@/lib/db';
 import { encryptSignupPendingPassword } from '@/lib/signupPendingPassword';
 import { isSignupHandleFormatValid } from '@/lib/signupHandle';
-import type {
-  SignupPendingCancelStep,
-  SignupPendingPatch,
-  SignupPendingPublic,
-} from '@/lib/signupPendingTypes';
+// SignupPending の型（旧 signupPendingTypes.ts をインライン化）
+type SignupPendingCancelStep = 'otp' | 'password' | 'name' | 'birthDate' | 'handle';
+type SignupPendingPublic = {
+  email: string;
+  expiresAt: string;
+  hasPassword: boolean;
+  name: string | null;
+  birthDate: string | null;
+  handle: string | null;
+};
+type SignupPendingPatch = {
+  password?: string;
+  name?: string | null;
+  birthDate?: string | null;
+  handle?: string | null;
+};
 import {
   getSignupPendingTokenFromCookieHeader,
   SIGNUP_PENDING_COOKIE_MAX_AGE_SEC,

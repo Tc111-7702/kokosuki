@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
-import { useAuthPrimaryButtonStyle } from '@/lib/useAuthPrimaryButtonStyle';
+import { useAuthPrimaryButtonStyle } from '@/hooks/useAuthPrimaryButtonStyle';
 
 interface CatItem  { id: string; name: string; count: number }
 interface Section  { id: string; name: string; count: number; children: CatItem[] }

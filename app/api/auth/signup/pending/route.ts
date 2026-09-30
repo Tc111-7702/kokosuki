@@ -6,7 +6,12 @@ import {
 } from '@/lib/signupPending';
 import { validatePasswordPolicy } from '@/lib/passwordPolicy';
 import { HANDLE_FORMAT_ERROR } from '@/lib/signupHandle';
-import type { SignupPendingPatch } from '@/lib/signupPendingTypes';
+type SignupPendingPatch = {
+  password?: string;
+  name?: string | null;
+  birthDate?: string | null;
+  handle?: string | null;
+};
 import { getSignupPendingTokenFromCookieHeader } from '@/lib/signupPendingCookie';
 
 /** GET /api/auth/signup/pending — Cookie に紐づく SignupPending を返す */

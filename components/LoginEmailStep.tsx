@@ -10,7 +10,7 @@ import {
   useAuthMutedTextColor,
   useAuthPrimaryButtonStyle,
   useAuthResendLinkColor,
-} from '@/lib/useAuthPrimaryButtonStyle';
+} from '@/hooks/useAuthPrimaryButtonStyle';
 import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

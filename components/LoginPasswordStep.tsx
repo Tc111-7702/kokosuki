@@ -14,7 +14,7 @@ import {
   useAuthMutedTextColor,
   useAuthPrimaryButtonStyle,
   useAuthResendLinkColor,
-} from '@/lib/useAuthPrimaryButtonStyle';
+} from '@/hooks/useAuthPrimaryButtonStyle';
 
 function formatPasswordSignInError(error: { code?: string; message?: string } | null | undefined): string {
   const code = error?.code ?? '';

@@ -5,7 +5,7 @@ import { ChevronLeft } from 'lucide-react';
 import { SignupProfileProgress } from '@/components/SignupProfileProgress';
 import { PasswordResetCompleteIllustration } from '@/components/ui/PasswordResetCompleteIllustration';
 import { useSignupPendingExpiry } from '@/lib/useSignupPendingExpiry';
-import { useAuthBackIconColor, useAuthMutedTextColor, useAuthPrimaryButtonStyle, useAuthTextColor } from '@/lib/useAuthPrimaryButtonStyle';
+import { useAuthBackIconColor, useAuthMutedTextColor, useAuthPrimaryButtonStyle, useAuthTextColor } from '@/hooks/useAuthPrimaryButtonStyle';
 
 interface Props {
   step: 1 | 2 | 3;

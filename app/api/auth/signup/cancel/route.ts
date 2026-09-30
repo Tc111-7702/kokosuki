@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { cancelSignupPendingFromStep } from '@/lib/signupPending';
-import type { SignupPendingCancelStep } from '@/lib/signupPendingTypes';
+type SignupPendingCancelStep = 'otp' | 'password' | 'name' | 'birthDate' | 'handle';
 import {
   getSignupPendingTokenFromCookieHeader,
   SIGNUP_PENDING_COOKIE_NAME,

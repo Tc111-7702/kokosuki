@@ -10,7 +10,7 @@ import {
   MOBILE_HEADER_CONTENT_HEIGHT,
   MOBILE_HOME_TAB_ROW_HEIGHT,
   MOBILE_HOME_LOGO_ZONE_HEIGHT,
-} from '@/lib/mobileHeaderLayout';
+} from '@/lib/layout';
 import { NewTab }        from '@/components/NewTab';
 import { CommunityTab }  from '@/components/CommunityTab';
 import { FavoritesTab }  from '@/components/FavoritesTab';

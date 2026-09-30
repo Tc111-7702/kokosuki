@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { KokosukiLogo } from '@/components/ui/KokosukiLogo';
 import loginServiceIntro from '@/components/ui/assets/login-service-intro.png';
 import { LoginSplash } from '@/components/LoginSplash';
-import { loginDisplayFont } from '@/lib/loginFonts';
+import { loginDisplayFont } from '@/lib/layout';
 import { markLoginSplashSeen, shouldShowLoginSplash } from '@/lib/loginSplash';
 import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 

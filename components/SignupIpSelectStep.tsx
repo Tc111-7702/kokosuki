@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from '
 import { ChevronLeft, Search, X } from 'lucide-react';
 import { SignupFavoriteStepHeader } from '@/components/SignupFavoriteStepHeader';
 import { ipGradient } from '@/components/SpotGachaCard';
-import { useAuthPrimaryButtonStyle } from '@/lib/useAuthPrimaryButtonStyle';
+import { useAuthPrimaryButtonStyle } from '@/hooks/useAuthPrimaryButtonStyle';
 import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 
 type SignupIpItem = {

@@ -20,7 +20,7 @@ import {
   useAuthMutedTextColor,
   useAuthPrimaryButtonStyle,
   useAuthResendLinkColor,
-} from '@/lib/useAuthPrimaryButtonStyle';
+} from '@/hooks/useAuthPrimaryButtonStyle';
 
 const OTP_MISMATCH = '認証コードが一致しません。';
 

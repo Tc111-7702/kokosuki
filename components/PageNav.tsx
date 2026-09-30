@@ -4,10 +4,10 @@ import { useSyncExternalStore } from 'react';
 import { Home, MapPin, User, Plus, Bell } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useNavActiveKey, type NavKey } from '@/lib/navActiveStore';
-import { useUnreadNotificationCount } from '@/lib/useUnreadNotificationCount';
+import { useUnreadNotificationCount } from '@/hooks/useUnreadNotificationCount';
 import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 import { KokosukiLogo } from '@/components/ui/KokosukiLogo';
-import { DESKTOP_PAGE_NAV_WIDTH } from '@/lib/desktopPageNav';
+import { DESKTOP_PAGE_NAV_WIDTH } from '@/lib/layout';
 
 const NAV_ITEMS: { path: string; key: NavKey | null; label: string; icon: React.ReactNode }[] = [
   { path: '/home',          key: 'home',          label: 'ホーム',     icon: <Home size={20} /> },

@@ -1,6 +1,6 @@
-import { runSequential } from '@/lib/scrapers/runSequential';
-import { fetchPlaceIds } from '@/lib/scrapers/place-id-fetch';
-import { fetchPhoneNumbers } from '@/lib/scrapers/phone-fetch';
+import { runSequential } from '@/scrapers/runSequential';
+import { fetchPlaceIds } from '@/scrapers/place-id-fetch';
+import { fetchPhoneNumbers } from '@/scrapers/phone-fetch';
 
 // 実行するタスク（正しい順序: Place ID 取得 → 電話番号取得）
 const PHONE_TASKS = [

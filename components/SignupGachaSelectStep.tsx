@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { SignupFavoriteStepHeader } from '@/components/SignupFavoriteStepHeader';
 import { GachaCard, type GachaItem } from '@/components/ui/GachaCard';
 import { useIsMobile } from '@/lib/useIsMobile';
-import { useAuthBackIconColor, useAuthPrimaryButtonStyle } from '@/lib/useAuthPrimaryButtonStyle';
+import { useAuthBackIconColor, useAuthPrimaryButtonStyle } from '@/hooks/useAuthPrimaryButtonStyle';
 
 type GachaGroup = {
   ipName: string;
