@@ -8,9 +8,9 @@ import { GachaCard, type GachaItem } from '@/components/ui/GachaCard';
 import { ReplyComposerField } from '@/components/ReplyComposerField';
 import NavPickerModal from '@/components/NavPickerModal';
 import { Avatar } from '@/components/ui/Avatar';
-import { useIsMobile } from '@/lib/useIsMobile';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
-import { DESKTOP_PAGE_NAV_WIDTH } from '@/lib/desktopPageNav';
+import { DESKTOP_PAGE_NAV_WIDTH } from '@/lib/layout';
 
 type SheetReview = {
   id: string;

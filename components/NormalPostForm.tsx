@@ -6,9 +6,9 @@ import { X, ChevronLeft, ChevronRight, Camera } from 'lucide-react';
 import { SpotSearchPanel } from '@/components/SpotSearchPanel';
 import { SpotGachaPicker } from '@/components/SpotGachaPicker';
 import { PopularIpTagList, SearchTagsDivider } from '@/components/PopularIpTagList';
-import { useIsMobile } from '@/lib/useIsMobile';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
-import { POST_STEP_NEXT_GAP, POST_SPOT_STEP_NEXT_GAP, POST_GACHA_BODY_HEIGHT, POST_STEP_CONTENT_BOTTOM } from '@/lib/postFormMobileLayout';
+import { POST_STEP_NEXT_GAP, POST_SPOT_STEP_NEXT_GAP, POST_GACHA_BODY_HEIGHT, POST_STEP_CONTENT_BOTTOM } from '@/lib/layout';
 import {
   PostImageFrame,
   POST_IMAGE_FEED_WIDTH_CLASS,

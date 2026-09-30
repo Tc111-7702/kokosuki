@@ -7,7 +7,7 @@ import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 import {
   isSignupPendingSessionExpiredResponse,
   redirectOnSignupPendingExpired,
-} from '@/lib/useSignupPendingExpiry';
+} from '@/hooks/useSignupPendingExpiry';
 
 const NAME_MAX = 30;
 

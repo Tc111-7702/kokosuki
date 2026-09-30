@@ -7,14 +7,14 @@ import { authClient } from '@/lib/auth-client';
 import { MailDeliveryNotice } from '@/components/MailDeliveryNotice';
 import { formatMailDeliveryNotice } from '@/lib/mailDeliveryNotice';
 import type { MailDeliveryResult } from '@/lib/mail';
-import { useOtpResendCooldown } from '@/lib/useOtpResendCooldown';
+import { useOtpResendCooldown } from '@/hooks/useOtpResendCooldown';
 import { PasswordResetGlobeIllustration } from '@/components/ui/PasswordResetGlobeIllustration';
 import {
   useAuthBackIconColor,
   useAuthMutedTextColor,
   useAuthPrimaryButtonStyle,
   useAuthResendLinkColor,
-} from '@/lib/useAuthPrimaryButtonStyle';
+} from '@/hooks/useAuthPrimaryButtonStyle';
 
 function formatPasswordSignInError(error: { code?: string; message?: string } | null | undefined): string {
   const code = error?.code ?? '';

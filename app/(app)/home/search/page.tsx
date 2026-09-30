@@ -6,12 +6,12 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { HomeSearchBar } from '@/components/HomeSearchBar';
 import { GachaCard, type GachaItem } from '@/components/ui/GachaCard';
-import { useIsMobile } from '@/lib/useIsMobile';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import {
   MOBILE_HEADER_PADDING_TOP,
   MOBILE_HEADER_TITLE_ROW_HEIGHT,
   MOBILE_HEADER_SEARCH_BAR_HEIGHT,
-} from '@/lib/mobileHeaderLayout';
+} from '@/lib/layout';
 import { PopularIpTagList } from '@/components/PopularIpTagList';
 
 // ─── 人気IP（投稿サジェストと同じ取得・件数） ─────────────────────────────────

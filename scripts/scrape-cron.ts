@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import * as db from '@/lib/db';
-import { runGachaScraping } from '@/lib/scrapers/gacha-island';
-import { runPhoneScraping } from '@/lib/scrapers/phone';
+import { runGachaScraping } from '@/scrapers/gacha-island';
+import { runPhoneScraping } from '@/scrapers/phone';
 import type { ScrapeType } from '@/lib/db';
 
 // GitHub Actions から1日2回(03:00/05:00 JST)呼ばれるランナー。

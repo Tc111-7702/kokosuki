@@ -13,10 +13,10 @@ import { StockPostCard, type StockFeedPost } from '@/components/StockPostCard';
 import { PostCard } from '@/components/PostCard';
 import { InlineReplies } from '@/components/InlineReplies';
 import { type FeedPost, type FeedItem } from '@/components/community-types';
-import { useIsMobile } from '@/lib/useIsMobile';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 import { StoreReviews } from '@/components/StoreReviews';
-import { useExpireStaleStock } from '@/lib/useExpireStaleStock';
+import { useExpireStaleStock } from '@/hooks/useExpireStaleStock';
 
 // ─── 型定義 ──────────────────────────────────────────────────
 

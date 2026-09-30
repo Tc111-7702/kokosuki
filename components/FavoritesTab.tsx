@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { X } from 'lucide-react';
-import { useIsMobile } from '@/lib/useIsMobile';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import { GachaCard } from '@/components/ui/GachaCard';
 
 interface FavoriteGacha {

@@ -1,7 +1,7 @@
-import { runSequential } from '@/lib/scrapers/runSequential';
-import { scrapeKansaiShops } from '@/lib/scrapers/gacha-island-shops';
-import { syncShopGachas } from '@/lib/scrapers/gacha-island-shop-sync';
-import { syncScheduleGachas } from '@/lib/scrapers/gacha-island-schedule';
+import { runSequential } from '@/scrapers/runSequential';
+import { scrapeKansaiShops } from '@/scrapers/gacha-island-shops';
+import { syncShopGachas } from '@/scrapers/gacha-island-shop-sync';
+import { syncScheduleGachas } from '@/scrapers/gacha-island-schedule';
 
 // 実行するタスク（正しい順序: 店舗リスト → 店舗ガチャ同期 → 発売スケジュール）
 // #19: IpName/IpCategory の link は各スクレイパーが upsert 時に resolveIpNameId で実施するため、

@@ -2,8 +2,8 @@
 
 import { ChevronLeft } from 'lucide-react';
 import { PasswordResetCompleteIllustration } from '@/components/ui/PasswordResetCompleteIllustration';
-import { useSignupPendingExpiry } from '@/lib/useSignupPendingExpiry';
-import { useAuthBackIconColor, useAuthMutedTextColor, useAuthTextColor } from '@/lib/useAuthPrimaryButtonStyle';
+import { useSignupPendingExpiry } from '@/hooks/useSignupPendingExpiry';
+import { useAuthBackIconColor, useAuthMutedTextColor, useAuthTextColor } from '@/hooks/useAuthPrimaryButtonStyle';
 
 interface Props {
   onBack: () => void;

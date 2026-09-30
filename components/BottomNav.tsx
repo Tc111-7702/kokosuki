@@ -4,7 +4,7 @@ import { useSyncExternalStore } from 'react';
 import { Home, MapPin, User, Plus, Bell } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useNavActiveKey, type NavKey } from '@/lib/navActiveStore';
-import { useUnreadNotificationCount } from '@/lib/useUnreadNotificationCount';
+import { useUnreadNotificationCount } from '@/hooks/useUnreadNotificationCount';
 import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 
 const NAV_ITEMS: { path: string; key: NavKey | null; label: string; icon: React.ReactNode }[] = [

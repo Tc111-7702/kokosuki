@@ -1,4 +1,4 @@
-import type { SignupPendingCancelStep } from '@/lib/signupPendingTypes';
+type SignupPendingCancelStep = 'otp' | 'password' | 'name' | 'birthDate' | 'handle';
 
 /** Cookie に紐づく SignupPending を DB から完全削除し Cookie を消す */
 export async function clearSignupPendingSession(): Promise<void> {

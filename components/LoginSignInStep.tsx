@@ -3,8 +3,8 @@
 import { useSyncExternalStore } from 'react';
 import { ChevronLeft, Mail } from 'lucide-react';
 import { KokosukiLogo } from '@/components/ui/KokosukiLogo';
-import { loginDisplayFont } from '@/lib/loginFonts';
-import { useAuthBackIconColor } from '@/lib/useAuthPrimaryButtonStyle';
+import { loginDisplayFont } from '@/lib/layout';
+import { useAuthBackIconColor } from '@/hooks/useAuthPrimaryButtonStyle';
 import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 
 export type LoginSignInProvider = 'google' | 'apple' | 'email';

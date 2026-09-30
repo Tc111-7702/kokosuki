@@ -4,13 +4,13 @@ import { useSetNavActive } from '@/lib/navActiveStore';
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { CheckCircle2, Search } from 'lucide-react';
-import { useIsMobile } from '@/lib/useIsMobile';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import {
   MOBILE_HEADER_PADDING_TOP,
   MOBILE_HEADER_CONTENT_HEIGHT,
   MOBILE_HOME_TAB_ROW_HEIGHT,
   MOBILE_HOME_LOGO_ZONE_HEIGHT,
-} from '@/lib/mobileHeaderLayout';
+} from '@/lib/layout';
 import { NewTab }        from '@/components/NewTab';
 import { CommunityTab }  from '@/components/CommunityTab';
 import { FavoritesTab }  from '@/components/FavoritesTab';

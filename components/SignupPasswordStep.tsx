@@ -7,8 +7,8 @@ import { isPasswordPolicyValid, validatePasswordPolicy } from '@/lib/passwordPol
 import {
   isSignupPendingSessionExpiredResponse,
   useSignupPendingExpiry,
-} from '@/lib/useSignupPendingExpiry';
-import { useAuthBackIconColor, useAuthMutedTextColor, useAuthPrimaryButtonStyle, useAuthTextColor } from '@/lib/useAuthPrimaryButtonStyle';
+} from '@/hooks/useSignupPendingExpiry';
+import { useAuthBackIconColor, useAuthMutedTextColor, useAuthPrimaryButtonStyle, useAuthTextColor } from '@/hooks/useAuthPrimaryButtonStyle';
 
 interface Props {
   onBack: () => void;

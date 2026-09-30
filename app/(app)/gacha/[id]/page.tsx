@@ -3,7 +3,7 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Heart, ChevronRight } from 'lucide-react';
-import { useIsMobile } from '@/lib/useIsMobile';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import type { GachaDetail, NearbySpot } from '@/components/gacha-types';
 import { NearbyButton } from '@/components/NearbyButton';
 import { LineupSection } from '@/components/LineupSection';

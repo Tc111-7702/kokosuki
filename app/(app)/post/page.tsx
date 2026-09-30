@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ChevronLeft } from 'lucide-react';
 import { NormalPostForm, DesktopNormalForm } from '@/components/NormalPostForm';
 import { StockPostForm,  DesktopStockForm  } from '@/components/StockPostForm';
-import { useIsMobile } from '@/lib/useIsMobile';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 import { useSetNavActive } from '@/lib/navActiveStore';
 

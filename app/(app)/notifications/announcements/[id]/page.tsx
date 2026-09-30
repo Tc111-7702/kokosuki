@@ -4,7 +4,7 @@ import { useSetNavActive } from '@/lib/navActiveStore';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
-import { reloadUnreadNotificationCount } from '@/lib/useUnreadNotificationCount';
+import { reloadUnreadNotificationCount } from '@/hooks/useUnreadNotificationCount';
 
 interface AnnouncementDetail {
   id: string;

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Heart } from 'lucide-react';
 import { GachaCard } from '@/components/ui/GachaCard';
 import type { GachaItem } from '@/components/ui/GachaCard';
-import { useIsMobile } from '@/lib/useIsMobile';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 interface Group {
   ipName: string;

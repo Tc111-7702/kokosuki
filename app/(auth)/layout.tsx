@@ -1,4 +1,4 @@
-import { loginDisplayFont, splashDisplayFont } from '@/lib/loginFonts';
+import { loginDisplayFont, splashDisplayFont } from '@/lib/layout';
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (

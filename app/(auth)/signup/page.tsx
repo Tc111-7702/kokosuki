@@ -14,7 +14,7 @@ import { SignupNicknameStep } from '@/components/SignupNicknameStep';
 import { SignupPasswordStep } from '@/components/SignupPasswordStep';
 import { SignupProfileIntroStep } from '@/components/SignupProfileIntroStep';
 import { cancelSignupPending } from '@/lib/signupPendingCancel';
-import type { SignupPendingCancelStep } from '@/lib/signupPendingTypes';
+type SignupPendingCancelStep = 'otp' | 'password' | 'name' | 'birthDate' | 'handle';
 
 type SignupPhase =
   | 'ip-select'

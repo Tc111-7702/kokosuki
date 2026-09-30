@@ -2,8 +2,8 @@
 
 import type { ReactNode } from 'react';
 import { ChevronLeft } from 'lucide-react';
-import { loginDisplayFont } from '@/lib/loginFonts';
-import { useAuthBackIconColor, useAuthTextColor } from '@/lib/useAuthPrimaryButtonStyle';
+import { loginDisplayFont } from '@/lib/layout';
+import { useAuthBackIconColor, useAuthTextColor } from '@/hooks/useAuthPrimaryButtonStyle';
 
 interface Props {
   title: string;

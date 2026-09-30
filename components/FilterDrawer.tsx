@@ -4,8 +4,8 @@ import { useState, useEffect, useSyncExternalStore } from 'react';
 import { X, ChevronRight, ChevronLeft, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { expandQuery } from '@/lib/gacha-aliases';
 import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
-import { useIsMobile } from '@/lib/useIsMobile';
-import { DESKTOP_PAGE_NAV_WIDTH } from '@/lib/desktopPageNav';
+import { useIsMobile } from '@/hooks/useIsMobile';
+import { DESKTOP_PAGE_NAV_WIDTH } from '@/lib/layout';
 
 const MOBILE_BREAKPOINT = 768;
 const MOBILE_BOTTOM_NAV_HEIGHT = 64;

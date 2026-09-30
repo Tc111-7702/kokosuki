@@ -2057,6 +2057,51 @@ export const updateSignupPendingByTokenHash = (
     select: signupPendingPublicSelect,
   });
 
+// ─── LoginFlowPending（ログインのステップ遷移用・一時状態） ──────────────────────
+
+export const deleteExpiredLoginFlowPendingRows = () =>
+  prisma.loginFlowPending.deleteMany({ where: { expiresAt: { lt: new Date() } } });
+
+export const deleteLoginFlowPendingByEmail = (email: string) =>
+  prisma.loginFlowPending.deleteMany({ where: { email } });
+
+export const createLoginFlowPendingRow = (args: {
+  tokenHash: string;
+  email: string;
+  step: string;
+  provider: string;
+  mailMode?: string | null;
+  mailRedirectTo?: string | null;
+  expiresAt: Date;
+}) =>
+  prisma.loginFlowPending.create({
+    data: {
+      tokenHash: args.tokenHash,
+      email: args.email,
+      step: args.step,
+      provider: args.provider,
+      mailMode: args.mailMode ?? null,
+      mailRedirectTo: args.mailRedirectTo ?? null,
+      expiresAt: args.expiresAt,
+    },
+  });
+
+export const findLoginFlowPendingByTokenHash = (tokenHash: string) =>
+  prisma.loginFlowPending.findUnique({
+    where: { tokenHash },
+    select: {
+      email: true,
+      step: true,
+      provider: true,
+      mailMode: true,
+      mailRedirectTo: true,
+      expiresAt: true,
+    },
+  });
+
+export const deleteLoginFlowPendingByTokenHash = (tokenHash: string) =>
+  prisma.loginFlowPending.deleteMany({ where: { tokenHash } });
+
 // ─── Verification（OTP） ───────────────────────────────────────
 
 export const findVerificationByIdentifier = (identifier: string) =>

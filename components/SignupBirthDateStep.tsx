@@ -8,7 +8,7 @@ import { SignupProfileFieldStep } from '@/components/SignupProfileFieldStep';
 import {
   isSignupPendingSessionExpiredResponse,
   redirectOnSignupPendingExpired,
-} from '@/lib/useSignupPendingExpiry';
+} from '@/hooks/useSignupPendingExpiry';
 interface Props {
   onBack: () => void;
   onContinue: () => void;

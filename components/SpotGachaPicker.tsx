@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { X, SlidersHorizontal } from 'lucide-react';
-import { useIsMobile } from '@/lib/useIsMobile';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import FilterDrawer from '@/components/FilterDrawer';
 import { expandQuery } from '@/lib/gacha-aliases';
 

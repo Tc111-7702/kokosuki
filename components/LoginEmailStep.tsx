@@ -10,7 +10,7 @@ import {
   useAuthMutedTextColor,
   useAuthPrimaryButtonStyle,
   useAuthResendLinkColor,
-} from '@/lib/useAuthPrimaryButtonStyle';
+} from '@/hooks/useAuthPrimaryButtonStyle';
 import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -84,7 +84,7 @@ export function LoginEmailStep({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ email: fullEmail }),
+        body: JSON.stringify({ email: fullEmail, provider }),
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
@@ -112,7 +112,8 @@ export function LoginEmailStep({
       const res = await fetch('/api/auth/login/verify-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: fullEmail }),
+        credentials: 'include',
+        body: JSON.stringify({ email: fullEmail, provider }),
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) {

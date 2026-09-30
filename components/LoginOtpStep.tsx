@@ -5,11 +5,11 @@ import { useRouter } from 'next/navigation';
 import { ChevronLeft } from 'lucide-react';
 import { authClient } from '@/lib/auth-client';
 import { formatEmailOtpError, isOtpExpiredError } from '@/lib/emailOtpErrors';
-import { useOtpResendCooldown } from '@/lib/useOtpResendCooldown';
+import { useOtpResendCooldown } from '@/hooks/useOtpResendCooldown';
 import {
   isSignupPendingSessionExpiredResponse,
   useSignupPendingExpiry,
-} from '@/lib/useSignupPendingExpiry';
+} from '@/hooks/useSignupPendingExpiry';
 import { OtpDigitInput } from '@/components/OtpDigitInput';
 import { PasswordResetGlobeIllustration } from '@/components/ui/PasswordResetGlobeIllustration';
 import { MailDeliveryNotice } from '@/components/MailDeliveryNotice';
@@ -20,7 +20,7 @@ import {
   useAuthMutedTextColor,
   useAuthPrimaryButtonStyle,
   useAuthResendLinkColor,
-} from '@/lib/useAuthPrimaryButtonStyle';
+} from '@/hooks/useAuthPrimaryButtonStyle';
 
 const OTP_MISMATCH = '認証コードが一致しません。';
 

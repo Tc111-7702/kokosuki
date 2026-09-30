@@ -3,7 +3,7 @@
 import { useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, SlidersHorizontal, MapPin, ChevronRight } from 'lucide-react';
-import type { NearbySpot } from '@/lib/map/markers';
+import type { NearbySpot } from '@/map/markers';
 import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 
 // ─── 型定義 ────────────────────────────────────────────────────────────────────

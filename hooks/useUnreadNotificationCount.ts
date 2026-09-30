@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { usePathname } from 'next/navigation';
-import { usePolling } from '@/lib/usePolling';
+import { usePolling } from '@/hooks/usePolling';
 
 // サイドバー通知バッジの自動更新間隔（秒）。0以下で無効。
 export const NOTIFICATION_POLL_SECONDS = 10;

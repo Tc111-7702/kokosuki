@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { ArrowLeft, Heart } from 'lucide-react';
-import { useAuthPrimaryButtonStyle } from '@/lib/useAuthPrimaryButtonStyle';
+import { useAuthPrimaryButtonStyle } from '@/hooks/useAuthPrimaryButtonStyle';
 
 interface GachaItem {
   id: string;

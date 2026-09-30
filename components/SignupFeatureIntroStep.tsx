@@ -5,7 +5,7 @@ import { ChevronLeft } from 'lucide-react';
 import discoverImg from '@/components/ui/assets/signup-feature-discover.png';
 import mapImg from '@/components/ui/assets/signup-feature-map.png';
 import shareImg from '@/components/ui/assets/login-service-intro.png';
-import { useAuthBackIconColor, useAuthTextColor } from '@/lib/useAuthPrimaryButtonStyle';
+import { useAuthBackIconColor, useAuthTextColor } from '@/hooks/useAuthPrimaryButtonStyle';
 
 type Slide = {
   image: { src: string; width: number; height: number };
