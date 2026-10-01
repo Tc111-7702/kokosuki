@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useState } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { authClient } from '@/lib/auth-client';
 import { LoginSignInStep, type LoginSignInProvider } from '@/components/LoginSignInStep';
@@ -65,9 +66,16 @@ function LoginSignInInner() {
               登録されていません
             </h1>
             <p className="mt-4 text-[11px] md:text-[15px] leading-relaxed text-[#888888]">
-              新規登録がお済みでない場合は、
+              このメールアドレスをご利用の場合は
               <br />
-              新規登録してください。
+              <Link
+                href="/signup"
+                className="font-bold underline underline-offset-2"
+                style={{ color: '#F2B800' }}
+              >
+                新規登録
+              </Link>
+              してください
             </p>
             <button
               type="button"
