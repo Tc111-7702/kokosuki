@@ -42,8 +42,13 @@ export async function GET(req: Request) {
   const oauthError = url.searchParams.get('error');
 
   const backToSignin = new URL('/signup/signin', req.url);
+  // state の破棄は生の Set-Cookie 追加で行う。res.cookies.set を使うと、別途
+  // append したセッション Cookie を NextResponse が再シリアライズして落とすため。
   const clearState = (res: NextResponse) => {
-    res.cookies.set(SIGNUP_GOOGLE_STATE_COOKIE, '', { path: '/', maxAge: 0 });
+    res.headers.append(
+      'set-cookie',
+      `${SIGNUP_GOOGLE_STATE_COOKIE}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax`,
+    );
     return res;
   };
 
