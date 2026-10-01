@@ -7,7 +7,7 @@ import { SignupFavoriteStepHeader } from '@/components/SignupFavoriteStepHeader'
 import { ipGradient } from '@/components/SpotGachaCard';
 import { useAuthPrimaryButtonStyle } from '@/hooks/useAuthPrimaryButtonStyle';
 import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
-import { clearSignupGachaIds, setSignupIpNames } from '@/lib/signupFavorites';
+import { clearSignupGachaIds, setSignupGachaIds, setSignupIpNames } from '@/lib/signupFavorites';
 
 type SignupIpItem = {
   ipName: string;
@@ -69,6 +69,12 @@ export default function SignupIpSelectPage() {
   const onContinue = (selectedIpNames: string[]) => {
     setSignupIpNames(selectedIpNames);
     router.push('/signup/gacha');
+  };
+  // スキップ: IP・ガチャ両方を空配列で登録し、ガチャ選択を飛ばして intro へ。
+  const onSkip = () => {
+    setSignupIpNames([]);
+    setSignupGachaIds([]);
+    router.push('/signup/intro');
   };
 
   useEffect(() => {
@@ -146,7 +152,9 @@ export default function SignupIpSelectPage() {
 
   const selectedCount = selectedIps.size;
   const canProceed = selectedCount > 0;
+  const canSkip = selectedCount === 0;
   const submitStyle = useAuthPrimaryButtonStyle(canProceed);
+  const skipStyle = useAuthPrimaryButtonStyle(canSkip);
   const isDark = useSyncExternalStore(
     subscribeTheme,
     () => getThemeSnapshot() === 'dark',
@@ -234,15 +242,26 @@ export default function SignupIpSelectPage() {
           </div>
           </div>
 
-          <button
-            type="button"
-            disabled={!canProceed}
-            onClick={() => onContinue([...selectedIps])}
-            style={submitStyle}
-            className="login-otp-send-btn w-full h-[48px] md:h-[52px] rounded-full text-[16px] font-bold text-white active:opacity-80 disabled:cursor-not-allowed shrink-0 max-md:mt-2 max-md:-translate-y-3 md:mt-5 md:-translate-y-2"
-          >
-            次へ
-          </button>
+          <div className="w-full flex gap-3 shrink-0 max-md:mt-2 max-md:-translate-y-3 md:mt-5 md:-translate-y-2">
+            <button
+              type="button"
+              disabled={!canSkip}
+              onClick={onSkip}
+              style={skipStyle}
+              className="login-otp-send-btn flex-1 h-[48px] md:h-[52px] rounded-full text-[16px] font-bold active:opacity-80 disabled:cursor-not-allowed"
+            >
+              スキップ
+            </button>
+            <button
+              type="button"
+              disabled={!canProceed}
+              onClick={() => onContinue([...selectedIps])}
+              style={submitStyle}
+              className="login-otp-send-btn flex-1 h-[48px] md:h-[52px] rounded-full text-[16px] font-bold active:opacity-80 disabled:cursor-not-allowed"
+            >
+              次へ
+            </button>
+          </div>
         </div>
       </div>
     </div>

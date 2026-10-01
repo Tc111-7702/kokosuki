@@ -43,10 +43,14 @@ function write(fav: SignupFavorites): void {
   }
 }
 
-/** 有効なお気に入り（期限内かつ IP が1つ以上選択済み）があるか。 */
+/**
+ * 有効なお気に入りレコードが（期限内で）存在するか。
+ * レコードは IP 選択ページの「次へ/スキップ」時にだけ作られるため、存在＝フロー通過。
+ * 0件スキップを許すため、ipNames の件数は問わない（空配列でも有効）。
+ */
 export function hasValidSignupFavorites(): boolean {
   const cur = read();
-  return !!cur && cur.ipNames.length > 0;
+  return !!cur;
 }
 
 /** 現在のお気に入りを取得（無効なら null）。 */

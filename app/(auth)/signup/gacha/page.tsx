@@ -71,6 +71,12 @@ export default function SignupGachaPage() {
     setFavoriteGachaIds(ids);
     setSignupGachaIds(ids);
   };
+  // スキップ: ガチャを空配列で登録して intro へ（IP はそのまま保持）。
+  const onSkip = () => {
+    setFavoriteGachaIds([]);
+    setSignupGachaIds([]);
+    router.push('/signup/intro');
+  };
 
   const isMobile = useIsMobile();
   const [groups, setGroups] = useState<GachaGroup[]>([]);
@@ -130,7 +136,9 @@ export default function SignupGachaPage() {
 
   const selectedCount = favoriteGachaIds.length;
   const canProceed = selectedCount > 0;
+  const canSkip = selectedCount === 0;
   const submitStyle = useAuthPrimaryButtonStyle(canProceed);
+  const skipStyle = useAuthPrimaryButtonStyle(canSkip);
   const backIconColor = useAuthBackIconColor();
 
   if (!ready) return <div className="min-h-screen bg-white" aria-busy="true" />;
@@ -197,15 +205,26 @@ export default function SignupGachaPage() {
           </div>
           </div>
 
-          <button
-            type="button"
-            disabled={!canProceed}
-            onClick={onContinue}
-            style={submitStyle}
-            className="login-otp-send-btn w-full h-[48px] md:h-[52px] rounded-full text-[16px] font-bold text-white active:opacity-80 disabled:cursor-not-allowed shrink-0 max-md:mt-2 md:mt-10"
-          >
-            次へ
-          </button>
+          <div className="w-full flex gap-3 shrink-0 max-md:mt-2 md:mt-10">
+            <button
+              type="button"
+              disabled={!canSkip}
+              onClick={onSkip}
+              style={skipStyle}
+              className="login-otp-send-btn flex-1 h-[48px] md:h-[52px] rounded-full text-[16px] font-bold active:opacity-80 disabled:cursor-not-allowed"
+            >
+              スキップ
+            </button>
+            <button
+              type="button"
+              disabled={!canProceed}
+              onClick={onContinue}
+              style={submitStyle}
+              className="login-otp-send-btn flex-1 h-[48px] md:h-[52px] rounded-full text-[16px] font-bold active:opacity-80 disabled:cursor-not-allowed"
+            >
+              次へ
+            </button>
+          </div>
         </div>
       </div>
     </div>
