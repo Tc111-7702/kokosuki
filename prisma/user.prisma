@@ -144,3 +144,16 @@ model Follow {
   @@index([followerId])
   @@index([followingId])
 }
+
+// ─── レート制限（IP単位の試行回数） ─────────────────────────────────────────────
+// メールアドレスの存在調査(enumeration)等をサーバー側で抑止する汎用テーブル。
+// key は用途＋識別子（例: "login-email-fail:<ip>"）。
+model RequestRateLimit {
+  key         String    @id
+  count       Int       @default(0)
+  windowStart DateTime  @default(now())
+  lockedUntil DateTime?
+  updatedAt   DateTime  @updatedAt
+
+  @@index([lockedUntil])
+}

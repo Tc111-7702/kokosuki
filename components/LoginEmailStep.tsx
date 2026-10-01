@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import { ChevronLeft, X } from 'lucide-react';
 import { PasswordResetGlobeIllustration } from '@/components/ui/PasswordResetGlobeIllustration';
 import { formatMailDeliveryNotice } from '@/lib/mailDeliveryNotice';
@@ -12,14 +12,8 @@ import {
   useAuthResendLinkColor,
 } from '@/hooks/useAuthPrimaryButtonStyle';
 import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
-import {
-  clearLoginEmailAttempts,
-  isLoginEmailLocked,
-  recordUnregisteredLoginEmail,
-} from '@/lib/loginEmailAttempts';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const UNREGISTERED_EMAIL_ERROR = '登録されていないメールアドレスです';
 const LOCAL_PART_RE = /^[^\s@]+$/;
 
 export type LoginEmailProvider = 'email' | 'google' | 'apple';
@@ -55,16 +49,11 @@ export function LoginEmailStep({
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [verifyingEmail, setVerifyingEmail] = useState(false);
-  // ログイン時: 未登録メールの誤入力が5回続くと15分ロック（localStorage で管理）。
+  // ログイン時: サーバーの IP レート制限(429)を受けたらロック表示にする（赤字＋ボタン無効）。
+  // 本体のカウント/ロックはサーバー(DB)側が管理するため、クライアントは状態を持たない。
   const [locked, setLocked] = useState(false);
 
   const isLogin = flow === 'login';
-  useEffect(() => {
-    if (!isLogin) return;
-    // マウント時に既存ロック状態を反映（effect 内の同期 setState を避けるため遅延）。
-    const id = window.setTimeout(() => setLocked(isLoginEmailLocked()), 0);
-    return () => window.clearTimeout(id);
-  }, [isLogin]);
 
   const suffix = FIXED_SUFFIX[provider];
   const trimmed = value.trim();
@@ -107,14 +96,14 @@ export function LoginEmailStep({
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
-        // ログイン時のみ「登録されていないメールアドレス」の連続誤入力を数える。
-        if (isLogin && data?.error === UNREGISTERED_EMAIL_ERROR) {
-          setLocked(recordUnregisteredLoginEmail());
+        // サーバーの IP レート制限に達した場合はロック表示（赤字メッセージ＋ボタン無効）。
+        if (res.status === 429) {
+          setLocked(true);
+          return;
         }
         setError(typeof data?.error === 'string' ? data.error : '認証コードの送信に失敗しました');
         return;
       }
-      if (isLogin) clearLoginEmailAttempts();
       const notice = formatMailDeliveryNotice(
         data?.mail as MailDeliveryResult | undefined,
         fullEmail,
@@ -142,14 +131,14 @@ export function LoginEmailStep({
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
-        // 認証コード送信と同じカウンタを共有し、未登録メールの誤入力を記録する。
-        if (isLogin && data?.error === UNREGISTERED_EMAIL_ERROR) {
-          setLocked(recordUnregisteredLoginEmail());
+        // 送信エンドポイントと同じ IP レート制限を共有。429 ならロック表示。
+        if (res.status === 429) {
+          setLocked(true);
+          return;
         }
         setError(typeof data?.error === 'string' ? data.error : 'メールアドレスの確認に失敗しました');
         return;
       }
-      if (isLogin) clearLoginEmailAttempts();
       onPasswordLogin(fullEmail);
     } catch {
       setError('メールアドレスの確認に失敗しました');
