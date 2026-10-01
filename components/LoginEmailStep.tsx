@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useSyncExternalStore } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { ChevronLeft, X } from 'lucide-react';
 import { PasswordResetGlobeIllustration } from '@/components/ui/PasswordResetGlobeIllustration';
 import { formatMailDeliveryNotice } from '@/lib/mailDeliveryNotice';
@@ -12,8 +12,14 @@ import {
   useAuthResendLinkColor,
 } from '@/hooks/useAuthPrimaryButtonStyle';
 import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
+import {
+  clearLoginEmailAttempts,
+  isLoginEmailLocked,
+  recordUnregisteredLoginEmail,
+} from '@/lib/loginEmailAttempts';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const UNREGISTERED_EMAIL_ERROR = '登録されていないメールアドレスです';
 const LOCAL_PART_RE = /^[^\s@]+$/;
 
 export type LoginEmailProvider = 'email' | 'google' | 'apple';
@@ -49,6 +55,16 @@ export function LoginEmailStep({
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [verifyingEmail, setVerifyingEmail] = useState(false);
+  // ログイン時: 未登録メールの誤入力が5回続くと15分ロック（localStorage で管理）。
+  const [locked, setLocked] = useState(false);
+
+  const isLogin = flow === 'login';
+  useEffect(() => {
+    if (!isLogin) return;
+    // マウント時に既存ロック状態を反映（effect 内の同期 setState を避けるため遅延）。
+    const id = window.setTimeout(() => setLocked(isLoginEmailLocked()), 0);
+    return () => window.clearTimeout(id);
+  }, [isLogin]);
 
   const suffix = FIXED_SUFFIX[provider];
   const trimmed = value.trim();
@@ -61,7 +77,9 @@ export function LoginEmailStep({
   const canSubmit = suffix
     ? LOCAL_PART_RE.test(trimmed) && trimmed.length > 0 && !busy
     : EMAIL_RE.test(trimmed) && !busy;
-  const submitStyle = useAuthPrimaryButtonStyle(canSubmit);
+  // ロック中は認証コード送信ボタンを無効化（見た目もグレーに）。
+  const canSendOtp = canSubmit && !(isLogin && locked);
+  const submitStyle = useAuthPrimaryButtonStyle(canSendOtp);
   const backIconColor = useAuthBackIconColor();
   const backLinkColor = useAuthMutedTextColor();
   const passwordLoginLinkColor = useAuthResendLinkColor(!canSubmit);
@@ -77,6 +95,7 @@ export function LoginEmailStep({
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
+    if (isLogin && locked) return;
     setSending(true);
     setError(null);
     try {
@@ -88,9 +107,14 @@ export function LoginEmailStep({
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
+        // ログイン時のみ「登録されていないメールアドレス」の連続誤入力を数える。
+        if (isLogin && data?.error === UNREGISTERED_EMAIL_ERROR) {
+          setLocked(recordUnregisteredLoginEmail());
+        }
         setError(typeof data?.error === 'string' ? data.error : '認証コードの送信に失敗しました');
         return;
       }
+      if (isLogin) clearLoginEmailAttempts();
       const notice = formatMailDeliveryNotice(
         data?.mail as MailDeliveryResult | undefined,
         fullEmail,
@@ -155,11 +179,13 @@ export function LoginEmailStep({
 
           <p
             className="mt-3 text-[13px] text-left md:text-center leading-relaxed px-1 w-full"
-            style={{ color: 'var(--app-text-muted)' }}
+            style={{ color: isLogin && locked ? '#C4483C' : 'var(--app-text-muted)' }}
           >
             {isSignup
               ? '登録完了時に通知するために、連絡可能なメールアドレスを入力してください'
-              : 'アカウント登録時に使用した、メールアドレスを入力してください'}
+              : isLogin && locked
+                ? 'メールアドレスの誤入力が続いたため、セキュリティ保護の観点から認証コードの送信を一時的に停止しています。しばらく時間をおいてから再度お試しください。'
+                : 'アカウント登録時に使用した、メールアドレスを入力してください'}
           </p>
 
           <form
@@ -214,7 +240,7 @@ export function LoginEmailStep({
 
             <button
               type="submit"
-              disabled={!canSubmit}
+              disabled={!canSendOtp}
               style={submitStyle}
               className="login-otp-send-btn w-full h-[52px] rounded-full text-[16px] font-bold text-white active:opacity-80 disabled:cursor-not-allowed"
             >
