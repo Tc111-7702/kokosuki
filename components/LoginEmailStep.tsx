@@ -77,12 +77,12 @@ export function LoginEmailStep({
   const canSubmit = suffix
     ? LOCAL_PART_RE.test(trimmed) && trimmed.length > 0 && !busy
     : EMAIL_RE.test(trimmed) && !busy;
-  // ロック中は認証コード送信ボタンを無効化（見た目もグレーに）。
-  const canSendOtp = canSubmit && !(isLogin && locked);
-  const submitStyle = useAuthPrimaryButtonStyle(canSendOtp);
+  // ロック中は認証コード送信・パスワードログイン両方のボタンを無効化（見た目もグレーに）。
+  const canSubmitEmail = canSubmit && !(isLogin && locked);
+  const submitStyle = useAuthPrimaryButtonStyle(canSubmitEmail);
   const backIconColor = useAuthBackIconColor();
   const backLinkColor = useAuthMutedTextColor();
-  const passwordLoginLinkColor = useAuthResendLinkColor(!canSubmit);
+  const passwordLoginLinkColor = useAuthResendLinkColor(!canSubmitEmail);
   const isDark = useSyncExternalStore(
     subscribeTheme,
     () => getThemeSnapshot() === 'dark',
@@ -130,6 +130,7 @@ export function LoginEmailStep({
 
   const handlePasswordLogin = async () => {
     if (!canSubmit || !onPasswordLogin) return;
+    if (isLogin && locked) return;
     setVerifyingEmail(true);
     setError(null);
     try {
@@ -141,9 +142,14 @@ export function LoginEmailStep({
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
+        // 認証コード送信と同じカウンタを共有し、未登録メールの誤入力を記録する。
+        if (isLogin && data?.error === UNREGISTERED_EMAIL_ERROR) {
+          setLocked(recordUnregisteredLoginEmail());
+        }
         setError(typeof data?.error === 'string' ? data.error : 'メールアドレスの確認に失敗しました');
         return;
       }
+      if (isLogin) clearLoginEmailAttempts();
       onPasswordLogin(fullEmail);
     } catch {
       setError('メールアドレスの確認に失敗しました');
@@ -240,7 +246,7 @@ export function LoginEmailStep({
 
             <button
               type="submit"
-              disabled={!canSendOtp}
+              disabled={!canSubmitEmail}
               style={submitStyle}
               className="login-otp-send-btn w-full h-[52px] rounded-full text-[16px] font-bold text-white active:opacity-80 disabled:cursor-not-allowed"
             >
@@ -251,7 +257,7 @@ export function LoginEmailStep({
               <button
                 type="button"
                 onClick={() => void handlePasswordLogin()}
-                disabled={!canSubmit}
+                disabled={!canSubmitEmail}
                 className="login-otp-resend self-center disabled:cursor-not-allowed"
                 style={{ color: passwordLoginLinkColor }}
               >
