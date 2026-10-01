@@ -71,6 +71,15 @@ export const auth = betterAuth({
         },
       }
     : {}),
+  // 既存ユーザーが Google でログイン/新規登録フローに入ったとき、同じ検証済みメールの
+  // 既存アカウントへ Google を自動リンクしてログインさせる。Google は email を検証するため安全。
+  // requireLocalEmailVerified は既定 true のまま（なりすまし登録対策）。
+  account: {
+    accountLinking: {
+      enabled: true,
+      trustedProviders: ['google'],
+    },
+  },
   baseURL: process.env.BETTER_AUTH_URL ?? 'http://localhost:3000',
   trustedOrigins: getKokosukiTrustedOrigins(),
   secret: process.env.BETTER_AUTH_SECRET,
