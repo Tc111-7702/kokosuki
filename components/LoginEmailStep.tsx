@@ -179,7 +179,7 @@ export function LoginEmailStep({
 
           <p
             className="mt-3 text-[13px] text-left md:text-center leading-relaxed px-1 w-full"
-            style={{ color: 'var(--app-text-muted)' }}
+            style={{ color: isLogin && locked ? '#C4483C' : 'var(--app-text-muted)' }}
           >
             {isSignup
               ? '登録完了時に通知するために、連絡可能なメールアドレスを入力してください'
