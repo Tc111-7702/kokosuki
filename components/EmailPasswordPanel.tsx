@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import {
   emailBodyClass,
@@ -19,8 +19,24 @@ export function EmailPasswordPanel({ onVerified }: { onVerified: () => void }) {
   const [showPassword, setShowPassword] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // パスワード誤入力5回でサーバー側(DB・アカウント単位)が15分ロック。429 を受けたらロック表示する。
+  const [locked, setLocked] = useState(false);
 
-  const canSubmit = password.length > 0 && !pending;
+  // マウント時にロック状態を確認（期限切れはサーバー側で削除）。
+  useEffect(() => {
+    let alive = true;
+    void fetch('/api/profile/verify-password', { method: 'GET', credentials: 'include' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (alive && data?.locked) setLocked(true);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const canSubmit = password.length > 0 && !pending && !locked;
 
   const handleVerify = async () => {
     if (!canSubmit) return;
@@ -31,10 +47,16 @@ export function EmailPasswordPanel({ onVerified }: { onVerified: () => void }) {
       const res = await fetch('/api/profile/verify-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ password }),
       });
       const d = await res.json().catch(() => null);
       if (!res.ok) {
+        // 誤入力が規定回数に達した（サーバーがロック）→ 赤字＋入力無効。
+        if (res.status === 429) {
+          setLocked(true);
+          return;
+        }
         setError(d?.error ?? 'パスワードが違います');
         return;
       }
@@ -66,7 +88,7 @@ export function EmailPasswordPanel({ onVerified }: { onVerified: () => void }) {
             aria-label="現在のパスワード"
             value={password}
             onChange={(e) => { setPassword(e.target.value); setError(null); }}
-            disabled={pending}
+            disabled={pending || locked}
             placeholder="現在のパスワード"
             className={`${emailFieldClass} h-11 md:h-[52px] pr-11 md:pr-12`}
             style={emailFieldStyle}
@@ -84,7 +106,11 @@ export function EmailPasswordPanel({ onVerified }: { onVerified: () => void }) {
         </div>
       </div>
 
-      {error ? (
+      {locked ? (
+        <p className={emailErrorClass} style={{ color: '#C4483C' }}>
+          パスワードを規定回数間違えたため、セキュリティ保護の観点から一時的に入力を停止しています。しばらく時間をおいてから再度お試しください。
+        </p>
+      ) : error ? (
         <p className={emailErrorClass} style={{ color: '#C4483C' }}>{error}</p>
       ) : null}
 
