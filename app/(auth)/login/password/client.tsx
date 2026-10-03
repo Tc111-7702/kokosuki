@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, Eye, EyeOff } from 'lucide-react';
 import { MailDeliveryNotice } from '@/components/MailDeliveryNotice';
@@ -29,6 +29,26 @@ export function LoginPasswordPageClient({ email, provider }: { email: string; pr
   const [forgotError, setForgotError] = useState<string | null>(null);
   // パスワード誤入力5回でサーバー側(DB・メール単位)が15分ロック。429 を受けたらロック表示する。
   const [locked, setLocked] = useState(false);
+
+  // マウント時にこのアカウントのパスワード誤入力ロック状態を確認し、ロック中なら最初から表示する。
+  // 期限切れの行はサーバー側で削除される。
+  useEffect(() => {
+    let alive = true;
+    void fetch('/api/auth/login/lockout-status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ type: 'password', email }),
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (alive && data?.locked) setLocked(true);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [email]);
 
   const busy = signingIn || forgotBusy;
   const canSubmit = password.length > 0 && !busy && !locked;

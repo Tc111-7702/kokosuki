@@ -10,6 +10,9 @@ import {
 import { sendOtpEmail, sendPasswordResetEmail } from './mail';
 import { prisma } from './db';
 import * as db from './db';
+import { clearRateLimit, getClientIp } from './rateLimit';
+import { loginEmailRateKey } from './loginEmailRateLimit';
+import { loginPasswordRateKey } from './loginPasswordRateLimit';
 
 /** Better Auth の Origin 検証用。www/apex 両方と env を許可（Cookie 付き POST 向け） */
 function getKokosukiTrustedOrigins(): string[] {
@@ -103,6 +106,21 @@ export const auth = betterAuth({
             throw new APIError('FORBIDDEN', {
               message: 'このアカウントは無効化されています。',
             });
+          }
+        },
+        // ログイン/新規登録（=セッション作成）が成功したら、その画面のIPのメール誤入力
+        // レート制限(login-email-fail:<ip>)をリセットする。IP はセット側(send-otp/verify-email)と
+        // 同じ getClientIp で context ヘッダーから導出し、キーを一致させる。
+        after: async (session, context) => {
+          try {
+            const headers = context?.headers;
+            const ip = headers ? getClientIp(headers) : session.ipAddress ?? null;
+            if (ip) await clearRateLimit(loginEmailRateKey(ip));
+            // ログインできたアカウントのパスワード誤入力ロックも解除する。
+            const user = await db.getUserEmailById(session.userId);
+            if (user?.email) await clearRateLimit(loginPasswordRateKey(user.email));
+          } catch {
+            /* ロックのリセット失敗はログインを妨げない */
           }
         },
       },

@@ -69,3 +69,20 @@ export async function registerRateLimitFailure(
 export async function clearRateLimit(key: string): Promise<void> {
   await db.deleteRequestRateLimit(key);
 }
+
+/**
+ * 画面マウント時の状態確認用。ロック中なら locked:true を返す。
+ * ロック期限が切れている場合はその場で行を削除（リセット）してから locked:false を返す。
+ */
+export async function checkAndResetRateLimit(key: string): Promise<RateLimitResult> {
+  const row = await db.findRequestRateLimit(key);
+  if (!row) return { locked: false, lockedUntil: null };
+  if (row.lockedUntil && row.lockedUntil > new Date()) {
+    return { locked: true, lockedUntil: row.lockedUntil };
+  }
+  if (row.lockedUntil) {
+    // ロック期限切れ → その場でリセット。
+    await clearRateLimit(key);
+  }
+  return { locked: false, lockedUntil: null };
+}

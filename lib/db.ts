@@ -1994,6 +1994,9 @@ export const findUserAuthByEmail = (email: string) =>
 export const getUserIsActiveById = (id: string) =>
   prisma.user.findUnique({ where: { id }, select: { isActive: true } });
 
+export const getUserEmailById = (id: string) =>
+  prisma.user.findUnique({ where: { id }, select: { email: true } });
+
 // ─── SignupPending ────────────────────────────────────────────────────────────
 
 export const signupPendingPublicSelect = {

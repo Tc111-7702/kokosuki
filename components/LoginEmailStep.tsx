@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useSyncExternalStore } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { ChevronLeft, X } from 'lucide-react';
 import { PasswordResetGlobeIllustration } from '@/components/ui/PasswordResetGlobeIllustration';
 import { formatMailDeliveryNotice } from '@/lib/mailDeliveryNotice';
@@ -54,6 +54,27 @@ export function LoginEmailStep({
   const [locked, setLocked] = useState(false);
 
   const isLogin = flow === 'login';
+
+  // マウント時にこのIPのメール誤入力ロック状態をサーバーに確認し、ロック中なら最初から表示する。
+  // 期限切れの行はサーバー側で削除される。
+  useEffect(() => {
+    if (!isLogin) return;
+    let alive = true;
+    void fetch('/api/auth/login/lockout-status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ type: 'email' }),
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (alive && data?.locked) setLocked(true);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [isLogin]);
 
   const suffix = FIXED_SUFFIX[provider];
   const trimmed = value.trim();
