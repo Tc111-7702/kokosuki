@@ -155,8 +155,17 @@ export function LoginPasswordPageClient({ email, provider }: { email: string; pr
               void handleSubmit();
             }}
           >
-            <div className="relative">
+            <div className="w-full flex flex-col gap-1.5">
+              <label
+                htmlFor="login-password-field"
+                className="text-[13px] font-bold text-left px-1"
+                style={{ color: 'var(--app-text)' }}
+              >
+                パスワード
+              </label>
+              <div className="relative">
               <input
+                id="login-password-field"
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => {
@@ -178,6 +187,7 @@ export function LoginPasswordPageClient({ email, provider }: { email: string; pr
               >
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
+              </div>
             </div>
 
             {locked ? (
