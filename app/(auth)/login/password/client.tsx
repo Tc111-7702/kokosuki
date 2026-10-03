@@ -181,11 +181,11 @@ export function LoginPasswordPageClient({ email, provider }: { email: string; pr
             </div>
 
             {locked ? (
-              <p className="text-[13px] font-bold -mt-1 text-center w-full" style={{ color: '#C4483C' }}>
+              <p className="text-[13px] font-bold -mt-1 text-left md:text-center w-full" style={{ color: '#C4483C' }}>
                 パスワードを規定回数間違えたため、セキュリティ保護の観点から一時的にログインを停止しています。しばらく時間をおいてから再度お試しください。
               </p>
             ) : error ? (
-              <p className="text-[13px] font-bold -mt-1 text-center w-full" style={{ color: '#C4483C' }}>{error}</p>
+              <p className="text-[13px] font-bold -mt-1 text-left md:text-center w-full" style={{ color: '#C4483C' }}>{error}</p>
             ) : null}
 
             <button

@@ -898,6 +898,8 @@ html, body {
   font-family: var(--font-login-display), "Zen Maru Gothic", "Hiragino Maru Gothic ProN", sans-serif;
   font-weight: 700;
   background: #ffcd31;
+  /* アクセシビリティ: 黄地に白(1.5:1)は不足のため濃い文字色にする(約13:1) */
+  color: #111111;
 }
 
 .login-intro-secondary-btn {
@@ -905,6 +907,7 @@ html, body {
   font-weight: 700;
   background: #ffffff;
   border: 2px solid #ffcd31;
-  color: #ffcd31;
+  /* アクセシビリティ: 白地に黄(1.5:1)は不足のため濃い文字色にする(約18:1) */
+  color: #111111;
 }
 
