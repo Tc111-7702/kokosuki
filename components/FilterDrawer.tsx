@@ -63,12 +63,12 @@ export default function FilterDrawer({
   const [searchQuery, setSearchQuery] = useState('');
   const [popularIps, setPopularIps] = useState<string[]>([]);
   const [activeGacha, setActiveGacha] = useState<GachaItem[]>([]);
-  const [activeLoading, setActiveLoading] = useState(false);
+  const [activeGachaIp, setActiveGachaIp] = useState<string | null>(null);
   const [searchIps, setSearchIps] = useState<SearchSuggestion[]>([]);
   const [searchGachas, setSearchGachas] = useState<SearchSuggestion[]>([]);
-  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchResultFor, setSearchResultFor] = useState('');
   const [selectedIpRows, setSelectedIpRows] = useState<SelectedIpRow[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loadedSelectionKey, setLoadedSelectionKey] = useState<string | null>(null);
 
   const [selectedGachaIds, setSelectedGachaIds] = useState<Set<string>>(() => new Set(currentGachaIds));
 
@@ -137,52 +137,49 @@ export default function FilterDrawer({
   const selectionKey = selectedIdsKey(selectedGachaIds);
 
   useEffect(() => {
-    if (!isOpen) return;
-    const ids = selectionKey ? selectionKey.split(',') : [];
-    if (ids.length === 0) {
-      setSelectedIpRows([]);
-      setLoading(false);
-      return;
-    }
+    if (!isOpen || !selectionKey) return;
+    const ids = selectionKey.split(',');
     const ac = new AbortController();
-    setLoading(true);
     fetch(`/api/gacha/by-ids?ids=${encodeURIComponent(ids.join(','))}`, { signal: ac.signal })
       .then((r) => r.json())
       .then((d: { rows?: { ipName: string; selectedCount: number; totalCount: number }[] }) => {
+        if (ac.signal.aborted) return;
         const rows = Array.isArray(d.rows) ? d.rows : [];
         setSelectedIpRows(rows.map((row) => ({ ...row, isFav: favoriteIps.includes(row.ipName) })));
+        setLoadedSelectionKey(selectionKey);
       })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+      .catch(() => {
+        if (ac.signal.aborted) return;
+        setSelectedIpRows([]);
+        setLoadedSelectionKey(selectionKey);
+      });
     return () => ac.abort();
   }, [isOpen, selectionKey, favoriteIps]);
 
   useEffect(() => {
-    if (!activeIp) {
-      setActiveGacha([]);
-      return;
-    }
+    if (!activeIp) return;
+    const ip = activeIp;
     const ac = new AbortController();
-    setActiveLoading(true);
-    fetch(`/api/gacha/genre?ipName=${encodeURIComponent(activeIp)}&limit=1000`, { signal: ac.signal })
+    fetch(`/api/gacha/genre?ipName=${encodeURIComponent(ip)}&limit=1000`, { signal: ac.signal })
       .then((r) => r.json())
-      .then((d: { gachas?: GachaItem[] }) => setActiveGacha(Array.isArray(d.gachas) ? d.gachas : []))
-      .catch(() => {})
-      .finally(() => setActiveLoading(false));
+      .then((d: { gachas?: GachaItem[] }) => {
+        if (ac.signal.aborted) return;
+        setActiveGacha(Array.isArray(d.gachas) ? d.gachas : []);
+        setActiveGachaIp(ip);
+      })
+      .catch(() => {
+        if (ac.signal.aborted) return;
+        setActiveGacha([]);
+        setActiveGachaIp(ip);
+      });
     return () => ac.abort();
   }, [activeIp]);
 
   useEffect(() => {
     const q = searchQuery.trim();
-    if (!q) {
-      setSearchIps([]);
-      setSearchGachas([]);
-      setSearchLoading(false);
-      return;
-    }
+    if (!q) return;
     const ac = new AbortController();
     const timer = setTimeout(() => {
-      setSearchLoading(true);
       fetch(`/api/gacha/search?suggest=1&q=${encodeURIComponent(q)}`, { signal: ac.signal })
         .then((r) => r.json())
         .then((d: { suggestions?: SearchSuggestion[] }) => {
@@ -190,10 +187,13 @@ export default function FilterDrawer({
           const suggestions = Array.isArray(d.suggestions) ? d.suggestions : [];
           setSearchIps(suggestions.filter((s) => s.type === 'genre'));
           setSearchGachas(suggestions.filter((s) => s.type === 'gacha' && s.id));
+          setSearchResultFor(q);
         })
-        .catch(() => {})
-        .finally(() => {
-          if (!ac.signal.aborted) setSearchLoading(false);
+        .catch(() => {
+          if (ac.signal.aborted) return;
+          setSearchIps([]);
+          setSearchGachas([]);
+          setSearchResultFor(q);
         });
     }, 200);
     return () => {
@@ -201,6 +201,16 @@ export default function FilterDrawer({
       ac.abort();
     };
   }, [searchQuery]);
+
+  const trimmedSearch = searchQuery.trim();
+  const searchReady = searchResultFor === trimmedSearch;
+  const visibleSearchIps = searchReady ? searchIps : [];
+  const visibleSearchGachas = searchReady ? searchGachas : [];
+  const visibleSearchLoading = trimmedSearch.length > 0 && !searchReady;
+  const visibleSelectedRows = selectionKey && loadedSelectionKey === selectionKey ? selectedIpRows : [];
+  const visibleSelectionLoading = Boolean(selectionKey) && loadedSelectionKey !== selectionKey;
+  const visibleActiveGacha = activeIp !== null && activeGachaIp === activeIp ? activeGacha : [];
+  const visibleActiveLoading = activeIp !== null && activeGachaIp !== activeIp;
 
   const openIp = (ip: string) => { setActiveIp(ip); setScreen('products'); };
 
@@ -212,19 +222,19 @@ export default function FilterDrawer({
     });
   };
 
-  const selectedInActive = activeGacha.filter((g) => selectedGachaIds.has(g.id)).length;
+  const selectedInActive = visibleActiveGacha.filter((g) => selectedGachaIds.has(g.id)).length;
 
   const selectAll = () =>
     setSelectedGachaIds((prev) => {
       const next = new Set(prev);
-      activeGacha.forEach((g) => next.add(g.id));
+      visibleActiveGacha.forEach((g) => next.add(g.id));
       return next;
     });
 
   const deselectAll = () =>
     setSelectedGachaIds((prev) => {
       const next = new Set(prev);
-      activeGacha.forEach((g) => next.delete(g.id));
+      visibleActiveGacha.forEach((g) => next.delete(g.id));
       return next;
     });
 
@@ -291,24 +301,24 @@ export default function FilterDrawer({
 
           {/* リスト */}
           <div className="flex-1 overflow-y-auto">
-            {searchQuery.trim() ? (
-              searchLoading ? (
+            {trimmedSearch ? (
+              visibleSearchLoading ? (
                 <div className="flex items-center justify-center py-16 text-[14px]" style={{ color: '#aaa' }}>
                   読み込み中...
                 </div>
-              ) : searchIps.length === 0 && searchGachas.length === 0 ? (
+              ) : visibleSearchIps.length === 0 && visibleSearchGachas.length === 0 ? (
                 <div className="py-12 text-center text-[13px]" style={{ color: '#aaa' }}>
                   見つかりませんでした
                 </div>
               ) : (
                 <>
-                  {searchIps.length > 0 && (
+                  {visibleSearchIps.length > 0 && (
                     <>
                       <div className="px-4 py-1.5 md:py-2 text-[10px] md:text-[11px] font-bold" style={{ background: filterSectionBg, color: filterMutedColor, borderBottom: `1px solid ${filterBorderColor}` }}>
                         IP
                       </div>
-                      {searchIps.map((ip) => {
-                        const selected = selectedIpRows.find((row) => row.ipName === ip.label);
+                      {visibleSearchIps.map((ip) => {
+                        const selected = visibleSelectedRows.find((row) => row.ipName === ip.label);
                         return (
                           <button
                             key={ip.label}
@@ -334,12 +344,12 @@ export default function FilterDrawer({
                       })}
                     </>
                   )}
-                  {searchGachas.length > 0 && (
+                  {visibleSearchGachas.length > 0 && (
                     <>
                       <div className="px-4 py-1.5 md:py-2 text-[10px] md:text-[11px] font-bold" style={{ background: filterSectionBg, color: filterMutedColor, borderBottom: `1px solid ${filterBorderColor}` }}>
-                        ガチャ（{searchGachas.length}件）
+                        ガチャ（{visibleSearchGachas.length}件）
                       </div>
-                      {searchGachas.map((g) => {
+                      {visibleSearchGachas.map((g) => {
                         const selected = selectedGachaIds.has(g.id!);
                         return (
                           <div
@@ -377,11 +387,11 @@ export default function FilterDrawer({
                   )}
                 </>
               )
-            ) : loading ? (
+            ) : visibleSelectionLoading ? (
               <div className="flex items-center justify-center py-16 text-[14px]" style={{ color: '#aaa' }}>
                 読み込み中...
               </div>
-            ) : selectedIpRows.length === 0 ? (
+            ) : visibleSelectedRows.length === 0 ? (
               <div className="py-12 text-center text-[13px]" style={{ color: '#aaa' }}>
                 選択中のIPはありません
               </div>
@@ -390,7 +400,7 @@ export default function FilterDrawer({
                 <p className="px-4 pt-3" style={{ fontSize: 11, color: '#AAA', fontWeight: 700, letterSpacing: 1, margin: 0 }}>
                   選択中のIP
                 </p>
-                {selectedIpRows.map((row, index) => (
+                {visibleSelectedRows.map((row, index) => (
                   <button
                     key={row.ipName}
                     onClick={() => openIp(row.ipName)}
@@ -452,7 +462,7 @@ export default function FilterDrawer({
                 {activeIp}
               </div>
               <div className="filter-drawer-header-subtitle text-[12px]">
-                {selectedInActive}/{activeGacha.length}件選択中
+                {selectedInActive}/{visibleActiveGacha.length}件選択中
               </div>
             </div>
             <button type="button" onClick={onClose} className="filter-drawer-header-btn p-1">
@@ -480,11 +490,11 @@ export default function FilterDrawer({
 
           {/* 商品リスト */}
           <div className="flex-1 overflow-y-auto">
-            {activeLoading ? (
+            {visibleActiveLoading ? (
               <div className="flex items-center justify-center py-16 text-[14px]" style={{ color: '#aaa' }}>
                 読み込み中...
               </div>
-            ) : activeGacha.map((g) => {
+            ) : visibleActiveGacha.map((g) => {
               const selected = selectedGachaIds.has(g.id);
               return (
                 <button
