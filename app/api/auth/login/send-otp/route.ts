@@ -6,6 +6,12 @@ import { runWithMailDeliveryContext } from '@/lib/mailDeliveryContext';
 import { formatMailSendError } from '@/lib/mailDeliveryNotice';
 import { LOGIN_FLOW_COOKIE_NAME, loginFlowCookieOptions } from '@/lib/loginFlowCookie';
 import { createLoginFlowPending, normalizeLoginFlowProvider } from '@/lib/loginFlowPending';
+import {
+  LOGIN_EMAIL_RATE_LIMIT,
+  LOGIN_EMAIL_RATE_LIMIT_ERROR,
+  loginEmailRateKey,
+} from '@/lib/loginEmailRateLimit';
+import { getClientIp, getRateLimitStatus, registerRateLimitFailure } from '@/lib/rateLimit';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -20,8 +26,19 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: '有効なメールアドレスを入力してください' }, { status: 400 });
   }
 
+  // IP単位のレート制限（enumeration 抑止）。ロック中は試行させない。
+  const rlKey = loginEmailRateKey(getClientIp(req.headers));
+  if ((await getRateLimitStatus(rlKey)).locked) {
+    return NextResponse.json({ error: LOGIN_EMAIL_RATE_LIMIT_ERROR }, { status: 429 });
+  }
+
   const user = await db.findUserAuthByEmail(email);
   if (!user) {
+    // 未登録メールの連続試行を記録。到達でロックしたら 429 を返す。
+    const rl = await registerRateLimitFailure(rlKey, LOGIN_EMAIL_RATE_LIMIT);
+    if (rl.locked) {
+      return NextResponse.json({ error: LOGIN_EMAIL_RATE_LIMIT_ERROR }, { status: 429 });
+    }
     return NextResponse.json({ error: '登録されていないメールアドレスです' }, { status: 400 });
   }
   if (!user.isActive) {
