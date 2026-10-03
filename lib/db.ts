@@ -2166,3 +2166,6 @@ export const upsertRequestRateLimit = (data: {
     create: data,
     update: { count: data.count, windowStart: data.windowStart, lockedUntil: data.lockedUntil },
   });
+
+export const deleteRequestRateLimit = (key: string) =>
+  prisma.requestRateLimit.deleteMany({ where: { key } });
