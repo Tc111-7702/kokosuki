@@ -64,3 +64,8 @@ export async function registerRateLimitFailure(
 
   return { locked: lockedUntil != null, lockedUntil };
 }
+
+/** 成功時などにカウント/ロックを消す。 */
+export async function clearRateLimit(key: string): Promise<void> {
+  await db.deleteRequestRateLimit(key);
+}

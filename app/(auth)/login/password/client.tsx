@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, Eye, EyeOff } from 'lucide-react';
-import { authClient } from '@/lib/auth-client';
 import { MailDeliveryNotice } from '@/components/MailDeliveryNotice';
 import { formatMailDeliveryNotice } from '@/lib/mailDeliveryNotice';
 import type { MailDeliveryResult } from '@/lib/mail';
@@ -15,15 +14,6 @@ import {
   useAuthPrimaryButtonStyle,
   useAuthResendLinkColor,
 } from '@/hooks/useAuthPrimaryButtonStyle';
-
-function formatPasswordSignInError(error: { code?: string; message?: string } | null | undefined): string {
-  const code = error?.code ?? '';
-  if (code === 'INVALID_EMAIL_OR_PASSWORD') return 'パスワードが正しくありません';
-  const msg = (error?.message ?? '').toLowerCase();
-  if (msg.includes('invalid email or password')) return 'パスワードが正しくありません';
-  if (msg.includes('invalid password')) return 'パスワードが正しくありません';
-  return 'ログインに失敗しました';
-}
 
 // パスワード入力の実体（旧 LoginPasswordStep を直書き）。email はサーバーがチケットから解決して渡す。
 export function LoginPasswordPageClient({ email, provider }: { email: string; provider: string }) {
@@ -37,9 +27,11 @@ export function LoginPasswordPageClient({ email, provider }: { email: string; pr
   const [error, setError] = useState<string | null>(null);
   const [forgotNotice, setForgotNotice] = useState<string | null>(null);
   const [forgotError, setForgotError] = useState<string | null>(null);
+  // パスワード誤入力5回でサーバー側(DB・メール単位)が15分ロック。429 を受けたらロック表示する。
+  const [locked, setLocked] = useState(false);
 
   const busy = signingIn || forgotBusy;
-  const canSubmit = password.length > 0 && !busy;
+  const canSubmit = password.length > 0 && !busy && !locked;
   const submitStyle = useAuthPrimaryButtonStyle(canSubmit);
   const backIconColor = useAuthBackIconColor();
   const backLinkColor = useAuthMutedTextColor();
@@ -51,9 +43,20 @@ export function LoginPasswordPageClient({ email, provider }: { email: string; pr
     setSigningIn(true);
     setError(null);
     try {
-      const { error: signInError } = await authClient.signIn.email({ email, password });
-      if (signInError) {
-        setError(formatPasswordSignInError(signInError));
+      const res = await fetch('/api/auth/login/password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        // パスワード誤入力が規定回数に達した（サーバーがロック）→ 赤字＋ボタン無効。
+        if (res.status === 429) {
+          setLocked(true);
+          return;
+        }
+        setError(typeof data?.error === 'string' ? data.error : 'ログインに失敗しました');
         return;
       }
       router.replace('/home');
@@ -157,7 +160,11 @@ export function LoginPasswordPageClient({ email, provider }: { email: string; pr
               </button>
             </div>
 
-            {error ? (
+            {locked ? (
+              <p className="text-[13px] font-bold -mt-1 text-center w-full" style={{ color: '#C4483C' }}>
+                パスワードを規定回数間違えたため、セキュリティ保護の観点から一時的にログインを停止しています。しばらく時間をおいてから再度お試しください。
+              </p>
+            ) : error ? (
               <p className="text-[13px] font-bold -mt-1 text-center w-full" style={{ color: '#C4483C' }}>{error}</p>
             ) : null}
 
