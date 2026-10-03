@@ -8,6 +8,7 @@ import mapImg from '@/components/ui/assets/signup-feature-map.png';
 import shareImg from '@/components/ui/assets/login-service-intro.png';
 import { useAuthBackIconColor, useAuthTextColor } from '@/hooks/useAuthPrimaryButtonStyle';
 import { useSignupStepGuard } from '@/hooks/useSignupStepGuard';
+import { getSignupFavorites } from '@/lib/signupFavorites';
 
 type Slide = {
   image: { src: string; width: number; height: number };
@@ -60,7 +61,11 @@ function SignupFeaturePageIndicator({ activeIndex, total }: { activeIndex: numbe
 // 新規登録: 機能紹介（旧 SignupFeatureIntroStep を直書き）。お気に入り無効なら /signup へ。
 export default function SignupIntroPage() {
   const router = useRouter();
-  const onBack = () => router.push('/signup/gacha');
+  // ガチャが空（IP選択でスキップ＝ガチャ画面を飛ばした等）の場合は、戻り先を /signup にする。
+  const onBack = () => {
+    const gachaIds = getSignupFavorites()?.gachaIds ?? [];
+    router.push(gachaIds.length === 0 ? '/signup' : '/signup/gacha');
+  };
   const onComplete = () => router.push('/signup/signin');
 
   const { ready } = useSignupStepGuard({ requireFavorites: true });
