@@ -102,6 +102,7 @@ export function PasswordResetPanel() {
         <div className="relative w-full">
           <input
             type={showPassword ? 'text' : 'password'}
+            aria-label="新しいパスワード"
             value={password}
             onChange={(e) => { setPassword(e.target.value); setError(null); }}
             disabled={pending}
@@ -127,6 +128,7 @@ export function PasswordResetPanel() {
         <div className="relative w-full">
           <input
             type={showConfirm ? 'text' : 'password'}
+            aria-label="新しいパスワード（確認）"
             value={confirm}
             onChange={(e) => { setConfirm(e.target.value); setError(null); }}
             disabled={pending}

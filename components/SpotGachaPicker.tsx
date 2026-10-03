@@ -145,6 +145,7 @@ export function SpotGachaPicker({ spotId, filterGachaIds, onSelect, selectedId, 
           </svg>
           <input
             type="text"
+            aria-label="ガチャ名・IPで検索"
             value={query}
             onChange={e => setQuery(e.target.value)}
             onFocus={() => setFocused(true)}

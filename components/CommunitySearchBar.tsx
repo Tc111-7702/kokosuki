@@ -100,6 +100,7 @@ export function CommunitySearchBar({
           )}
           <input
             type="text"
+            aria-label="アカウント / IP・ガチャの投稿を検索"
             value={value}
             onChange={e => { setValue(e.target.value); fetchSuggestions(e.target.value); }}
             onFocus={() => { setFocused(true); if (value) fetchSuggestions(value); }}

@@ -12,6 +12,7 @@ import {
   useAuthResendLinkColor,
 } from '@/hooks/useAuthPrimaryButtonStyle';
 import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
+import { containsFullWidth, FULLWIDTH_EMAIL_ERROR } from '@/lib/emailFullWidth';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const LOCAL_PART_RE = /^[^\s@]+$/;
@@ -195,13 +196,15 @@ export function LoginEmailStep({
 
           <p
             className="mt-3 text-[13px] text-left md:text-center leading-relaxed px-1 w-full"
-            style={{ color: isLogin && locked ? '#C4483C' : 'var(--app-text-muted)' }}
+            style={{ color: (isLogin && locked) || containsFullWidth(value) ? '#C4483C' : 'var(--app-text-muted)' }}
           >
-            {isSignup
-              ? '登録完了時に通知するために、連絡可能なメールアドレスを入力してください'
-              : isLogin && locked
-                ? 'メールアドレスの誤入力が続いたため、セキュリティ保護の観点から認証コードの送信を一時的に停止しています。しばらく時間をおいてから再度お試しください。'
-                : 'アカウント登録時に使用した、メールアドレスを入力してください'}
+            {isLogin && locked
+              ? 'メールアドレスの誤入力が続いたため、セキュリティ保護の観点から認証コードの送信を一時的に停止しています。しばらく時間をおいてから再度お試しください。'
+              : containsFullWidth(value)
+                ? FULLWIDTH_EMAIL_ERROR
+                : isSignup
+                  ? '登録完了時に通知するために、連絡可能なメールアドレスを入力してください'
+                  : 'アカウント登録時に使用した、メールアドレスを入力してください'}
           </p>
 
           <form

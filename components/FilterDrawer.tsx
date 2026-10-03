@@ -290,6 +290,7 @@ export default function FilterDrawer({
               </svg>
               <input
                 type="text"
+                aria-label="IP・ガチャ名で検索"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="IP・ガチャ名で検索"

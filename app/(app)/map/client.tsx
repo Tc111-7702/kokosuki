@@ -787,7 +787,7 @@ export default function MapPage() {
               style={{ top: '50%', transform: 'translateY(-50%)', zIndex: 10 }}>
               <button onClick={() => mapRef.current?.zoomIn({ duration: 200 })}
                 className="map-control-light w-9 h-9 rounded-full flex items-center justify-center text-lg font-bold shadow-md active:scale-90 transition-transform">+</button>
-              <input type="range" min={8} max={20} step={0.5} value={zoom}
+              <input type="range" min={8} max={20} step={0.5} value={zoom} aria-label="地図のズーム"
                 onChange={e => { const z = parseFloat(e.target.value); setZoom(z); mapRef.current?.setZoom(z, { duration: 100 }); }}
                 className="zoom-slider map-zoom-slider appearance-none rounded-full cursor-pointer"
                 style={{ writingMode: 'vertical-lr', direction: 'rtl', width: 6, height: 120 }} />

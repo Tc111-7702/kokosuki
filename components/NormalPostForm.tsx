@@ -144,6 +144,7 @@ function GachaSearch({ onSelect, onClear, onResolvingChange, initialQuery = '' }
             )}
             <input
               type="text"
+              aria-label="引いたガチャをさがす"
               value={query}
               placeholder="引いたガチャをさがす"
               onChange={e => {
@@ -260,7 +261,7 @@ function ItemSelector({ items, value, onChange }: {
 
   if (items.length === 0) {
     return (
-      <input type="text" value={value} onChange={e => onChange(e.target.value)}
+      <input type="text" aria-label="アイテム名" value={value} onChange={e => onChange(e.target.value)}
         placeholder="アイテム名を入力"
         style={{ width: '100%', padding: '10px 14px', borderRadius: 12, fontSize: 14,
                  border: '1.5px solid #EDE9D8', outline: 'none', color: '#333', boxSizing: 'border-box' }} />
@@ -591,7 +592,7 @@ function MobileForm({ onDone, initialSpotId = '', initialSpotName = '', initialF
       {step === 'memo' && card(<>
         <StepHeader step="memo" onBack={goBack} />
         <textarea value={form.memo} onChange={e => set({ memo: e.target.value })}
-          placeholder="本文を入力…" rows={4}
+          aria-label="本文" placeholder="本文を入力…" rows={4}
           style={{ width: '100%', padding: '12px 14px', borderRadius: 12, fontSize: 14,
                    border: '1.5px solid #EDE9D8', outline: 'none', resize: 'none', color: '#333', boxSizing: 'border-box' }} />
         <button onClick={goNext} style={{ ...nextBtnStyle(true, isDark), marginTop: 16, width: '100%' }}>
@@ -643,6 +644,7 @@ function AutoGrowTextarea({
     <textarea
       ref={ref}
       rows={1}
+      aria-label={placeholder}
       value={value}
       placeholder={placeholder}
       onChange={e => onChange(e.target.value)}
@@ -690,7 +692,7 @@ function ImageUploader({ value, onChange, onUploadingChange, matchFeedSize = fal
 
   return (
     <div>
-      <input ref={fileRef} type="file" accept="image/*" onChange={handleFile}
+      <input ref={fileRef} type="file" accept="image/*" aria-label="画像を選択" onChange={handleFile}
         style={{ display: 'none' }} />
       {value ? (
         <div className={matchFeedSize ? POST_IMAGE_FEED_WIDTH_CLASS : POST_IMAGE_PREVIEW_DESKTOP_CLASS}>

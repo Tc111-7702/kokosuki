@@ -150,12 +150,12 @@ export function ProfileSettingsSheet({ open, onClose }: { open: boolean; onClose
               画像を削除
             </button>
           )}
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+          <input ref={fileRef} type="file" accept="image/*" aria-label="アイコン画像を選択" className="hidden" onChange={handleAvatarChange} />
         </div>
 
         {/* 名前 */}
         <Field label="名前">
-          <input value={name} onChange={(e) => setName(e.target.value)} maxLength={30} placeholder="表示される名前"
+          <input value={name} onChange={(e) => setName(e.target.value)} maxLength={30} aria-label="名前" placeholder="表示される名前"
             className="w-full px-4 py-3 rounded-2xl text-[14px]"
             style={{ background: 'white', border: '1.5px solid #EDE9D8', color: '#111', outline: 'none' }} />
         </Field>
@@ -168,6 +168,7 @@ export function ProfileSettingsSheet({ open, onClose }: { open: boolean; onClose
               value={handle}
               onChange={(e) => setHandle(normalizeSignupHandleInput(e.target.value))}
               maxLength={20}
+              aria-label="ユーザーID"
               placeholder="user_id"
               className="flex-1 text-[14px]" style={{ color: '#111', outline: 'none', background: 'transparent' }} />
           </div>
@@ -175,7 +176,7 @@ export function ProfileSettingsSheet({ open, onClose }: { open: boolean; onClose
 
         {/* 一言 */}
         <Field label="一言">
-          <textarea value={bio} onChange={(e) => setBio(e.target.value)} maxLength={200} rows={3} placeholder="好きなガチャ・推しなど自由に"
+          <textarea value={bio} onChange={(e) => setBio(e.target.value)} maxLength={200} rows={3} aria-label="自己紹介" placeholder="好きなガチャ・推しなど自由に"
             className="w-full px-4 py-3 rounded-2xl text-[14px] resize-none"
             style={{ background: 'white', border: '1.5px solid #EDE9D8', color: '#111', outline: 'none' }} />
         </Field>

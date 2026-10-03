@@ -171,6 +171,7 @@ function GachaSearch({ onSelect, onClear, onResolvingChange, initialValue = '', 
             )}
             <input
               type="text"
+              aria-label="気になっているガチャをさがす"
               value={value}
               placeholder="気になっているガチャをさがす"
               onChange={e => {

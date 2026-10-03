@@ -186,6 +186,7 @@ export function HomeSearchBar({
               )}
               <input
                 type="text"
+                aria-label={placeholder}
                 value={value}
                 onChange={e => { setValue(e.target.value); fetchSuggestions(e.target.value); }}
                 onFocus={() => { setFocused(true); fetchSuggestions(value); }}

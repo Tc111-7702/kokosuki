@@ -63,6 +63,7 @@ export function EmailPasswordPanel({ onVerified }: { onVerified: () => void }) {
         <div className="relative w-full">
           <input
             type={showPassword ? 'text' : 'password'}
+            aria-label="現在のパスワード"
             value={password}
             onChange={(e) => { setPassword(e.target.value); setError(null); }}
             disabled={pending}
