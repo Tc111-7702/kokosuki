@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/db';
+import * as db from '@/lib/db';
 
 // サーバー側のレート制限（IP単位など）。RequestRateLimit テーブルで固定ウィンドウ＋ロックを管理する。
 // localStorage と違いクライアントから回避できないため、enumeration/総当たりの実効的な抑止になる。
@@ -26,7 +26,7 @@ export function getClientIp(headers: Headers): string {
 
 /** 現在ロック中かを確認する（カウントは変更しない）。 */
 export async function getRateLimitStatus(key: string): Promise<RateLimitResult> {
-  const row = await prisma.requestRateLimit.findUnique({ where: { key } });
+  const row = await db.findRequestRateLimit(key);
   if (row?.lockedUntil && row.lockedUntil > new Date()) {
     return { locked: true, lockedUntil: row.lockedUntil };
   }
@@ -42,7 +42,7 @@ export async function registerRateLimitFailure(
   { limit, windowMs, lockMs }: RateLimitOptions,
 ): Promise<RateLimitResult> {
   const now = new Date();
-  const row = await prisma.requestRateLimit.findUnique({ where: { key } });
+  const row = await db.findRequestRateLimit(key);
 
   if (row?.lockedUntil && row.lockedUntil > now) {
     return { locked: true, lockedUntil: row.lockedUntil };
@@ -60,11 +60,7 @@ export async function registerRateLimitFailure(
   count += 1;
   const lockedUntil = count >= limit ? new Date(now.getTime() + lockMs) : null;
 
-  await prisma.requestRateLimit.upsert({
-    where: { key },
-    create: { key, count, windowStart, lockedUntil },
-    update: { count, windowStart, lockedUntil },
-  });
+  await db.upsertRequestRateLimit({ key, count, windowStart, lockedUntil });
 
   return { locked: lockedUntil != null, lockedUntil };
 }

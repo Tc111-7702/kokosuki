@@ -2149,3 +2149,20 @@ export const findSpotReviewReplyReportOwnerId = (id: string) =>
 
 export const findUserReportOwnerId = (id: string) =>
   prisma.user.findUnique({ where: { id }, select: { id: true } });
+
+// ─── レート制限（IP単位の試行回数） ─────────────────────────────────────────────
+
+export const findRequestRateLimit = (key: string) =>
+  prisma.requestRateLimit.findUnique({ where: { key } });
+
+export const upsertRequestRateLimit = (data: {
+  key: string;
+  count: number;
+  windowStart: Date;
+  lockedUntil: Date | null;
+}) =>
+  prisma.requestRateLimit.upsert({
+    where: { key: data.key },
+    create: data,
+    update: { count: data.count, windowStart: data.windowStart, lockedUntil: data.lockedUntil },
+  });
