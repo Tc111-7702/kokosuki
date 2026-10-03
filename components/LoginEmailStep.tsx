@@ -211,10 +211,19 @@ export function LoginEmailStep({
               void handleSubmit();
             }}
           >
-            <div
-              className={`relative${suffix ? ' login-email-input-wrap' : ''}${value ? ' login-email-input-wrap-has-value' : ''}`}
-            >
+            <div className="w-full flex flex-col gap-1.5">
+              <label
+                htmlFor="login-email-field"
+                className="text-[13px] font-bold text-left px-1"
+                style={{ color: 'var(--app-text)' }}
+              >
+                メールアドレス
+              </label>
+              <div
+                className={`relative${suffix ? ' login-email-input-wrap' : ''}${value ? ' login-email-input-wrap-has-value' : ''}`}
+              >
               <input
+                id="login-email-field"
                 type={suffix ? 'text' : 'email'}
                 value={value}
                 onChange={(e) => {
@@ -246,6 +255,7 @@ export function LoginEmailStep({
                   <X size={14} color="#888" strokeWidth={2.5} />
                 </button>
               ) : null}
+              </div>
             </div>
 
             {error ? (

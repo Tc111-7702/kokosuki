@@ -86,6 +86,7 @@ export default function SignupNamePage() {
       <div className="relative">
         <input
           type="text"
+          aria-labelledby="signup-profile-field-title"
           value={name}
           onChange={(e) => {
             setName(e.target.value);

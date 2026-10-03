@@ -74,6 +74,7 @@ export function SignupProfileFieldStep({
           />
 
           <h1
+            id="signup-profile-field-title"
             className="mt-6 text-[19px] md:text-[22px] font-black text-center leading-snug w-full"
             style={{ color: titleColor }}
           >

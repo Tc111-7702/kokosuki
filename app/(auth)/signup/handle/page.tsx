@@ -172,6 +172,7 @@ export default function SignupHandlePage() {
         ) : null}
         <input
           type="text"
+          aria-labelledby="signup-profile-field-title"
           value={handle}
           onChange={(e) => handleInput(e.target.value)}
           placeholder="ユーザーID"

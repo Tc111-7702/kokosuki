@@ -124,8 +124,17 @@ export default function SignupPasswordPage() {
               void handleSubmit();
             }}
           >
-            <div className="relative">
+            <div className="w-full flex flex-col gap-1.5">
+              <label
+                htmlFor="signup-password-field"
+                className="text-[13px] font-bold text-left px-1"
+                style={{ color: 'var(--app-text)' }}
+              >
+                パスワード
+              </label>
+              <div className="relative">
               <input
+                id="signup-password-field"
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => {
@@ -147,10 +156,20 @@ export default function SignupPasswordPage() {
               >
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
+              </div>
             </div>
 
-            <div className="relative">
+            <div className="w-full flex flex-col gap-1.5">
+              <label
+                htmlFor="signup-password-confirm-field"
+                className="text-[13px] font-bold text-left px-1"
+                style={{ color: 'var(--app-text)' }}
+              >
+                パスワード（確認）
+              </label>
+              <div className="relative">
               <input
+                id="signup-password-confirm-field"
                 type={showConfirm ? 'text' : 'password'}
                 value={confirm}
                 onChange={(e) => {
@@ -172,6 +191,7 @@ export default function SignupPasswordPage() {
               >
                 {showConfirm ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
+              </div>
             </div>
 
             {!passwordsMatch ? (

@@ -197,6 +197,7 @@ export default function SignupIpSelectPage() {
               />
               <input
                 type="text"
+                aria-label="キャラクター・IP検索"
                 value={query}
                 onChange={(e) => handleQueryChange(e.target.value)}
                 placeholder="キャラクター・IP検索"
