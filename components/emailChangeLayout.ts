@@ -22,9 +22,10 @@ export const emailBodyClass =
 export const emailNoticeClass =
   'text-[12px] md:text-[14px] font-bold leading-relaxed text-left line-clamp-3 w-full';
 
-/** バリデーション・エラーメッセージ（常に中央揃え） */
+/** バリデーション・エラーメッセージ（PC/モバイル共通: ブロック中央・文言左揃え）。
+ *  親の items-center が内容幅のブロックを中央に置き、text-left で行を左揃えにする。 */
 export const emailErrorClass =
-  'text-[12px] md:text-[14px] font-bold leading-relaxed text-left md:text-center w-full';
+  'text-[12px] md:text-[14px] font-bold leading-relaxed text-left max-w-full';
 
 export const emailButtonClass =
   'px-5 md:px-7 py-2.5 md:py-3 rounded-xl text-[13px] md:text-[15px] font-bold active:opacity-70 disabled:opacity-50 md:whitespace-nowrap self-center';

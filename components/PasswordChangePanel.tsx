@@ -248,7 +248,7 @@ export function PasswordChangePanel({
         onToggleShow={() => setShowConfirm((v) => !v)}
       />
 
-      <PasswordPolicyHint className="text-[11px] md:text-[12px] text-left md:text-center w-full" />
+      <PasswordPolicyHint className="text-[11px] md:text-[12px] text-left max-w-full" />
 
       {newPassword && confirmPassword && newPassword !== confirmPassword ? (
         <p className={emailErrorClass} style={{ color: '#C4483C' }}>パスワードが一致しません</p>
