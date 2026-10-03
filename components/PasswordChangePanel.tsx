@@ -46,6 +46,7 @@ function PasswordField({
       <div className="relative w-full">
         <input
           type={show ? 'text' : 'password'}
+          aria-label={placeholder}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           disabled={disabled}

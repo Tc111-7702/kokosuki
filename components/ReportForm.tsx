@@ -127,6 +127,7 @@ export function ReportForm({ targetType, targetId }: Props) {
               <textarea
                 ref={detailRef}
                 rows={1}
+                aria-label="詳細"
                 value={detail}
                 onChange={(e) => {
                   setDetail(e.target.value);

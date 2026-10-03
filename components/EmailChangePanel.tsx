@@ -81,6 +81,7 @@ export function EmailChangePanel({
         <label className={emailLabelClass} style={{ color: '#888' }}>新しいメールアドレス</label>
         <input
           type="email"
+          aria-label="新しいメールアドレス"
           value={emailDraft}
           onChange={(e) => { setEmailDraft(e.target.value); setEmailError(null); }}
           placeholder="example@email.com"

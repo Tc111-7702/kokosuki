@@ -141,6 +141,7 @@ export default function SearchBar({ onSearch, onClear, hasSearchResult, currentP
             </svg>
             <input
               type="text"
+              aria-label="駅・都道府県・市区町村 / IP・ガチャ"
               value={value}
               onChange={e => {
                 setValue(e.target.value);

@@ -229,6 +229,7 @@ export function SpotSearchPanel({
             )}
             <input
               type="text"
+              aria-label="店舗・駅・都道府県・市区町村を検索"
               value={query}
               placeholder="店舗・駅・都道府県・市区町村を検索"
               onChange={e => handleQueryChange(e.target.value)}
