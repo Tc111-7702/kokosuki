@@ -108,7 +108,9 @@ export function EmailPasswordPanel({ onVerified }: { onVerified: () => void }) {
 
       {locked ? (
         <p className={emailErrorClass} style={{ color: '#C4483C' }}>
-          パスワードを規定回数間違えたため、セキュリティ保護の観点から一時的に入力を停止しています。しばらく時間をおいてから再度お試しください。
+          パスワードを規定回数間違えたため、セキュリティ保護の観点から一時的に入力を停止しています
+          <br />
+          しばらく時間をおいてから再度お試しください。
         </p>
       ) : error ? (
         <p className={emailErrorClass} style={{ color: '#C4483C' }}>{error}</p>

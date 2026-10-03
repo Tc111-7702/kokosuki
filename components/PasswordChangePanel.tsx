@@ -248,14 +248,16 @@ export function PasswordChangePanel({
         onToggleShow={() => setShowConfirm((v) => !v)}
       />
 
-      <PasswordPolicyHint className="text-[11px] md:text-[12px] text-left max-w-full" />
+      <PasswordPolicyHint className="text-[11px] md:text-[12px] text-left md:text-center max-w-full" />
 
       {newPassword && confirmPassword && newPassword !== confirmPassword ? (
         <p className={emailErrorClass} style={{ color: '#C4483C' }}>パスワードが一致しません</p>
       ) : null}
       {locked ? (
         <p className={emailErrorClass} style={{ color: '#C4483C' }}>
-          パスワードを規定回数間違えたため、セキュリティ保護の観点から一時的に入力を停止しています。しばらく時間をおいてから再度お試しください。
+          パスワードを規定回数間違えたため、セキュリティ保護の観点から一時的に入力を停止しています
+          <br />
+          しばらく時間をおいてから再度お試しください。
         </p>
       ) : error ? (
         <p className={emailErrorClass} style={{ color: '#C4483C' }}>{error}</p>
