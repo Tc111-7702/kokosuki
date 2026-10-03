@@ -12,6 +12,7 @@ import { prisma } from './db';
 import * as db from './db';
 import { clearRateLimit, getClientIp } from './rateLimit';
 import { loginEmailRateKey } from './loginEmailRateLimit';
+import { loginPasswordRateKey } from './loginPasswordRateLimit';
 
 /** Better Auth の Origin 検証用。www/apex 両方と env を許可（Cookie 付き POST 向け） */
 function getKokosukiTrustedOrigins(): string[] {
@@ -115,6 +116,9 @@ export const auth = betterAuth({
             const headers = context?.headers;
             const ip = headers ? getClientIp(headers) : session.ipAddress ?? null;
             if (ip) await clearRateLimit(loginEmailRateKey(ip));
+            // ログインできたアカウントのパスワード誤入力ロックも解除する。
+            const user = await db.getUserEmailById(session.userId);
+            if (user?.email) await clearRateLimit(loginPasswordRateKey(user.email));
           } catch {
             /* ロックのリセット失敗はログインを妨げない */
           }
