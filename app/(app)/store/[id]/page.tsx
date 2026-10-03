@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback, useMemo, useRef, useSyncExternalStore
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { ArrowLeft, ChevronLeft, MapPin, Navigation, Phone, SlidersHorizontal } from 'lucide-react';
 import { HomeSearchBar } from '@/components/HomeSearchBar';
-import FilterDrawer, { loadStoredGachaIds } from '@/components/FilterDrawer';
+import FilterDrawer from '@/components/FilterDrawer';
 import { ipGradient, type SpotGachaInfo } from '@/components/SpotGachaCard';
 import { GachaCard, type GachaItem } from '@/components/ui/GachaCard';
 import NavPickerModal from '@/components/NavPickerModal';
@@ -28,7 +28,6 @@ interface SpotData {
   stockMap: Record<string, string>;
 }
 
-const STORAGE_KEY = 'kokosuki_filter_gacha_ids';
 
 // ─── ユーティリティ ───────────────────────────────────────────
 
@@ -280,26 +279,19 @@ export default function StorePage() {
     Promise.all([
       fetch(`/api/spots/${spotId}`).then(r => r.json()),
       fetch('/api/gacha/filters').then(r => r.json()),
-      fetch('/api/profile/me').then(r => r.json()),
-    ]).then(([spotRes, filterRes, profile]) => {
+      fetch('/api/profile/gacha-filter').then(r => (r.ok ? r.json() : null)),
+    ]).then(([spotRes, filterRes, filterData]) => {
       if (spotRes.spot) setSpot(spotRes.spot);
       const map = new Map<string, SpotGachaInfo>();
       (filterRes.items ?? []).forEach((g: SpotGachaInfo) => map.set(g.id, g));
       setGachaMap(map);
 
-      const likedIds: string[] = Array.isArray(profile.likedGachaIds) ? profile.likedGachaIds : [];
-      const validLikedIds = likedIds.filter(id => map.has(id));
-
+      // フィルターは DB(User.gachaFilterIds)を唯一の情報源にする（localStorage 廃止）。
       if (noFilterParam) {
         setFilterGachaIds([]);
-        try {
-          localStorage.setItem(STORAGE_KEY, validLikedIds.length > 0 ? JSON.stringify(validLikedIds) : '[]');
-        } catch {}
       } else {
-        const initialStored = loadStoredGachaIds();
-        const merged = [...new Set([...initialStored, ...validLikedIds])];
-        setFilterGachaIds(merged);
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(merged)); } catch {}
+        const ids: string[] = Array.isArray(filterData?.gachaIds) ? filterData.gachaIds : [];
+        setFilterGachaIds(ids);
       }
 
       setLoading(false);
@@ -360,11 +352,21 @@ export default function StorePage() {
   const handleFilterApply = useCallback((ids: string[]) => {
     setFilterGachaIds(ids);
     setFilterOpen(false);
+    // DB(User.gachaFilterIds) を選択集合で置き換える。
+    fetch('/api/profile/gacha-filter', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gachaIds: ids }),
+    }).catch(() => {});
   }, []);
 
   const handleClearFilter = useCallback(() => {
     setFilterGachaIds([]);
-    try { localStorage.setItem(STORAGE_KEY, '[]'); } catch {}
+    fetch('/api/profile/gacha-filter', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gachaIds: [] }),
+    }).catch(() => {});
   }, []);
 
   if (loading) return (

@@ -26,18 +26,6 @@ import { useExpireStaleStock } from '@/hooks/useExpireStaleStock';
 // accessToken は page.tsx から props 経由で受け取る（下記 MapClient を参照）
 
 const STATION_RADIUS  = 1000;
-const STORAGE_KEY     = 'kokosuki_filter_gacha_ids';
-const LIKED_SEED_KEY  = 'kokosuki_filter_liked_seed_v1';
-const MIGRATION_KEY   = 'kokosuki_filter_migrated_v3';
-
-// v3移行: ユーザーリセット後のキャッシュクリア
-if (typeof window !== 'undefined' && !localStorage.getItem(MIGRATION_KEY)) {
-  localStorage.removeItem(STORAGE_KEY);
-  localStorage.removeItem('kokosuki_filter_gacha_ids_seed');
-  localStorage.removeItem(LIKED_SEED_KEY);
-  localStorage.removeItem('kokosuki_filter_migrated_v2');
-  localStorage.setItem(MIGRATION_KEY, '1');
-}
 
 // ─── MapClient ───────────────────────────────────────────────────────────────
 
@@ -419,11 +407,26 @@ export default function MapPage() {
   // 初期化
   useEffect(() => {
     const skipFilter = !!spotIdParam;
-    // rawFilter が null → 未設定（初回）→ お気に入り自動適用あり
-    // rawFilter が '[]' → ユーザーが意図的に解除 → お気に入り自動適用しない
-    const rawFilter = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
-    const stored = rawFilter ? (JSON.parse(rawFilter) as string[]) : [];
-    if (!skipFilter && stored.length > 0) { setFilterGachaIds(stored); filterRef.current = stored; }
+
+    // フィルターは DB(User.gachaFilterIds) を唯一の情報源にする（localStorage 廃止）。
+    // ハート/新規登録/フィルター適用でサーバー側が常に最新を保持しているため、取得して適用するだけ。
+    if (!skipFilter) {
+      fetch('/api/profile/gacha-filter')
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => {
+          const ids: string[] = Array.isArray(d?.gachaIds) ? d.gachaIds : [];
+          if (ids.length === 0) return;
+          setFilterGachaIds(ids);
+          filterRef.current = ids;
+          if (currentPosRef.current && mapRef.current && !hasSearchResultRef.current && !spotIdModeRef.current) {
+            const { lat, lng } = currentPosRef.current;
+            loadNearbySpots(mapRef.current, lat, lng, spotMarkersRef, ids, gachaMapRef.current, setSelectedSpot,
+              { onSpotsLoaded: setFilterSpotList });
+          }
+        })
+        .catch(() => {});
+    }
+
     // Supabase コールドスタート対策: 失敗時は最大3回リトライ
     const loadFilters = async (retries = 3): Promise<void> => {
       try {
@@ -438,50 +441,6 @@ export default function MapPage() {
           loadNearbySpots(mapRef.current, lat, lng, spotMarkersRef, filterRef.current, map, setSelectedSpot,
             { onSpotsLoaded: setFilterSpotList });
         }
-        fetch('/api/profile/me').then(r => r.json()).then(profile => {
-          const favIps: string[] = Array.isArray(profile.favoriteIps) ? profile.favoriteIps : [];
-          const likedIds: string[] = Array.isArray(profile.likedGachaIds) ? profile.likedGachaIds : [];
-          setFavoriteIps(favIps);
-          if (skipFilter) return;
-
-          // いいねシード: 前回マップを開いた時点のlikedIds
-          const seed: string[] = (() => {
-            try { return JSON.parse(localStorage.getItem(LIKED_SEED_KEY) || '[]') as string[]; } catch { return []; }
-          })();
-          // シードを最新のlikedIdsで更新
-          try { localStorage.setItem(LIKED_SEED_KEY, JSON.stringify(likedIds)); } catch {}
-
-          if (stored.length > 0) {
-            // 前回以降に新しくいいねしたIDをフィルターにマージ
-            const newLikes = likedIds.filter(id => !seed.includes(id) && items.some(g => g.id === id));
-            if (newLikes.length > 0) {
-              const merged = [...new Set([...stored, ...newLikes])];
-              try { localStorage.setItem(STORAGE_KEY, JSON.stringify(merged)); } catch {}
-              setFilterGachaIds(merged); filterRef.current = merged;
-              if (currentPosRef.current && mapRef.current && !hasSearchResultRef.current && !spotIdModeRef.current) {
-                const { lat, lng } = currentPosRef.current;
-                loadNearbySpots(mapRef.current, lat, lng, spotMarkersRef, merged, gachaMapRef.current, setSelectedSpot,
-                  { onSpotsLoaded: setFilterSpotList });
-              }
-            }
-            return;
-          }
-          // リロード時は常にお気に入りをフィルターに復元（意図的解除後も含む）
-          if (likedIds.length > 0) {
-            // filtersに存在するIDのみに絞る
-            const validIds = likedIds.filter(id => items.some(g => g.id === id));
-            if (validIds.length > 0) {
-              try { localStorage.setItem(STORAGE_KEY, JSON.stringify(validIds)); } catch {}
-              try { localStorage.setItem('kokosuki_filter_gacha_ids_seed', JSON.stringify(validIds)); } catch {}
-              setFilterGachaIds(validIds); filterRef.current = validIds;
-              if (currentPosRef.current && mapRef.current && !hasSearchResultRef.current && !spotIdModeRef.current) {
-                const { lat, lng } = currentPosRef.current;
-                loadNearbySpots(mapRef.current, lat, lng, spotMarkersRef, validIds, gachaMapRef.current, setSelectedSpot,
-                  { onSpotsLoaded: setFilterSpotList });
-              }
-            }
-          }
-        });
       } catch {
         if (retries > 0) {
           await new Promise(res => setTimeout(res, 5000));
@@ -655,10 +614,12 @@ export default function MapPage() {
 
   const handleFilterApply = useCallback((ids: string[]) => {
     setFilterGachaIds(ids); filterRef.current = ids;
-    // idsが空（解除）のときは '[]' をセット（nullとの区別でお気に入り再適用を防ぐ）
-    if (ids.length === 0) {
-      try { localStorage.setItem(STORAGE_KEY, '[]'); } catch {}
-    }
+    // DB(User.gachaFilterIds) を選択集合で置き換える。
+    fetch('/api/profile/gacha-filter', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gachaIds: ids }),
+    }).catch(() => {});
     // フィルター変更時はコンテンツ検索を終了してフィルターマーカーで置き換える
     clearSearchResults();
     const pos = tempSearchPosRef.current ?? currentPosRef.current;

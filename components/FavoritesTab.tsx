@@ -103,13 +103,6 @@ export function FavoritesTab({
     try {
       await fetch(`/api/gacha/favorites/${gachaId}`, { method: 'DELETE' });
       setGachas(prev => prev.filter(g => g.id !== gachaId));
-      // マップのlocalStorageフィルターキャッシュからも削除
-      try {
-        const stored = JSON.parse(localStorage.getItem('kokosuki_filter_gacha_ids') || '[]') as string[];
-        const seed   = JSON.parse(localStorage.getItem('kokosuki_filter_liked_seed_v1') || '[]') as string[];
-        localStorage.setItem('kokosuki_filter_gacha_ids',       JSON.stringify(stored.filter(id => id !== gachaId)));
-        localStorage.setItem('kokosuki_filter_liked_seed_v1',   JSON.stringify(seed.filter(id => id !== gachaId)));
-      } catch {}
     } catch {}
     setDeleting(prev => { const s = new Set(prev); s.delete(gachaId); return s; });
   };
