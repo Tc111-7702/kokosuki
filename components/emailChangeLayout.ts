@@ -24,7 +24,7 @@ export const emailNoticeClass =
 
 /** バリデーション・エラーメッセージ（常に中央揃え） */
 export const emailErrorClass =
-  'text-[12px] md:text-[14px] font-bold leading-relaxed text-center w-full';
+  'text-[12px] md:text-[14px] font-bold leading-relaxed text-left md:text-center w-full';
 
 export const emailButtonClass =
   'px-5 md:px-7 py-2.5 md:py-3 rounded-xl text-[13px] md:text-[15px] font-bold active:opacity-70 disabled:opacity-50 md:whitespace-nowrap self-center';
