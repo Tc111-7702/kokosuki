@@ -357,6 +357,50 @@ export async function getGachaFilters() {
   return { ipNames, items };
 }
 
+/** フィルター画面: 選択中IDだけのIP集計とガチャ本体（全件カタログは返さない） */
+export async function getFilterSelection(ids: string[]) {
+  const unique = [...new Set(ids.filter(Boolean))];
+  if (unique.length === 0) return { rows: [] as { ipName: string; selectedCount: number; totalCount: number }[], items: [] as { id: string; seriesName: string; ipName: string; imageUrl: string | null }[] };
+
+  const rowsRaw = await prisma.gacha.findMany({
+    where: { id: { in: unique } },
+    select: { id: true, seriesName: true, imageUrl: true, ipNameId: true, ...IP_NAME_SELECT },
+  });
+  const items = rowsRaw.map((row) => flatIp({
+    id: row.id,
+    seriesName: row.seriesName,
+    imageUrl: row.imageUrl,
+    ip: row.ip,
+  }));
+
+  const selectedByIpId = new Map<string, number>();
+  for (const row of rowsRaw) {
+    if (!row.ipNameId) continue;
+    selectedByIpId.set(row.ipNameId, (selectedByIpId.get(row.ipNameId) ?? 0) + 1);
+  }
+  const ipIds = [...selectedByIpId.keys()];
+  const [names, totals] = await Promise.all([
+    prisma.ipName.findMany({ where: { id: { in: ipIds } }, select: { id: true, name: true } }),
+    prisma.gacha.groupBy({
+      by: ['ipNameId'],
+      where: { status: 'on_sale', ipNameId: { in: ipIds } },
+      _count: { id: true },
+    }),
+  ]);
+  const nameById = new Map(names.map((n) => [n.id, n.name]));
+  const totalById = new Map(totals.map((t) => [t.ipNameId, t._count.id]));
+  const rows = ipIds
+    .map((id) => ({
+      ipName: nameById.get(id) ?? '',
+      selectedCount: selectedByIpId.get(id) ?? 0,
+      totalCount: totalById.get(id) ?? 0,
+    }))
+    .filter((r) => r.ipName)
+    .sort((a, b) => b.selectedCount - a.selectedCount || a.ipName.localeCompare(b.ipName, 'ja'));
+
+  return { rows, items };
+}
+
 /** 発売中ガチャのいいね（お気に入り）総数が多い順に IP 名を返す（投稿ページの人気IP用） */
 export async function getPopularIpsByLikes(limit = 12): Promise<string[]> {
   // IP単位のいいね合算・並べ替え・上位N件の絞り込みをすべてDBで行う。

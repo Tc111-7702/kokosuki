@@ -1,21 +1,18 @@
 'use client';
 
 import { useState, useEffect, useSyncExternalStore } from 'react';
-import { X, ChevronRight, ChevronLeft, Check, ChevronDown, ChevronUp } from 'lucide-react';
-import { expandQuery } from '@/lib/gacha-aliases';
+import { X, ChevronRight, ChevronLeft, Check } from 'lucide-react';
 import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { DESKTOP_PAGE_NAV_WIDTH } from '@/lib/layout';
+import { PopularIpTagList } from '@/components/PopularIpTagList';
 
 const MOBILE_BREAKPOINT = 768;
 const MOBILE_BOTTOM_NAV_HEIGHT = 64;
 
 /** クエリがテキストにマッチするか（カタカナ正規化・エイリアス展開込み） */
-function matchesQuery(text: string, rawQuery: string): boolean {
-  const q = rawQuery.trim();
-  if (!q) return false;
-  const textLower = text.toLowerCase();
-  return expandQuery(q).some((term) => textLower.includes(term.toLowerCase()));
+function selectedIdsKey(ids: Set<string>): string {
+  return [...ids].sort().join(',');
 }
 
 // ─── 型定義 ──────────────────────────────────────────────────────────────────
@@ -27,10 +24,18 @@ interface GachaItem {
   imageUrl: string | null;
 }
 
-interface IpSummary {
+interface SelectedIpRow {
   ipName: string;
-  count: number;
+  selectedCount: number;
+  totalCount: number;
   isFav: boolean;
+}
+
+interface SearchSuggestion {
+  id?: string;
+  label: string;
+  type: 'genre' | 'gacha';
+  imageUrl: string | null;
 }
 
 interface FilterDrawerProps {
@@ -52,13 +57,17 @@ export default function FilterDrawer({
   favoriteIps,
   currentGachaIds,
 }: FilterDrawerProps) {
-  const [screen, setScreen] = useState<'genres' | 'products' | 'selected'>('genres');
+  const [screen, setScreen] = useState<'genres' | 'products'>('genres');
   const [activeIp, setActiveIp] = useState<string | null>(null);
-  const [expandedIps, setExpandedIps] = useState<Set<string>>(new Set());
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [ipList, setIpList] = useState<IpSummary[]>([]);
-  const [allGacha, setAllGacha] = useState<GachaItem[]>([]);
+  const [popularIps, setPopularIps] = useState<string[]>([]);
+  const [activeGacha, setActiveGacha] = useState<GachaItem[]>([]);
+  const [activeLoading, setActiveLoading] = useState(false);
+  const [searchIps, setSearchIps] = useState<SearchSuggestion[]>([]);
+  const [searchGachas, setSearchGachas] = useState<SearchSuggestion[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [selectedIpRows, setSelectedIpRows] = useState<SelectedIpRow[]>([]);
   const [loading, setLoading] = useState(false);
 
   const [selectedGachaIds, setSelectedGachaIds] = useState<Set<string>>(() => new Set(currentGachaIds));
@@ -105,33 +114,93 @@ export default function FilterDrawer({
     },
   });
   const ipRowPressHandlers = createRowPressHandlers();
-  const selectedGachaRowPressHandlers = createRowPressHandlers(filterScreenBg);
+
+  useEffect(() => {
+    fetch('/api/gacha/popular-ips')
+      .then((r) => r.json())
+      .then((d) => setPopularIps(Array.isArray(d.ipNames) ? d.ipNames : []))
+      .catch(() => {});
+  }, []);
+
+  const shownPopularIps = popularIps.slice(0, isMobile ? 6 : 12);
 
   useEffect(() => {
     if (!isOpen) return;
     queueMicrotask(() => {
       setScreen('genres');
       setActiveIp(null);
-      setExpandedIps(new Set());
       setSearchQuery('');
-      setLoading(true);
+      setSelectedGachaIds(new Set(currentGachaIds));
     });
-    fetch('/api/gacha/filters')
+  }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const selectionKey = selectedIdsKey(selectedGachaIds);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const ids = selectionKey ? selectionKey.split(',') : [];
+    if (ids.length === 0) {
+      setSelectedIpRows([]);
+      setLoading(false);
+      return;
+    }
+    const ac = new AbortController();
+    setLoading(true);
+    fetch(`/api/gacha/by-ids?ids=${encodeURIComponent(ids.join(','))}`, { signal: ac.signal })
       .then((r) => r.json())
-      .then(({ ipNames, items }: { ipNames: string[]; items: GachaItem[] }) => {
-        setAllGacha(items);
-        const summary: IpSummary[] = ipNames.map((ip) => ({
-          ipName: ip,
-          count: items.filter((g) => g.ipName === ip).length,
-          isFav: favoriteIps.includes(ip),
-        }));
-        setIpList(summary);
-        // 初期選択は DB 由来の currentGachaIds に合わせる。
-        setSelectedGachaIds(new Set(currentGachaIds));
+      .then((d: { rows?: { ipName: string; selectedCount: number; totalCount: number }[] }) => {
+        const rows = Array.isArray(d.rows) ? d.rows : [];
+        setSelectedIpRows(rows.map((row) => ({ ...row, isFav: favoriteIps.includes(row.ipName) })));
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+    return () => ac.abort();
+  }, [isOpen, selectionKey, favoriteIps]);
+
+  useEffect(() => {
+    if (!activeIp) {
+      setActiveGacha([]);
+      return;
+    }
+    const ac = new AbortController();
+    setActiveLoading(true);
+    fetch(`/api/gacha/genre?ipName=${encodeURIComponent(activeIp)}&limit=1000`, { signal: ac.signal })
+      .then((r) => r.json())
+      .then((d: { gachas?: GachaItem[] }) => setActiveGacha(Array.isArray(d.gachas) ? d.gachas : []))
+      .catch(() => {})
+      .finally(() => setActiveLoading(false));
+    return () => ac.abort();
+  }, [activeIp]);
+
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (!q) {
+      setSearchIps([]);
+      setSearchGachas([]);
+      setSearchLoading(false);
+      return;
+    }
+    const ac = new AbortController();
+    const timer = setTimeout(() => {
+      setSearchLoading(true);
+      fetch(`/api/gacha/search?suggest=1&q=${encodeURIComponent(q)}`, { signal: ac.signal })
+        .then((r) => r.json())
+        .then((d: { suggestions?: SearchSuggestion[] }) => {
+          if (ac.signal.aborted) return;
+          const suggestions = Array.isArray(d.suggestions) ? d.suggestions : [];
+          setSearchIps(suggestions.filter((s) => s.type === 'genre'));
+          setSearchGachas(suggestions.filter((s) => s.type === 'gacha' && s.id));
+        })
+        .catch(() => {})
+        .finally(() => {
+          if (!ac.signal.aborted) setSearchLoading(false);
+        });
+    }, 200);
+    return () => {
+      clearTimeout(timer);
+      ac.abort();
+    };
+  }, [searchQuery]);
 
   const openIp = (ip: string) => { setActiveIp(ip); setScreen('products'); };
 
@@ -143,31 +212,6 @@ export default function FilterDrawer({
     });
   };
 
-  const selectAllInIp = (ip: string) => {
-    setSelectedGachaIds((prev) => {
-      const next = new Set(prev);
-      allGacha.filter((g) => g.ipName === ip).forEach((g) => next.add(g.id));
-      return next;
-    });
-  };
-
-  const deselectAllInIp = (ip: string) => {
-    setSelectedGachaIds((prev) => {
-      const next = new Set(prev);
-      allGacha.filter((g) => g.ipName === ip).forEach((g) => next.delete(g.id));
-      return next;
-    });
-  };
-
-  const toggleExpand = (ip: string) => {
-    setExpandedIps((prev) => {
-      const next = new Set(prev);
-      if (next.has(ip)) next.delete(ip); else next.add(ip);
-      return next;
-    });
-  };
-
-  const activeGacha = allGacha.filter((g) => g.ipName === activeIp);
   const selectedInActive = activeGacha.filter((g) => selectedGachaIds.has(g.id)).length;
 
   const selectAll = () =>
@@ -191,14 +235,6 @@ export default function FilterDrawer({
 
   if (!isOpen) return null;
 
-  // 選択中グループ（件数順）
-  const selectedGroups = ipList
-    .map((ip) => ({
-      ipName: ip.ipName,
-      items: allGacha.filter((g) => g.ipName === ip.ipName && selectedGachaIds.has(g.id)),
-    }))
-    .filter((g) => g.items.length > 0);
-
   return (
     <div className="filter-drawer fixed z-[60] flex flex-col" style={{ ...mainAreaInsetStyle, background: filterScreenBg }}>
       {screen === 'genres' ? (
@@ -211,18 +247,10 @@ export default function FilterDrawer({
             <span className="filter-drawer-header-title text-[18px] font-black flex-1">
               IP選択
             </span>
-            <button
-              type="button"
-              onClick={() => setScreen('selected')}
-              className="map-list-toggle-btn text-[13px] font-bold px-3 py-1.5 rounded-full active:scale-95 transition-transform"
-              style={{ background: 'rgba(245, 243, 237, 0.28)', border: '1px solid rgba(237, 233, 216, 0.45)' }}
-            >
-              選択中のガチャ一覧
-            </button>
           </div>
 
-          {/* 検索バー */}
-          <div className="filter-drawer-search px-4 py-3">
+          {/* 検索バーと人気IPタグは同じ枠。下線はタグの下 */}
+          <div className="filter-drawer-search px-4 pt-3 pb-3">
             <div className="community-search-input-shell flex items-center gap-2 px-3 py-1.5 lg:py-2.5 rounded-full">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2.5" className="flex-shrink-0">
                 <circle cx="11" cy="11" r="8" />
@@ -248,135 +276,139 @@ export default function FilterDrawer({
                 </button>
               )}
             </div>
+            {!searchQuery.trim() && shownPopularIps.length > 0 && (
+              <div className="pt-3">
+                <PopularIpTagList
+                  ips={shownPopularIps}
+                  onIpClick={(ip) => {
+                    setSearchQuery('');
+                    openIp(ip);
+                  }}
+                />
+              </div>
+            )}
           </div>
 
           {/* リスト */}
           <div className="flex-1 overflow-y-auto">
-            {loading ? (
+            {searchQuery.trim() ? (
+              searchLoading ? (
+                <div className="flex items-center justify-center py-16 text-[14px]" style={{ color: '#aaa' }}>
+                  読み込み中...
+                </div>
+              ) : searchIps.length === 0 && searchGachas.length === 0 ? (
+                <div className="py-12 text-center text-[13px]" style={{ color: '#aaa' }}>
+                  見つかりませんでした
+                </div>
+              ) : (
+                <>
+                  {searchIps.length > 0 && (
+                    <>
+                      <div className="px-4 py-1.5 md:py-2 text-[10px] md:text-[11px] font-bold" style={{ background: filterSectionBg, color: filterMutedColor, borderBottom: `1px solid ${filterBorderColor}` }}>
+                        IP
+                      </div>
+                      {searchIps.map((ip) => {
+                        const selected = selectedIpRows.find((row) => row.ipName === ip.label);
+                        return (
+                          <button
+                            key={ip.label}
+                            onClick={() => { setSearchQuery(''); openIp(ip.label); }}
+                            className="flex items-center justify-between w-full px-4 py-2 md:py-3.5 transition-colors"
+                            style={ipRowBorderStyle}
+                            {...ipRowPressHandlers}
+                          >
+                            <div className="flex items-center gap-2.5 md:gap-3">
+                              <div className="rounded-full flex-shrink-0" style={{ width: 6, height: 6, background: selected ? '#F2B800' : '#E0E0E0' }} />
+                              <div className="flex flex-col items-start">
+                                <span className="text-[11px] md:text-[15px] font-semibold" style={{ color: ipNameColor }}>{ip.label}</span>
+                                {selected && (
+                                  <span className="text-[10px] md:text-[12px]" style={{ color: '#aaa' }}>
+                                    {`${selected.selectedCount}/${selected.totalCount}件選択中`}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <ChevronRight size={16} color="#ccc" />
+                          </button>
+                        );
+                      })}
+                    </>
+                  )}
+                  {searchGachas.length > 0 && (
+                    <>
+                      <div className="px-4 py-1.5 md:py-2 text-[10px] md:text-[11px] font-bold" style={{ background: filterSectionBg, color: filterMutedColor, borderBottom: `1px solid ${filterBorderColor}` }}>
+                        ガチャ（{searchGachas.length}件）
+                      </div>
+                      {searchGachas.map((g) => {
+                        const selected = selectedGachaIds.has(g.id!);
+                        return (
+                          <div
+                            key={g.id}
+                            className="flex items-center gap-2.5 md:gap-3 px-4 py-2 md:py-3"
+                            style={{ borderBottom: `1px solid ${filterBorderColor}` }}
+                          >
+                            <div className="flex-shrink-0 rounded-lg overflow-hidden w-8 h-8 md:w-10 md:h-10" style={{ background: filterPlaceholderBg }}>
+                              {g.imageUrl && (
+                                <img
+                                  src={g.imageUrl}
+                                  alt={g.label}
+                                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[11px] md:text-[13px] font-semibold truncate" style={{ color: gachaNameColor(selected) }}>{g.label}</p>
+                            </div>
+                            <button
+                              onClick={() => toggleGacha(g.id!)}
+                              className="flex-shrink-0 flex items-center justify-center rounded-full w-6 h-6 md:w-7 md:h-7"
+                              style={{
+                                background: selected ? '#F2B800' : filterPlaceholderBg,
+                                border: selected ? 'none' : '1.5px solid #DDD',
+                              }}
+                            >
+                              {selected && <Check size={12} color="white" strokeWidth={3} />}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </>
+                  )}
+                </>
+              )
+            ) : loading ? (
               <div className="flex items-center justify-center py-16 text-[14px]" style={{ color: '#aaa' }}>
                 読み込み中...
               </div>
-            ) : searchQuery.trim() ? (
-              // 検索結果
-              (() => {
-                const q = searchQuery.trim();
-                const genreHits = ipList.filter((ip) => matchesQuery(ip.ipName, q));
-                const gachaHits = allGacha.filter((g) => matchesQuery(g.seriesName, q) || matchesQuery(g.ipName, q));
-                const hasResults = genreHits.length > 0 || gachaHits.length > 0;
-                if (!hasResults) return (
-                  <div className="py-12 text-center text-[13px]" style={{ color: '#aaa' }}>
-                    見つかりませんでした
-                  </div>
-                );
-                return (
-                  <>
-                    {/* IPセクション */}
-                    {genreHits.length > 0 && (
-                      <>
-                        <div className="px-4 py-1.5 md:py-2 text-[10px] md:text-[11px] font-bold" style={{ background: '#FAFAFA', color: '#aaa', borderBottom: '1px solid #F0F0F0' }}>
-                          IP
-                        </div>
-                        {genreHits.map((ip) => {
-                          const selectedCount = allGacha.filter((g) => g.ipName === ip.ipName && selectedGachaIds.has(g.id)).length;
-                          return (
-                            <button
-                              key={ip.ipName}
-                              onClick={() => { setSearchQuery(''); openIp(ip.ipName); }}
-                              className="flex items-center justify-between w-full px-4 py-2 md:py-3.5 transition-colors"
-                              style={ipRowBorderStyle}
-                              {...ipRowPressHandlers}
-                            >
-                              <div className="flex items-center gap-2.5 md:gap-3">
-                                <div className="rounded-full flex-shrink-0" style={{ width: 6, height: 6, background: selectedCount > 0 ? '#F2B800' : '#E0E0E0' }} />
-                                <div className="flex flex-col items-start">
-                                  <span className="text-[11px] md:text-[15px] font-semibold" style={{ color: ipNameColor }}>{ip.ipName}</span>
-                                  <span className="text-[10px] md:text-[12px]" style={{ color: '#aaa' }}>
-                                    {selectedCount > 0 ? `${selectedCount}/${ip.count}件選択中` : `${ip.count}件`}
-                                  </span>
-                                </div>
-                              </div>
-                              <ChevronRight size={16} color="#ccc" />
-                            </button>
-                          );
-                        })}
-                      </>
-                    )}
-                    {/* ガチャセクション */}
-                    {gachaHits.length > 0 && (
-                      <>
-                        <div className="px-4 py-1.5 md:py-2 text-[10px] md:text-[11px] font-bold" style={{ background: '#FAFAFA', color: '#aaa', borderBottom: '1px solid #F0F0F0' }}>
-                          ガチャ（{gachaHits.length}件）
-                        </div>
-                        {gachaHits.slice(0, 50).map((g) => {
-                          const selected = selectedGachaIds.has(g.id);
-                          return (
-                            <div
-                              key={g.id}
-                              className="flex items-center gap-2.5 md:gap-3 px-4 py-2 md:py-3"
-                              style={{ borderBottom: '1px solid #F5F5F5' }}
-                            >
-                              <div className="flex-shrink-0 rounded-lg overflow-hidden w-8 h-8 md:w-10 md:h-10" style={{ background: '#F0F0F0' }}>
-                                {g.imageUrl && (
-                                  <img
-                                    src={g.imageUrl}
-                                    alt={g.seriesName}
-                                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                                  />
-                                )}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-[11px] md:text-[13px] font-semibold truncate" style={{ color: gachaNameColor(selected) }}>{g.seriesName}</p>
-                                <p className="text-[10px] md:text-[11px]" style={{ color: ipNameColor }}>{g.ipName}</p>
-                              </div>
-                              <button
-                                onClick={() => toggleGacha(g.id)}
-                                className="flex-shrink-0 flex items-center justify-center rounded-full w-6 h-6 md:w-7 md:h-7"
-                                style={{
-                                  background: selected ? '#F2B800' : '#F0F0F0',
-                                  border: selected ? 'none' : '1.5px solid #DDD',
-                                }}
-                              >
-                                {selected && <Check size={12} color="white" strokeWidth={3} />}
-                              </button>
-                            </div>
-                          );
-                        })}
-                        {gachaHits.length > 50 && (
-                          <div className="py-3 text-center text-[12px]" style={{ color: '#aaa' }}>
-                            他 {gachaHits.length - 50} 件（検索を絞り込んでください）
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </>
-                );
-              })()
+            ) : selectedIpRows.length === 0 ? (
+              <div className="py-12 text-center text-[13px]" style={{ color: '#aaa' }}>
+                選択中のIPはありません
+              </div>
             ) : (
-              ipList.map((ip) => {
-                const selectedCount = allGacha
-                  .filter((g) => g.ipName === ip.ipName)
-                  .filter((g) => selectedGachaIds.has(g.id)).length;
-                const selected = selectedCount > 0;
-                return (
+              <>
+                <p className="px-4 pt-3" style={{ fontSize: 11, color: '#AAA', fontWeight: 700, letterSpacing: 1, margin: 0 }}>
+                  選択中のIP
+                </p>
+                {selectedIpRows.map((row, index) => (
                   <button
-                    key={ip.ipName}
-                    onClick={() => openIp(ip.ipName)}
-                    className="flex items-center justify-between w-full px-4 py-2.5 md:py-4 transition-colors"
+                    key={row.ipName}
+                    onClick={() => openIp(row.ipName)}
+                    className={`flex items-center justify-between w-full px-4 transition-colors ${index === 0 ? 'pt-2 pb-2.5 md:pb-4' : 'py-2.5 md:py-4'}`}
                     style={ipRowBorderStyle}
                     {...ipRowPressHandlers}
                   >
                     <div className="flex items-center gap-3">
                       <div
                         className="rounded-full flex-shrink-0"
-                        style={{ width: 8, height: 8, background: selected ? '#F2B800' : '#E0E0E0' }}
+                        style={{ width: 8, height: 8, background: '#F2B800' }}
                       />
                       <div className="flex flex-col items-start">
                         <div className="flex items-center gap-2">
                           <span className="text-[13px] md:text-[15px] font-semibold" style={{ color: ipNameColor }}>
-                            {ip.ipName}
+                            {row.ipName}
                           </span>
-                          {ip.isFav && (
+                          {row.isFav && (
                             <span
                               className="text-[9px] md:text-[10px] px-1.5 py-0.5 rounded-full font-bold"
                               style={{ background: '#FFF0C0', color: '#B8860B' }}
@@ -386,14 +418,14 @@ export default function FilterDrawer({
                           )}
                         </div>
                         <span className="text-[11px] md:text-[12px]" style={{ color: '#aaa' }}>
-                          {selectedCount > 0 ? `${selectedCount}/${ip.count}件選択中` : `${ip.count}件`}
+                          {`${row.selectedCount}/${row.totalCount}件選択中`}
                         </span>
                       </div>
                     </div>
                     <ChevronRight size={18} color="#ccc" />
                   </button>
-                );
-              })
+                ))}
+              </>
             )}
           </div>
 
@@ -408,7 +440,7 @@ export default function FilterDrawer({
             </button>
           </div>
         </>
-      ) : screen === 'products' ? (
+      ) : (
         <>
           {/* ヘッダー */}
           <div className="filter-drawer-header flex items-center gap-3 px-4 py-4">
@@ -448,7 +480,11 @@ export default function FilterDrawer({
 
           {/* 商品リスト */}
           <div className="flex-1 overflow-y-auto">
-            {activeGacha.map((g) => {
+            {activeLoading ? (
+              <div className="flex items-center justify-center py-16 text-[14px]" style={{ color: '#aaa' }}>
+                読み込み中...
+              </div>
+            ) : activeGacha.map((g) => {
               const selected = selectedGachaIds.has(g.id);
               return (
                 <button
@@ -500,70 +536,6 @@ export default function FilterDrawer({
               style={{ background: '#F2B800', color: 'white' }}
             >
               適用する（{selectedGachaIds.size}件選択中）
-            </button>
-          </div>
-        </>
-      ) : (
-        <>
-          {/* ヘッダー */}
-          <div className="filter-drawer-header flex items-center gap-3 px-4 py-4" style={{ background: filterScreenBg }}>
-            <button type="button" onClick={() => setScreen('genres')} className="filter-drawer-header-btn p-1"><ChevronLeft size={22} /></button>
-            <div className="flex-1 min-w-0">
-              <div className="filter-drawer-header-title text-[16px] md:text-[18px] font-black">選択中のガチャ</div>
-              <div className="filter-drawer-header-subtitle text-[11px] md:text-[12px]">{selectedGachaIds.size}件</div>
-            </div>
-            <button type="button" onClick={onClose} className="filter-drawer-header-btn p-1"><X size={22} /></button>
-          </div>
-
-          <div className="flex-1 overflow-y-auto" style={{ background: filterScreenBg }}>
-            {selectedGroups.length === 0 ? (
-              <div className="py-16 text-center text-[11px] md:text-[13px]" style={{ color: filterMutedColor }}>選択中のガチャがありません</div>
-            ) : (
-              selectedGroups.map((group) => {
-                const expanded = expandedIps.has(group.ipName);
-                return (
-                  <div key={group.ipName}>
-                    <div className="flex items-center px-4 py-1.5 md:py-2.5" style={{ background: filterSectionBg, borderBottom: `1px solid ${filterBorderColor}` }}>
-                      <button onClick={() => toggleExpand(group.ipName)} className="flex items-center gap-2 flex-1 min-w-0">
-                        {expanded ? <ChevronUp size={15} color={filterMutedColor} /> : <ChevronDown size={15} color={filterMutedColor} />}
-                        <span className="text-[11px] md:text-[13px] font-bold truncate" style={{ color: ipNameColor }}>{group.ipName}</span>
-                        <span className="text-[10px] md:text-[11px] flex-shrink-0" style={{ color: filterMutedColor }}>{group.items.length}件</span>
-                      </button>
-                      <div className="flex gap-1.5 flex-shrink-0 ml-2">
-                        <button onClick={() => selectAllInIp(group.ipName)} className="text-[10px] font-bold px-2 py-1 rounded-full" style={{ background: '#F2B800', color: 'white' }}>全選択</button>
-                        <button
-                          onClick={() => deselectAllInIp(group.ipName)}
-                          className="map-list-toggle-btn text-[10px] font-bold px-2 py-1 rounded-full active:scale-95 transition-transform"
-                          style={{ background: 'rgba(245, 243, 237, 0.28)', border: '1px solid rgba(237, 233, 216, 0.45)' }}
-                        >
-                          全解除
-                        </button>
-                      </div>
-                    </div>
-                    {expanded && group.items.map((g) => (
-                      <button
-                        key={g.id}
-                        onClick={() => toggleGacha(g.id)}
-                        className="flex items-center gap-3 w-full px-4 py-2.5 md:py-3 transition-colors"
-                        style={{ background: filterScreenBg, borderBottom: `1px solid ${filterBorderColor}`, WebkitTapHighlightColor: 'transparent' }}
-                        {...selectedGachaRowPressHandlers}
-                      >
-                        <div className="flex-shrink-0 rounded-lg overflow-hidden w-8 h-8 md:w-10 md:h-10" style={{ background: filterPlaceholderBg }}>
-                          {g.imageUrl && <img src={g.imageUrl} alt={g.seriesName} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />}
-                        </div>
-                        <span className="text-[10px] md:text-[13px] text-left flex-1 leading-snug" style={{ color: gachaSelectedColor }}>{g.seriesName}</span>
-                        <X size={14} color={filterMutedColor} className="flex-shrink-0" />
-                      </button>
-                    ))}
-                  </div>
-                );
-              })
-            )}
-          </div>
-
-          <div className="px-4 pb-8 pt-3" style={{ ...filterFooterBorderStyle, background: filterScreenBg }}>
-            <button onClick={handleApply} className="w-full py-2 md:py-3.5 rounded-2xl text-[13px] md:text-[15px] font-bold" style={{ background: '#F2B800', color: 'white' }}>
-              {`適用する（${selectedGachaIds.size}件選択中）`}
             </button>
           </div>
         </>
