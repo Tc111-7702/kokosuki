@@ -7,14 +7,8 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, ChevronRight } from 'lucide-react';
 import { markLoginFromLogout } from '@/lib/loginSplash';
 import { signOutAndClearSession } from '@/lib/signOutClient';
-import { SettingsSheet } from '@/components/SettingsSheet';
-import { DisplaySettingsSheet } from '@/components/DisplaySettingsSheet';
-import { ProfileSettingsSheet } from '@/components/ProfileSettingsSheet';
-import { HelpContent, PrivacyContent, TermsContent } from '@/components/StaticContents';
 
 const APP_VERSION = '1.0.0';
-
-type Sheet = 'profile' | 'display' | 'help' | 'terms' | 'privacy' | null;
 
 const RADIUS_OPTIONS = [
   { value: 5_000,  label: '5km' },
@@ -33,8 +27,6 @@ export default function SettingsPage() {
   const [email, setEmail] = useState('');
   const [settings, setSettings] = useState<Settings | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [sheet, setSheet] = useState<Sheet>(null);
-  const closeSheet = () => setSheet(null);
   const isDark = useSyncExternalStore(
     subscribeTheme,
     () => getThemeSnapshot() === 'dark',
@@ -121,7 +113,7 @@ export default function SettingsPage() {
         {/* アカウント */}
         <SectionTitle>アカウント</SectionTitle>
         <div className="bg-white" style={{ borderTop: `1px solid ${itemBorder}`, borderBottom: `1px solid ${itemBorder}` }}>
-          <RowLink label="プロフィール設定" borderColor={itemBorder} onClick={() => setSheet('profile')} />
+          <RowLink label="プロフィール設定" borderColor={itemBorder} onClick={() => router.push('/settings/profile')} />
           <RowLink label="メールアドレス" detail={email || '…'} borderColor={itemBorder} onClick={() => router.push('/settings/email')} />
           <RowLink label="パスワードの再設定" borderColor={itemBorder} onClick={() => router.push('/settings/password')} />
         </div>
@@ -129,10 +121,10 @@ export default function SettingsPage() {
         {/* その他 */}
         <SectionTitle>その他</SectionTitle>
         <div className="bg-white" style={{ borderTop: `1px solid ${itemBorder}`, borderBottom: `1px solid ${itemBorder}` }}>
-          <RowLink label="表示" borderColor={itemBorder} onClick={() => setSheet('display')} />
-          <RowLink label="ヘルプ・お知らせ" borderColor={itemBorder} onClick={() => setSheet('help')} />
-          <RowLink label="利用規約" borderColor={itemBorder} onClick={() => setSheet('terms')} />
-          <RowLink label="プライバシーポリシー" borderColor={itemBorder} onClick={() => setSheet('privacy')} />
+          <RowLink label="表示" borderColor={itemBorder} onClick={() => router.push('/settings/display')} />
+          <RowLink label="ヘルプ・お知らせ" borderColor={itemBorder} onClick={() => router.push('/settings/help')} />
+          <RowLink label="利用規約" borderColor={itemBorder} onClick={() => router.push('/settings/terms')} />
+          <RowLink label="プライバシーポリシー" borderColor={itemBorder} onClick={() => router.push('/settings/privacy')} />
           <div className="flex items-center justify-between px-4 py-2.5 md:py-3.5">
             <p className="text-[14px] font-bold" style={{ color: '#111' }}>バージョン</p>
             <p className="text-[12px]" style={{ color: '#AAA' }}>{APP_VERSION}</p>
@@ -153,13 +145,6 @@ export default function SettingsPage() {
           </button>
         </div>
       </div>
-
-      {/* サブ画面（ページ遷移なしのオーバーレイ） */}
-      <ProfileSettingsSheet open={sheet === 'profile'} onClose={closeSheet} />
-      <DisplaySettingsSheet open={sheet === 'display'} onClose={closeSheet} />
-      <SettingsSheet open={sheet === 'help'} onClose={closeSheet} title="ヘルプ・お知らせ"><HelpContent /></SettingsSheet>
-      <SettingsSheet open={sheet === 'terms'} onClose={closeSheet} title="利用規約"><TermsContent /></SettingsSheet>
-      <SettingsSheet open={sheet === 'privacy'} onClose={closeSheet} title="プライバシーポリシー"><PrivacyContent /></SettingsSheet>
     </div>
   );
 }
