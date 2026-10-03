@@ -96,7 +96,7 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => router.push('/signup')}
-              className="login-intro-primary-btn mt-10 max-md:mt-6 md:mt-6 w-full h-[52px] max-md:h-auto max-md:min-h-[50px] max-md:py-3.5 rounded-2xl max-md:rounded-lg text-[16px] font-bold text-white active:opacity-80"
+              className="login-intro-primary-btn mt-10 max-md:mt-6 md:mt-6 w-full h-[52px] max-md:h-auto max-md:min-h-[50px] max-md:py-3.5 rounded-2xl max-md:rounded-lg text-[16px] font-bold active:opacity-80"
             >
               はじめての方
             </button>
