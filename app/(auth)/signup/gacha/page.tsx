@@ -61,6 +61,13 @@ function SignupGachaIpNav({
 export default function SignupGachaPage() {
   const router = useRouter();
   const { ready } = useSignupStepGuard({ requireFavorites: true });
+  // IP未選択（お気に入りのIPが空）でガチャページに来た場合は /signup に戻す。
+  // ※ガチャ(gachaIds)はこのページの初期状態が常に空のため、IP(ipNames)で判定する。
+  useEffect(() => {
+    if ((getSignupFavorites()?.ipNames ?? []).length === 0) {
+      router.replace('/signup');
+    }
+  }, [router]);
   const [selectedIpNames] = useState<string[]>(() => getSignupFavorites()?.ipNames ?? []);
   const [favoriteGachaIds, setFavoriteGachaIds] = useState<string[]>(
     () => getSignupFavorites()?.gachaIds ?? [],
