@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff } from 'lucide-react';
 import { PasswordPolicyHint } from '@/components/PasswordPolicyHint';
@@ -91,13 +91,30 @@ export function PasswordChangePanel({
   const [error, setError] = useState<string | null>(null);
   const [forgotNotice, setForgotNotice] = useState<string | null>(null);
   const [forgotError, setForgotError] = useState<string | null>(null);
+  // 現在パスワードの誤入力5回でサーバー側(アカウント単位)が15分ロック。429/マウントで表示。
+  const [locked, setLocked] = useState(false);
+
+  // マウント時にロック状態を確認（verify-password と同じキーを共有、期限切れはリセット）。
+  useEffect(() => {
+    let alive = true;
+    void fetch('/api/profile/verify-password', { method: 'GET', credentials: 'include' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (alive && data?.locked) setLocked(true);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const busy = pending || forgotBusy;
   const canSubmit =
     currentPassword.length > 0
     && isPasswordPolicyValid(newPassword)
     && newPassword === confirmPassword
-    && !busy;
+    && !busy
+    && !locked;
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
@@ -118,6 +135,11 @@ export function PasswordChangePanel({
       });
       const d = await res.json().catch(() => null);
       if (!res.ok) {
+        // 現在パスワードの誤入力が規定回数に達した（サーバーがロック）→ 入力無効＋赤字。
+        if (res.status === 429) {
+          setLocked(true);
+          return;
+        }
         setError(typeof d?.error === 'string' ? d.error : 'パスワードの変更に失敗しました');
         return;
       }
@@ -176,7 +198,7 @@ export function PasswordChangePanel({
         value={currentPassword}
         onChange={(v) => { setCurrentPassword(v); setError(null); }}
         placeholder="現在のパスワード"
-        disabled={busy}
+        disabled={busy || locked}
         autoComplete="current-password"
         show={showCurrent}
         onToggleShow={() => setShowCurrent((v) => !v)}
@@ -231,7 +253,11 @@ export function PasswordChangePanel({
       {newPassword && confirmPassword && newPassword !== confirmPassword ? (
         <p className={emailErrorClass} style={{ color: '#C4483C' }}>パスワードが一致しません</p>
       ) : null}
-      {error ? (
+      {locked ? (
+        <p className={emailErrorClass} style={{ color: '#C4483C' }}>
+          パスワードを規定回数間違えたため、セキュリティ保護の観点から一時的に入力を停止しています。しばらく時間をおいてから再度お試しください。
+        </p>
+      ) : error ? (
         <p className={emailErrorClass} style={{ color: '#C4483C' }}>{error}</p>
       ) : null}
 
