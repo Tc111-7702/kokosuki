@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { ChevronLeft, Search, X } from 'lucide-react';
+import { Check, ChevronLeft, Search, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { SignupFavoriteStepHeader } from '@/components/SignupFavoriteStepHeader';
 import { ipGradient } from '@/components/SpotGachaCard';
@@ -34,21 +34,33 @@ function SignupIpCircle({
       className="flex flex-col items-center gap-1 max-md:gap-0.5 md:gap-2 active:opacity-80 w-full"
       aria-pressed={selected}
     >
-      <span
-        className="flex items-center justify-center rounded-full overflow-hidden w-[76px] h-[76px] md:w-[72px] md:h-[72px]"
-        style={{
-          border: selected ? '2.5px solid #F2B800' : '1.5px solid #EDE9D8',
-          background: item.imageUrl ? '#fff' : `linear-gradient(135deg, ${from}, ${to})`,
-        }}
-      >
-        {item.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={item.imageUrl}
-            alt=""
-            className="w-full h-full object-cover"
-            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-          />
+      <span className="relative inline-flex">
+        <span
+          className="flex items-center justify-center rounded-full overflow-hidden w-[76px] h-[76px] md:w-[72px] md:h-[72px]"
+          style={{
+            border: selected ? '2.5px solid #F2B800' : '1.5px solid #EDE9D8',
+            background: item.imageUrl ? '#fff' : `linear-gradient(135deg, ${from}, ${to})`,
+          }}
+        >
+          {item.imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={item.imageUrl}
+              alt=""
+              className="w-full h-full object-cover"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            />
+          ) : null}
+        </span>
+        {/* 選択済みを色だけに頼らず示すチェックバッジ（WCAG 1.4.1）。状態は aria-pressed で伝達済み。 */}
+        {selected ? (
+          <span
+            className="absolute bottom-0 right-0 w-5 h-5 md:w-6 md:h-6 rounded-full flex items-center justify-center"
+            style={{ background: '#F2B800', border: '2px solid #ffffff' }}
+            aria-hidden="true"
+          >
+            <Check size={12} color="#ffffff" strokeWidth={3} />
+          </span>
         ) : null}
       </span>
       <span
