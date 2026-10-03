@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { formatMailDeliveryNotice } from '@/lib/mailDeliveryNotice';
 import type { MailDeliveryResult } from '@/lib/mail';
+import { containsFullWidth, FULLWIDTH_EMAIL_ERROR } from '@/lib/emailFullWidth';
 import {
   emailFieldClass,
   emailSendButtonClass,
@@ -83,7 +84,11 @@ export function EmailChangePanel({
           type="email"
           aria-label="新しいメールアドレス"
           value={emailDraft}
-          onChange={(e) => { setEmailDraft(e.target.value); setEmailError(null); }}
+          onChange={(e) => {
+            const next = e.target.value;
+            setEmailDraft(next);
+            setEmailError(containsFullWidth(next) ? FULLWIDTH_EMAIL_ERROR : null);
+          }}
           placeholder="example@email.com"
           disabled={sending}
           className={`${emailFieldClass} h-11 md:h-[52px] disabled:opacity-50`}
