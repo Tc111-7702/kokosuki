@@ -187,7 +187,7 @@ export function PasswordChangePanel({
 
   return (
     <form
-      className={`${emailPanelClass} md:gap-4 md:-translate-y-6`}
+      className={`${emailPanelClass} md:gap-4`}
       onSubmit={(e) => {
         e.preventDefault();
         void handleSubmit();
