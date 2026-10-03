@@ -41,40 +41,7 @@ interface FilterDrawerProps {
   currentGachaIds: string[];
 }
 
-// ─── localStorage ─────────────────────────────────────────────────────────────
-
-const STORAGE_KEY = 'kokosuki_filter_gacha_ids';
-
-// アクティブフィルターが解除されても「最後に選んだガチャ」を覚えておくキー
-const SEED_KEY    = 'kokosuki_filter_gacha_ids_seed';
-
-export function loadStoredGachaIds(): string[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as string[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function loadSeedGachaIds(): string[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = localStorage.getItem(SEED_KEY);
-    return raw ? (JSON.parse(raw) as string[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveGachaIds(ids: string[]) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
-    // 選択したものは seed にも保存（解除後にドロワーで復元するため）
-    if (ids.length > 0) localStorage.setItem(SEED_KEY, JSON.stringify(ids));
-  } catch {}
-}
+// フィルターは DB(User.gachaFilterIds) で管理する。初期選択は currentGachaIds（親が DB から取得）で渡される。
 
 // ─── コンポーネント ───────────────────────────────────────────────────────────
 
@@ -94,12 +61,7 @@ export default function FilterDrawer({
   const [allGacha, setAllGacha] = useState<GachaItem[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const [selectedGachaIds, setSelectedGachaIds] = useState<Set<string>>(() => {
-    if (currentGachaIds.length > 0) return new Set(currentGachaIds);
-    const stored = loadStoredGachaIds();
-    if (stored.length > 0) return new Set(stored);
-    return new Set(loadSeedGachaIds()); // アクティブフィルター解除後もseedから復元
-  });
+  const [selectedGachaIds, setSelectedGachaIds] = useState<Set<string>>(() => new Set(currentGachaIds));
 
   const isMobile = useIsMobile(MOBILE_BREAKPOINT);
   const isDark = useSyncExternalStore(
@@ -164,28 +126,8 @@ export default function FilterDrawer({
           isFav: favoriteIps.includes(ip),
         }));
         setIpList(summary);
-        const stored = loadStoredGachaIds();
-        const seed   = loadSeedGachaIds();
-        if (currentGachaIds.length > 0) {
-          setSelectedGachaIds(new Set(currentGachaIds));
-        } else if (stored.length > 0) {
-          setSelectedGachaIds(new Set(stored));
-        } else if (seed.length > 0) {
-          // アクティブフィルターが解除されていても前回の選択を復元
-          setSelectedGachaIds(new Set(seed));
-        } else {
-          // LIKED_SEED_KEY: マップロード時に profile/me から書き込まれるお気に入りID
-          const likedSeed: string[] = (() => {
-            try { return JSON.parse(localStorage.getItem('kokosuki_filter_liked_seed_v1') || '[]') as string[]; } catch { return []; }
-          })();
-          const validLiked = likedSeed.filter(id => items.some(g => g.id === id));
-          if (validLiked.length > 0) {
-            setSelectedGachaIds(new Set(validLiked));
-          } else {
-            const favIds = items.filter((g) => favoriteIps.includes(g.ipName)).map((g) => g.id);
-            setSelectedGachaIds(new Set(favIds));
-          }
-        }
+        // 初期選択は DB 由来の currentGachaIds に合わせる。
+        setSelectedGachaIds(new Set(currentGachaIds));
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -243,9 +185,7 @@ export default function FilterDrawer({
     });
 
   const handleApply = () => {
-    const ids = [...selectedGachaIds];
-    saveGachaIds(ids);
-    onApply(ids);
+    onApply([...selectedGachaIds]);
     onClose();
   };
 

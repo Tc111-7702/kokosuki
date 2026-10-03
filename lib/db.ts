@@ -162,11 +162,14 @@ export const upsertProfile = (userId: string, handle: string) =>
 
 // ─── GachaLike ───────────────────────────────────────────────────────────────
 
-export const createGachaLikes = (userId: string, gachaIds: string[]) =>
-  prisma.gachaLike.createMany({
+export async function createGachaLikes(userId: string, gachaIds: string[]) {
+  await prisma.gachaLike.createMany({
     data: gachaIds.map((gachaId) => ({ userId, gachaId })),
     skipDuplicates: true,
   });
+  // いいねと同じガチャをフィルター(User.gachaFilterIds)にも追加する。
+  await addGachasToFilter(userId, gachaIds);
+}
 
 export const getGachaLike = (userId: string, gachaId: string) =>
   prisma.gachaLike.findUnique({
@@ -179,10 +182,49 @@ export async function toggleGachaLike(userId: string, gachaId: string) {
   });
   if (existing) {
     await prisma.gachaLike.delete({ where: { userId_gachaId: { userId, gachaId } } });
+    // ハート解除 → フィルターからも削除。
+    await removeGachaFromFilter(userId, gachaId);
     return { liked: false };
   } else {
     await prisma.gachaLike.create({ data: { userId, gachaId } });
+    // ハート → フィルターにも追加。
+    await addGachaToFilter(userId, gachaId);
     return { liked: true };
+  }
+}
+
+// ─── ガチャフィルター（User.gachaFilterIds） ─────────────────────────────────────
+
+export const getGachaFilterIds = (userId: string) =>
+  prisma.user
+    .findUnique({ where: { id: userId }, select: { gachaFilterIds: true } })
+    .then((r) => r?.gachaFilterIds ?? []);
+
+export const setGachaFilterIds = (userId: string, ids: string[]) =>
+  prisma.user.update({ where: { id: userId }, data: { gachaFilterIds: [...new Set(ids)] } });
+
+// ハート時の単体追加（重複は追加しない・アトミック）。
+export const addGachaToFilter = (userId: string, gachaId: string) =>
+  prisma.$executeRaw`
+    UPDATE "User"
+    SET "gachaFilterIds" = array_append("gachaFilterIds", ${gachaId})
+    WHERE "id" = ${userId} AND NOT (${gachaId} = ANY("gachaFilterIds"))
+  `;
+
+export const removeGachaFromFilter = (userId: string, gachaId: string) =>
+  prisma.$executeRaw`
+    UPDATE "User"
+    SET "gachaFilterIds" = array_remove("gachaFilterIds", ${gachaId})
+    WHERE "id" = ${userId}
+  `;
+
+// 新規登録など複数追加（既存 ∪ 新規）。
+export async function addGachasToFilter(userId: string, gachaIds: string[]) {
+  if (gachaIds.length === 0) return;
+  const current = await getGachaFilterIds(userId);
+  const merged = [...new Set([...current, ...gachaIds])];
+  if (merged.length !== current.length) {
+    await prisma.user.update({ where: { id: userId }, data: { gachaFilterIds: merged } });
   }
 }
 
@@ -1689,8 +1731,11 @@ export const getUserFavoriteGachas = async (userId: string) =>
     orderBy: { createdAt: 'desc' },
   })).map(flatGacha);
 
-export const deleteGachaLike = (userId: string, gachaId: string) =>
-  prisma.gachaLike.deleteMany({ where: { userId, gachaId } });
+export async function deleteGachaLike(userId: string, gachaId: string) {
+  await prisma.gachaLike.deleteMany({ where: { userId, gachaId } });
+  // ハート削除 → フィルターからも外す（toggleGachaLike の解除と同じ）。
+  await removeGachaFromFilter(userId, gachaId);
+}
 
 /** #19: IpName テーブルから (ipName, categoryKey, ガチャ数) を返す（ip-groups 用）。各 ipName は単一カテゴリ。 */
 export const groupGachaByIpAndCategory = async () => {
