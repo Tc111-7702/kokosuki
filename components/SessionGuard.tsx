@@ -1,8 +1,12 @@
 'use client';
 
 import { useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { markLoginFromLogout } from '@/lib/loginSplash';
 import { signOutAndClearSession } from '@/lib/signOutClient';
+
+// 未ログインでも閲覧できる (app) 配下の公開ページ（利用規約・プライバシーポリシー）。
+const PUBLIC_APP_PATHS = ['/settings/terms', '/settings/privacy'];
 
 // (app) 配下の全ページ共通のセッションガード。
 // サーバー側のセッションが失われたら（BAN でのセッション削除・期限切れ・別端末でのログアウト等）
@@ -17,7 +21,11 @@ import { signOutAndClearSession } from '@/lib/signOutClient';
 // /home へ跳ね返す。そのため単に /login へ遷移するだけでは戻される。
 // ここでは signOut() で Cookie を破棄してから、フルナビゲーションで /login へ遷移する。
 export function SessionGuard() {
+  const pathname = usePathname();
+  const isPublic = PUBLIC_APP_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+
   useEffect(() => {
+    if (isPublic) return; // 公開ページ（利用規約・プライバシー）では認証チェックしない
     let redirecting = false;
 
     // セッション無効時の共通処理: Cookie を消してから /login へ
@@ -83,7 +91,7 @@ export function SessionGuard() {
       document.removeEventListener('visibilitychange', onActive);
       window.removeEventListener('focus', onActive);
     };
-  }, []);
+  }, [isPublic]);
 
   return null;
 }

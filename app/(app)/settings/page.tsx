@@ -123,8 +123,8 @@ export default function SettingsPage() {
         <div className="bg-white" style={{ borderTop: `1px solid ${itemBorder}`, borderBottom: `1px solid ${itemBorder}` }}>
           <RowLink label="表示" borderColor={itemBorder} onClick={() => router.push('/settings/display')} />
           <RowLink label="ヘルプ・お知らせ" borderColor={itemBorder} onClick={() => router.push('/settings/help')} />
-          <RowLink label="利用規約" borderColor={itemBorder} onClick={() => router.push('/settings/terms')} />
-          <RowLink label="プライバシーポリシー" borderColor={itemBorder} onClick={() => router.push('/settings/privacy')} />
+          <RowLink label="利用規約" borderColor={itemBorder} onClick={() => router.push('/settings/terms?from=setting')} />
+          <RowLink label="プライバシーポリシー" borderColor={itemBorder} onClick={() => router.push('/settings/privacy?from=setting')} />
           <div className="flex items-center justify-between px-4 py-2.5 md:py-3.5">
             <p className="text-[14px] font-bold" style={{ color: '#111' }}>バージョン</p>
             <p className="text-[12px]" style={{ color: '#AAA' }}>{APP_VERSION}</p>

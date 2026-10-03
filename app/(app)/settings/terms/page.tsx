@@ -1,13 +1,22 @@
 'use client';
 import { useSetNavActive } from '@/lib/navActiveStore';
 
-import { useRouter } from 'next/navigation';
+import { Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ChevronLeft } from 'lucide-react';
 import { TermsContent } from '@/components/StaticContents';
 
-export default function SettingsTermsPage() {
+// 遷移元(from)に応じた戻り先。signup/login は同意文のある signin 画面、既定は設定。
+function backHref(from: string | null): string {
+  if (from === 'signup') return '/signup/signin';
+  if (from === 'login') return '/login/signin';
+  return '/settings';
+}
+
+function TermsInner() {
   useSetNavActive('mypage');
   const router = useRouter();
+  const from = useSearchParams().get('from');
 
   return (
     <div className="flex flex-col h-full bg-white min-h-0">
@@ -17,7 +26,7 @@ export default function SettingsTermsPage() {
       >
         <button
           type="button"
-          onClick={() => router.push('/settings')}
+          onClick={() => router.push(backHref(from))}
           className="flex items-center gap-1 text-[14px] font-bold px-2 py-1.5 rounded-lg active:opacity-70"
           style={{ color: '#555' }}
         >
@@ -31,5 +40,13 @@ export default function SettingsTermsPage() {
         <TermsContent />
       </div>
     </div>
+  );
+}
+
+export default function SettingsTermsPage() {
+  return (
+    <Suspense fallback={<div className="h-full bg-white" aria-busy="true" />}>
+      <TermsInner />
+    </Suspense>
   );
 }

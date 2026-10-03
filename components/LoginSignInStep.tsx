@@ -1,6 +1,7 @@
 'use client';
 
 import { useSyncExternalStore } from 'react';
+import Link from 'next/link';
 import { ChevronLeft, Mail } from 'lucide-react';
 import { KokosukiLogo } from '@/components/ui/KokosukiLogo';
 import { loginDisplayFont } from '@/lib/layout';
@@ -67,6 +68,7 @@ export function LoginSignInStep({ onBack, onSelectProvider, intent = 'login' }: 
     ? { backgroundColor: '#ffffff', color: '#000000', borderColor: '#000000' }
     : undefined;
   const actionLabel = intent === 'signup' ? '新規登録' : '続ける';
+  const legalFrom = intent === 'signup' ? 'signup' : 'login';
   const fontClass = intent === 'signup' ? 'signup-app-font font-sans' : loginDisplayFont.className;
 
   return (
@@ -132,7 +134,11 @@ export function LoginSignInStep({ onBack, onSelectProvider, intent = 'login' }: 
             className="login-signin-notice mt-5 pb-8 w-full leading-relaxed px-1 max-md:block md:hidden"
             style={{ color: '#999999', textAlign: 'left' }}
           >
-            新規登録またはログインで、ココスキの利用規約とプライバシーポリシーに同意したものとみなされます。
+            新規登録またはログインで、ココスキの
+            <Link href={`/settings/terms?from=${legalFrom}`} className="underline underline-offset-2">利用規約</Link>
+            と
+            <Link href={`/settings/privacy?from=${legalFrom}`} className="underline underline-offset-2">プライバシーポリシー</Link>
+            に同意したものとみなされます。
           </p>
         </div>
       </div>
