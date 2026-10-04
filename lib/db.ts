@@ -219,6 +219,20 @@ export const removeGachaFromFilter = (userId: string, gachaId: string) =>
     WHERE "id" = ${userId}
   `;
 
+export const getBlockedUserIds = (userId: string) =>
+  prisma.user
+    .findUnique({ where: { id: userId }, select: { blockedUserIds: true } })
+    .then((r) => r?.blockedUserIds ?? []);
+
+export async function setUserBlocked(userId: string, targetId: string, blocked: boolean) {
+  const current = await getBlockedUserIds(userId);
+  const next = blocked
+    ? (current.includes(targetId) ? current : [...current, targetId])
+    : current.filter((id) => id !== targetId);
+  if (next.length === current.length) return;
+  await prisma.user.update({ where: { id: userId }, data: { blockedUserIds: next } });
+}
+
 // 新規登録など複数追加（既存 ∪ 新規）。
 export async function addGachasToFilter(userId: string, gachaIds: string[]) {
   if (gachaIds.length === 0) return;
@@ -962,12 +976,40 @@ const resolveEndedNotificationIds = async (
   return hidden;
 };
 
+function actorIdsOf(n: { actorId: string | null; actorIds: string[] }): string[] {
+  return n.actorIds.length ? n.actorIds : (n.actorId ? [n.actorId] : []);
+}
+
+/** ブロック中のユーザー由来で、通知一覧と未読数から外す行か。 */
+function hiddenByBlock(
+  n: { type: string; actorId: string | null; actorIds: string[] },
+  blocked: Set<string>,
+): boolean {
+  if (blocked.size === 0) return false;
+  if (n.type === 'reply') return !!n.actorId && blocked.has(n.actorId);
+  if (n.type === 'like') {
+    const ids = actorIdsOf(n);
+    return ids.length > 0 && ids.every((id) => blocked.has(id));
+  }
+  return false;
+}
+
+function likeTargetLabel(n: { postId: string | null; stockPostId: string | null; spotReviewId: string | null }): string {
+  if (n.stockPostId) return '在庫報告';
+  if (n.spotReviewId) return '口コミ';
+  return '投稿';
+}
+
 export const getNotificationsByUserId = async (userId: string, take = 50): Promise<NotificationView[]> => {
-  const rows = await prisma.notification.findMany({
+  const [rows, blockedIds] = await Promise.all([
+    prisma.notification.findMany({
     where: { userId },
     orderBy: { createdAt: 'desc' },
     take,
-  });
+  }),
+    getBlockedUserIds(userId),
+  ]);
+  const blocked = new Set(blockedIds);
 
   const postIds   = [...new Set(rows.map(r => r.postId).filter((v): v is string => !!v))];
   const stockIds  = [...new Set(rows.map(r => r.stockPostId).filter((v): v is string => !!v))];
@@ -1041,8 +1083,12 @@ export const getNotificationsByUserId = async (userId: string, take = 50): Promi
 
   for (const n of alive) {
     // その行のいいね者/行為者ID一覧（新しい順）。actorIds があればそれを、無ければ actorId を使う
-    const rowActorIds = n.actorIds.length ? n.actorIds : (n.actorId ? [n.actorId] : []);
+    const rowActorIds = actorIdsOf(n);
+    if (n.type === 'reply' && n.actorId && blocked.has(n.actorId)) continue;
     if (n.type === 'like') {
+      const visibleIds = rowActorIds.filter((id) => !blocked.has(id));
+      // いいね者がブロック中の人だけなら通知ごと出さない。
+      if (visibleIds.length === 0) continue;
       const key = n.postId ?? n.stockPostId ?? n.spotReviewId ?? n.id;
       let agg = likeAgg.get(key);
       if (!agg) {
@@ -1051,7 +1097,7 @@ export const getNotificationsByUserId = async (userId: string, take = 50): Promi
         likeAgg.set(key, agg);
         out.push(view);
       }
-      for (const aid of rowActorIds) {
+      for (const aid of visibleIds) {
         if (agg.ids.has(aid)) continue;
         const au = actorMap.get(aid);
         if (!au) continue;
@@ -1060,6 +1106,10 @@ export const getNotificationsByUserId = async (userId: string, take = 50): Promi
         if (agg.view.actors.length < NOTIF_ACTOR_CAP) agg.view.actors.push(au);
       }
       if (!n.read) agg.view.read = false; // どれか未読なら未読扱い
+      const head = agg.view.actors[0];
+      if (head && blocked.size > 0) {
+        agg.view.body = `${head.name}さんがあなたの${likeTargetLabel(agg.view)}にいいねしました`;
+      }
     } else {
       const view = base(n);
       const first = rowActorIds[0] ? actorMap.get(rowActorIds[0]) ?? null : null;
@@ -1074,13 +1124,17 @@ export const getNotificationsByUserId = async (userId: string, take = 50): Promi
 // 未読数（ベルバッジ/通知タブ用）。参照先の gacha または machine が ended（発売中止）の
 // 通知は一覧から除外されるため、カウントからも除外して表示と一致させる。
 export const getUnreadNotificationCount = async (userId: string): Promise<number> => {
-  const rows = await prisma.notification.findMany({
-    where: { userId, read: false },
-    select: { id: true, gachaId: true, postId: true, stockPostId: true },
-  });
+  const [rows, blockedIds] = await Promise.all([
+    prisma.notification.findMany({
+      where: { userId, read: false },
+      select: { id: true, type: true, gachaId: true, postId: true, stockPostId: true, actorId: true, actorIds: true },
+    }),
+    getBlockedUserIds(userId),
+  ]);
   if (rows.length === 0) return 0;
+  const blocked = new Set(blockedIds);
   const hiddenEnded = await resolveEndedNotificationIds(rows);
-  return rows.length - hiddenEnded.size;
+  return rows.filter((r) => !hiddenEnded.has(r.id) && !hiddenByBlock(r, blocked)).length;
 };
 
 export const markNotificationsAsRead = (userId: string) =>
@@ -1311,9 +1365,13 @@ export async function togglePostLike(userId: string, postId: string) {
 
 // ─── PostReply（ルート用: user 付き） ───────────────────────────────────────────
 
-export const listPostReplies = (postId: string) =>
+export const listPostReplies = (postId: string, excludeUserIds: string[] = []) =>
   prisma.postReply.findMany({
-    where: { postId, parentId: null },
+    where: {
+      postId,
+      parentId: null,
+      ...(excludeUserIds.length ? { userId: { notIn: excludeUserIds } } : {}),
+    },
     orderBy: { createdAt: 'asc' },
     include: REPLY_USER_INCLUDE,
   });
@@ -1391,11 +1449,56 @@ type FeedIdOpts = {
   // ガチャ詳細ページ用: そのガチャの投稿を出す画面なので gacha/machine の
   // status(on_sale/ended) で絞らない。home/店舗詳細では false（既定）。
   includeEnded?: boolean;
+  // ブロックしたユーザーの投稿は、並びのあと Prisma で除いてから limit 件に揃える。
+  excludeUserIds?: string[];
 };
+
+// ブロックした投稿者を Prisma で除き、見える投稿だけで offset/limit を数える。
+// 生の LIMIT のあとで落とすと、クライアントのオフセット（返した件数）と食い違って同じページを繰り返す。
+async function takeVisibleIds(
+  loadRaw: (limit: number, offset: number) => Promise<string[]>,
+  ownersOf: (ids: string[]) => Promise<Map<string, string>>,
+  excludeUserIds: string[] | undefined,
+  limit: number,
+  offset: number,
+): Promise<string[]> {
+  if (!excludeUserIds || excludeUserIds.length === 0) return loadRaw(limit, offset);
+  const blocked = new Set(excludeUserIds);
+  const visible: string[] = [];
+  let rawOffset = 0;
+  let skipped = 0;
+  const rawPage = Math.max(limit * 2, 30);
+  while (visible.length < limit) {
+    const ids = await loadRaw(rawPage, rawOffset);
+    if (ids.length === 0) break;
+    rawOffset += ids.length;
+    const owners = await ownersOf(ids);
+    for (const id of ids) {
+      const owner = owners.get(id);
+      if (owner && blocked.has(owner)) continue;
+      if (skipped < offset) {
+        skipped++;
+        continue;
+      }
+      visible.push(id);
+      if (visible.length === limit) return visible;
+    }
+    if (ids.length < rawPage) break;
+  }
+  return visible;
+}
+
+const stockPostOwners = (ids: string[]) =>
+  prisma.stockPost.findMany({ where: { id: { in: ids } }, select: { id: true, userId: true } })
+    .then((rows) => new Map(rows.map((r) => [r.id, r.userId])));
+
+const postOwners = (ids: string[]) =>
+  prisma.post.findMany({ where: { id: { in: ids } }, select: { id: true, userId: true } })
+    .then((rows) => new Map(rows.map((r) => [r.id, r.userId])));
 
 // 好み(いいねガチャ→同IP→その他)＋新着 の順に並べた「在庫」の ID を limit 件だけ返す。
 // 同一マシンは DISTINCT ON で最新のみに畳んでから並べる（15件に絞っても dedup で減らない）。
-export async function getFeedStockIds(opts: FeedIdOpts): Promise<string[]> {
+async function queryFeedStockIds(opts: FeedIdOpts): Promise<string[]> {
   const { spotId, gachaIds, likedGachaIds, likedIps, limit, offset, includeEnded } = opts;
   const freshSince = new Date(Date.now() - STOCK_FEED_FRESH_DAYS * 24 * 60 * 60 * 1000);
   const conds: Prisma.Sql[] = [
@@ -1428,8 +1531,19 @@ export async function getFeedStockIds(opts: FeedIdOpts): Promise<string[]> {
   return rows.map(r => r.id);
 }
 
+export function getFeedStockIds(opts: FeedIdOpts): Promise<string[]> {
+  const { excludeUserIds, limit, offset } = opts;
+  return takeVisibleIds(
+    (rawLimit, rawOffset) => queryFeedStockIds({ ...opts, limit: rawLimit, offset: rawOffset }),
+    stockPostOwners,
+    excludeUserIds,
+    limit,
+    offset,
+  );
+}
+
 // 好み＋新着 の順に並べた「通常投稿」の ID を limit 件だけ返す（鮮度窓なし・dedupなし）。
-export async function getFeedPostIds(opts: FeedIdOpts): Promise<string[]> {
+async function queryFeedPostIds(opts: FeedIdOpts): Promise<string[]> {
   const { spotId, gachaIds, likedGachaIds, likedIps, limit, offset, includeEnded } = opts;
   const conds: Prisma.Sql[] = [];
   if (!includeEnded) {
@@ -1455,6 +1569,17 @@ export async function getFeedPostIds(opts: FeedIdOpts): Promise<string[]> {
     LIMIT ${limit} OFFSET ${offset}
   `;
   return rows.map(r => r.id);
+}
+
+export function getFeedPostIds(opts: FeedIdOpts): Promise<string[]> {
+  const { excludeUserIds, limit, offset } = opts;
+  return takeVisibleIds(
+    (rawLimit, rawOffset) => queryFeedPostIds({ ...opts, limit: rawLimit, offset: rawOffset }),
+    postOwners,
+    excludeUserIds,
+    limit,
+    offset,
+  );
 }
 
 // 2段目：ID 群の本体を include 付きで取得し、渡された ID 順に並べ直す。
@@ -1529,12 +1654,38 @@ export async function toggleStockPostLike(userId: string, stockPostId: string) {
   return { liked: !existing, likeCount };
 }
 
-export const listStockPostReplies = (stockPostId: string) =>
+export const listStockPostReplies = (stockPostId: string, excludeUserIds: string[] = []) =>
   prisma.stockPostReply.findMany({
-    where: { stockPostId },
+    where: {
+      stockPostId,
+      ...(excludeUserIds.length ? { userId: { notIn: excludeUserIds } } : {}),
+    },
     orderBy: { createdAt: 'asc' },
     include: REPLY_USER_INCLUDE,
   });
+
+/** ブロック者を除いた返信数。いいね数はここでは数えない。 */
+export async function countVisibleReplies(
+  kind: 'post' | 'stock',
+  ids: string[],
+  excludeUserIds: string[],
+): Promise<Map<string, number>> {
+  if (ids.length === 0 || excludeUserIds.length === 0) return new Map();
+  if (kind === 'post') {
+    const rows = await prisma.postReply.groupBy({
+      by: ['postId'],
+      where: { postId: { in: ids }, userId: { notIn: excludeUserIds } },
+      _count: { _all: true },
+    });
+    return new Map(rows.map((r) => [r.postId, r._count._all]));
+  }
+  const rows = await prisma.stockPostReply.groupBy({
+    by: ['stockPostId'],
+    where: { stockPostId: { in: ids }, userId: { notIn: excludeUserIds } },
+    _count: { _all: true },
+  });
+  return new Map(rows.map((r) => [r.stockPostId, r._count._all]));
+}
 
 export const createStockPostReplyWithUser = (stockPostId: string, userId: string, text: string) =>
   prisma.stockPostReply.create({
@@ -1559,18 +1710,30 @@ export const deleteStockPostReply = async (id: string) => {
 
 // ─── SpotReview（店舗レビュー） ─────────────────────────────────────────────────
 
-export const countSpotReviews = (spotId: string) =>
-  prisma.spotReview.count({ where: { spotId } });
+export const countSpotReviews = (spotId: string, excludeUserIds: string[] = []) =>
+  prisma.spotReview.count({
+    where: {
+      spotId,
+      ...(excludeUserIds.length ? { userId: { notIn: excludeUserIds } } : {}),
+    },
+  });
 
-export const listSpotReviews = (spotId: string, skip: number, take: number) =>
+export const listSpotReviews = (spotId: string, skip: number, take: number, excludeUserIds: string[] = []) =>
   prisma.spotReview.findMany({
-    where: { spotId },
+    where: {
+      spotId,
+      ...(excludeUserIds.length ? { userId: { notIn: excludeUserIds } } : {}),
+    },
     orderBy: { createdAt: 'desc' },
     skip,
     take,
     include: {
       user: { select: FEED_USER_SELECT },
-      replies: { include: REPLY_USER_INCLUDE, orderBy: { createdAt: 'asc' } },
+      replies: {
+        ...(excludeUserIds.length ? { where: { userId: { notIn: excludeUserIds } } } : {}),
+        include: REPLY_USER_INCLUDE,
+        orderBy: { createdAt: 'asc' },
+      },
       _count: { select: { likes: true } },
       likes: { select: { userId: true } },
     },

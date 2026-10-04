@@ -16,9 +16,10 @@ export async function GET(
     const skip = parseInt(searchParams.get('skip') ?? '0', 10);
     const take = parseInt(searchParams.get('take') ?? '3', 10);
 
+    const excludeUserIds = userId ? await db.getBlockedUserIds(userId) : [];
     const [total, reviews] = await Promise.all([
-      db.countSpotReviews(spotId),
-      db.listSpotReviews(spotId, skip, take),
+      db.countSpotReviews(spotId, excludeUserIds),
+      db.listSpotReviews(spotId, skip, take, excludeUserIds),
     ]);
 
     const items = reviews.map(({ likes, ...r }) => ({

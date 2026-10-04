@@ -68,6 +68,7 @@ export default function ProfilePage() {
   const [selectedPost, setSelectedPost] = useState<FeedPost | null>(null);
   const [selectedStock, setSelectedStock] = useState<StockFeedPost | null>(null);
   const [showAccountMenu, setShowAccountMenu] = useState(false);
+  const [accountBlocked, setAccountBlocked] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
 
   // プロフィール概要
@@ -83,7 +84,12 @@ export default function ProfilePage() {
       fetch(`/api/users/${userId}/summary`)
         .then(async (r) => {
           if (!alive) return;
-          if (r.ok) { setSummary(await r.json()); return; }
+          if (r.ok) {
+            const data = await r.json();
+            setSummary(data);
+            setAccountBlocked(!!data.blockedByMe);
+            return;
+          }
           if (r.status === 404) { setNotFound(true); return; } // 本当に不在
           // 500 等の一時エラー: リトライ、尽きたら見つからない扱い
           if (attempt < 5) { timer = setTimeout(() => load(attempt + 1), 500); }
@@ -121,6 +127,10 @@ export default function ProfilePage() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, isMobile, userId]);
+
+  useEffect(() => {
+    setAccountBlocked(false);
+  }, [userId]);
 
   useEffect(() => {
     if (!showAccountMenu) return;
@@ -304,12 +314,12 @@ export default function ProfilePage() {
           </button>
         </div>
       ) : (
-        <div className="flex-shrink-0 bg-white flex items-center justify-between px-2" style={{ height: 52, borderBottom: '1.5px solid #EDE9D8' }}>
+        <div className="relative z-20 flex-shrink-0 bg-white flex items-center justify-between px-2" style={{ height: 52, borderBottom: '1.5px solid #EDE9D8' }}>
           <button onClick={() => router.back()} className="p-2 active:opacity-60" aria-label="戻る">
             <ArrowLeft size={22} color="#555" />
           </button>
           {currentUserId && (
-            <div ref={accountMenuRef} className="flex items-center gap-1 flex-row-reverse">
+            <div ref={accountMenuRef} className="self-start flex items-start flex-row-reverse">
               <button
                 type="button"
                 onClick={() => setShowAccountMenu((v) => !v)}
@@ -319,16 +329,37 @@ export default function ProfilePage() {
                 <MoreHorizontal size={22} color="#555" />
               </button>
               {showAccountMenu && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowAccountMenu(false);
-                    router.push(reportPath('user', userId));
-                  }}
-                  className="text-[12px] leading-none px-3 py-1.5 rounded-full bg-gray-200 text-gray-700 font-medium hover:bg-gray-100 transition-colors whitespace-nowrap shadow-sm"
-                >
-                  このアカウントを報告する
-                </button>
+                <div className="mt-1.5 mr-0.5 overflow-hidden rounded-xl bg-gray-200 shadow-sm">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAccountMenu(false);
+                      router.push(reportPath('user', userId));
+                    }}
+                    className="block w-full px-3 py-2 text-center text-[12px] font-medium leading-none text-gray-700 whitespace-nowrap hover:bg-gray-100 transition-colors"
+                    style={{ borderBottom: '1px solid #D1D5DB' }}
+                  >
+                    このアカウントを報告する
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !accountBlocked;
+                      setAccountBlocked(next);
+                      void fetch(`/api/users/${userId}/block`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ blocked: next }),
+                      }).then((res) => {
+                        if (!res.ok) setAccountBlocked(!next);
+                      }).catch(() => setAccountBlocked(!next));
+                    }}
+                    className="block w-full px-3 py-2 text-center text-[12px] font-medium leading-none whitespace-nowrap hover:bg-gray-100 transition-colors"
+                    style={{ color: accountBlocked ? '#DC2626' : '#374151' }}
+                  >
+                    {accountBlocked ? 'ブロックを解除する' : 'このアカウントをブロックする'}
+                  </button>
+                </div>
               )}
             </div>
           )}

@@ -14,6 +14,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ stock: [], feed: [], stockHasMore: false, feedHasMore: false }, { status: 401 });
     }
     const userId = session.user.id;
+    const excludeUserIds = await db.getBlockedUserIds(userId);
 
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type') ?? 'recommended';
@@ -38,7 +39,7 @@ export async function GET(request: Request) {
     }
     // includeEnded: ガチャ詳細ページからの取得時のみ true（gacha/machine の status で絞らない）。
     const includeEnded = searchParams.get('includeEnded') === '1';
-    const base = { spotId: filterSpotId, gachaIds, likedGachaIds, likedIps, includeEnded };
+    const base = { spotId: filterSpotId, gachaIds, likedGachaIds, likedIps, includeEnded, excludeUserIds };
 
     // 1段目: 並び替え済みの ID を limit 件だけ取得（在庫は DISTINCT ON machineId ＋ 7日窓）。
     const [stockIds, postIds] = await Promise.all([
@@ -47,18 +48,32 @@ export async function GET(request: Request) {
     ]);
 
     // 2段目: 本体を include 付きで取得（ID順に整列済み）＋ 自分のいいねを付与。
-    const [stockRows, postRows, myStockLikes, myPostLikes] = await Promise.all([
+    const [stockRows, postRows, myStockLikes, myPostLikes, stockReplyCounts, postReplyCounts] = await Promise.all([
       db.getStockPostsByIds(stockIds),
       db.getPostsByIds(postIds),
       db.getStockPostLikedIds(userId, stockIds),
       db.getPostLikedIds(userId, postIds),
+      db.countVisibleReplies('stock', stockIds, excludeUserIds),
+      db.countVisibleReplies('post', postIds, excludeUserIds),
     ]);
 
     const stockLikedSet = new Set(myStockLikes.map((l) => l.stockPostId));
     const postLikedSet  = new Set(myPostLikes.map((l) => l.postId));
 
-    const stock = stockRows.map((p) => ({ ...p, postType: 'stock' as const, likedByMe: stockLikedSet.has(p.id) }));
-    const feed  = postRows.map((p)  => ({ ...p, postType: 'post'  as const, likedByMe: postLikedSet.has(p.id)  }));
+    const replyCount = (counts: Map<string, number>, id: string, fallback: number) =>
+      excludeUserIds.length > 0 ? (counts.get(id) ?? 0) : fallback;
+    const stock = stockRows.map((p) => ({
+      ...p,
+      _count: { ...p._count, replies: replyCount(stockReplyCounts, p.id, p._count.replies) },
+      postType: 'stock' as const,
+      likedByMe: stockLikedSet.has(p.id),
+    }));
+    const feed  = postRows.map((p) => ({
+      ...p,
+      _count: { ...p._count, replies: replyCount(postReplyCounts, p.id, p._count.replies) },
+      postType: 'post' as const,
+      likedByMe: postLikedSet.has(p.id),
+    }));
 
     // 返した件数が limit ちょうど = まだ続きがあるかもしれない。limit 未満 = そのバケツは尽き。
     // （バケツ不足はそのまま許容し、あるだけ返す）
