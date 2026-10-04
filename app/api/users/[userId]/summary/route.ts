@@ -15,7 +15,9 @@ export async function GET(
     const { userId } = await params;
     const summary = await db.getPublicUserSummary(userId);
     if (!summary) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-    return NextResponse.json(summary);
+    const blockedByMe = session.user.id !== userId
+      && (await db.getBlockedUserIds(session.user.id)).includes(userId);
+    return NextResponse.json({ ...summary, blockedByMe });
   } catch (e) {
     console.error('[users summary]', e);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

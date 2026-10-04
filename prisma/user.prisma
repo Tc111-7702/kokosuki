@@ -11,6 +11,8 @@ model User {
   isActive      Boolean   @default(true) // アカウント有効/無効（false = BAN・凍結）。既定は有効。
   // マップ/店舗詳細のガチャフィルター（ハートと同期・新規登録時も設定）。localStorage から DB 管理へ移行。
   gachaFilterIds String[] @default([])
+  // このユーザーがブロックしている相手の User.id。
+  blockedUserIds String[] @default([])
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

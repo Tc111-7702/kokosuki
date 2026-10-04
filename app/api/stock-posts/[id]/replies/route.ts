@@ -5,8 +5,10 @@ import { headers } from 'next/headers';
 import { notifyReply, notifyMention } from '@/lib/notifications';
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  const excludeUserIds = session?.user?.id ? await db.getBlockedUserIds(session.user.id) : [];
   const { id: stockPostId } = await params;
-  const replies = await db.listStockPostReplies(stockPostId);
+  const replies = await db.listStockPostReplies(stockPostId, excludeUserIds);
   return NextResponse.json({ replies });
 }
 

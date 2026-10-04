@@ -10,8 +10,10 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await auth.api.getSession({ headers: await headers() });
+    const excludeUserIds = session?.user?.id ? await db.getBlockedUserIds(session.user.id) : [];
     const { id: postId } = await params;
-    const replies = await db.listPostReplies(postId);
+    const replies = await db.listPostReplies(postId, excludeUserIds);
     return NextResponse.json({ replies });
   } catch (e) {
     console.error('[replies GET]', e);
