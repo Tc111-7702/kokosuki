@@ -46,6 +46,11 @@ export async function reverseGeocode(lat: number, lng: number, token: string): P
   }
 }
 
+/** 「梅田駅（地下鉄）」のように末尾の補足を除き、駅ラベル比較に使う文字列へ揃える。 */
+export function normalizeStationQuery(query: string): string {
+  return query.trim().replace(/（[^）]*）\s*$/u, '').replace(/\([^)]*\)\s*$/, '').trim();
+}
+
 // ─── 検索クエリの位置情報解決 ────────────────────────────────────────────────
 
 export interface ResolvedLocation {
@@ -54,6 +59,41 @@ export interface ResolvedLocation {
   resolvedGeoAddress: string;
   searchLocationType: 'station' | 'city' | 'prefecture' | 'address' | null;
   addressFilterText: string | null;
+}
+
+/**
+ * クエリが駅名そのもの（「梅田駅」「梅田駅（地下鉄）」）ならその駅座標を返す。
+ * 店名に駅名が含まれるだけの候補はここでは採用しない。
+ */
+async function resolveExactStation(
+  locationQuery: string,
+  coords: { lat: number; lng: number } | undefined,
+  token: string,
+): Promise<{ pos: { lat: number; lng: number }; address: string } | null> {
+  const normalized = normalizeStationQuery(locationQuery);
+  if (!normalized.endsWith('駅')) return null;
+  try {
+    const stRes = await fetch(`/api/station-suggest?q=${encodeURIComponent(normalized)}`);
+    const stData = await stRes.json();
+    const exact: { label: string; lat: number; lng: number }[] = (stData.suggestions ?? []).filter(
+      (s: { label: string }) => s.label === normalized,
+    );
+    if (exact.length === 0) return null;
+    const picked = coords
+      ? exact.reduce((best, s) => {
+          const d = (s.lat - coords.lat) ** 2 + (s.lng - coords.lng) ** 2;
+          const bd = (best.lat - coords.lat) ** 2 + (best.lng - coords.lng) ** 2;
+          return d < bd ? s : best;
+        })
+      : exact[0];
+    const addr = await reverseGeocode(picked.lat, picked.lng, token);
+    return {
+      pos: { lat: picked.lat, lng: picked.lng },
+      address: addr ? `${picked.label}（${addr}）` : picked.label,
+    };
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -73,13 +113,24 @@ export async function resolveLocation(
   let addressFilterText: string | null = null;
 
   if (locationQuery.trim()) {
+    const stationHit = await resolveExactStation(locationQuery, coords, token);
+    if (stationHit) {
+      resolvedPos = stationHit.pos;
+      resolvedGeoAddress = stationHit.address;
+      searchLocationType = 'station';
+    }
+
     const lat = currentPos?.lat ?? 0;
     const lng = currentPos?.lng ?? 0;
-    const res  = await fetch(`/api/spots/search?name=${encodeURIComponent(locationQuery)}&lat=${lat}&lng=${lng}`);
-    const data = await res.json();
+    const res  = stationHit
+      ? null
+      : await fetch(`/api/spots/search?name=${encodeURIComponent(locationQuery)}&lat=${lat}&lng=${lng}`);
+    const data = res ? await res.json() : { spot: null };
 
     if (data.spot) {
       resolvedSpot = data.spot as SpotDetail;
+    } else if (stationHit) {
+      // 駅名そのもの。店名に駅名が含まれるだけの店舗より優先する。
     } else if (coords) {
       resolvedPos = coords;
       searchLocationType = 'station';

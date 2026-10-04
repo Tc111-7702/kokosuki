@@ -1,12 +1,17 @@
 import { NextResponse } from 'next/server';
+import { headers } from 'next/headers';
+import { auth } from '@/lib/auth';
 import * as db from '@/lib/db';
 
-// GET /api/users/[userId]/summary — 公開プロフィール＋統計（誰でも閲覧可）
+// GET /api/users/[userId]/summary — ログイン中のみ
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ userId: string }> },
 ) {
   try {
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     const { userId } = await params;
     const summary = await db.getPublicUserSummary(userId);
     if (!summary) return NextResponse.json({ error: 'Not found' }, { status: 404 });

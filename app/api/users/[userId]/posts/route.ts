@@ -3,7 +3,7 @@ import * as db from '@/lib/db';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 
-// GET /api/users/[userId]/posts — 指定ユーザーの引いた！投稿一覧（公開・カード用）
+// GET /api/users/[userId]/posts — ログイン中のみ
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ userId: string }> },
@@ -11,7 +11,8 @@ export async function GET(
   try {
     const { userId } = await params;
     const session = await auth.api.getSession({ headers: await headers() });
-    const viewerId = session?.user?.id ?? null;
+    if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const viewerId = session.user.id;
 
     const rows = await db.getUserPosts(userId);
 

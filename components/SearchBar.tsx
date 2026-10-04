@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { MapPin, X, ArrowLeft } from 'lucide-react';
+import { normalizeStationQuery } from '@/map/geo';
 
 interface Suggestion {
   label: string;
@@ -72,7 +73,9 @@ export default function SearchBar({ onSearch, onClear, hasSearchResult, currentP
         );
         const contents: Suggestion[] = (contentData.suggestions ?? []);
 
-        const storeSugg = spots.slice(0, 10);
+        const stationQuery = normalizeStationQuery(v);
+        const queryIsStation = stations.some((s) => s.label === stationQuery);
+        const storeSugg = (queryIsStation ? [] : spots).slice(0, 10);
         const usedLabels = new Set(storeSugg.map(s => s.label));
         const locSugg = [
           ...storeSugg,

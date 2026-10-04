@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import stationsData from '@/map/japan-stations.json';
+import { normalizeStationQuery } from '@/map/geo';
 
 interface Station {
   name: string;
@@ -37,7 +38,7 @@ export async function GET(request: Request) {
   const q = (searchParams.get('q') ?? '').trim();
   if (!q) return NextResponse.json({ suggestions: [] });
 
-  const lower = q.toLowerCase();
+  const lower = normalizeStationQuery(q).toLowerCase();
   const cleanQ = lower.endsWith('駅') ? lower.slice(0, -1) : lower;
 
   const matched = stations.filter(s => {

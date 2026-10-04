@@ -16,6 +16,7 @@ interface SpotListPanelProps {
   contentSearchLabel: string | null;
   searchGachaIds: string[];
   filterGachaIds: string[];
+  onOpenStore?: (spotId: string, opts: { contentSearch?: string; noFilter?: boolean }) => void;
 }
 
 interface ListTheme {
@@ -194,7 +195,7 @@ function SectionHeader({
 
 export default function SpotListPanel({
   searchSpots, filterSpots, hasSearchResult, isFiltered,
-  contentSearchLabel, searchGachaIds, filterGachaIds,
+  contentSearchLabel, searchGachaIds, filterGachaIds, onOpenStore,
 }: SpotListPanelProps) {
   const router = useRouter();
   const theme = useListTheme();
@@ -203,9 +204,14 @@ export default function SpotListPanel({
   const filterSet = filterGachaIds.length > 0 ? new Set(filterGachaIds) : null;
 
   const navigateToStore = (spot: NearbySpot) => {
+    const contentSearch = contentSearchLabel ?? '';
+    if (onOpenStore) {
+      onOpenStore(spot.id, { contentSearch });
+      return;
+    }
     const base = `/store/${spot.id}`;
-    const url = contentSearchLabel
-      ? `${base}?contentSearch=${encodeURIComponent(contentSearchLabel)}`
+    const url = contentSearch
+      ? `${base}?contentSearch=${encodeURIComponent(contentSearch)}`
       : base;
     router.push(url);
   };
