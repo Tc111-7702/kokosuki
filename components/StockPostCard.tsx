@@ -142,9 +142,9 @@ export function StockPostCard({
 
   return (
     <article
-      className={(flushX ? "mx-0" : "mx-3") + " " + (compactY ? "my-1" : "my-2.5") + " post-card-shell px-4 py-3 rounded-2xl shadow-sm transition-shadow " + (interactive && onSelect ? "hover:shadow-md cursor-pointer" : "")}
+      className={(flushX ? "mx-0" : "mx-3") + " " + (compactY ? "my-1" : "my-2.5") + " post-card-shell px-4 py-3 rounded-2xl shadow-sm transition-shadow " + (interactive && onSelect && !isDiscontinued ? "hover:shadow-md cursor-pointer" : "")}
       style={shellStyle}
-      onClick={() => interactive && onSelect?.(post)}
+      onClick={() => interactive && !isDiscontinued && onSelect?.(post)}
     >
       {/* 上段: 画像 + メイン情報 */}
       <div className="flex gap-3 items-start">
@@ -216,22 +216,36 @@ export function StockPostCard({
               <span className="text-[10px] lg:text-xs leading-none px-1.5 py-0.5 lg:px-2 lg:py-1 rounded-full font-semibold border border-red-200 text-red-500 bg-red-50 flex-shrink-0">発売中止</span>
             )}
           </div>
-          <button
-            onClick={e => { e.stopPropagation(); router.push('/gacha/' + post.gacha.id); }}
-            className="group text-xs lg:text-sm font-bold text-gray-900 hover:text-blue-600 transition-colors text-left leading-snug line-clamp-2 pb-1 w-full"
-          >
-            <span className="underline underline-offset-[3px] decoration-gray-900 group-hover:decoration-blue-600 box-decoration-clone">
+          {/* 発売中止の在庫報告はガチャ名を詳細リンクにせず、ただのテキストにする */}
+          {isDiscontinued ? (
+            <div className="text-xs lg:text-sm font-bold text-gray-900 text-left leading-snug line-clamp-2 pb-1 w-full">
               {post.gacha.seriesName}
-            </span>
-          </button>
+            </div>
+          ) : (
+            <button
+              onClick={e => { e.stopPropagation(); router.push('/gacha/' + post.gacha.id); }}
+              className="group text-xs lg:text-sm font-bold text-gray-900 hover:text-blue-600 transition-colors text-left leading-snug line-clamp-2 pb-1 w-full"
+            >
+              <span className="underline underline-offset-[3px] decoration-gray-900 group-hover:decoration-blue-600 box-decoration-clone">
+                {post.gacha.seriesName}
+              </span>
+            </button>
+          )}
           <div className="flex items-center gap-1 mt-1">
             <MapPin size={11} className="text-gray-400 flex-shrink-0 lg:w-[13px] lg:h-[13px]" />
-            <button
-              onClick={e => { e.stopPropagation(); router.push('/map?spotId=' + post.spot.id); }}
-              className="text-[10px] lg:text-xs text-gray-400 font-normal hover:text-yellow-600 transition-colors text-left leading-tight"
-            >
-              {post.spot.name}
-            </button>
+            {/* 発売中止の在庫報告は店舗名を詳細リンクにせず、ただのテキストにする */}
+            {isDiscontinued ? (
+              <span className="text-[10px] lg:text-xs text-gray-400 font-normal text-left leading-tight">
+                {post.spot.name}
+              </span>
+            ) : (
+              <button
+                onClick={e => { e.stopPropagation(); router.push('/map?spotId=' + post.spot.id); }}
+                className="text-[10px] lg:text-xs text-gray-400 font-normal hover:text-yellow-600 transition-colors text-left leading-tight"
+              >
+                {post.spot.name}
+              </button>
+            )}
           </div>
         </div>
       </div>

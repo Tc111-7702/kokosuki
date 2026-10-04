@@ -108,9 +108,9 @@ export function PostCard({
 
   return (
     <article
-      className={(flushX ? 'mx-0' : 'mx-3') + ' ' + (compactY ? 'my-1' : 'my-2.5') + ' post-card-shell px-4 py-3 rounded-2xl shadow-sm transition-shadow ' + (interactive ? 'hover:shadow-md cursor-pointer' : '')}
+      className={(flushX ? 'mx-0' : 'mx-3') + ' ' + (compactY ? 'my-1' : 'my-2.5') + ' post-card-shell px-4 py-3 rounded-2xl shadow-sm transition-shadow ' + (interactive && !isDiscontinued ? 'hover:shadow-md cursor-pointer' : '')}
       style={shellStyle}
-      onClick={() => interactive && onSelect?.(post)}
+      onClick={() => interactive && !isDiscontinued && onSelect?.(post)}
     >
       <div className="relative mb-2">
         <div className="flex items-start gap-2.5 min-w-0 pr-5">
@@ -133,15 +133,22 @@ export function PostCard({
               </button>
               <span className="text-[10px] lg:text-xs text-gray-400 flex-shrink-0">{timeAgo(post.createdAt)}</span>
             </div>
-            <button
-              type="button"
-              onClick={e => { e.stopPropagation(); router.push('/gacha/' + post.gacha.id); }}
-              className="group text-xs lg:text-sm font-bold text-gray-900 hover:text-blue-600 transition-colors text-left leading-snug line-clamp-2 pb-1 w-full"
-            >
-              <span className="underline underline-offset-[3px] decoration-gray-900 group-hover:decoration-blue-600 box-decoration-clone">
+            {/* 発売中止の投稿はガチャ名を詳細リンクにせず、ただのテキストにする */}
+            {isDiscontinued ? (
+              <div className="text-xs lg:text-sm font-bold text-gray-900 text-left leading-snug line-clamp-2 pb-1 w-full">
                 {post.gacha.seriesName}
-              </span>
-            </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={e => { e.stopPropagation(); router.push('/gacha/' + post.gacha.id); }}
+                className="group text-xs lg:text-sm font-bold text-gray-900 hover:text-blue-600 transition-colors text-left leading-snug line-clamp-2 pb-1 w-full"
+              >
+                <span className="underline underline-offset-[3px] decoration-gray-900 group-hover:decoration-blue-600 box-decoration-clone">
+                  {post.gacha.seriesName}
+                </span>
+              </button>
+            )}
             {post.itemName && (
               <p className="text-[10px] lg:text-xs text-gray-400 mt-0.5 leading-tight">{post.itemName}</p>
             )}
@@ -207,12 +214,19 @@ export function PostCard({
       <div className="flex items-center justify-between pt-2 border-t border-gray-100">
         <div className="flex items-center gap-1 min-w-0">
           <MapPin size={11} className="text-gray-400 flex-shrink-0 lg:w-[13px] lg:h-[13px]" />
-          <button
-            onClick={e => { e.stopPropagation(); router.push('/map?spotId=' + post.spot.id); }}
-            className="text-[10px] lg:text-xs text-gray-400 font-normal hover:text-yellow-600 transition-colors text-left leading-tight truncate"
-          >
-            {post.spot.name}
-          </button>
+          {/* 発売中止の投稿は店舗名を詳細リンクにせず、ただのテキストにする */}
+          {isDiscontinued ? (
+            <span className="text-[10px] lg:text-xs text-gray-400 font-normal text-left leading-tight truncate">
+              {post.spot.name}
+            </span>
+          ) : (
+            <button
+              onClick={e => { e.stopPropagation(); router.push('/map?spotId=' + post.spot.id); }}
+              className="text-[10px] lg:text-xs text-gray-400 font-normal hover:text-yellow-600 transition-colors text-left leading-tight truncate"
+            >
+              {post.spot.name}
+            </button>
+          )}
         </div>
         {/* 発売中止の投稿は返信・いいねボタンを撤去（操作不可） */}
         {!isDiscontinued && (
