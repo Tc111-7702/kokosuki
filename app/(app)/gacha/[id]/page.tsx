@@ -403,20 +403,25 @@ export default function GachaDetailPage() {
         backdropFilter: isDark ? 'none' : 'blur(8px)',
         borderBottom: isDark ? '1px solid #262626' : 'none',
       }}>
-        <button onClick={() => router.back()} style={{
+        <button type="button" onClick={() => router.back()} aria-label="戻る" style={{
           width: 36, height: 36, borderRadius: 18, border: 'none',
           background: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0,0,0,0.07)',
           cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          <ArrowLeft size={18} color={isDark ? '#d4d4d4' : '#555'} />
+          <ArrowLeft size={18} color={isDark ? '#d4d4d4' : '#555'} aria-hidden="true" />
         </button>
-        <button onClick={handleLike} style={{
+        <button
+          type="button"
+          onClick={handleLike}
+          aria-pressed={liked}
+          aria-label={likeCount > 0 ? `お気に入り ${likeCount}件` : 'お気に入り'}
+          style={{
           height: 36, borderRadius: 18, border: 'none', padding: '0 12px',
           background: liked ? 'rgba(255,77,77,0.12)' : (isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0,0,0,0.07)'),
           cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5,
         }}>
-          <Heart size={18} fill={liked ? '#FF4D4D' : 'none'} color={liked ? '#FF4D4D' : (isDark ? '#d4d4d4' : '#555')} />
+          <Heart size={18} fill={liked ? '#FF4D4D' : 'none'} color={liked ? '#FF4D4D' : (isDark ? '#d4d4d4' : '#555')} aria-hidden="true" />
           {likeCount > 0 && (
             <span style={{ fontSize: 13, fontWeight: 700, color: liked ? '#FF4D4D' : (isDark ? '#d4d4d4' : '#555') }}>
               {likeCount}

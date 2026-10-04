@@ -14,9 +14,27 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.kokosuki.app';
+
 export const metadata: Metadata = {
+  metadataBase: new URL(appUrl),
   title: "ココスキ!",
-  description: "リアルタイム・ガチャ在庫マップ（UI/UXプロトタイプ）",
+  description: "リアルタイム・ガチャ在庫マップ",
+  applicationName: "ココスキ!",
+  manifest: "/manifest.json",
+  openGraph: {
+    title: "ココスキ!",
+    description: "リアルタイム・ガチャ在庫マップ",
+    siteName: "ココスキ!",
+    locale: "ja_JP",
+    type: "website",
+    url: appUrl,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ココスキ!",
+    description: "リアルタイム・ガチャ在庫マップ",
+  },
 };
 
 export default function RootLayout({

@@ -31,15 +31,15 @@ export async function POST(req: Request) {
   }
 
   try {
-    const mail = await runWithExternalMailDelivery(async () => {
+    await runWithExternalMailDelivery(async () => {
       const otp = await createSignInOtpForEmail(email);
       const result = await sendOtpEmail({ email, otp, type: 'sign-in' });
       finalizeMailDelivery(result);
-      return result;
     });
     const token = generateSignupPendingToken();
     const expiresAt = await upsertSignupPending(email, token);
-    const response = NextResponse.json({ success: true, mail, expiresAt: expiresAt.toISOString() });
+    // mail.mode / intendedTo は送信実装の内部情報なので応答に含めない。
+    const response = NextResponse.json({ success: true, expiresAt: expiresAt.toISOString() });
     response.cookies.set(SIGNUP_PENDING_COOKIE_NAME, token, signupPendingCookieOptions());
     return response;
   } catch (e) {

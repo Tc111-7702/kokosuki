@@ -5,7 +5,9 @@ import { LOGIN_FLOW_COOKIE_NAME } from '@/lib/loginFlowCookie';
 import { SIGNUP_PENDING_COOKIE_NAME } from '@/lib/signupPendingCookie';
 
 // (app) 配下のルート（ログイン必須）
-const APP_PREFIX = ['/home', '/mypage', '/map', '/feed', '/gacha'];
+const APP_PREFIX = ['/home', '/mypage', '/map', '/feed', '/gacha', '/settings', '/post', '/notifications'];
+// 未ログインでも開く公開ページ（ログイン／新規登録の同意リンク）
+const PUBLIC_APP_PATHS = ['/settings/terms', '/settings/privacy'];
 // (auth) 配下のルート（ログイン済みならアプリへ）
 const AUTH_PATHS = ['/login', '/signup'];
 
@@ -47,8 +49,11 @@ export function proxy(request: NextRequest) {
     );
   }
 
-  // ② アプリルート → 未ログインなら /login へ
-  if (APP_PREFIX.some((p) => pathname.startsWith(p))) {
+  // ② アプリルート → 未ログインなら /login へ（ブラウザ遷移前に from を残す）
+  const isPublicAppPath = PUBLIC_APP_PATHS.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`),
+  );
+  if (!isPublicAppPath && APP_PREFIX.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
     if (!hasSession) {
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('from', pathname); // ログイン後に元のページへ戻れるよう
@@ -92,6 +97,9 @@ export const config = {
     '/map/:path*',
     '/feed/:path*',
     '/gacha/:path*',
+    '/settings/:path*',
+    '/post/:path*',
+    '/notifications/:path*',
     '/login/:path*',
     '/signup/:path*',
     '/resetPassword/:path*',
