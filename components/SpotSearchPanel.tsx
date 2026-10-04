@@ -5,6 +5,7 @@ import { MapPin, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { fetchPostSpotSuggestions, type PostSpotSuggestion } from '@/lib/spotPostSuggest';
 import { POST_SPOT_STEP_NEXT_GAP, POST_STEP_NEXT_GAP } from '@/lib/layout';
+import { MAP_DEFAULT_CENTER } from '@/map/geo';
 
 // ─── 型 ────────────────────────────────────────────────────────────────
 
@@ -149,6 +150,25 @@ export function SpotSearchPanel({
     setNearbyOpen(false);
   };
 
+  const loadNearbyAt = async (lat: number, lng: number) => {
+    setUserPos({ lat, lng });
+    try {
+      const data = await fetch(
+        `/api/spots/nearby?lat=${lat}&lng=${lng}&gachaId=${encodeURIComponent(gachaId)}&limit=7`,
+      ).then(r => r.json());
+      const results: SpotResult[] = (data.spots ?? []).slice(0, 7).map(
+        (s: { id: string; name: string; address: string; distance?: number }) => ({
+          id: s.id, name: s.name, address: s.address, distance: s.distance,
+        }),
+      );
+      if (results.length === 0) setSpotMessage('店舗が見つかりませんでした');
+      else setSpots(results);
+    } catch {
+      setSpotMessage('取得に失敗しました');
+    }
+    setNearbyLoading(false);
+  };
+
   const handleNearbyToggle = () => {
     if (nearbyOpen) {
       setNearbyOpen(false);
@@ -165,29 +185,20 @@ export function SpotSearchPanel({
     setSuggestions([]);
     setSuggestFetched(false);
     setFocused(false);
+    if (!navigator.geolocation) {
+      void loadNearbyAt(MAP_DEFAULT_CENTER.lat, MAP_DEFAULT_CENTER.lng);
+      return;
+    }
     navigator.geolocation.getCurrentPosition(
-      async pos => {
-        const { latitude: lat, longitude: lng } = pos.coords;
-        setUserPos({ lat, lng });
-        try {
-          // 引いた!投稿は、距離に関わらず現在地から近い順に最大7店舗サジェストする
-          // （在庫報告の500m制約とは異なり、遠方でも候補を出す）。
-          const data = await fetch(
-            `/api/spots/nearby?lat=${lat}&lng=${lng}&radius=2000000&gachaId=${gachaId}&limit=7`,
-          ).then(r => r.json());
-          const results: SpotResult[] = (data.spots ?? []).slice(0, 7).map(
-            (s: { id: string; name: string; address: string; distance?: number }) => ({
-              id: s.id, name: s.name, address: s.address, distance: s.distance,
-            }),
-          );
-          if (results.length === 0) setSpotMessage('店舗が見つかりませんでした');
-          else setSpots(results);
-        } catch {
-          setSpotMessage('取得に失敗しました');
+      pos => { void loadNearbyAt(pos.coords.latitude, pos.coords.longitude); },
+      err => {
+        if (err.code === err.PERMISSION_DENIED) {
+          void loadNearbyAt(MAP_DEFAULT_CENTER.lat, MAP_DEFAULT_CENTER.lng);
+          return;
         }
+        setSpotMessage('現在地の取得に失敗しました');
         setNearbyLoading(false);
       },
-      () => { setSpotMessage('現在地の取得に失敗しました'); setNearbyLoading(false); },
       { maximumAge: 300000, timeout: 8000 },
     );
   };

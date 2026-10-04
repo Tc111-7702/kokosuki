@@ -13,20 +13,28 @@ function haversine(lat1: number, lng1: number, lat2: number, lng2: number): numb
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-// GET /api/spots/nearby?lat=X&lng=Y&radius=20000&gachaId=XXX
+// GET /api/spots/nearby?lat=X&lng=Y[&radius=20000][&gachaId=XXX][&limit=7]
+// radius を省略したときは範囲を切らず、現在地から近い順に limit 件（既定7）返す。
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const lat             = Number(searchParams.get('lat'));
   const lng             = Number(searchParams.get('lng'));
-  const radius          = Number(searchParams.get('radius') ?? '20000');
+  const radiusRaw       = searchParams.get('radius');
   const addressContains = searchParams.get('addressContains') ?? undefined;
   const gachaId         = searchParams.get('gachaId') ?? undefined;
-  const limitParam        = searchParams.get('limit');
+  const limitParam      = searchParams.get('limit');
 
   if (!lat || !lng) {
     return NextResponse.json({ error: 'lat と lng は必須です' }, { status: 400 });
   }
 
+  if (radiusRaw == null || radiusRaw === '') {
+    const limit = Math.min(Number(limitParam ?? '7') || 7, 50);
+    const spots = await db.findClosestSpots(lat, lng, limit, gachaId).catch(() => []);
+    return NextResponse.json({ spots });
+  }
+
+  const radius = Number(radiusRaw);
   const candidates = await db.findSpotsNearby(lat, lng, radius, addressContains).catch(() => []);
   let spots = candidates
     .map(({ machines, ...spot }) => ({

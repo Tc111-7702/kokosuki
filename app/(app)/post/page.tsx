@@ -165,8 +165,8 @@ function MobilePostPage({ initialMode, initialSpotId, initialSpotName, initialFi
       </div>
       <div style={{ flex: 1, overflowY: 'auto', background: pageBg }}>
         {isNormal
-          ? <NormalPostForm onDone={handleDone} initialSpotId={initialSpotId} initialSpotName={initialSpotName} initialFilterGachaIds={initialFilterGachaIds} initialSearch={initialSearch} />
-          : <StockPostForm  onDone={handleDone} initialSpotId={initialSpotId} initialSpotName={initialSpotName} initialFilterGachaIds={initialFilterGachaIds} initialSearch={initialSearch} />
+          ? <NormalPostForm onDone={handleDone} onExit={() => { if (initialMode) router.back(); else setPostType(null); }} initialSpotId={initialSpotId} initialSpotName={initialSpotName} initialFilterGachaIds={initialFilterGachaIds} initialSearch={initialSearch} />
+          : <StockPostForm  onDone={handleDone} onExit={() => { if (initialMode) router.back(); else setPostType(null); }} initialSpotId={initialSpotId} initialSpotName={initialSpotName} initialFilterGachaIds={initialFilterGachaIds} initialSearch={initialSearch} />
         }
       </div>
     </div>

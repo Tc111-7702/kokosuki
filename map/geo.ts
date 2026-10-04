@@ -1,5 +1,8 @@
 import type { SpotDetail } from '@/components/SpotDetailSheet';
 
+/** 位置情報が取れないときの初期地点（大阪・梅田周辺）。 */
+export const MAP_DEFAULT_CENTER = { lng: 135.4959, lat: 34.7025 };
+
 // ─── 都道府県庁所在地 ────────────────────────────────────────────────────────
 
 export const PREF_CAPITALS: Record<string, string> = {

@@ -46,7 +46,7 @@ const ACCENT = '#60A5FA';
 
 // ─── ステップヘッダー ──────────────────────────────────────────────────
 
-function StepHeader({ step, onBack }: { step: Step; onBack?: () => void }) {
+function StepHeader({ step }: { step: Step }) {
   const idx   = STEPS.indexOf(step);
   const total = STEPS.length;
   const isDark = useSyncExternalStore(
@@ -58,11 +58,6 @@ function StepHeader({ step, onBack }: { step: Step; onBack?: () => void }) {
   return (
     <div style={{ marginBottom: 20 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-        {onBack && (
-          <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-            <ChevronLeft size={22} color="#888" />
-          </button>
-        )}
         <span style={{ fontSize: 15, fontWeight: 700, color: stepTitleColor }}>{STEP_LABELS[step]}</span>
         <span style={{ marginLeft: 'auto', fontSize: 12, color: '#AAA' }}>{idx + 1} / {total}</span>
       </div>
@@ -453,10 +448,48 @@ const nextBtnStyle = (active: boolean, isDark: boolean): React.CSSProperties => 
   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
 });
 
+function StepNav({
+  onBack, onNext, nextDisabled = false, nextLabel, marginTop = 0, isDark, nextActive,
+  padding = '12px 0', radius = 12, fontSize = 14,
+}: {
+  onBack: () => void;
+  onNext: () => void;
+  nextDisabled?: boolean;
+  nextLabel?: React.ReactNode;
+  marginTop?: number;
+  isDark: boolean;
+  nextActive: boolean;
+  padding?: string;
+  radius?: number;
+  fontSize?: number;
+}) {
+  const shape = { padding, borderRadius: radius, fontSize, flex: 1 };
+  return (
+    <div style={{ display: 'flex', gap: 8, marginTop, width: '100%' }}>
+      <button type="button" onClick={onBack} style={{ ...backBtnStyle(isDark), ...shape }}>
+        <ChevronLeft size={14} /> 戻る
+      </button>
+      <button type="button" onClick={onNext} disabled={nextDisabled} style={{ ...nextBtnStyle(nextActive, isDark), ...shape }}>
+        {nextLabel ?? <>次へ <ChevronRight size={14} /></>}
+      </button>
+    </div>
+  );
+}
+
+const backBtnStyle = (isDark: boolean): React.CSSProperties => ({
+  border: 'none',
+  background: isDark ? '#525252' : '#9CA3AF',
+  color: 'white',
+  fontWeight: 800,
+  cursor: 'pointer',
+  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+});
+
 // ─── モバイル ステップフォーム ─────────────────────────────────────────
 
-export function StockPostForm({ onDone, initialSpotId = '', initialSpotName = '', initialFilterGachaIds = [], initialSearch = '' }: {
+export function StockPostForm({ onDone, onExit, initialSpotId = '', initialSpotName = '', initialFilterGachaIds = [], initialSearch = '' }: {
   onDone?: () => void;
+  onExit?: () => void;
   initialSpotId?: string;
   initialSpotName?: string;
   initialFilterGachaIds?: string[];
@@ -482,7 +515,7 @@ export function StockPostForm({ onDone, initialSpotId = '', initialSpotName = ''
 
   const goBack = () => {
     const idx = STEPS.indexOf(step);
-    if (idx <= 0) return;
+    if (idx <= 0) { onExit?.(); return; }
     const prev = STEPS[idx - 1];
     if (prev === 'spot' && initialSpotId) setStep(STEPS[idx - 2] ?? STEPS[0]);
     else setStep(prev);
@@ -544,10 +577,7 @@ export function StockPostForm({ onDone, initialSpotId = '', initialSpotName = ''
                 onSelect={(id, name, imgUrl) => {
                   setGachaId(id); setGachaName(name); setGachaImageUrl(imgUrl);
                 }} />
-              <button onClick={goNext} disabled={!gachaId}
-                style={{ ...nextBtnStyle(!!gachaId, isDark), marginTop: 32, width: '100%' }}>
-                次へ <ChevronRight size={14} />
-              </button>
+              <StepNav onBack={goBack} onNext={goNext} nextDisabled={!gachaId} marginTop={32} isDark={isDark} nextActive={!!gachaId} />
             </>
           ) : (
             <>
@@ -566,10 +596,7 @@ export function StockPostForm({ onDone, initialSpotId = '', initialSpotName = ''
                 }}
                 onResolvingChange={setGachaResolving}
               />
-              <button onClick={goNext} disabled={!gachaId || gachaResolving}
-                style={{ ...nextBtnStyle(!!gachaId && !gachaResolving, isDark), width: '100%' }}>
-                次へ <ChevronRight size={14} />
-              </button>
+              <StepNav onBack={goBack} onNext={goNext} nextDisabled={!gachaId || gachaResolving} isDark={isDark} nextActive={!!gachaId && !gachaResolving} />
             </>
           )}
         </>
@@ -577,7 +604,7 @@ export function StockPostForm({ onDone, initialSpotId = '', initialSpotName = ''
 
       {step === 'spot' && card(
         <>
-          <StepHeader step="spot" onBack={goBack} />
+          <StepHeader step="spot" />
           {spotId ? (
             <div style={{
               display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px',
@@ -596,16 +623,13 @@ export function StockPostForm({ onDone, initialSpotId = '', initialSpotName = ''
               onSelect={(id, name) => { setSpotId(id); setSpotName(name); }}
             />
           )}
-          <button onClick={goNext} disabled={!spotId}
-            style={{ ...nextBtnStyle(!!spotId, isDark), marginTop: 16, width: '100%' }}>
-            次へ <ChevronRight size={14} />
-          </button>
+          <StepNav onBack={goBack} onNext={goNext} nextDisabled={!spotId} marginTop={16} isDark={isDark} nextActive={!!spotId} />
         </>
       )}
 
       {step === 'stock' && card(
         <>
-          <StepHeader step="stock" onBack={goBack} />
+          <StepHeader step="stock" />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {STOCK_OPTIONS.map(opt => (
               <button key={opt.value}
@@ -621,16 +645,13 @@ export function StockPostForm({ onDone, initialSpotId = '', initialSpotName = ''
               </button>
             ))}
           </div>
-          <button onClick={goNext} disabled={!stockStatus}
-            style={{ ...nextBtnStyle(!!stockStatus, isDark), marginTop: 16, width: '100%' }}>
-            次へ <ChevronRight size={14} />
-          </button>
+          <StepNav onBack={goBack} onNext={goNext} nextDisabled={!stockStatus} marginTop={16} isDark={isDark} nextActive={!!stockStatus} />
         </>
       )}
 
       {step === 'confirm' && card(
         <>
-          <StepHeader step="confirm" onBack={goBack} />
+          <StepHeader step="confirm" />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
             {([
               ['ガチャ',   gachaName],
@@ -647,14 +668,17 @@ export function StockPostForm({ onDone, initialSpotId = '', initialSpotName = ''
             ))}
           </div>
           {error && <p style={{ color: '#E53E3E', fontSize: 13, marginBottom: 12 }}>{error}</p>}
-          <button onClick={submit} disabled={submitting}
-            style={{
-              width: '100%', padding: '14px 0', borderRadius: 14, border: 'none',
-              background: submitting ? '#ccc' : ACCENT, color: 'white',
-              fontSize: 15, fontWeight: 800, cursor: submitting ? 'not-allowed' : 'pointer',
-            }}>
-            {submitting ? '投稿中…' : '在庫情報を投稿する'}
-          </button>
+          <StepNav
+            onBack={goBack}
+            onNext={submit}
+            nextDisabled={submitting}
+            isDark={isDark}
+            nextActive={!submitting}
+            nextLabel={submitting ? '投稿中…' : '在庫情報を投稿する'}
+            padding="14px 0"
+            radius={14}
+            fontSize={15}
+          />
         </>
       )}
     </div>
