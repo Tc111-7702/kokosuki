@@ -17,6 +17,7 @@ import {
   type NearbySpot,
 } from '@/map/markers';
 import SpotListPanel from '@/components/SpotListPanel';
+import { StoreDetailView } from '@/components/StoreDetailView';
 import { MapLocationPermissionCard } from '@/components/MapLocationPermissionCard';
 import { makeCircleGeoJSON } from '@/map/geojson';
 import { MAP_DEFAULT_CENTER, reverseGeocode, resolveLocation, resolveContent, type ContentResult } from '@/map/geo';
@@ -53,10 +54,12 @@ export default function MapPage() {
   const [favoriteIps, setFavoriteIps]             = useState<string[]>([]);
   const [filterOpen, setFilterOpen]               = useState(false);
   const [filterGachaIds, setFilterGachaIds]       = useState<string[]>([]);
+  const [savedFilterIds, setSavedFilterIds]       = useState<string[]>([]);
   const [selectedSpot, setSelectedSpot]           = useState<SpotDetail | null>(null);
   const [searchOverrideIds, setSearchOverrideIds] = useState<string[] | null>(null);
   const [contentSearchLabel, setContentSearchLabel] = useState<string | null>(null);
   const [hasSearchResult, setHasSearchResult]     = useState(false);
+  const [storeOverlay, setStoreOverlay] = useState<{ id: string; contentSearch: string; noFilter: boolean } | null>(null);
   const [showList, setShowList]                   = useState(() =>
     typeof window !== 'undefined' && localStorage.getItem('kokosuki_map_show_list') === '1'
   );
@@ -418,6 +421,7 @@ export default function MapPage() {
         .then((r) => (r.ok ? r.json() : null))
         .then((d) => {
           const ids: string[] = Array.isArray(d?.gachaIds) ? d.gachaIds : [];
+          setSavedFilterIds(ids);
           if (ids.length === 0) return;
           setFilterGachaIds(ids);
           filterRef.current = ids;
@@ -616,15 +620,8 @@ export default function MapPage() {
     requestLocationPermission({ fly: true });
   }, [clearSearchResults, geoPermissionState, requestLocationPermission]);
 
-  const handleFilterApply = useCallback((ids: string[]) => {
+  const applyPageFilter = useCallback((ids: string[]) => {
     setFilterGachaIds(ids); filterRef.current = ids;
-    // DB(User.gachaFilterIds) を選択集合で置き換える。
-    fetch('/api/profile/gacha-filter', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ gachaIds: ids }),
-    }).catch(() => {});
-    // フィルター変更時はコンテンツ検索を終了してフィルターマーカーで置き換える
     clearSearchResults();
     const pos = tempSearchPosRef.current ?? currentPosRef.current;
     if (mapRef.current && pos) {
@@ -632,6 +629,29 @@ export default function MapPage() {
         { onSpotsLoaded: setFilterSpotList });
     }
   }, [clearSearchResults]);
+
+  const handleFilterApply = useCallback((ids: string[]) => {
+    setSavedFilterIds(ids);
+    applyPageFilter(ids);
+    // 「適用」だけ DB(User.gachaFilterIds) を選択集合で置き換える。
+    fetch('/api/profile/gacha-filter', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gachaIds: ids }),
+    }).catch(() => {});
+  }, [applyPageFilter]);
+
+  const handleClearFilter = useCallback(() => {
+    applyPageFilter([]);
+  }, [applyPageFilter]);
+
+  const openStoreDetail = useCallback((id: string, opts?: { contentSearch?: string; noFilter?: boolean }) => {
+    setStoreOverlay({
+      id,
+      contentSearch: opts?.contentSearch ?? '',
+      noFilter: opts?.noFilter ?? false,
+    });
+  }, []);
 
   const isFiltered = filterGachaIds.length > 0;
   // 未許可(denied)・未選択(prompt)のときにカードを表示（許可済み/確認中/未対応は非表示）
@@ -658,7 +678,7 @@ export default function MapPage() {
   }, [showLocationCard]);
 
   return (
-    <div className="flex flex-col w-full h-full">
+    <div className="relative flex flex-col w-full h-full">
       <div className="flex-shrink-0 z-10">
         <div className="flex flex-col gap-2 pt-4 pb-2"
           style={{ background: 'white', borderRadius: '0 0 20px 20px', boxShadow: '0 2px 16px rgba(0,0,0,0.10)' }}>
@@ -701,7 +721,7 @@ export default function MapPage() {
                 {isFiltered ? `フィルター中 (${filterGachaIds.length})` : 'フィルター'}
               </button>
               {isFiltered && (
-                <button onClick={() => handleFilterApply([])}
+                <button onClick={handleClearFilter}
                   className="text-[12px] px-3 py-1.5 rounded-full font-bold"
                   style={{ background: '#FFF0C0', color: '#B8860B' }}>
                   解除
@@ -742,6 +762,7 @@ export default function MapPage() {
             contentSearchLabel={contentSearchLabel}
             searchGachaIds={searchContentGachaIds}
             filterGachaIds={filterGachaIds}
+            onOpenStore={openStoreDetail}
           />
         )}
 
@@ -799,7 +820,7 @@ export default function MapPage() {
         onClose={() => setFilterOpen(false)}
         onApply={handleFilterApply}
         favoriteIps={favoriteIps}
-        currentGachaIds={filterGachaIds}
+        currentGachaIds={savedFilterIds}
       />
       {selectedSpot && (
         <SpotDetailSheet
@@ -811,9 +832,25 @@ export default function MapPage() {
           highlightGachaId={highlightGachaId}
           currentPos={currentPos}
           onClose={() => { setSelectedSpot(null); setSearchOverrideIds(null); }}
-          onClearFilter={() => handleFilterApply([])}
+          onClearFilter={handleClearFilter}
           onOpenFilter={() => setFilterOpen(true)}
+          onOpenStore={openStoreDetail}
         />
+      )}
+      {storeOverlay && (
+        <div className="absolute inset-0 z-[60] bg-[#F7F6F3]">
+          <StoreDetailView
+            key={`${storeOverlay.id}:${storeOverlay.contentSearch}:${storeOverlay.noFilter}`}
+            spotId={storeOverlay.id}
+            contentSearch={storeOverlay.contentSearch}
+            noFilter={storeOverlay.noFilter}
+            onClose={() => setStoreOverlay(null)}
+            onSavedFilterChange={(ids) => {
+              setSavedFilterIds(ids);
+              if (filterRef.current.length > 0) applyPageFilter(ids);
+            }}
+          />
+        </div>
       )}
     </div>
   );

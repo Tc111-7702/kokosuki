@@ -38,6 +38,7 @@ export function SpotGachaPicker({ spotId, filterGachaIds, onSelect, selectedId, 
   const [loading,         setLoading]         = useState(true);
   const [resolving,       setResolving]       = useState<string | null>(null);
   const [activeFilterIds, setActiveFilterIds] = useState<string[]>(filterGachaIds);
+  const [savedFilterIds, setSavedFilterIds] = useState<string[]>(filterGachaIds);
   const [filterOpen,      setFilterOpen]      = useState(false);
   const [query,           setQuery]           = useState(initialQuery);
   const [focused,         setFocused]         = useState(false);
@@ -51,6 +52,15 @@ export function SpotGachaPicker({ spotId, filterGachaIds, onSelect, selectedId, 
     [allGachas],
   );
   const showIpSuggest = focused && !query.trim() && ipSuggestions.length > 0;
+
+  useEffect(() => {
+    fetch('/api/profile/gacha-filter')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (Array.isArray(d?.gachaIds)) setSavedFilterIds(d.gachaIds);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     Promise.all([
@@ -258,9 +268,18 @@ export function SpotGachaPicker({ spotId, filterGachaIds, onSelect, selectedId, 
         <FilterDrawer
           isOpen={filterOpen}
           onClose={() => setFilterOpen(false)}
-          onApply={ids => { setActiveFilterIds(ids); setFilterOpen(false); }}
+          onApply={ids => {
+            setSavedFilterIds(ids);
+            setActiveFilterIds(ids);
+            setFilterOpen(false);
+            fetch('/api/profile/gacha-filter', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ gachaIds: ids }),
+            }).catch(() => {});
+          }}
           favoriteIps={[]}
-          currentGachaIds={activeFilterIds}
+          currentGachaIds={savedFilterIds}
         />
       )}
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>

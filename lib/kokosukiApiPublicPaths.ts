@@ -35,8 +35,6 @@ export function isPublicKokosukiApiPath(pathname: string, method: string): boole
   if (pathname === '/api/gacha/popular') return true;
   if (pathname === '/api/gacha/by-category') return true;
   if (pathname === '/api/users/search') return true;
-  if (/^\/api\/users\/[^/]+\/(summary|favorites)$/.test(pathname)) return true;
-  if (/^\/api\/users\/[^/]+\/(posts|stock-posts)$/.test(pathname)) return true;
   if (/^\/api\/posts\/[^/]+$/.test(pathname)) return true;
   if (/^\/api\/stock-posts\/[^/]+$/.test(pathname)) return true;
   if (/^\/api\/spots\/[^/]+\/reviews$/.test(pathname)) return true;

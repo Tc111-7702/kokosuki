@@ -39,6 +39,7 @@ interface SpotDetailSheetProps {
   onClose: () => void;
   onClearFilter?: () => void;
   onOpenFilter?: () => void;
+  onOpenStore?: (spotId: string, opts: { contentSearch?: string; noFilter?: boolean }) => void;
 }
 
 function haversineM(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -70,7 +71,7 @@ function toGachaItem(g: GachaInfo): GachaItem {
 
 export default function SpotDetailSheet({
   spot, gachaMap, filterGachaIds, searchOverrideIds, searchLabel,
-  highlightGachaId, currentPos, onClose, onClearFilter, onOpenFilter,
+  highlightGachaId, currentPos, onClose, onClearFilter, onOpenFilter, onOpenStore,
 }: SpotDetailSheetProps) {
   const router = useRouter();
   const sheetRef = useRef<HTMLDivElement>(null);
@@ -395,10 +396,16 @@ export default function SpotDetailSheet({
           <div className="px-4 pb-2 pt-3">
             <button
               onClick={() => {
+                const contentSearch = searchLabel ?? '';
+                const noFilter = filterGachaIds.length === 0;
+                if (onOpenStore) {
+                  onOpenStore(spot.id, { contentSearch, noFilter });
+                  return;
+                }
                 const base = '/store/' + spot.id;
                 const params = new URLSearchParams();
-                if (searchLabel) params.set('contentSearch', searchLabel);
-                if (filterGachaIds.length === 0) params.set('noFilter', '1');
+                if (contentSearch) params.set('contentSearch', contentSearch);
+                if (noFilter) params.set('noFilter', '1');
                 const qs = params.toString();
                 router.push(qs ? `${base}?${qs}` : base);
               }}
