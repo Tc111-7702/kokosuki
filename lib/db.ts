@@ -224,18 +224,14 @@ export const getBlockedUserIds = (userId: string) =>
     .findUnique({ where: { id: userId }, select: { blockedUserIds: true } })
     .then((r) => r?.blockedUserIds ?? []);
 
-export const setUserBlocked = (userId: string, targetId: string, blocked: boolean) =>
-  blocked
-    ? prisma.$executeRaw`
-        UPDATE "User"
-        SET "blockedUserIds" = array_append("blockedUserIds", ${targetId})
-        WHERE "id" = ${userId} AND NOT (${targetId} = ANY("blockedUserIds"))
-      `
-    : prisma.$executeRaw`
-        UPDATE "User"
-        SET "blockedUserIds" = array_remove("blockedUserIds", ${targetId})
-        WHERE "id" = ${userId}
-      `;
+export async function setUserBlocked(userId: string, targetId: string, blocked: boolean) {
+  const current = await getBlockedUserIds(userId);
+  const next = blocked
+    ? (current.includes(targetId) ? current : [...current, targetId])
+    : current.filter((id) => id !== targetId);
+  if (next.length === current.length) return;
+  await prisma.user.update({ where: { id: userId }, data: { blockedUserIds: next } });
+}
 
 // 新規登録など複数追加（既存 ∪ 新規）。
 export async function addGachasToFilter(userId: string, gachaIds: string[]) {
@@ -1453,13 +1449,56 @@ type FeedIdOpts = {
   // ガチャ詳細ページ用: そのガチャの投稿を出す画面なので gacha/machine の
   // status(on_sale/ended) で絞らない。home/店舗詳細では false（既定）。
   includeEnded?: boolean;
-  // ブロックしたユーザーの投稿はフィードに出さない。
+  // ブロックしたユーザーの投稿は、並びのあと Prisma で除いてから limit 件に揃える。
   excludeUserIds?: string[];
 };
 
+// ブロックした投稿者を Prisma で除き、見える投稿だけで offset/limit を数える。
+// 生の LIMIT のあとで落とすと、クライアントのオフセット（返した件数）と食い違って同じページを繰り返す。
+async function takeVisibleIds(
+  loadRaw: (limit: number, offset: number) => Promise<string[]>,
+  ownersOf: (ids: string[]) => Promise<Map<string, string>>,
+  excludeUserIds: string[] | undefined,
+  limit: number,
+  offset: number,
+): Promise<string[]> {
+  if (!excludeUserIds || excludeUserIds.length === 0) return loadRaw(limit, offset);
+  const blocked = new Set(excludeUserIds);
+  const visible: string[] = [];
+  let rawOffset = 0;
+  let skipped = 0;
+  const rawPage = Math.max(limit * 2, 30);
+  while (visible.length < limit) {
+    const ids = await loadRaw(rawPage, rawOffset);
+    if (ids.length === 0) break;
+    rawOffset += ids.length;
+    const owners = await ownersOf(ids);
+    for (const id of ids) {
+      const owner = owners.get(id);
+      if (owner && blocked.has(owner)) continue;
+      if (skipped < offset) {
+        skipped++;
+        continue;
+      }
+      visible.push(id);
+      if (visible.length === limit) return visible;
+    }
+    if (ids.length < rawPage) break;
+  }
+  return visible;
+}
+
+const stockPostOwners = (ids: string[]) =>
+  prisma.stockPost.findMany({ where: { id: { in: ids } }, select: { id: true, userId: true } })
+    .then((rows) => new Map(rows.map((r) => [r.id, r.userId])));
+
+const postOwners = (ids: string[]) =>
+  prisma.post.findMany({ where: { id: { in: ids } }, select: { id: true, userId: true } })
+    .then((rows) => new Map(rows.map((r) => [r.id, r.userId])));
+
 // 好み(いいねガチャ→同IP→その他)＋新着 の順に並べた「在庫」の ID を limit 件だけ返す。
 // 同一マシンは DISTINCT ON で最新のみに畳んでから並べる（15件に絞っても dedup で減らない）。
-export async function getFeedStockIds(opts: FeedIdOpts): Promise<string[]> {
+async function queryFeedStockIds(opts: FeedIdOpts): Promise<string[]> {
   const { spotId, gachaIds, likedGachaIds, likedIps, limit, offset, includeEnded } = opts;
   const freshSince = new Date(Date.now() - STOCK_FEED_FRESH_DAYS * 24 * 60 * 60 * 1000);
   const conds: Prisma.Sql[] = [
@@ -1472,9 +1511,6 @@ export async function getFeedStockIds(opts: FeedIdOpts): Promise<string[]> {
   }
   if (spotId) conds.push(Prisma.sql`sp."spotId" = ${spotId}`);
   if (gachaIds && gachaIds.length > 0) conds.push(Prisma.sql`sp."gachaId" = ANY(${gachaIds}::text[])`);
-  if (opts.excludeUserIds && opts.excludeUserIds.length > 0) {
-    conds.push(Prisma.sql`NOT (sp."userId" = ANY(${opts.excludeUserIds}::text[]))`);
-  }
   const rows = await prisma.$queryRaw<{ id: string }[]>`
     SELECT latest.id FROM (
       SELECT DISTINCT ON (sp."machineId") sp.id, sp."createdAt", sp."gachaId", ipn."name" AS "ipName"
@@ -1495,8 +1531,19 @@ export async function getFeedStockIds(opts: FeedIdOpts): Promise<string[]> {
   return rows.map(r => r.id);
 }
 
+export function getFeedStockIds(opts: FeedIdOpts): Promise<string[]> {
+  const { excludeUserIds, limit, offset } = opts;
+  return takeVisibleIds(
+    (rawLimit, rawOffset) => queryFeedStockIds({ ...opts, limit: rawLimit, offset: rawOffset }),
+    stockPostOwners,
+    excludeUserIds,
+    limit,
+    offset,
+  );
+}
+
 // 好み＋新着 の順に並べた「通常投稿」の ID を limit 件だけ返す（鮮度窓なし・dedupなし）。
-export async function getFeedPostIds(opts: FeedIdOpts): Promise<string[]> {
+async function queryFeedPostIds(opts: FeedIdOpts): Promise<string[]> {
   const { spotId, gachaIds, likedGachaIds, likedIps, limit, offset, includeEnded } = opts;
   const conds: Prisma.Sql[] = [];
   if (!includeEnded) {
@@ -1506,9 +1553,6 @@ export async function getFeedPostIds(opts: FeedIdOpts): Promise<string[]> {
   }
   if (spotId) conds.push(Prisma.sql`p."spotId" = ${spotId}`);
   if (gachaIds && gachaIds.length > 0) conds.push(Prisma.sql`p."gachaId" = ANY(${gachaIds}::text[])`);
-  if (opts.excludeUserIds && opts.excludeUserIds.length > 0) {
-    conds.push(Prisma.sql`NOT (p."userId" = ANY(${opts.excludeUserIds}::text[]))`);
-  }
   if (conds.length === 0) conds.push(Prisma.sql`TRUE`); // 空WHERE防止（通常は到達しない）
   const rows = await prisma.$queryRaw<{ id: string }[]>`
     SELECT p.id
@@ -1525,6 +1569,17 @@ export async function getFeedPostIds(opts: FeedIdOpts): Promise<string[]> {
     LIMIT ${limit} OFFSET ${offset}
   `;
   return rows.map(r => r.id);
+}
+
+export function getFeedPostIds(opts: FeedIdOpts): Promise<string[]> {
+  const { excludeUserIds, limit, offset } = opts;
+  return takeVisibleIds(
+    (rawLimit, rawOffset) => queryFeedPostIds({ ...opts, limit: rawLimit, offset: rawOffset }),
+    postOwners,
+    excludeUserIds,
+    limit,
+    offset,
+  );
 }
 
 // 2段目：ID 群の本体を include 付きで取得し、渡された ID 順に並べ直す。
