@@ -19,7 +19,7 @@ import {
 import SpotListPanel from '@/components/SpotListPanel';
 import { MapLocationPermissionCard } from '@/components/MapLocationPermissionCard';
 import { makeCircleGeoJSON } from '@/map/geojson';
-import { reverseGeocode, resolveLocation, resolveContent, type ContentResult } from '@/map/geo';
+import { MAP_DEFAULT_CENTER, reverseGeocode, resolveLocation, resolveContent, type ContentResult } from '@/map/geo';
 import { getGeolocationPermission, type GeolocationPermissionState } from '@/map/geolocationPermission';
 import { useExpireStaleStock } from '@/hooks/useExpireStaleStock';
 
@@ -105,6 +105,7 @@ export default function MapPage() {
   const requestLocationPermission = useCallback((opts?: { fly?: boolean }) => {
     if (!navigator.geolocation) {
       setGeoPermissionState('unsupported');
+      applyGeolocationPosition(MAP_DEFAULT_CENTER.lat, MAP_DEFAULT_CENTER.lng);
       return;
     }
     navigator.geolocation.getCurrentPosition(
@@ -116,6 +117,9 @@ export default function MapPage() {
       () => {
         setGeoPermissionState('denied');
         setLocationCardDismissed(false);
+        if (!currentPosRef.current) {
+          applyGeolocationPosition(MAP_DEFAULT_CENTER.lat, MAP_DEFAULT_CENTER.lng);
+        }
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
     );
@@ -123,7 +127,6 @@ export default function MapPage() {
 
   requestLocationPermissionRef.current = requestLocationPermission;
 
-  const [zoom, setZoom] = useState(14);
   const panTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const PAN_STEP    = 80;
 
@@ -459,11 +462,10 @@ export default function MapPage() {
     const map = new mapboxgl.Map({
       container: containerRef.current,
       style: 'mapbox://styles/mapbox/streets-v12',
-      center: [135.4959, 34.7025], // 位置情報が取れないときの初期地点（大阪・梅田周辺）
+      center: [MAP_DEFAULT_CENTER.lng, MAP_DEFAULT_CENTER.lat], // 位置情報が取れないときの初期地点（大阪・梅田周辺）
       zoom: 14, language: 'ja',
     });
     mapRef.current = map;
-    map.on('zoom', () => setZoom(Math.round(map.getZoom() * 2) / 2));
 
     // マップクリックでホバーポップアップをすべて閉じる
     map.on('click', closeAllMarkerPopups);
@@ -587,6 +589,8 @@ export default function MapPage() {
         setGeoPermissionState(perm);
         if (perm === 'granted') {
           requestLocationPermissionRef.current();
+        } else {
+          applyGeolocationPosition(MAP_DEFAULT_CENTER.lat, MAP_DEFAULT_CENTER.lng);
         }
       })();
     });
@@ -743,21 +747,18 @@ export default function MapPage() {
 
         {!showList && (
           <>
-            {/* ズームスライダー */}
-            <div className="absolute right-3 flex flex-col items-center gap-1"
-              style={{ top: '50%', transform: 'translateY(-50%)', zIndex: 10 }}>
+            <div className="absolute bottom-10 hidden md:flex flex-col items-center gap-2"
+              style={{ right: 60, zIndex: 10 }}>
               <button onClick={() => mapRef.current?.zoomIn({ duration: 200 })}
-                className="map-control-light w-9 h-9 rounded-full flex items-center justify-center text-lg font-bold shadow-md active:scale-90 transition-transform">+</button>
-              <input type="range" min={8} max={20} step={0.5} value={zoom} aria-label="地図のズーム"
-                onChange={e => { const z = parseFloat(e.target.value); setZoom(z); mapRef.current?.setZoom(z, { duration: 100 }); }}
-                className="zoom-slider map-zoom-slider appearance-none rounded-full cursor-pointer"
-                style={{ writingMode: 'vertical-lr', direction: 'rtl', width: 6, height: 120 }} />
+                aria-label="拡大"
+                className="map-control-light w-11 h-11 rounded-full flex items-center justify-center text-xl font-bold shadow-md active:scale-90 transition-transform">+</button>
               <button onClick={() => mapRef.current?.zoomOut({ duration: 200 })}
-                className="map-control-light w-9 h-9 rounded-full flex items-center justify-center text-lg font-bold shadow-md active:scale-90 transition-transform">-</button>
+                aria-label="縮小"
+                className="map-control-light w-11 h-11 rounded-full flex items-center justify-center text-xl font-bold shadow-md active:scale-90 transition-transform">-</button>
             </div>
 
             {/* 十字キー */}
-            <div className="absolute bottom-10 left-4 lg:left-8 grid gap-1"
+            <div className="absolute bottom-10 left-4 lg:left-8 hidden md:grid gap-1"
               style={{ gridTemplateColumns: 'repeat(3, 36px)', gridTemplateRows: 'repeat(3, 36px)', zIndex: 10 }}>
               <div />
               <button onMouseDown={() => startPan(0, -PAN_STEP)} onMouseUp={stopPan} onMouseLeave={stopPan}

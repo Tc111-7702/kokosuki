@@ -302,6 +302,71 @@ export function findSpotsNearby(lat: number, lng: number, radiusMeters: number, 
   });
 }
 
+/** 半径を切らず、発売中の取り扱いがある店舗を現在地から近い順に limit 件返す。gachaId があればそのガチャがある店舗だけ。 */
+export async function findClosestSpots(lat: number, lng: number, limit: number, gachaId?: string) {
+  const take = Math.min(Math.max(Math.floor(limit) || 7, 1), 50);
+  const gachaFilter = gachaId
+    ? Prisma.sql`AND m."gachaId" = ${gachaId}`
+    : Prisma.empty;
+  const rows = await prisma.$queryRaw<{
+    id: string;
+    name: string;
+    address: string;
+    lat: number;
+    lng: number;
+    phone: string | null;
+    googleMapsUrl: string | null;
+    distance: number;
+  }[]>`
+    SELECT s."id", s."name", s."address", s."lat", s."lng", s."phone", s."googleMapsUrl",
+      (6371000 * acos(LEAST(1.0, GREATEST(-1.0,
+        cos(radians(${lat})) * cos(radians(s."lat")) * cos(radians(s."lng") - radians(${lng}))
+        + sin(radians(${lat})) * sin(radians(s."lat"))
+      )))) AS distance
+    FROM "Spot" s
+    WHERE EXISTS (
+      SELECT 1 FROM "Machine" m
+      WHERE m."spotId" = s."id"
+        AND m."status" = 'on_sale'
+        ${gachaFilter}
+    )
+    ORDER BY distance ASC
+    LIMIT ${take}
+  `;
+  const ids = rows.map((row) => row.id);
+  const machines = ids.length === 0
+    ? []
+    : await prisma.machine.findMany({
+        where: { spotId: { in: ids }, status: 'on_sale' },
+        select: { spotId: true, gachaId: true, stockStatus: true },
+      });
+  const machinesBySpot = new Map<string, { gachaId: string; stockStatus: string | null }[]>();
+  for (const machine of machines) {
+    const list = machinesBySpot.get(machine.spotId) ?? [];
+    list.push(machine);
+    machinesBySpot.set(machine.spotId, list);
+  }
+  return rows.map((spot) => {
+    const spotMachines = machinesBySpot.get(spot.id) ?? [];
+    return {
+      id: spot.id,
+      name: spot.name,
+      address: spot.address,
+      lat: spot.lat,
+      lng: spot.lng,
+      phone: spot.phone,
+      googleMapsUrl: spot.googleMapsUrl,
+      gachaIds: spotMachines.map((machine) => machine.gachaId),
+      stockMap: Object.fromEntries(
+        spotMachines
+          .filter((machine) => machine.stockStatus)
+          .map((machine) => [machine.gachaId, machine.stockStatus as string]),
+      ),
+      distance: Math.round(Number(spot.distance)),
+    };
+  });
+}
+
 export const findSpotsWithGachaIslandId = () =>
   prisma.spot.findMany({ where: { gachaIslandId: { not: null } } });
 

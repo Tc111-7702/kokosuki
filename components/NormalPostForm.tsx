@@ -295,7 +295,7 @@ function ItemSelector({ items, value, onChange }: {
 
 // ─── ステップヘッダー（モバイル用） ─────────────────────────────────────
 
-function StepHeader({ step, onBack }: { step: Step; onBack?: () => void }) {
+function StepHeader({ step }: { step: Step }) {
   const idx = STEPS.indexOf(step);
   const isDark = useSyncExternalStore(
     subscribeTheme,
@@ -306,11 +306,6 @@ function StepHeader({ step, onBack }: { step: Step; onBack?: () => void }) {
   return (
     <div style={{ marginBottom: 20 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-        {onBack && (
-          <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-            <ChevronLeft size={22} color="#888" />
-          </button>
-        )}
         <span style={{ fontSize: 15, fontWeight: 700, color: stepTitleColor }}>{STEP_LABELS[step]}</span>
         <span style={{ marginLeft: 'auto', fontSize: 12, color: '#AAA' }}>{idx + 1} / {STEPS.length}</span>
       </div>
@@ -421,8 +416,9 @@ function MobileConfirmSummary({ form }: { form: FormState }) {
 
 // ─── モバイル：ステップ形式 ───────────────────────────────────────────────
 
-function MobileForm({ onDone, initialSpotId = '', initialSpotName = '', initialFilterGachaIds = [], initialSearch = '' }: {
+function MobileForm({ onDone, onExit, initialSpotId = '', initialSpotName = '', initialFilterGachaIds = [], initialSearch = '' }: {
   onDone?: () => void;
+  onExit?: () => void;
   initialSpotId?: string;
   initialSpotName?: string;
   initialFilterGachaIds?: string[];
@@ -448,7 +444,7 @@ function MobileForm({ onDone, initialSpotId = '', initialSpotName = '', initialF
   const set    = (p: Partial<FormState>) => setForm(f => ({ ...f, ...p }));
   const goBack = () => {
     const i = STEPS.indexOf(step);
-    if (i <= 0) return;
+    if (i <= 0) { onExit?.(); return; }
     const prev = STEPS[i - 1];
     // スポットが事前入力済みの場合は 'spot' ステップをスキップ
     if (prev === 'spot' && initialSpotId) setStep(STEPS[i - 2] ?? STEPS[0]);
@@ -501,10 +497,7 @@ function MobileForm({ onDone, initialSpotId = '', initialSpotName = '', initialF
               onSelect={(id, name, img, lineup) => {
                 set({ gachaId: id, gachaName: name, gachaImageUrl: img, gachaLineup: lineup });
               }} />
-            <button onClick={goNext} disabled={!form.gachaId}
-              style={{ ...nextBtnStyle(!!form.gachaId, isDark), marginTop: 32, width: '100%' }}>
-              次へ <ChevronRight size={14} />
-            </button>
+            <StepNav onBack={goBack} onNext={goNext} nextDisabled={!form.gachaId} marginTop={32} isDark={isDark} nextActive={!!form.gachaId} />
           </>
         ) : (
           <>
@@ -520,16 +513,13 @@ function MobileForm({ onDone, initialSpotId = '', initialSpotName = '', initialF
               }}
               onResolvingChange={setGachaResolving}
             />
-            <button onClick={goNext} disabled={!form.gachaId || gachaResolving}
-              style={{ ...nextBtnStyle(!!form.gachaId && !gachaResolving, isDark), width: '100%' }}>
-              次へ <ChevronRight size={14} />
-            </button>
+            <StepNav onBack={goBack} onNext={goNext} nextDisabled={!form.gachaId || gachaResolving} isDark={isDark} nextActive={!!form.gachaId && !gachaResolving} />
           </>
         )}
       </>)}
 
       {step === 'spot' && card(<>
-        <StepHeader step="spot" onBack={goBack} />
+        <StepHeader step="spot" />
         {form.spotId ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', background: '#FFFBE6', borderRadius: 12, marginBottom: 4 }}>
             <span style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1A', flex: 1 }}>{form.spotName}</span>
@@ -544,35 +534,26 @@ function MobileForm({ onDone, initialSpotId = '', initialSpotName = '', initialF
             accentColor="#F2B800"
             onSelect={(id, name) => { set({ spotId: id, spotName: name }); }} />
         )}
-        <button onClick={goNext} disabled={!form.spotId}
-          style={{ ...nextBtnStyle(!!form.spotId, isDark), marginTop: form.spotId ? POST_SPOT_STEP_NEXT_GAP : 0, width: '100%' }}>
-          次へ <ChevronRight size={14} />
-        </button>
+        <StepNav onBack={goBack} onNext={goNext} nextDisabled={!form.spotId} marginTop={form.spotId ? POST_SPOT_STEP_NEXT_GAP : 0} isDark={isDark} nextActive={!!form.spotId} />
       </>)}
 
       {step === 'result' && card(<>
-        <StepHeader step="result" onBack={goBack} />
+        <StepHeader step="result" />
         <ResultSelector value={form.result} onChange={v => set({ result: v })} />
-        <button onClick={goNext} disabled={!form.result}
-          style={{ ...nextBtnStyle(!!form.result, isDark), marginTop: 16, width: '100%' }}>
-          次へ <ChevronRight size={14} />
-        </button>
+        <StepNav onBack={goBack} onNext={goNext} nextDisabled={!form.result} marginTop={16} isDark={isDark} nextActive={!!form.result} />
       </>)}
 
       {step === 'item' && card(<>
-        <StepHeader step="item" onBack={goBack} />
+        <StepHeader step="item" />
         {/* 本文高さを予約し、次へを他ステップと同じく下部に配置。アイテムは内部スクロールなしで全表示。 */}
         <div style={{ minHeight: POST_STEP_CONTENT_BOTTOM }}>
           <ItemSelector items={form.gachaLineup} value={form.itemName} onChange={v => set({ itemName: v })} />
         </div>
-        <button onClick={goNext} disabled={!form.itemName}
-          style={{ ...nextBtnStyle(!!form.itemName, isDark), marginTop: POST_STEP_NEXT_GAP, width: '100%' }}>
-          次へ <ChevronRight size={14} />
-        </button>
+        <StepNav onBack={goBack} onNext={goNext} nextDisabled={!form.itemName} marginTop={POST_STEP_NEXT_GAP} isDark={isDark} nextActive={!!form.itemName} />
       </>)}
 
       {step === 'photo' && card(<>
-        <StepHeader step="photo" onBack={goBack} />
+        <StepHeader step="photo" />
         <ImageUploader
           value={form.imageUrl}
           onChange={url => set({ imageUrl: url })}
@@ -580,37 +561,34 @@ function MobileForm({ onDone, initialSpotId = '', initialSpotName = '', initialF
           matchFeedSize
           accentColor="#F2B800"
         />
-        <button
-          onClick={goNext}
-          disabled={imageUploading}
-          style={{ ...nextBtnStyle(!imageUploading, isDark), marginTop: 16, width: '100%' }}
-        >
-          次へ <ChevronRight size={14} />
-        </button>
+        <StepNav onBack={goBack} onNext={goNext} nextDisabled={imageUploading} marginTop={16} isDark={isDark} nextActive={!imageUploading} />
       </>)}
 
       {step === 'memo' && card(<>
-        <StepHeader step="memo" onBack={goBack} />
+        <StepHeader step="memo" />
         <textarea value={form.memo} onChange={e => set({ memo: e.target.value })}
           aria-label="本文" placeholder="本文を入力…" rows={4}
           style={{ width: '100%', padding: '12px 14px', borderRadius: 12, fontSize: 14,
                    border: '1.5px solid #EDE9D8', outline: 'none', resize: 'none', color: '#333', boxSizing: 'border-box' }} />
-        <button onClick={goNext} style={{ ...nextBtnStyle(true, isDark), marginTop: 16, width: '100%' }}>
-          確認へ <ChevronRight size={14} />
-        </button>
+        <StepNav onBack={goBack} onNext={goNext} marginTop={16} isDark={isDark} nextActive nextLabel={<>確認へ <ChevronRight size={14} /></>} />
       </>)}
 
       {step === 'confirm' && card(<>
-        <StepHeader step="confirm" onBack={goBack} />
+        <StepHeader step="confirm" />
         <MobileConfirmSummary form={form} />
         {error && <p style={{ color: '#E53E3E', fontSize: 13, marginBottom: 12 }}>{error}</p>}
-        <button onClick={submit} disabled={submitting}
-          style={{ width: '100%', padding: '14px 0', borderRadius: 14, border: 'none',
-                   background: submitting ? '#ccc' : '#F2B800', color: 'white',
-                   fontSize: 15, fontWeight: 800, cursor: submitting ? 'not-allowed' : 'pointer',
-                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-          {submitting ? '投稿中…' : '投稿する'}
-        </button>
+        <StepNav
+          onBack={goBack}
+          onNext={submit}
+          nextDisabled={submitting}
+          isDark={isDark}
+          nextActive={!submitting}
+          accent="#F2B800"
+          nextLabel={submitting ? '投稿中…' : '投稿する'}
+          padding="14px 0"
+          radius={14}
+          fontSize={15}
+        />
       </>)}
     </div>
   );
@@ -928,7 +906,45 @@ const nextBtnStyle = (active: boolean, isDark: boolean): React.CSSProperties => 
   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
 });
 
-function NormalPostForm(props: { onDone?: () => void; initialSpotId?: string; initialSpotName?: string; initialFilterGachaIds?: string[]; initialSearch?: string }) {
+function StepNav({
+  onBack, onNext, nextDisabled = false, nextLabel, marginTop = 0, isDark, nextActive,
+  accent = '#F2B800', padding = '12px 0', radius = 12, fontSize = 14,
+}: {
+  onBack: () => void;
+  onNext: () => void;
+  nextDisabled?: boolean;
+  nextLabel?: React.ReactNode;
+  marginTop?: number;
+  isDark: boolean;
+  nextActive: boolean;
+  accent?: string;
+  padding?: string;
+  radius?: number;
+  fontSize?: number;
+}) {
+  const shape = { padding, borderRadius: radius, fontSize, flex: 1 };
+  return (
+    <div style={{ display: 'flex', gap: 8, marginTop, width: '100%' }}>
+      <button type="button" onClick={onBack} style={{ ...backBtnStyle(isDark), ...shape }}>
+        <ChevronLeft size={14} /> 戻る
+      </button>
+      <button type="button" onClick={onNext} disabled={nextDisabled} style={{ ...nextBtnStyle(nextActive, isDark), ...shape, background: nextActive ? accent : isDark ? '#141414' : '#F0EDDF' }}>
+        {nextLabel ?? <>次へ <ChevronRight size={14} /></>}
+      </button>
+    </div>
+  );
+}
+
+const backBtnStyle = (isDark: boolean): React.CSSProperties => ({
+  border: 'none',
+  background: isDark ? '#525252' : '#9CA3AF',
+  color: 'white',
+  fontWeight: 800,
+  cursor: 'pointer',
+  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+});
+
+function NormalPostForm(props: { onDone?: () => void; onExit?: () => void; initialSpotId?: string; initialSpotName?: string; initialFilterGachaIds?: string[]; initialSearch?: string }) {
   return <MobileForm {...props} />;
 }
 export { NormalPostForm };

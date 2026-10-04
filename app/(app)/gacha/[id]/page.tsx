@@ -13,6 +13,7 @@ import { StockPostCard, type StockFeedPost } from '@/components/StockPostCard';
 import { InlineReplies } from '@/components/InlineReplies';
 import type { FeedPost } from '@/components/community-types';
 import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
+import { MAP_DEFAULT_CENTER } from '@/map/geo';
 
 const STATUS_LABEL: Record<string, string> = {
   on_sale: '発売中', coming_soon: '発売予定', ended: '終了',
@@ -283,27 +284,41 @@ export default function GachaDetailPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMobile]);
 
+  const fetchNearbyAt = async (lat: number, lng: number) => {
+    try {
+      const r = await fetch(
+        '/api/spots/nearby?lat=' + lat +
+        '&lng=' + lng +
+        '&gachaId=' + encodeURIComponent(id) +
+        '&limit=7'
+      );
+      const d = await r.json();
+      setNearbySpots(d.spots ?? []);
+    } catch {
+      setNearbyError('取得に失敗しました');
+    } finally {
+      setNearbyLoading(false);
+    }
+  };
+
   const doFetchNearby = () => {
     if (nearbySpots.length > 0) return;
     setNearbyLoading(true);
     setNearbyError(null);
+    if (!navigator.geolocation) {
+      void fetchNearbyAt(MAP_DEFAULT_CENTER.lat, MAP_DEFAULT_CENTER.lng);
+      return;
+    }
     navigator.geolocation.getCurrentPosition(
-      async ({ coords }) => {
-        try {
-          const r = await fetch(
-            '/api/spots/nearby?lat=' + coords.latitude +
-            '&lng=' + coords.longitude +
-            '&radius=20000&gachaId=' + id
-          );
-          const d = await r.json();
-          setNearbySpots(d.spots ?? []);
-        } catch {
-          setNearbyError('取得に失敗しました');
-        } finally {
-          setNearbyLoading(false);
+      ({ coords }) => { void fetchNearbyAt(coords.latitude, coords.longitude); },
+      (err) => {
+        if (err.code === err.PERMISSION_DENIED) {
+          void fetchNearbyAt(MAP_DEFAULT_CENTER.lat, MAP_DEFAULT_CENTER.lng);
+          return;
         }
+        setNearbyError('位置情報を取得できませんでした');
+        setNearbyLoading(false);
       },
-      () => { setNearbyError('位置情報を取得できませんでした'); setNearbyLoading(false); }
     );
   };
 
