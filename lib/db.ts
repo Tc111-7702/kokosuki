@@ -1,6 +1,7 @@
 import { PrismaClient, Prisma } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
+import { decodeHtmlEntities } from '@/lib/htmlEntities';
 
 export type ScrapeType = 'gacha' | 'phone';
 
@@ -617,11 +618,14 @@ export async function getTopGachaImageByIpNames(ipNames: string[]): Promise<Sign
 export const findGachaByWpPostId = (wpPostId: number) =>
   prisma.gacha.findUnique({ where: { wpPostId } });
 
-export const upsertGachaFromScraper = (data: GachaUpsertData) =>
-  prisma.gacha.upsert({
+export const upsertGachaFromScraper = (data: GachaUpsertData) => {
+  // WP の title.rendered / 商品内容 HTML は &amp; や &#8217; のまま届く。保存前に記号へ戻す。
+  const seriesName = decodeHtmlEntities(data.seriesName);
+  const lineup = data.lineup.map((item) => decodeHtmlEntities(item));
+  return prisma.gacha.upsert({
     where:  { wpPostId: data.wpPostId },
     update: {
-      seriesName:  data.seriesName,
+      seriesName,
       ipNameId:    data.ipNameId,
       genre:       data.genre,
       maker:       data.maker,
@@ -631,10 +635,10 @@ export const upsertGachaFromScraper = (data: GachaUpsertData) =>
       // status は on_sale→coming_soon に戻さない（スケジュールは on_sale をスキップするので上書きされない）
       status:      data.status,
       price:       data.price,
-      lineup:      data.lineup,
+      lineup,
     },
     create: {
-      seriesName:   data.seriesName,
+      seriesName,
       ipNameId:     data.ipNameId,
       category:     data.category,
       status:       data.status,
@@ -647,9 +651,10 @@ export const upsertGachaFromScraper = (data: GachaUpsertData) =>
       releaseDate:  data.releaseDate,
       sourceUrl:    data.sourceUrl,
       wpPostId:     data.wpPostId,
-      lineup:       data.lineup,
+      lineup,
     },
   });
+};
 
 /** 店舗スクレイパー: 今回店舗で見つかったガチャを在庫あり(発売中)に更新する（スイープの逆） */
 export const markGachasInStore = (ids: string[]) =>

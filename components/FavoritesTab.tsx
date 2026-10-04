@@ -108,15 +108,22 @@ export function FavoritesTab({
   };
 
   const cols = isMobile ? 2 : 4;
-  // ホームタブ(hideEnded)では発売終了ガチャを非表示。マイページは全件表示。
-  const visible = hideEnded ? gachas.filter(g => g.status !== 'ended') : gachas;
+  // ホームタブ(hideEnded)では発売終了ガチャを非表示。マイページは発売中を上、終了を下に並べる。
+  const onSale = gachas.filter(g => g.status !== 'ended');
+  const ended = gachas.filter(g => g.status === 'ended');
+  const visible = hideEnded ? onSale : [...onSale, ...ended];
+  const countLabel = loading
+    ? '…'
+    : hideEnded
+      ? `${visible.length}件`
+      : `販売中 ${onSale.length}件 / 全${gachas.length}件`;
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
       {/* ヘッダー行 */}
       <div className="flex items-center justify-between px-4 py-3">
         <span style={{ fontSize: 13, fontWeight: 700, color: '#555' }}>
-          {editable ? '引きたいもの' : 'お気に入り'} {loading ? '…' : `${visible.length}件`}
+          {hideEnded ? `${editable ? '引きたいもの' : 'お気に入り'} ${countLabel}` : countLabel}
         </span>
         {editable && !loading && visible.length > 0 && (
           <button

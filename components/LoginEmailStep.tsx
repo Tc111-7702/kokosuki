@@ -14,6 +14,7 @@ import {
 import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 import { containsFullWidth, FULLWIDTH_EMAIL_ERROR } from '@/lib/emailFullWidth';
 
+const NETWORK_ERROR = '通信エラーが発生しました。接続を確認して、もう一度お試しください。';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const LOCAL_PART_RE = /^[^\s@]+$/;
 
@@ -133,7 +134,7 @@ export function LoginEmailStep({
       );
       onSent?.(fullEmail, notice);
     } catch {
-      setError('認証コードの送信に失敗しました');
+      setError(NETWORK_ERROR);
     } finally {
       setSending(false);
     }
@@ -163,7 +164,7 @@ export function LoginEmailStep({
       }
       onPasswordLogin(fullEmail);
     } catch {
-      setError('メールアドレスの確認に失敗しました');
+      setError(NETWORK_ERROR);
     } finally {
       setVerifyingEmail(false);
     }
@@ -236,6 +237,8 @@ export function LoginEmailStep({
                 placeholder={suffix ? '例：cocosuki' : '例：cocosuki@example.com'}
                 disabled={busy}
                 autoComplete={suffix ? 'username' : 'email'}
+                aria-invalid={error ? true : undefined}
+                aria-describedby={error ? 'login-email-error' : undefined}
                 className={`login-email-input w-full h-[52px] rounded-2xl px-4 text-[15px] outline-none disabled:opacity-50${suffix ? ' login-email-input-suffix' : ' pr-11'}`}
               />
               {suffix ? (
@@ -262,7 +265,12 @@ export function LoginEmailStep({
             </div>
 
             {error ? (
-              <p className="text-[13px] font-bold -mt-1 text-center w-full" style={{ color: '#C4483C' }}>
+              <p
+                id="login-email-error"
+                role="alert"
+                className="text-[13px] font-bold -mt-1 text-center w-full"
+                style={{ color: '#C4483C' }}
+              >
                 {error}
               </p>
             ) : null}
