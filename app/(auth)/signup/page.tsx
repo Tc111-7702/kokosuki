@@ -7,7 +7,7 @@ import { SignupFavoriteStepHeader } from '@/components/SignupFavoriteStepHeader'
 import { ipGradient } from '@/components/SpotGachaCard';
 import { useAuthPrimaryButtonStyle } from '@/hooks/useAuthPrimaryButtonStyle';
 import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
-import { clearSignupGachaIds, setSignupGachaIds, setSignupIpNames } from '@/lib/signupFavorites';
+import { clearSignupGachaIds, getSignupFavorites, setSignupGachaIds, setSignupIpNames } from '@/lib/signupFavorites';
 
 type SignupIpItem = {
   ipName: string;
@@ -95,7 +95,11 @@ export default function SignupIpSelectPage() {
 
   const [defaultIps, setDefaultIps] = useState<SignupIpItem[]>([]);
   const [displayedIps, setDisplayedIps] = useState<SignupIpItem[]>([]);
-  const [selectedIps, setSelectedIps] = useState<Set<string>>(new Set());
+  // ガチャ選択ページから戻ってきたときに選択済みIPを復元する（sessionStorage）。
+  // これが無いと再訪時に選択が 0 件に見え、そのまま次へで空配列に上書きされてしまう。
+  const [selectedIps, setSelectedIps] = useState<Set<string>>(
+    () => new Set(getSignupFavorites()?.ipNames ?? []),
+  );
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
