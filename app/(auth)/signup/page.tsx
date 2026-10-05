@@ -196,12 +196,18 @@ export default function SignupIpSelectPage() {
   };
 
   const toggleIp = (ipName: string) => {
+    const nextSize = selectedIps.has(ipName) ? selectedIps.size - 1 : selectedIps.size + 1;
     setSelectedIps((prev) => {
       const next = new Set(prev);
       if (next.has(ipName)) next.delete(ipName);
       else next.add(ipName);
       return next;
     });
+    // 「選択中のみ」表示で最後の1件を外して0件になったら、自動的に解除して通常一覧へ戻す。
+    if (selectedOnly && nextSize === 0) {
+      setSelectedOnly(false);
+      setDisplayedIps(defaultIps);
+    }
   };
 
   const selectedCount = selectedIps.size;
