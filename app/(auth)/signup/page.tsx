@@ -256,7 +256,9 @@ export default function SignupIpSelectPage() {
                 type="button"
                 onClick={toggleSelectedOnly}
                 aria-pressed={selectedOnly}
-                className="absolute right-0 bottom-full mb-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] md:text-[14px] font-bold active:scale-95 transition-transform"
+                // 選択0件のときは押せない。ただし選択中のみ表示中は解除できるよう有効のままにする。
+                disabled={selectedCount === 0 && !selectedOnly}
+                className="absolute right-0 bottom-full mb-2 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[13px] md:text-[14px] font-bold active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
                 style={
                   selectedOnly
                     ? { background: '#FDECEA', border: '1px solid #C4483C', color: '#C4483C' }
