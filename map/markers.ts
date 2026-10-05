@@ -141,6 +141,12 @@ export function createMarkerEl(
 
 // ─── ピン配置（API 呼び出し + 地図反映） ────────────────────────────────────
 
+// 近隣スポット読み込みの世代カウンタ。複数の loadNearbySpots が並行しても
+// 「最後に呼ばれたもの」だけがマーカーを反映するようにする（古い応答が後から来て
+// 上書きするのを防ぐ）。例: 初期(梅田)の読み込みが遅く、位置情報許可後の現在地読み込みの
+// あとに解決して梅田ピンに戻ってしまう不具合の対策。
+let nearbyLoadSeq = 0;
+
 export async function loadNearbySpots(
   map: mapboxgl.Map,
   lat: number, lng: number,
@@ -156,6 +162,7 @@ export async function loadNearbySpots(
     onSpotsLoaded?: (spots: NearbySpot[]) => void;
   },
 ) {
+  const seq = ++nearbyLoadSeq;
   try {
     const radius = options?.radius ?? NEARBY_RADIUS;
     const addressFilter = options?.addressFilter;
@@ -165,6 +172,8 @@ export async function loadNearbySpots(
     if (!res.ok) return;
     const { spots }: { spots: NearbySpot[] } = await res.json();
 
+    // より新しい読み込みが始まっていたら、この(古い)応答ではマーカーを更新しない。
+    if (seq !== nearbyLoadSeq) return;
     if (!map.getContainer().isConnected) return;
 
     closeAllMarkerPopups();
