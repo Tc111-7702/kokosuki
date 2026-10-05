@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { Check, ChevronLeft, Search, X } from 'lucide-react';
+import { Check, ChevronLeft, Search, SlidersHorizontal, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { SignupFavoriteStepHeader } from '@/components/SignupFavoriteStepHeader';
 import { ipGradient } from '@/components/SpotGachaCard';
@@ -250,14 +250,20 @@ export default function SignupIpSelectPage() {
               >
                 <ChevronLeft size={28} strokeWidth={2} color={backIconColor} />
               </button>
-              {/* 検索バー右上: 「選択中のみ」トグル。ONで赤字＝解除ボタンになり、選択済みIPのみ表示。 */}
+              {/* 検索バー右上: 「選択中のみ」トグル。マップのフィルターボタンと同じ大きめのピルUI。
+                  色はそのまま（通常=黄 / 選択中のみ解除=赤）。ONで選択済みIPのみ表示。 */}
               <button
                 type="button"
                 onClick={toggleSelectedOnly}
                 aria-pressed={selectedOnly}
-                className="absolute right-0 bottom-full mb-2 text-[12px] md:text-[13px] font-bold active:opacity-70"
-                style={{ color: selectedOnly ? '#C4483C' : '#F2B800' }}
+                className="absolute right-0 bottom-full mb-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] md:text-[14px] font-bold active:scale-95 transition-transform"
+                style={
+                  selectedOnly
+                    ? { background: '#FDECEA', border: '1px solid #C4483C', color: '#C4483C' }
+                    : { background: '#FFF8E1', border: '1px solid #F2B800', color: '#F2B800' }
+                }
               >
+                <SlidersHorizontal size={15} />
                 {selectedOnly ? '選択中のみ解除' : '選択中のみ'}
               </button>
               <Search
