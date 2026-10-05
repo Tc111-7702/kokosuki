@@ -104,6 +104,12 @@ export default function SignupIpSelectPage() {
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 最新の入力値（stale な検索応答を弾くために参照する）。
+  const latestQueryRef = useRef('');
+  // 「選択中のみ」表示モード。ON の間は検索バーを無効化して選択済みIPだけ表示する。
+  const [selectedOnly, setSelectedOnly] = useState(false);
+  // 画像付きチップを「選択中のみ」で出せるよう、一度でも表示したIPの情報を控えておく。
+  const knownIpsRef = useRef<Map<string, SignupIpItem>>(new Map());
 
   useEffect(() => {
     let cancelled = false;
@@ -128,6 +134,14 @@ export default function SignupIpSelectPage() {
     return () => { cancelled = true; };
   }, []);
 
+  // 一度でも表示したIP（人気/検索結果）を控える。選択中のみ表示でも画像を出せるようにする。
+  useEffect(() => {
+    for (const it of defaultIps) knownIpsRef.current.set(it.ipName, it);
+  }, [defaultIps]);
+  useEffect(() => {
+    for (const it of displayedIps) knownIpsRef.current.set(it.ipName, it);
+  }, [displayedIps]);
+
   const runSearch = useCallback(async (value: string) => {
     const trimmed = value.trim();
     if (!trimmed) {
@@ -143,9 +157,18 @@ export default function SignupIpSelectPage() {
       });
       const res = await fetch(`/api/gacha/signup-ip-search?${params.toString()}`);
       const data = await res.json().catch(() => null);
+      // 応答が届いた時点で入力が空なら、直前の検索結果で上書きせずデフォルト一覧に戻す。
+      // （クリア直後に前回の検索が遅れて解決し、デフォルトに戻らない競合を防ぐ）
+      if (latestQueryRef.current.trim() === '') {
+        setDisplayedIps(defaultIps);
+        return;
+      }
+      // 入力が別のクエリに変わっていたら、この結果は古いので捨てる。
+      if (latestQueryRef.current.trim() !== trimmed) return;
       setDisplayedIps((data?.ips ?? []) as SignupIpItem[]);
     } catch {
-      setDisplayedIps([]);
+      if (latestQueryRef.current.trim() === '') setDisplayedIps(defaultIps);
+      else setDisplayedIps([]);
     } finally {
       setSearching(false);
     }
@@ -153,8 +176,23 @@ export default function SignupIpSelectPage() {
 
   const handleQueryChange = (value: string) => {
     setQuery(value);
+    latestQueryRef.current = value;
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => { void runSearch(value); }, 150);
+  };
+
+  const toggleSelectedOnly = () => {
+    setSelectedOnly((v) => {
+      const next = !v;
+      if (next) {
+        // 検索をクリアして、解除時に通常の一覧へ戻れるようにする。
+        setQuery('');
+        latestQueryRef.current = '';
+        if (timerRef.current) clearTimeout(timerRef.current);
+        setDisplayedIps(defaultIps);
+      }
+      return next;
+    });
   };
 
   const toggleIp = (ipName: string) => {
@@ -179,6 +217,13 @@ export default function SignupIpSelectPage() {
   const clearBtnBg = isDark ? '#2a2a2a' : '#d1d5db';
   const clearBtnIcon = isDark ? '#a3a3a3' : '#888888';
   const backIconColor = isDark ? '#ffffff' : '#111111';
+
+  // 「選択中のみ」表示用の一覧（控えておいた情報から画像付きで復元。無ければグラデ丸）。
+  const selectedOnlyIps: SignupIpItem[] = [...selectedIps].map(
+    (name) => knownIpsRef.current.get(name) ?? { ipName: name, imageUrl: null },
+  );
+  const gridIps = selectedOnly ? selectedOnlyIps : displayedIps;
+  const showLoading = !selectedOnly && (loading || searching);
 
   return (
     <div className="login-email-step signup-app-font font-sans flex flex-col min-h-[100dvh] max-md:h-[100dvh] max-md:overflow-hidden px-6 pt-4 max-md:pt-2 pb-8 max-md:pb-5 md:pb-10 bg-white">
@@ -205,11 +250,21 @@ export default function SignupIpSelectPage() {
               >
                 <ChevronLeft size={28} strokeWidth={2} color={backIconColor} />
               </button>
+              {/* 検索バー右上: 「選択中のみ」トグル。ONで赤字＝解除ボタンになり、選択済みIPのみ表示。 */}
+              <button
+                type="button"
+                onClick={toggleSelectedOnly}
+                aria-pressed={selectedOnly}
+                className="absolute right-0 bottom-full mb-2 text-[12px] md:text-[13px] font-bold active:opacity-70"
+                style={{ color: selectedOnly ? '#C4483C' : '#F2B800' }}
+              >
+                {selectedOnly ? '選択中のみ解除' : '選択中のみ'}
+              </button>
               <Search
                 size={18}
                 strokeWidth={2.25}
                 className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none"
-                style={{ color: '#94a3b8' }}
+                style={{ color: selectedOnly ? '#cbd5e1' : '#94a3b8' }}
               />
               <input
                 type="text"
@@ -217,13 +272,16 @@ export default function SignupIpSelectPage() {
                 value={query}
                 onChange={(e) => handleQueryChange(e.target.value)}
                 placeholder="キャラクター・IP検索"
-                className="login-email-input w-full h-[44px] md:h-[48px] rounded-2xl pl-11 pr-11 text-[16px] md:text-[14px] outline-none"
+                disabled={selectedOnly}
+                className="login-email-input w-full h-[44px] md:h-[48px] rounded-2xl pl-11 pr-11 text-[16px] md:text-[14px] outline-none disabled:opacity-50 disabled:cursor-not-allowed"
               />
-              {query ? (
+              {!selectedOnly && query ? (
                 <button
                   type="button"
                   onClick={() => {
                     setQuery('');
+                    latestQueryRef.current = '';
+                    if (timerRef.current) clearTimeout(timerRef.current);
                     setDisplayedIps(defaultIps);
                   }}
                   className="absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center active:opacity-60"
@@ -233,20 +291,29 @@ export default function SignupIpSelectPage() {
                   <X size={14} color={clearBtnIcon} strokeWidth={2.5} />
                 </button>
               ) : null}
+              {selectedOnly ? (
+                <p className="absolute top-full left-0 mt-1.5 text-[11px] md:text-[12px] font-bold" style={{ color: '#C4483C' }}>
+                  検索を使用するには選択中のみ解除を押してください
+                </p>
+              ) : null}
             </div>
 
           <div className="w-full flex-1 min-h-0 max-md:overflow-hidden md:flex-none md:overflow-visible mt-3 md:mt-3 max-md:pb-2 flex flex-col justify-center md:h-[358px] md:shrink-0">
             <div className="grid grid-cols-3 gap-x-2 gap-y-2.5 md:gap-x-3 md:gap-y-5 justify-items-center content-start w-full min-h-[242px] md:min-h-[358px] md:pt-1 md:-translate-y-1">
-              {loading || searching ? (
+              {showLoading ? (
                 <p className="col-span-3 text-[13px] text-center w-full" style={{ color: '#94a3b8' }}>
                   {loading ? '読み込み中…' : '検索中…'}
                 </p>
-              ) : displayedIps.length === 0 ? (
+              ) : gridIps.length === 0 ? (
                 <p className="col-span-3 text-[13px] text-center w-full" style={{ color: '#94a3b8' }}>
-                  {query.trim() ? '該当するIPが見つかりません' : '表示できるIPがありません'}
+                  {selectedOnly
+                    ? '選択中のIPがありません'
+                    : query.trim()
+                      ? '該当するIPが見つかりません'
+                      : '表示できるIPがありません'}
                 </p>
               ) : (
-                displayedIps.map((item) => (
+                gridIps.map((item) => (
                   <SignupIpCircle
                     key={item.ipName}
                     item={item}
