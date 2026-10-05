@@ -38,9 +38,9 @@ function SignupGachaIpNav({
         aria-label="前のIPを見る"
         className="p-0.5 active:opacity-60 disabled:opacity-30 disabled:cursor-not-allowed"
       >
-        <ChevronsLeft size={20} strokeWidth={2.5} />
+        <ChevronsLeft size={24} strokeWidth={2.5} />
       </button>
-      <span className="text-[12px] md:text-[15px] font-bold whitespace-nowrap">
+      <span className="text-[14px] md:text-[17px] font-bold whitespace-nowrap">
         ほかのIPを見る
       </span>
       <button
@@ -50,7 +50,7 @@ function SignupGachaIpNav({
         aria-label="次のIPを見る"
         className="p-0.5 active:opacity-60 disabled:opacity-30 disabled:cursor-not-allowed"
       >
-        <ChevronsRight size={20} strokeWidth={2.5} />
+        <ChevronsRight size={24} strokeWidth={2.5} />
       </button>
     </div>
   );
