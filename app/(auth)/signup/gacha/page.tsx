@@ -28,7 +28,7 @@ function SignupGachaIpNav({
 }) {
   return (
     <div
-      className="flex items-center justify-center gap-1 w-full"
+      className="flex items-center justify-end gap-1.5"
       style={{ color: '#64748b' }}
     >
       <button
@@ -38,9 +38,9 @@ function SignupGachaIpNav({
         aria-label="前のIPを見る"
         className="p-0.5 active:opacity-60 disabled:opacity-30 disabled:cursor-not-allowed"
       >
-        <ChevronsLeft size={14} strokeWidth={2.5} />
+        <ChevronsLeft size={20} strokeWidth={2.5} />
       </button>
-      <span className="text-[10px] md:text-[13px] font-bold whitespace-nowrap">
+      <span className="text-[12px] md:text-[15px] font-bold whitespace-nowrap">
         ほかのIPを見る
       </span>
       <button
@@ -50,7 +50,7 @@ function SignupGachaIpNav({
         aria-label="次のIPを見る"
         className="p-0.5 active:opacity-60 disabled:opacity-30 disabled:cursor-not-allowed"
       >
-        <ChevronsRight size={14} strokeWidth={2.5} />
+        <ChevronsRight size={20} strokeWidth={2.5} />
       </button>
     </div>
   );
@@ -169,6 +169,7 @@ export default function SignupGachaPage() {
             selectedCount={selectedCount}
             layout="gacha"
             onDesktopBack={onBack}
+            countSubLabel={activeIpName || undefined}
             countRowRight={
               showIpNav ? (
                 <SignupGachaIpNav

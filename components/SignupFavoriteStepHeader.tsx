@@ -12,6 +12,8 @@ interface Props {
   layout?: 'ip' | 'gacha';
   /** gacha: 「0件選択中」と同じ行の右側（例: ほかのIPを見る） */
   countRowRight?: ReactNode;
+  /** gacha: 「0件選択中」の下に表示する補助ラベル（例: 今見ているIP名） */
+  countSubLabel?: ReactNode;
   /** デスクトップ: タイトル左に戻るボタン */
   onDesktopBack?: () => void;
   /** ログイン用丸ゴシックを使う場合のみ true */
@@ -24,6 +26,7 @@ export function SignupFavoriteStepHeader({
   selectedCount,
   layout = 'gacha',
   countRowRight,
+  countSubLabel,
   onDesktopBack,
   useLoginFont = false,
 }: Props) {
@@ -65,18 +68,29 @@ export function SignupFavoriteStepHeader({
               いつでも追加できます
             </p>
             <div
-              className={`mt-3 md:mt-4 grid gap-3 md:gap-4 items-center w-full ${
+              className={`mt-3 md:mt-4 grid gap-3 md:gap-4 items-start w-full ${
                 countRowRight ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-1 md:grid-cols-4'
               }`}
             >
-              <p
-                className="text-[12px] md:text-[15px] font-bold text-left md:col-start-1"
-                style={{ color: titleColor }}
-              >
-                {selectedCount}件選択中
-              </p>
+              <div className="md:col-start-1 min-w-0">
+                <p
+                  className="text-[12px] md:text-[15px] font-bold text-left"
+                  style={{ color: titleColor }}
+                >
+                  {selectedCount}件選択中
+                </p>
+                {countSubLabel ? (
+                  <p
+                    className="mt-0.5 text-[11px] md:text-[14px] font-bold text-left truncate"
+                    style={{ color: titleColor }}
+                  >
+                    {countSubLabel}
+                  </p>
+                ) : null}
+              </div>
               {countRowRight ? (
-                <div className="flex justify-center min-w-0 md:col-start-4">{countRowRight}</div>
+                // 右端カラム（col-4）に右寄せ＝右矢印が右上のガチャカードの真上に来る。
+                <div className="flex justify-end md:col-start-4 md:col-span-1">{countRowRight}</div>
               ) : null}
             </div>
           </>
