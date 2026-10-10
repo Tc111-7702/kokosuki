@@ -9,6 +9,7 @@ import { InteractionProvider } from '@/components/InteractionStore';
 import { PostDetail } from '@/components/PostDetail';
 import { StockPostDetail } from '@/components/StockPostDetail';
 import { CommunitySearchBar } from '@/components/CommunitySearchBar';
+import { useGachaDetail } from '@/components/GachaDetailProvider';
 import { GachaAvatar } from '@/components/ui/GachaAvatar';
 import { TrendingSection, TrendingRow } from '@/components/ui/TrendingCard';
 
@@ -26,6 +27,7 @@ function RightSidebar({
   initialValue?: string;
 }) {
   const router = useRouter();
+  const { openGacha } = useGachaDetail();
   const [trendingGachas, setTrendingGachas] = useState<TrendingGacha[]>([]);
   const [trendingIPs,    setTrendingIPs]    = useState<TrendingIP[]>([]);
 
@@ -87,7 +89,7 @@ function RightSidebar({
                 title={g.seriesName}
                 subtitle={g.ipName}
                 likeCount={g.likeCount}
-                onClick={() => router.push(`/gacha/${g.id}`)}
+                onClick={() => openGacha(g.id)}
               />
             ))}
           </TrendingSection>
