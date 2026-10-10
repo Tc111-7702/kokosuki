@@ -86,7 +86,7 @@ export default function SpotDetailSheet({
     () => false,
   );
   const storeNameColor = isDark ? '#FFFFFF' : '#1a1a1a';
-  const sheetSectionBg = isDark ? '#0a0a0a' : '#FAFAFA';
+  const sheetSectionBg = isDark ? '#1e1e1e' : '#FAFAFA';
   const sheetBorderColor = isDark ? '#262626' : '#F0F0F0';
   const sheetMutedColor = isDark ? '#737373' : '#888888';
   const [expanded,    setExpanded]    = useState(false);

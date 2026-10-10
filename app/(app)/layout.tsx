@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import { PageNav } from '@/components/PageNav';
 import { BottomNav } from '@/components/BottomNav';
 import { SessionGuard } from '@/components/SessionGuard';
+import { GachaDetailProvider } from '@/components/GachaDetailProvider';
 import { useIsMobile } from '@/hooks/useIsMobile';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -15,21 +16,25 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     pathname.startsWith('/settings/') ||
     pathname.startsWith('/notifications/announcements/');
 
-  return isMobile ? (
-    <div className="flex flex-col h-[100dvh] bg-[#F7F6F3]">
-      <SessionGuard />
-      <main className="flex-1 overflow-hidden h-full">
-        {children}
-      </main>
-      {!hideNav && <BottomNav />}
-    </div>
-  ) : (
-    <div className="flex h-screen bg-[#F7F6F3]">
-      <SessionGuard />
-      {!hideNav && <PageNav />}
-      <main className="flex-1 overflow-hidden h-full">
-        {children}
-      </main>
-    </div>
+  return (
+    <GachaDetailProvider>
+      {isMobile ? (
+        <div className="flex flex-col h-[100dvh] bg-[#F7F6F3]">
+          <SessionGuard />
+          <main className="flex-1 overflow-hidden h-full">
+            {children}
+          </main>
+          {!hideNav && <BottomNav />}
+        </div>
+      ) : (
+        <div className="flex h-screen bg-[#F7F6F3]">
+          <SessionGuard />
+          {!hideNav && <PageNav />}
+          <main className="flex-1 overflow-hidden h-full">
+            {children}
+          </main>
+        </div>
+      )}
+    </GachaDetailProvider>
   );
 }

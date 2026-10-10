@@ -741,7 +741,9 @@ export default function MapPage() {
       </div>
 
       {/* マップ + オーバーレイコントロール */}
-      <div className={`flex-1 min-h-0 relative${showLocationCard ? ' map-location-card-open' : ''}`}>
+      {/* ヘッダーの角丸（下20px）の切り欠きにマップが映るよう、マップ領域を20px上に潜り込ませる */}
+      <div className={`flex-1 min-h-0 relative${showLocationCard ? ' map-location-card-open' : ''}`}
+        style={{ marginTop: -20 }}>
         <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
 
         {showLocationCard && (

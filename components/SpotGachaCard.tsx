@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useGachaDetail } from '@/components/GachaDetailProvider';
 
 // ─── 型定義（エクスポート） ──────────────────────────────────────────────────
 
@@ -66,7 +66,7 @@ interface SpotGachaCardProps {
 }
 
 export function SpotGachaCard({ gacha, stockStatus, isMobile = false, mode = 'scroll', highlight = false, compact = false }: SpotGachaCardProps) {
-  const router = useRouter();
+  const { openGacha } = useGachaDetail();
   const [from, to] = ipGradient(gacha.ipName);
 
   // scroll モード用サイズ
@@ -80,7 +80,7 @@ export function SpotGachaCard({ gacha, stockStatus, isMobile = false, mode = 'sc
 
   return (
     <div
-      onClick={() => router.push(`/gacha/${gacha.id}`)}
+      onClick={() => openGacha(gacha.id)}
       style={{
         ...(mode === 'scroll' ? { flexShrink: 0, width: cardW } : {}),
         borderRadius: radius,

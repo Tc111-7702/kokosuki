@@ -5,6 +5,7 @@ import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 import { MapPin, Heart, MessageCircle, MoreHorizontal } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useInteraction } from '@/components/InteractionStore';
+import { useGachaDetail } from '@/components/GachaDetailProvider';
 import { reportPath } from '@/lib/reportPath';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -84,6 +85,7 @@ export function StockPostCard({
   compactY?: boolean;
 }) {
   const router = useRouter();
+  const { openGacha } = useGachaDetail();
   const isDark = useSyncExternalStore(
     subscribeTheme,
     () => getThemeSnapshot() === 'dark',
@@ -223,7 +225,7 @@ export function StockPostCard({
             </div>
           ) : (
             <button
-              onClick={e => { e.stopPropagation(); router.push('/gacha/' + post.gacha.id); }}
+              onClick={e => { e.stopPropagation(); openGacha(post.gacha.id); }}
               className="group text-xs lg:text-sm font-bold text-gray-900 hover:text-blue-600 transition-colors text-left leading-snug line-clamp-2 pb-1 w-full"
             >
               <span className="underline underline-offset-[3px] decoration-gray-900 group-hover:decoration-blue-600 box-decoration-clone">

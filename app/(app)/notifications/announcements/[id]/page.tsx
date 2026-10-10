@@ -1,10 +1,11 @@
 'use client';
 import { useSetNavActive } from '@/lib/navActiveStore';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import { reloadUnreadNotificationCount } from '@/hooks/useUnreadNotificationCount';
+import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 
 interface AnnouncementDetail {
   id: string;
@@ -160,20 +161,29 @@ export default function AnnouncementDetailPage() {
   const router = useRouter();
   const params = useParams();
   const id = String(params.id ?? '');
+  const isDark = useSyncExternalStore(
+    subscribeTheme,
+    () => getThemeSnapshot() === 'dark',
+    () => false,
+  );
 
   return (
     <div className="flex flex-col h-full bg-[#F7F6F3]">
-      <header className="flex items-center gap-2 px-4 md:px-10 py-3 bg-white border-b border-gray-100 flex-shrink-0">
+      <header
+        className="flex items-center gap-2 px-4 md:px-10 bg-white flex-shrink-0"
+        style={{ height: 52, borderBottom: `1.5px solid ${isDark ? '#262626' : '#EDE9D8'}` }}
+      >
         <button
           type="button"
           onClick={() => router.push('/notifications?tab=everyone')}
-          className="flex items-center gap-1 pr-2 rounded-full hover:bg-gray-100 transition-colors text-gray-600 active:opacity-70"
+          className="flex items-center gap-1 text-[14px] font-bold px-2 py-1.5 rounded-lg active:opacity-70"
+          style={{ color: '#555' }}
           aria-label="もどる"
         >
-          <ArrowLeft size={20} />
-          <span className="text-[14px] font-bold">もどる</span>
+          <ChevronLeft size={20} />
+          もどる
         </button>
-        <h1 className="text-[16px] font-black text-gray-900">お知らせ</h1>
+        <h1 className="text-[16px] font-black" style={{ color: '#111' }}>お知らせ</h1>
       </header>
 
       <main className="flex-1 overflow-y-auto min-h-0 px-4 md:px-10 py-4 md:py-6">
