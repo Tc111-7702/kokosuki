@@ -244,6 +244,13 @@ html.dark [data-kokosuki-app] [style*="background: rgb(255, 255, 255)"]:not(.gac
   background-color: var(--app-surface) !important;
 }
 
+/* 店舗詳細シート: ダークモードでは真っ黒(#0a0a0a)だとマップ/周囲の面と見た目が重く
+   なりすぎるため、少しだけ明るいサーフェス色にして目立ちすぎないようにする。
+   （上の白→サーフェス一括ルールより詳細度を高くして上書きする） */
+html.dark [data-kokosuki-app] [data-spot-sheet][style*="background: white"]:not(.gacha-card-shell):not(.gacha-card-footer) {
+  background-color: #1e1e1e !important;
+}
+
 html.dark [data-kokosuki-app] [style*="background:#F4F1E4"],
 html.dark [data-kokosuki-app] [style*="background: #F4F1E4"],
 html.dark [data-kokosuki-app] [style*="background: rgb(244, 241, 228)"] {
@@ -817,6 +824,41 @@ html.dark [data-kokosuki-app] .reply-composer-input-shell .shell-field {
 html.dark [data-kokosuki-app] .reply-composer-input-shell textarea::placeholder,
 html.dark [data-kokosuki-app] .reply-composer-input-shell .placeholder-gray-400 {
   color: #737373 !important;
+}
+
+/* 店舗詳細シート内の口コミ入力: カード面(#1e1e1e)と同化してコントラストが消えるため、
+   少し暗い面にして入力欄を際立たせ、入力値は白色にする */
+html.dark [data-kokosuki-app] [data-spot-sheet] .reply-composer-input-shell {
+  background: #141414 !important;
+}
+html.dark [data-kokosuki-app] [data-spot-sheet] .reply-composer-input-shell .text-gray-800,
+html.dark [data-kokosuki-app] [data-spot-sheet] .reply-composer-input-shell .shell-field {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+/* 入力値は白だが、プレースホルダーは灰色のまま（上の text-fill-color 白を打ち消す） */
+html.dark [data-kokosuki-app] [data-spot-sheet] .reply-composer-input-shell textarea::placeholder {
+  color: #737373 !important;
+  -webkit-text-fill-color: #737373 !important;
+}
+/* 送信ボタン: アクティブ（入力あり）は黄色、非アクティブ（未入力）は灰色 */
+html.dark [data-kokosuki-app] [data-spot-sheet] .reply-composer-input-shell button:not(:disabled) {
+  color: #f2b800 !important;
+}
+html.dark [data-kokosuki-app] [data-spot-sheet] .reply-composer-input-shell button:disabled {
+  color: #737373 !important;
+}
+
+/* デスクトップ: 店舗カードの口コミ入力欄を「店舗の詳細を確認する」ボタン
+   （text-[13px] / py-2.5=10px）と同じフォントサイズ・余白に合わせる。
+   textarea（.shell-field）と高さ算出用のミラー div 両方に適用して高さを同期させる */
+@media (min-width: 768px) {
+  [data-kokosuki-app] [data-spot-sheet] .reply-composer-input-shell .shell-field,
+  [data-kokosuki-app] [data-spot-sheet] .reply-composer-input-shell div[aria-hidden="true"] {
+    font-size: 13px !important;
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+  }
 }
 
 html.dark [data-kokosuki-app] .reply-mention-dropdown {

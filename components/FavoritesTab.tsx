@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { X } from 'lucide-react';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { GachaCard } from '@/components/ui/GachaCard';
+import { useGachaDetail } from '@/components/GachaDetailProvider';
 
 interface FavoriteGacha {
   favoriteId: string;
@@ -33,7 +33,7 @@ function FavoriteCard({
   onDelete: () => void;
   isMobile: boolean;
 }) {
-  const router = useRouter();
+  const { openGacha } = useGachaDetail();
 
   return (
     <div
@@ -53,7 +53,7 @@ function FavoriteCard({
         variant="favorite"
         fullWidth
         showLike={false}
-        onClick={editing || gacha.status === 'ended' ? () => undefined : () => router.push(`/gacha/${gacha.id}`)}
+        onClick={editing || gacha.status === 'ended' ? () => undefined : () => openGacha(gacha.id)}
       />
       {editing ? (
         <button

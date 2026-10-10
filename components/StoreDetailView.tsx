@@ -499,7 +499,7 @@ export function StoreDetailView({
     <div style={{ height: '100%', background: sectionBg, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
       {/* ─── ヘッダー ─── */}
-      <div style={{ background: 'white', borderBottom: '1px solid #F0F0F0', flexShrink: 0 }}>
+      <div style={{ background: 'white', borderBottom: `1px solid ${sectionBorder}`, flexShrink: 0 }}>
         {isMobile ? (
           <>
             {/* モバイル: 1行目=戻る+店名 / 2行目=住所(小) / 3行目=現在地からの距離 + フィルター/解除 */}

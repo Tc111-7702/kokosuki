@@ -3,6 +3,7 @@
 import { useState, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, X } from 'lucide-react';
+import { useGachaDetail } from '@/components/GachaDetailProvider';
 
 interface Suggestion {
   id?: string;
@@ -60,6 +61,7 @@ export function HomeSearchBar({
   onDismissFilter,
 }: HomeSearchBarProps) {
   const router = useRouter();
+  const { openGacha } = useGachaDetail();
   const scopeSet = useMemo(
     () => (scopeGachaIds ? new Set(scopeGachaIds) : null),
     [scopeGachaIds],
@@ -117,7 +119,7 @@ export function HomeSearchBar({
     if (s.type === 'genre') {
       router.push(`/home/search?ipName=${encodeURIComponent(s.label)}&label=${encodeURIComponent(s.label)}`);
     } else if (s.id) {
-      router.push(`/gacha/${s.id}`);
+      openGacha(s.id);
     } else {
       resolveByQuery(s.label);
     }
@@ -138,7 +140,7 @@ export function HomeSearchBar({
         }
         applyFilter(ids, label);
       } else if (data.type === 'gacha' && data.gachaIds?.length > 0) {
-        router.push(`/gacha/${data.gachaIds[0]}`);
+        openGacha(data.gachaIds[0]);
       } else if (data.type === 'genre' && data.ipName) {
         const lbl = data.label ?? data.ipName;
         router.push(`/home/search?ipName=${encodeURIComponent(data.ipName)}&label=${encodeURIComponent(lbl)}`);

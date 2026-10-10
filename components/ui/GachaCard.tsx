@@ -1,7 +1,7 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { Heart } from 'lucide-react';
+import { useGachaDetail } from '@/components/GachaDetailProvider';
 import { useAppTheme } from '@/components/AppThemeProvider';
 import { useLikedGachas } from '@/hooks/useLikedGachas';
 import { SpotStockBadge } from '@/components/SpotGachaCard';
@@ -154,10 +154,10 @@ export function GachaCard({
   variant = 'default', fullWidth = false, stockStatus, highlight = false,
   likedOverride, onToggleLike, showIpName = true, showLike = true,
 }: GachaCardProps) {
-  const router = useRouter();
+  const { openGacha } = useGachaDetail();
   const { theme } = useAppTheme();
   const isDark = theme === 'dark';
-  const go = onClick ?? (() => router.push(`/gacha/${gacha.id}`));
+  const go = onClick ?? (() => openGacha(gacha.id));
 
   // おきにいりタブと同じ見た目のカード（正方形画像・左上バッジ・順位番号なし）
   if (variant === 'favorite') {
@@ -247,7 +247,7 @@ export function GachaCard({
   return (
     <div
       className={`gacha-card-shell${isDark ? ' gacha-card-shell--dark' : ''}`}
-      onClick={onClick ?? (() => router.push(`/gacha/${gacha.id}`))}
+      onClick={onClick ?? (() => openGacha(gacha.id))}
       style={{
         flexShrink: 0, width: cardW, borderRadius: radius, overflow: 'hidden',
         ...gachaCardShellStyle(isDark),

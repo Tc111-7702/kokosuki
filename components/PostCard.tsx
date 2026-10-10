@@ -7,6 +7,7 @@ import { PostImageFrame } from '@/components/PostImageFrame';
 import { MapPin, Heart, MessageCircle, MoreHorizontal } from 'lucide-react';
 import { type FeedPost } from '@/components/community-types';
 import { useInteraction } from '@/components/InteractionStore';
+import { useGachaDetail } from '@/components/GachaDetailProvider';
 import { Avatar, timeAgo } from '@/components/ui/Avatar';
 import { reportPath } from '@/lib/reportPath';
 
@@ -53,6 +54,7 @@ export function PostCard({
   compactY?: boolean;
 }) {
   const router = useRouter();
+  const { openGacha } = useGachaDetail();
   const isDark = useSyncExternalStore(
     subscribeTheme,
     () => getThemeSnapshot() === 'dark',
@@ -141,7 +143,7 @@ export function PostCard({
             ) : (
               <button
                 type="button"
-                onClick={e => { e.stopPropagation(); router.push('/gacha/' + post.gacha.id); }}
+                onClick={e => { e.stopPropagation(); openGacha(post.gacha.id); }}
                 className="group text-xs lg:text-sm font-bold text-gray-900 hover:text-blue-600 transition-colors text-left leading-snug line-clamp-2 pb-1 w-full"
               >
                 <span className="underline underline-offset-[3px] decoration-gray-900 group-hover:decoration-blue-600 box-decoration-clone">

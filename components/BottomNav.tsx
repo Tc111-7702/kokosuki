@@ -26,8 +26,8 @@ export function BottomNav() {
     () => getThemeSnapshot() === 'dark',
     () => false,
   );
-  const activeColor = isDark ? '#F2B800' : '#1A1A1A';
-  const inactiveColor = isDark ? '#FFFFFF' : '#C4C3C0';
+  const activeColor = isDark ? '#FFFFFF' : '#1A1A1A';
+  const inactiveColor = isDark ? '#737373' : '#C4C3C0';
   const navBorderColor = isDark ? '#262626' : '#EDE9D8';
 
   return (
