@@ -6,7 +6,7 @@ model Spot {
   address       String
   lat           Float
   lng           Float
-  googlePlaceId String?  @unique
+  googlePlaceId String?
   gachaIslandId Int?     @unique
   phone         String?
   googleMapsUrl String?
