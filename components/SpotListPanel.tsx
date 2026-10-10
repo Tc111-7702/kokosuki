@@ -205,15 +205,18 @@ export default function SpotListPanel({
 
   const navigateToStore = (spot: NearbySpot) => {
     const contentSearch = contentSearchLabel ?? '';
+    // フィルター状態（解除含む）を店舗詳細へ継承する。フィルター未適用＝解除中は noFilter=true。
+    const noFilter = !isFiltered;
     if (onOpenStore) {
-      onOpenStore(spot.id, { contentSearch });
+      onOpenStore(spot.id, { contentSearch, noFilter });
       return;
     }
     const base = `/store/${spot.id}`;
-    const url = contentSearch
-      ? `${base}?contentSearch=${encodeURIComponent(contentSearch)}`
-      : base;
-    router.push(url);
+    const params = new URLSearchParams();
+    if (contentSearch) params.set('contentSearch', contentSearch);
+    if (noFilter) params.set('noFilter', '1');
+    const qs = params.toString();
+    router.push(qs ? `${base}?${qs}` : base);
   };
 
   const showSearch = hasSearchResult && searchSpots.length > 0;

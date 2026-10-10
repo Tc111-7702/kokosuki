@@ -354,6 +354,10 @@ export default function MapPage() {
   // spotId パラメータ: フィルターリセット → スポットにフライ
   useEffect(() => {
     if (!spotIdParam) return;
+    // 「近くにある」等から spotId で遷移してきたら、開いている店舗詳細オーバーレイを閉じ、
+    // リスト表示中ならマップ表示に切り替える（対象スポットを地図上で見せるため）。
+    setStoreOverlay(null);
+    setShowList(false);
     setFilterGachaIds([]);
     filterRef.current = [];
     fetch(`/api/spots/${spotIdParam}`)
