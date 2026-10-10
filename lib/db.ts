@@ -105,16 +105,6 @@ export const prisma = new Proxy({} as PrismaClient, {
 
 // ─── 型定義 ──────────────────────────────────────────────────────────────────
 
-export interface SpotUpsertData {
-  name: string;
-  address: string;
-  lat: number;
-  lng: number;
-  googlePlaceId: string;
-  phone: string | null;
-  googleMapsUrl: string | null;
-}
-
 export interface GachaUpsertData {
   seriesName: string;
   ipNameId: string | null; // #19: スクレイプ時に解決した IpName の id（除外 ipName は null）
@@ -278,28 +268,6 @@ export const upsertSpotFromGachaIsland = (data: {
       address:       data.address,
       lat:           data.lat,
       lng:           data.lng,
-    },
-  });
-
-export const upsertSpot = (data: SpotUpsertData) =>
-  prisma.spot.upsert({
-    where:  { googlePlaceId: data.googlePlaceId },
-    update: {
-      name:          data.name,
-      address:       data.address,
-      lat:           data.lat,
-      lng:           data.lng,
-      phone:         data.phone,
-      googleMapsUrl: data.googleMapsUrl,
-    },
-    create: {
-      name:          data.name,
-      address:       data.address,
-      lat:           data.lat,
-      lng:           data.lng,
-      googlePlaceId: data.googlePlaceId,
-      phone:         data.phone,
-      googleMapsUrl: data.googleMapsUrl,
     },
   });
 
