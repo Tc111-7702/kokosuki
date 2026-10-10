@@ -395,9 +395,11 @@ export default function MapPage() {
       // 実際のシート上端を測る（シートは 46vh 指定で、モバイルSafariの vh と
       // window.innerHeight の差でズレるため、DOMから実測してフォールバックを持つ）。
       const sheetEl = document.querySelector('[data-spot-sheet]') as HTMLElement | null;
-      const sheetTopViewport = sheetEl
-        ? sheetEl.getBoundingClientRect().top
-        : window.innerHeight * 0.54;
+      const measuredTop = sheetEl ? sheetEl.getBoundingClientRect().top : window.innerHeight * 0.54;
+      // 展開状態のシートから「近くにある」等で別スポットへ遷移するとシートは縮小(46vh)するが、
+      // 縮小アニメーション中に計測すると上端が高すぎてピンがヘッダー裏に隠れる。
+      // 縮小後想定の下限にクランプして、常にヘッダーより下にピンを置く。
+      const sheetTopViewport = Math.max(measuredTop, window.innerHeight * 0.54 - 80);
       // 可視エリア（マップ上端〜シート上端）のちょうど中間にピンを置く
       const targetCanvasY = (sheetTopViewport - rect.top) / 2;
       const delta = point.y - targetCanvasY;
