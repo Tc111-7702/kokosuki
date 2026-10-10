@@ -466,9 +466,7 @@ export function GachaDetailView({ gachaId, onClose }: { gachaId: string; onClose
               ? <img src={gacha.imageUrl} alt={gacha.seriesName}
                   onLoad={(e) => { const img = e.currentTarget; if (img.naturalWidth > 0) setImgRatio(img.naturalHeight / img.naturalWidth); }}
                   style={{ width: '100%', objectFit: 'cover', display: 'block' }} />
-              : <div style={{ height: 320, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ fontSize: 48 }}>&#127920;</span>
-                </div>
+              : <div style={{ height: 320 }} />
             }
           </div>
           {tags}
@@ -492,9 +490,7 @@ export function GachaDetailView({ gachaId, onClose }: { gachaId: string; onClose
                 ? <img src={gacha.imageUrl} alt={gacha.seriesName}
                     onLoad={(e) => { const img = e.currentTarget; if (img.naturalWidth > 0) setImgRatio(img.naturalHeight / img.naturalWidth); }}
                     style={{ width: '100%', height: imgH || 'auto', objectFit: 'cover', display: 'block' }} />
-                : <div style={{ height: 480, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ fontSize: 48 }}>&#127920;</span>
-                  </div>
+                : <div style={{ height: 480 }} />
               }
             </div>
             <div style={{ flex: 1, minWidth: 240, paddingTop: 4, display: 'flex', flexDirection: 'column', gap: 12 }}>
