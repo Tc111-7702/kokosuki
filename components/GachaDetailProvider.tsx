@@ -2,6 +2,8 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { GachaDetailView } from '@/components/GachaDetailView';
+import { useIsMobile } from '@/hooks/useIsMobile';
+import { DESKTOP_PAGE_NAV_WIDTH } from '@/lib/layout';
 
 interface GachaDetailContextValue {
   openGacha: (id: string) => void;
@@ -23,6 +25,7 @@ export const useGachaDetail = () => useContext(GachaDetailContext);
  */
 export function GachaDetailProvider({ children }: { children: React.ReactNode }) {
   const [openId, setOpenId] = useState<string | null>(null);
+  const isMobile = useIsMobile(768);
 
   const openGacha = useCallback((id: string) => setOpenId(id), []);
   const closeGacha = useCallback(() => setOpenId(null), []);
@@ -39,7 +42,14 @@ export function GachaDetailProvider({ children }: { children: React.ReactNode })
     <GachaDetailContext.Provider value={{ openGacha, closeGacha }}>
       {children}
       {openId !== null && (
-        <div className="fixed inset-0 z-[100]" style={{ background: '#FFFFFF' }}>
+        // サイドバー(デスクトップ左)/ボトムバー(モバイル下)を隠さないよう、
+        // オーバーレイはナビを除いたコンテンツ領域だけに配置する。
+        <div
+          className="fixed z-[100]"
+          style={isMobile
+            ? { top: 0, left: 0, right: 0, bottom: 'calc(64px + env(safe-area-inset-bottom))', background: '#FFFFFF' }
+            : { top: 0, right: 0, bottom: 0, left: DESKTOP_PAGE_NAV_WIDTH, background: '#FFFFFF' }}
+        >
           <GachaDetailView gachaId={openId} onClose={closeGacha} />
         </div>
       )}
