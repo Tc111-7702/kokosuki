@@ -65,6 +65,8 @@ export default function MapPage() {
   const [contentSearchLabel, setContentSearchLabel] = useState<string | null>(null);
   const [hasSearchResult, setHasSearchResult]     = useState(false);
   const [storeOverlay, setStoreOverlay] = useState<{ id: string; contentSearch: string; noFilter: boolean; openReviewId?: string | null } | null>(null);
+  // 店舗詳細オーバーレイを閉じたら店舗カード(SpotDetailSheet)の口コミを最新化するためのトリガー。
+  const [reviewRefreshTick, setReviewRefreshTick] = useState(0);
   const [showList, setShowList]                   = useState(() =>
     typeof window !== 'undefined' && localStorage.getItem('kokosuki_map_show_list') === '1'
   );
@@ -854,6 +856,7 @@ export default function MapPage() {
           onClearFilter={handleClearFilter}
           onOpenFilter={() => setFilterOpen(true)}
           onOpenStore={openStoreDetail}
+          reviewRefreshTick={reviewRefreshTick}
         />
       )}
       {storeOverlay && (
@@ -864,7 +867,7 @@ export default function MapPage() {
             contentSearch={storeOverlay.contentSearch}
             noFilter={storeOverlay.noFilter}
             openReviewId={storeOverlay.openReviewId ?? null}
-            onClose={() => setStoreOverlay(null)}
+            onClose={() => { setStoreOverlay(null); setReviewRefreshTick(t => t + 1); }}
             onSavedFilterChange={(ids) => {
               setSavedFilterIds(ids);
               if (filterRef.current.length > 0) applyPageFilter(ids);
