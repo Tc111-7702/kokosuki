@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useNavActiveKey, type NavKey } from '@/lib/navActiveStore';
 import { useUnreadNotificationCount } from '@/hooks/useUnreadNotificationCount';
 import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
+import { useGachaDetail } from '@/components/GachaDetailProvider';
 
 const NAV_ITEMS: { path: string; key: NavKey | null; label: string; icon: React.ReactNode }[] = [
   { path: '/home',          key: 'home',          label: 'ホーム',     icon: <Home size={20} /> },
@@ -19,6 +20,9 @@ const POST_BG = '#FFCD31';        // 投稿ボタンの黄色
 
 export function BottomNav() {
   const router   = useRouter();
+  const { closeGacha } = useGachaDetail();
+  // ナビのタブを押したらガチャ詳細オーバーレイを閉じてから遷移する（店舗詳細はそのまま）。
+  const go = (path: string) => { closeGacha(); router.push(path); };
   const unread = useUnreadNotificationCount();
   const activeKey = useNavActiveKey();
   const isDark = useSyncExternalStore(
@@ -45,7 +49,7 @@ export function BottomNav() {
           return (
             <button
               key={item.path}
-              onClick={() => router.push(item.path)}
+              onClick={() => go(item.path)}
               className="flex-1 flex items-center justify-center transition-opacity active:opacity-60"
             >
               <span
@@ -64,7 +68,7 @@ export function BottomNav() {
         return (
           <button
             key={item.path}
-            onClick={() => router.push(item.path)}
+            onClick={() => go(item.path)}
             className="flex-1 flex flex-col items-center justify-center transition-opacity active:opacity-60"
           >
             <div className="flex flex-col items-center justify-center gap-0.5 px-4 py-1.5">
