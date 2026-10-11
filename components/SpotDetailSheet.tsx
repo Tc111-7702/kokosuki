@@ -40,6 +40,8 @@ interface SpotDetailSheetProps {
   onClearFilter?: () => void;
   onOpenFilter?: () => void;
   onOpenStore?: (spotId: string, opts: { contentSearch?: string; noFilter?: boolean }) => void;
+  /** 値が変わると口コミを再取得する（店舗詳細オーバーレイを閉じた時の最新化用）。 */
+  reviewRefreshTick?: number;
 }
 
 function haversineM(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -72,6 +74,7 @@ function toGachaItem(g: GachaInfo): GachaItem {
 export default function SpotDetailSheet({
   spot, gachaMap, filterGachaIds, searchOverrideIds, searchLabel,
   highlightGachaId, currentPos, onClose, onClearFilter, onOpenFilter, onOpenStore,
+  reviewRefreshTick,
 }: SpotDetailSheetProps) {
   const router = useRouter();
   const sheetRef = useRef<HTMLDivElement>(null);
@@ -125,7 +128,7 @@ export default function SpotDetailSheet({
       .then((d: { items: SheetReview[] }) => { if (!cancelled) setReviews(d.items ?? []); })
       .catch(() => {});
     return () => { cancelled = true; };
-  }, [spot?.id]);
+  }, [spot?.id, reviewRefreshTick]);
 
   const handleReviewSubmit = useCallback(async () => {
     if (!spot || !reviewText.trim() || submittingR) return;
