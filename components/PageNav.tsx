@@ -8,6 +8,7 @@ import { useUnreadNotificationCount } from '@/hooks/useUnreadNotificationCount';
 import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 import { KokosukiLogo } from '@/components/ui/KokosukiLogo';
 import { DESKTOP_PAGE_NAV_WIDTH } from '@/lib/layout';
+import { useGachaDetail } from '@/components/GachaDetailProvider';
 
 const NAV_ITEMS: { path: string; key: NavKey | null; label: string; icon: React.ReactNode }[] = [
   { path: '/home',          key: 'home',          label: 'ホーム',     icon: <Home size={20} /> },
@@ -21,6 +22,9 @@ const POST_BG = '#FFCD31';        // 投稿ボタンの黄色
 
 export function PageNav() {
   const router   = useRouter();
+  const { closeGacha } = useGachaDetail();
+  // ナビのタブを押したらガチャ詳細オーバーレイを閉じてから遷移する（店舗詳細はそのまま）。
+  const go = (path: string) => { closeGacha(); router.push(path); };
   const unread = useUnreadNotificationCount();
   const activeKey = useNavActiveKey();
   const isDark = useSyncExternalStore(
@@ -50,7 +54,7 @@ export function PageNav() {
             return (
               <button
                 key={item.path}
-                onClick={() => router.push(item.path)}
+                onClick={() => go(item.path)}
                 className="w-full flex items-center justify-center py-2 active:opacity-60"
               >
                 <span
@@ -69,7 +73,7 @@ export function PageNav() {
           return (
             <button
               key={item.path}
-              onClick={() => router.push(item.path)}
+              onClick={() => go(item.path)}
               className="w-full flex flex-col items-center justify-center gap-1 py-3 rounded-xl transition-all duration-200 active:opacity-60"
             >
               <span className="relative" style={{ color }}>
