@@ -106,7 +106,7 @@ function typeIcon(type: string) {
 // ・通常投稿/在庫報告への通知 → ホームの「みんな」でその投稿の返信詳細を開く
 function destinationUrl(n: NotificationItem): string | null {
   if (n.spotReviewId && n.spotId) {
-    return `/store/${n.spotId}?openReview=${n.spotReviewId}&noFilter=1`;
+    return `/map?storeId=${n.spotId}&openReview=${n.spotReviewId}&noFilter=1`;
   }
   if (n.postId) {
     return `/home?tab=community&openPost=${n.postId}&type=post`;
@@ -114,7 +114,7 @@ function destinationUrl(n: NotificationItem): string | null {
   if (n.stockPostId) {
     return `/home?tab=community&openPost=${n.stockPostId}&type=stock`;
   }
-  if (n.spotId) return `/store/${n.spotId}`;
+  if (n.spotId) return `/map?storeId=${n.spotId}`;
   return null;
 }
 

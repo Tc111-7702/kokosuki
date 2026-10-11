@@ -40,6 +40,8 @@ interface SpotDetailSheetProps {
   onClearFilter?: () => void;
   onOpenFilter?: () => void;
   onOpenStore?: (spotId: string, opts: { contentSearch?: string; noFilter?: boolean }) => void;
+  /** 値が変わると口コミを再取得する（店舗詳細オーバーレイを閉じた時の最新化用）。 */
+  reviewRefreshTick?: number;
 }
 
 function haversineM(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -72,6 +74,7 @@ function toGachaItem(g: GachaInfo): GachaItem {
 export default function SpotDetailSheet({
   spot, gachaMap, filterGachaIds, searchOverrideIds, searchLabel,
   highlightGachaId, currentPos, onClose, onClearFilter, onOpenFilter, onOpenStore,
+  reviewRefreshTick,
 }: SpotDetailSheetProps) {
   const router = useRouter();
   const sheetRef = useRef<HTMLDivElement>(null);
@@ -125,7 +128,7 @@ export default function SpotDetailSheet({
       .then((d: { items: SheetReview[] }) => { if (!cancelled) setReviews(d.items ?? []); })
       .catch(() => {});
     return () => { cancelled = true; };
-  }, [spot?.id]);
+  }, [spot?.id, reviewRefreshTick]);
 
   const handleReviewSubmit = useCallback(async () => {
     if (!spot || !reviewText.trim() || submittingR) return;
@@ -402,12 +405,10 @@ export default function SpotDetailSheet({
                   onOpenStore(spot.id, { contentSearch, noFilter });
                   return;
                 }
-                const base = '/store/' + spot.id;
-                const params = new URLSearchParams();
+                const params = new URLSearchParams({ storeId: spot.id });
                 if (contentSearch) params.set('contentSearch', contentSearch);
                 if (noFilter) params.set('noFilter', '1');
-                const qs = params.toString();
-                router.push(qs ? `${base}?${qs}` : base);
+                router.push(`/map?${params.toString()}`);
               }}
               className={`w-full flex items-center justify-center gap-1.5 py-2.5 rounded-2xl text-[13px] font-bold active:scale-95 transition-transform${isDark ? ' map-list-toggle-btn' : ''}`}
               style={isDark

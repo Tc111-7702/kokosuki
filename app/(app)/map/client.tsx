@@ -36,6 +36,11 @@ export default function MapPage() {
   const searchParams   = useSearchParams();
   const spotIdParam        = searchParams.get('spotId');
   const highlightGachaId   = searchParams.get('highlightGachaId') ?? undefined;
+  // 通知等から店舗詳細（StoreDetailView オーバーレイ）を開くためのパラメータ（旧 /store/[id] を置換）
+  const storeIdParam       = searchParams.get('storeId');
+  const openReviewParam    = searchParams.get('openReview');
+  const storeNoFilterParam = searchParams.get('noFilter') === '1';
+  const storeContentSearch = searchParams.get('contentSearch') ?? '';
   const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN!;
   mapboxgl.accessToken = mapboxToken;
   const containerRef     = useRef<HTMLDivElement>(null);
@@ -59,7 +64,9 @@ export default function MapPage() {
   const [searchOverrideIds, setSearchOverrideIds] = useState<string[] | null>(null);
   const [contentSearchLabel, setContentSearchLabel] = useState<string | null>(null);
   const [hasSearchResult, setHasSearchResult]     = useState(false);
-  const [storeOverlay, setStoreOverlay] = useState<{ id: string; contentSearch: string; noFilter: boolean } | null>(null);
+  const [storeOverlay, setStoreOverlay] = useState<{ id: string; contentSearch: string; noFilter: boolean; openReviewId?: string | null } | null>(null);
+  // 店舗詳細オーバーレイを閉じたら店舗カード(SpotDetailSheet)の口コミを最新化するためのトリガー。
+  const [reviewRefreshTick, setReviewRefreshTick] = useState(0);
   const [showList, setShowList]                   = useState(() =>
     typeof window !== 'undefined' && localStorage.getItem('kokosuki_map_show_list') === '1'
   );
@@ -382,6 +389,18 @@ export default function MapPage() {
       })
       .catch(() => {});
   }, [spotIdParam]);
+
+  // storeId パラメータ: 店舗詳細（StoreDetailView オーバーレイ）を開く（旧 /store/[id] の置換。
+  // 通知の口コミ返信リンク等から /map?storeId=...&openReview=... で到達する）。
+  useEffect(() => {
+    if (!storeIdParam) return;
+    setStoreOverlay({
+      id: storeIdParam,
+      contentSearch: storeContentSearch,
+      noFilter: storeNoFilterParam,
+      openReviewId: openReviewParam,
+    });
+  }, [storeIdParam, openReviewParam, storeNoFilterParam, storeContentSearch]);
 
   // スポット選択時: ピンをシートの直上に表示
   useEffect(() => {
@@ -843,16 +862,18 @@ export default function MapPage() {
           onClearFilter={handleClearFilter}
           onOpenFilter={() => setFilterOpen(true)}
           onOpenStore={openStoreDetail}
+          reviewRefreshTick={reviewRefreshTick}
         />
       )}
       {storeOverlay && (
         <div className="absolute inset-0 z-[60] bg-[#F7F6F3]">
           <StoreDetailView
-            key={`${storeOverlay.id}:${storeOverlay.contentSearch}:${storeOverlay.noFilter}`}
+            key={`${storeOverlay.id}:${storeOverlay.contentSearch}:${storeOverlay.noFilter}:${storeOverlay.openReviewId ?? ''}`}
             spotId={storeOverlay.id}
             contentSearch={storeOverlay.contentSearch}
             noFilter={storeOverlay.noFilter}
-            onClose={() => setStoreOverlay(null)}
+            openReviewId={storeOverlay.openReviewId ?? null}
+            onClose={() => { setStoreOverlay(null); setReviewRefreshTick(t => t + 1); }}
             onSavedFilterChange={(ids) => {
               setSavedFilterIds(ids);
               if (filterRef.current.length > 0) applyPageFilter(ids);
