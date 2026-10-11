@@ -402,12 +402,10 @@ export default function SpotDetailSheet({
                   onOpenStore(spot.id, { contentSearch, noFilter });
                   return;
                 }
-                const base = '/store/' + spot.id;
-                const params = new URLSearchParams();
+                const params = new URLSearchParams({ storeId: spot.id });
                 if (contentSearch) params.set('contentSearch', contentSearch);
                 if (noFilter) params.set('noFilter', '1');
-                const qs = params.toString();
-                router.push(qs ? `${base}?${qs}` : base);
+                router.push(`/map?${params.toString()}`);
               }}
               className={`w-full flex items-center justify-center gap-1.5 py-2.5 rounded-2xl text-[13px] font-bold active:scale-95 transition-transform${isDark ? ' map-list-toggle-btn' : ''}`}
               style={isDark
