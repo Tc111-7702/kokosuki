@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { GachaDetailView } from '@/components/GachaDetailView';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { DESKTOP_PAGE_NAV_WIDTH } from '@/lib/layout';
@@ -8,11 +8,14 @@ import { DESKTOP_PAGE_NAV_WIDTH } from '@/lib/layout';
 interface GachaDetailContextValue {
   openGacha: (id: string) => void;
   closeGacha: () => void;
+  /** ガチャ詳細が「開→閉」に遷移するたびに +1。お気に入り一覧の再取得トリガー用。 */
+  closeCount: number;
 }
 
 const GachaDetailContext = createContext<GachaDetailContextValue>({
   openGacha: () => {},
   closeGacha: () => {},
+  closeCount: 0,
 });
 
 /** ガチャ詳細をオーバーレイで開く。プロバイダ外（例: 新規登録フロー）では no-op。 */
@@ -25,10 +28,21 @@ export const useGachaDetail = () => useContext(GachaDetailContext);
  */
 export function GachaDetailProvider({ children }: { children: React.ReactNode }) {
   const [openId, setOpenId] = useState<string | null>(null);
+  const [closeCount, setCloseCount] = useState(0);
   const isMobile = useIsMobile(768);
 
   const openGacha = useCallback((id: string) => setOpenId(id), []);
   const closeGacha = useCallback(() => setOpenId(null), []);
+
+  // 「開→閉」の遷移を数える。お気に入り一覧（別fetch・カードにハート無し）は
+  // この値の変化を見て再取得し、ハートを外したガチャを消す。
+  const prevOpenRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (prevOpenRef.current !== null && openId === null) {
+      setCloseCount((c) => c + 1);
+    }
+    prevOpenRef.current = openId;
+  }, [openId]);
 
   // オーバーレイ表示中は背面のスクロールを止める。
   useEffect(() => {
@@ -39,7 +53,7 @@ export function GachaDetailProvider({ children }: { children: React.ReactNode })
   }, [openId]);
 
   return (
-    <GachaDetailContext.Provider value={{ openGacha, closeGacha }}>
+    <GachaDetailContext.Provider value={{ openGacha, closeGacha, closeCount }}>
       {children}
       {openId !== null && (
         // サイドバー(デスクトップ左)/ボトムバー(モバイル下)を隠さないよう、

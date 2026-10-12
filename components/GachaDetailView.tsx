@@ -13,6 +13,7 @@ import { StockPostCard, type StockFeedPost } from '@/components/StockPostCard';
 import { InlineReplies } from '@/components/InlineReplies';
 import type { FeedPost } from '@/components/community-types';
 import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
+import { setGachaLiked } from '@/hooks/useLikedGachas';
 import { MAP_DEFAULT_CENTER } from '@/map/geo';
 
 const STATUS_LABEL: Record<string, string> = {
@@ -343,6 +344,9 @@ export function GachaDetailView({ gachaId, onClose }: { gachaId: string; onClose
     const d = await res.json();
     setLiked(!!d.liked);
     setLikeCount(d.count ?? likeCount);
+    // 全カード共通の likedSet も同期する。
+    // これで見つける/ホーム検索の（非制御）カードのハートが即座に追従する。
+    setGachaLiked(id, !!d.liked);
   };
 
   // 店舗詳細（マップ）へ。オーバーレイを閉じてから遷移する。
