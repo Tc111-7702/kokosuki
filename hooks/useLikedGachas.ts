@@ -59,6 +59,12 @@ async function toggle(id: string) {
   }
 }
 
+// クライアント側の likedSet だけを即時更新する（サーバーは別経路で更新済みの時に使う）。
+// 例: お気に入りタブ/マイページで DELETE /api/gacha/favorites 後、全カードのハートを同期する。
+export function setGachaLiked(id: string, liked: boolean) {
+  apply(id, liked);
+}
+
 export function useLikedGachas() {
   const set = useSyncExternalStore(subscribe, () => likedSet, () => likedSet);
   return {

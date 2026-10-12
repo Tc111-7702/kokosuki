@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { useIsMobile } from '@/hooks/useIsMobile';
+import { setGachaLiked } from '@/hooks/useLikedGachas';
 import { GachaCard } from '@/components/ui/GachaCard';
 import { useGachaDetail } from '@/components/GachaDetailProvider';
 
@@ -103,6 +104,8 @@ export function FavoritesTab({
     try {
       await fetch(`/api/gacha/favorites/${gachaId}`, { method: 'DELETE' });
       setGachas(prev => prev.filter(g => g.id !== gachaId));
+      // 全カード共通の likedSet も同期（見つける等でハートが押されたまま残らないように）
+      setGachaLiked(gachaId, false);
     } catch {}
     setDeleting(prev => { const s = new Set(prev); s.delete(gachaId); return s; });
   };
