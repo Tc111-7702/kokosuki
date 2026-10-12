@@ -31,18 +31,19 @@ export function GachaDetailProvider({ children }: { children: React.ReactNode })
   const [closeCount, setCloseCount] = useState(0);
   const isMobile = useIsMobile(768);
 
-  const openGacha = useCallback((id: string) => setOpenId(id), []);
-  const closeGacha = useCallback(() => setOpenId(null), []);
-
-  // 「開→閉」の遷移を数える。お気に入り一覧（別fetch・カードにハート無し）は
-  // この値の変化を見て再取得し、ハートを外したガチャを消す。
-  const prevOpenRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (prevOpenRef.current !== null && openId === null) {
-      setCloseCount((c) => c + 1);
-    }
-    prevOpenRef.current = openId;
-  }, [openId]);
+  // 「開→閉」の遷移を数える（お気に入り一覧の再取得トリガー）。
+  // effect 内 setState は lint(set-state-in-effect) で弾かれるため、
+  // ref で現在の開閉を追い、実際に閉じたときだけイベントハンドラ側で +1 する。
+  const openIdRef = useRef<string | null>(null);
+  const openGacha = useCallback((id: string) => {
+    openIdRef.current = id;
+    setOpenId(id);
+  }, []);
+  const closeGacha = useCallback(() => {
+    if (openIdRef.current !== null) setCloseCount((c) => c + 1);
+    openIdRef.current = null;
+    setOpenId(null);
+  }, []);
 
   // オーバーレイ表示中は背面のスクロールを止める。
   useEffect(() => {
