@@ -88,6 +88,9 @@ export function FavoritesTab({
   const [deleting, setDeleting] = useState<Set<string>>(new Set());
   const MOBILE_BREAKPOINT = 768;
   const isMobile = useIsMobile(MOBILE_BREAKPOINT);
+  // ガチャ詳細オーバーレイが閉じるたびに変化する。閉じた時点で一覧を再取得し、
+  // 詳細側でハートを外したガチャをお気に入りから消す。
+  const { closeCount } = useGachaDetail();
 
   useEffect(() => {
     // 自分＝編集可の自分用API / 他人＝公開API
@@ -97,7 +100,7 @@ export function FavoritesTab({
       .then(d => setGachas(d.gachas ?? []))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [editable, userId]);
+  }, [editable, userId, closeCount]);
 
   const handleDelete = async (gachaId: string) => {
     setDeleting(prev => new Set(prev).add(gachaId));
