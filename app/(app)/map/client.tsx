@@ -706,7 +706,7 @@ export default function MapPage() {
     <div className="relative flex flex-col w-full h-full">
       <div className="flex-shrink-0 z-10">
         <div className="flex flex-col gap-2 pt-4 pb-2"
-          style={{ background: 'white', borderRadius: '0 0 20px 20px', boxShadow: '0 2px 16px rgba(0,0,0,0.10)' }}>
+          style={{ background: 'white', boxShadow: '0 2px 16px rgba(0,0,0,0.10)' }}>
 
           {/* タイトル行 */}
           <div className="flex items-center justify-between px-4">
@@ -766,9 +766,7 @@ export default function MapPage() {
       </div>
 
       {/* マップ + オーバーレイコントロール */}
-      {/* ヘッダーの角丸（下20px）の切り欠きにマップが映るよう、マップ領域を20px上に潜り込ませる */}
-      <div className={`flex-1 min-h-0 relative${showLocationCard ? ' map-location-card-open' : ''}`}
-        style={{ marginTop: -20 }}>
+      <div className={`flex-1 min-h-0 relative${showLocationCard ? ' map-location-card-open' : ''}`}>
         <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
 
         {showLocationCard && (
@@ -779,23 +777,18 @@ export default function MapPage() {
           />
         )}
 
-        {/* リストパネル（マップの上にオーバーレイ）。
-            親はヘッダー角丸の切り欠き用に marginTop:-20 で上へずれているため、
-            リストは top:20 でその分を打ち消し、ヘッダー下端に揃える
-            （これをしないとリスト内の sticky 見出しがフィルターバー裏に潜り込む）。 */}
+        {/* リストパネル（マップの上にオーバーレイ） */}
         {showList && (
-          <div className="absolute inset-x-0 bottom-0" style={{ top: 20 }}>
-            <SpotListPanel
-              searchSpots={searchSpotList}
-              filterSpots={filterSpotList}
-              hasSearchResult={hasSearchResult}
-              isFiltered={isFiltered}
-              contentSearchLabel={contentSearchLabel}
-              searchGachaIds={searchContentGachaIds}
-              filterGachaIds={filterGachaIds}
-              onOpenStore={openStoreDetail}
-            />
-          </div>
+          <SpotListPanel
+            searchSpots={searchSpotList}
+            filterSpots={filterSpotList}
+            hasSearchResult={hasSearchResult}
+            isFiltered={isFiltered}
+            contentSearchLabel={contentSearchLabel}
+            searchGachaIds={searchContentGachaIds}
+            filterGachaIds={filterGachaIds}
+            onOpenStore={openStoreDetail}
+          />
         )}
 
         {!showList && (
