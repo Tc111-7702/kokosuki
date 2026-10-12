@@ -441,23 +441,23 @@ export default function MapPage() {
 
     // フィルターは DB(User.gachaFilterIds) を唯一の情報源にする（localStorage 廃止）。
     // ハート/新規登録/フィルター適用でサーバー側が常に最新を保持しているため、取得して適用するだけ。
-    if (!skipFilter) {
-      fetch('/api/profile/gacha-filter')
-        .then((r) => (r.ok ? r.json() : null))
-        .then((d) => {
-          const ids: string[] = Array.isArray(d?.gachaIds) ? d.gachaIds : [];
-          setSavedFilterIds(ids);
-          if (ids.length === 0) return;
-          setFilterGachaIds(ids);
-          filterRef.current = ids;
-          if (currentPosRef.current && mapRef.current && !hasSearchResultRef.current && !spotIdModeRef.current) {
-            const { lat, lng } = currentPosRef.current;
-            loadNearbySpots(mapRef.current, lat, lng, spotMarkersRef, ids, gachaMapRef.current, setSelectedSpot,
-              { onSpotsLoaded: setFilterSpotList });
-          }
-        })
-        .catch(() => {});
-    }
+    // 保存フィルター(User.gachaFilterIds)は常に取得して、フィルタードロワーの選択表示に使う。
+    // spotId 遷移時（「近くにある」等）はマップへの自動適用だけ行わない（店舗を絞り込まず素のまま見せる）。
+    fetch('/api/profile/gacha-filter')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        const ids: string[] = Array.isArray(d?.gachaIds) ? d.gachaIds : [];
+        setSavedFilterIds(ids);
+        if (skipFilter || ids.length === 0) return;
+        setFilterGachaIds(ids);
+        filterRef.current = ids;
+        if (currentPosRef.current && mapRef.current && !hasSearchResultRef.current && !spotIdModeRef.current) {
+          const { lat, lng } = currentPosRef.current;
+          loadNearbySpots(mapRef.current, lat, lng, spotMarkersRef, ids, gachaMapRef.current, setSelectedSpot,
+            { onSpotsLoaded: setFilterSpotList });
+        }
+      })
+      .catch(() => {});
 
     // Supabase コールドスタート対策: 失敗時は最大3回リトライ
     const loadFilters = async (retries = 3): Promise<void> => {
