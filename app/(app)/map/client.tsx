@@ -779,18 +779,23 @@ export default function MapPage() {
           />
         )}
 
-        {/* リストパネル（マップの上にオーバーレイ） */}
+        {/* リストパネル（マップの上にオーバーレイ）。
+            親はヘッダー角丸の切り欠き用に marginTop:-20 で上へずれているため、
+            リストは top:20 でその分を打ち消し、ヘッダー下端に揃える
+            （これをしないとリスト内の sticky 見出しがフィルターバー裏に潜り込む）。 */}
         {showList && (
-          <SpotListPanel
-            searchSpots={searchSpotList}
-            filterSpots={filterSpotList}
-            hasSearchResult={hasSearchResult}
-            isFiltered={isFiltered}
-            contentSearchLabel={contentSearchLabel}
-            searchGachaIds={searchContentGachaIds}
-            filterGachaIds={filterGachaIds}
-            onOpenStore={openStoreDetail}
-          />
+          <div className="absolute inset-x-0 bottom-0" style={{ top: 20 }}>
+            <SpotListPanel
+              searchSpots={searchSpotList}
+              filterSpots={filterSpotList}
+              hasSearchResult={hasSearchResult}
+              isFiltered={isFiltered}
+              contentSearchLabel={contentSearchLabel}
+              searchGachaIds={searchContentGachaIds}
+              filterGachaIds={filterGachaIds}
+              onOpenStore={openStoreDetail}
+            />
+          </div>
         )}
 
         {!showList && (
