@@ -6,6 +6,7 @@ import { ChevronDown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 import { SignupProfileFieldStep } from '@/components/SignupProfileFieldStep';
+import { validateBirthDateAge } from '@/lib/birthDate';
 import {
   isSignupPendingSessionExpiredResponse,
   redirectOnSignupPendingExpired,
@@ -17,6 +18,9 @@ function formatBirthDateDisplay(iso: string): string {
   if (!year || !month || !day) return iso;
   return `${year} / ${month} / ${day}`;
 }
+
+const DEFAULT_BIRTHDATE_DESCRIPTION =
+  '生年月日は公開されません。また登録変更することができません。';
 
 // 新規登録: 生年月日入力（旧 SignupBirthDateStep を直書き）。
 export default function SignupBirthDatePage() {
@@ -32,10 +36,11 @@ export default function SignupBirthDatePage() {
   });
   const inputRef = useRef<HTMLInputElement>(null);
   const [birthDate, setBirthDate] = useState('');
+  const [ageError, setAgeError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canSubmit = birthDate.length > 0 && !saving;
+  const canSubmit = birthDate.length > 0 && !ageError && !saving;
   const isDark = useSyncExternalStore(
     subscribeTheme,
     () => getThemeSnapshot() === 'dark',
@@ -58,6 +63,7 @@ export default function SignupBirthDatePage() {
       .then((data) => {
         if (typeof data?.birthDate === 'string' && data.birthDate) {
           setBirthDate(data.birthDate);
+          setAgeError(validateBirthDateAge(data.birthDate));
         }
       })
       .catch(() => undefined);
@@ -75,10 +81,19 @@ export default function SignupBirthDatePage() {
   const handleBirthDateChange = (value: string) => {
     setBirthDate(value);
     setError(null);
+    // 13歳以上かを判定。未満なら説明文の位置にエラーを出し、次へを押せなくする。
+    setAgeError(validateBirthDateAge(value));
   };
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
+
+    // 念のためのバリデーション: 13歳未満ならここで止めてエラー表示。
+    const ageValidation = validateBirthDateAge(birthDate);
+    if (ageValidation) {
+      setAgeError(ageValidation);
+      return;
+    }
 
     setSaving(true);
     setError(null);
@@ -112,7 +127,9 @@ export default function SignupBirthDatePage() {
     <SignupProfileFieldStep
       step={2}
       title="生年月日"
-      description="生年月日は公開されません。また登録変更することができません。"
+      description={ageError ?? DEFAULT_BIRTHDATE_DESCRIPTION}
+      descriptionClassName="md:text-center"
+      descriptionError={!!ageError}
       submitLabel="次へ"
       canSubmit={canSubmit}
       busy={saving}
@@ -130,13 +147,13 @@ export default function SignupBirthDatePage() {
         max={maxBirthDate}
         className="login-email-input md:hidden w-full h-[52px] rounded-2xl px-4 text-[16px] text-center outline-none disabled:opacity-50 disabled:cursor-not-allowed"
         style={{
+          // 注: display/align/justify をインラインで持たせると md:hidden(display:none)を
+          // 上書きしてしまい、デスクトップでこのモバイル用 input が消えず
+          // 「値が表示されるだけの欄」として残ってしまう。中央寄せは text-align 系で行う。
           ...fieldStyle,
           colorScheme: isDark ? 'dark' : 'light',
           WebkitAppearance: 'none',
           appearance: 'none',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
           width: '100%',
           minWidth: '100%',
           boxSizing: 'border-box',
