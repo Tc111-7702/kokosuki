@@ -13,6 +13,8 @@ interface Props {
   description: string;
   /** description に付与する追加クラス（例: デスクトップで中央寄せ md:text-center） */
   descriptionClassName?: string;
+  /** true のとき description をエラー表示（赤・太字）にする */
+  descriptionError?: boolean;
   submitLabel: string;
   busyLabel?: string;
   canSubmit: boolean;
@@ -32,6 +34,7 @@ export function SignupProfileFieldStep({
   title,
   description,
   descriptionClassName = '',
+  descriptionError = false,
   submitLabel,
   busyLabel = '保存中…',
   canSubmit,
@@ -85,8 +88,8 @@ export function SignupProfileFieldStep({
           </h1>
 
           <p
-            className={`mt-3 text-[12px] md:text-[13px] text-left leading-relaxed px-1 w-full ${descriptionClassName}`}
-            style={{ color: 'var(--app-text-muted)' }}
+            className={`mt-3 text-[12px] md:text-[13px] text-left leading-relaxed px-1 w-full ${descriptionClassName} ${descriptionError ? 'font-bold' : ''}`}
+            style={{ color: descriptionError ? '#C4483C' : 'var(--app-text-muted)' }}
           >
             {description}
           </p>
