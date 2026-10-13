@@ -642,6 +642,10 @@ export default function MapPage() {
     }
     tempSearchPosRef.current = null;
     clearSearchResults();
+    // 「近くにある」から spotId 遷移で来た場合 spotIdModeRef が立ち、
+    // applyGeolocationPosition 内の loadNearbySpots が抑制されて現在地周辺の
+    // ピンに切り替わらない。現在地ボタンは明示操作なので spotId モードを解除する。
+    spotIdModeRef.current = false;
     requestLocationPermission({ fly: true });
   }, [clearSearchResults, geoPermissionState, requestLocationPermission]);
 
