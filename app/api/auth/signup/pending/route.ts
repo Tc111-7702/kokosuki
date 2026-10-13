@@ -6,6 +6,7 @@ import {
 } from '@/lib/signupPending';
 import { validatePasswordPolicy } from '@/lib/passwordPolicy';
 import { HANDLE_FORMAT_ERROR } from '@/lib/signupHandle';
+import { validateBirthDateAge } from '@/lib/birthDate';
 type SignupPendingPatch = {
   password?: string;
   name?: string | null;
@@ -41,6 +42,14 @@ export async function PATCH(req: Request) {
     const policyError = validatePasswordPolicy(body.password);
     if (policyError) {
       return NextResponse.json({ error: policyError }, { status: 400 });
+    }
+  }
+
+  // 念のためサーバー側でも 13歳以上かを検証する。
+  if (typeof body.birthDate === 'string' && body.birthDate) {
+    const ageError = validateBirthDateAge(body.birthDate);
+    if (ageError) {
+      return NextResponse.json({ error: ageError }, { status: 400 });
     }
   }
 
