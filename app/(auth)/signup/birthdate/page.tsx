@@ -113,6 +113,7 @@ export default function SignupBirthDatePage() {
       step={2}
       title="生年月日"
       description="生年月日は公開されません。また登録変更することができません。"
+      descriptionClassName="md:text-center"
       submitLabel="次へ"
       canSubmit={canSubmit}
       busy={saving}
@@ -130,13 +131,13 @@ export default function SignupBirthDatePage() {
         max={maxBirthDate}
         className="login-email-input md:hidden w-full h-[52px] rounded-2xl px-4 text-[16px] text-center outline-none disabled:opacity-50 disabled:cursor-not-allowed"
         style={{
+          // 注: display/align/justify をインラインで持たせると md:hidden(display:none)を
+          // 上書きしてしまい、デスクトップでこのモバイル用 input が消えず
+          // 「値が表示されるだけの欄」として残ってしまう。中央寄せは text-align 系で行う。
           ...fieldStyle,
           colorScheme: isDark ? 'dark' : 'light',
           WebkitAppearance: 'none',
           appearance: 'none',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
           width: '100%',
           minWidth: '100%',
           boxSizing: 'border-box',

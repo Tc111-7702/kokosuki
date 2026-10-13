@@ -11,6 +11,8 @@ interface Props {
   step: 1 | 2 | 3;
   title: string;
   description: string;
+  /** description に付与する追加クラス（例: デスクトップで中央寄せ md:text-center） */
+  descriptionClassName?: string;
   submitLabel: string;
   busyLabel?: string;
   canSubmit: boolean;
@@ -29,6 +31,7 @@ export function SignupProfileFieldStep({
   step,
   title,
   description,
+  descriptionClassName = '',
   submitLabel,
   busyLabel = '保存中…',
   canSubmit,
@@ -82,7 +85,7 @@ export function SignupProfileFieldStep({
           </h1>
 
           <p
-            className="mt-3 text-[12px] md:text-[13px] text-left leading-relaxed px-1 w-full"
+            className={`mt-3 text-[12px] md:text-[13px] text-left leading-relaxed px-1 w-full ${descriptionClassName}`}
             style={{ color: 'var(--app-text-muted)' }}
           >
             {description}
