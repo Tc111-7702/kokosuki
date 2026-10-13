@@ -3,7 +3,7 @@
 import { OshiNewSection } from '@/components/OshiNewSection';
 import { HorizontalGachaSection } from '@/components/HorizontalGachaSection';
 
-export function NewTab() {
+export function DiscoverTab() {
   return (
     <div className="flex-1 overflow-y-auto pb-4">
       <HorizontalGachaSection
