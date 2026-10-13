@@ -11,7 +11,7 @@ import {
   MOBILE_HOME_TAB_ROW_HEIGHT,
   MOBILE_HOME_LOGO_ZONE_HEIGHT,
 } from '@/lib/layout';
-import { NewTab }        from '@/components/NewTab';
+import { DiscoverTab }   from '@/components/DiscoverTab';
 import { CommunityTab }  from '@/components/CommunityTab';
 import { FavoritesTab }  from '@/components/FavoritesTab';
 import { HomeSearchBar } from '@/components/HomeSearchBar';
@@ -175,7 +175,7 @@ function HomePageInner() {
 
       {/* タブコンテンツ */}
       <div className="flex-1 overflow-y-auto flex flex-col">
-        {tab === 'new'       && <NewTab />}
+        {tab === 'new'       && <DiscoverTab />}
         {tab === 'community' && <CommunityTab />}
         {tab === 'favorites' && <FavoritesTab hideEnded />}
       </div>
