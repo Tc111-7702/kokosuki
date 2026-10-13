@@ -2,6 +2,7 @@ import { createHash, randomBytes } from 'crypto';
 import * as db from '@/lib/db';
 import { encryptSignupPendingPassword } from '@/lib/signupPendingPassword';
 import { isSignupHandleFormatValid } from '@/lib/signupHandle';
+import { validateBirthDateAge } from '@/lib/birthDate';
 // SignupPending の型（旧 signupPendingTypes.ts をインライン化）
 type SignupPendingCancelStep = 'otp' | 'password' | 'name' | 'birthDate' | 'handle';
 type SignupPendingPublic = {
@@ -214,6 +215,10 @@ export async function patchSignupPending(
       const parsed = new Date(`${patch.birthDate}T00:00:00.000Z`);
       if (Number.isNaN(parsed.getTime())) {
         throw new Error('INVALID_BIRTH_DATE');
+      }
+      // 13歳以上であることを検証（クライアントと同じ共通ロジック）。
+      if (validateBirthDateAge(patch.birthDate)) {
+        throw new Error('UNDER_MIN_AGE');
       }
       data.birthDate = parsed;
     }

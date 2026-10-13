@@ -6,7 +6,7 @@ import {
 } from '@/lib/signupPending';
 import { validatePasswordPolicy } from '@/lib/passwordPolicy';
 import { HANDLE_FORMAT_ERROR } from '@/lib/signupHandle';
-import { validateBirthDateAge } from '@/lib/birthDate';
+import { UNDER_MIN_AGE_ERROR } from '@/lib/birthDate';
 type SignupPendingPatch = {
   password?: string;
   name?: string | null;
@@ -45,14 +45,6 @@ export async function PATCH(req: Request) {
     }
   }
 
-  // 念のためサーバー側でも 13歳以上かを検証する。
-  if (typeof body.birthDate === 'string' && body.birthDate) {
-    const ageError = validateBirthDateAge(body.birthDate);
-    if (ageError) {
-      return NextResponse.json({ error: ageError }, { status: 400 });
-    }
-  }
-
   try {
     const pending = await patchSignupPending(token, body);
     if (!pending) {
@@ -62,6 +54,9 @@ export async function PATCH(req: Request) {
   } catch (e) {
     if (e instanceof Error && e.message === 'INVALID_BIRTH_DATE') {
       return NextResponse.json({ error: '生年月日の形式が正しくありません' }, { status: 400 });
+    }
+    if (e instanceof Error && e.message === 'UNDER_MIN_AGE') {
+      return NextResponse.json({ error: UNDER_MIN_AGE_ERROR }, { status: 400 });
     }
     if (e instanceof Error && e.message === 'INVALID_HANDLE') {
       return NextResponse.json({ error: HANDLE_FORMAT_ERROR }, { status: 400 });
