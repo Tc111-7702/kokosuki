@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { MapPin, RefreshCw } from 'lucide-react';
-import { useIsMobile } from '@/hooks/useIsMobile';
 
 // 在庫報告専用：現在地500m以内 & gachaId一致のスポットのみ表示
 const STOCK_RADIUS = 500; // メートル
@@ -32,7 +31,6 @@ export function StockSpotPanel({
   largeText?: boolean;
 }) {
   const fs = (base: number) => largeText ? base + 2 : base;
-  const isMobile = useIsMobile();
   const [state, setState] = useState<'locating' | 'loading' | 'done' | 'geo-error' | 'denied'>('locating');
   const [spots, setSpots] = useState<SpotResult[]>([]);
   const [message, setMessage] = useState<string | null>(null);
@@ -132,9 +130,7 @@ export function StockSpotPanel({
   if (state === 'done' && spots.length === 0) {
     return (
       <div style={{ textAlign: 'center', padding: '16px 0' }}>
-        {/* モバイルはブロックを中央配置のまま、テキストだけ左寄せ（inline-block + text-align:left） */}
-        <p style={{ fontSize: fs(13), color: '#9CA3AF', margin: '0 0 12px', lineHeight: 1.5,
-          ...(isMobile ? { display: 'inline-block', textAlign: 'left' as const } : {}) }}>{message}</p>
+        <p style={{ fontSize: fs(13), color: '#9CA3AF', margin: '0 0 12px', lineHeight: 1.5 }}>{message}</p>
         <button onClick={load}
           style={{
             marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 6,
