@@ -693,9 +693,11 @@ export async function getPopularGachas(limit = 20, excludeIds: string[] = []) {
 }
 
 // ホームのピックアップ枠（admin が手動設定）の選択中ガチャを sortOrder 順に返す。section='weekly'|'reissue'。
+// 終了(ended)ガチャは表示側で除外する（weekly は発売予定=coming_soon を残し、reissue は実質 on_sale のみ）。
+// HomePickup に終了ガチャが残っていても見つけるに ended が出ない。
 export async function getHomePickupGachas(section: string) {
   const rows = await prisma.homePickup.findMany({
-    where: { section },
+    where: { section, gacha: { status: { not: 'ended' } } },
     orderBy: { sortOrder: 'asc' },
     select: {
       gacha: {
