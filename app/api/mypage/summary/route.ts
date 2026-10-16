@@ -33,7 +33,7 @@ export async function GET() {
         likeCount: postLikes + stockPostLikes, // 引いた！＋在庫報告の合算いいね
       },
       settings: {
-        mapRadiusM: profile?.mapRadiusM ?? 20000,
+        mapRadiusM: profile?.mapRadiusM ?? 5000,
       },
     });
   } catch (e) {

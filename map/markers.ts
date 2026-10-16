@@ -19,7 +19,13 @@ function trackMarkerPopup(popup: mapboxgl.Popup) {
   popup.on('close', () => activeMarkerPopups.delete(popup));
 }
 
-const NEARBY_RADIUS = 5_000;
+// 近隣スポットの既定検索半径(m)。UserProfile.mapRadiusM の既定(5km)と一致させる。
+// map クライアントがユーザー設定(mapRadiusM)を取得して setNearbyRadiusM で上書きする。
+// radius を明示指定しない現在地周辺ロードは、この値（＝ユーザー設定）を使う。
+let nearbyRadiusM = 5_000;
+export function setNearbyRadiusM(m: number) {
+  if (Number.isFinite(m) && m > 0) nearbyRadiusM = m;
+}
 const MOBILE_BREAKPOINT = 768;
 
 function markerPopupFontSizes(): { name: number; sub: number } {
@@ -164,7 +170,7 @@ export async function loadNearbySpots(
 ) {
   const seq = ++nearbyLoadSeq;
   try {
-    const radius = options?.radius ?? NEARBY_RADIUS;
+    const radius = options?.radius ?? nearbyRadiusM;
     const addressFilter = options?.addressFilter;
     let url = `/api/spots/nearby?lat=${lat}&lng=${lng}&radius=${radius}`;
     if (addressFilter) url += `&addressContains=${encodeURIComponent(addressFilter)}`;
@@ -278,7 +284,7 @@ export async function loadSearchContentMarkers(
     onSpotsLoaded?: (spots: NearbySpot[]) => void;
   },
 ): Promise<{ count: number; spotIds: Set<string> }> {
-  const radius = options?.radius ?? NEARBY_RADIUS;
+  const radius = options?.radius ?? nearbyRadiusM;
   const addressFilter = options?.addressFilter;
   let url = `/api/spots/nearby?lat=${lat}&lng=${lng}&radius=${radius}`;
   if (addressFilter) url += `&addressContains=${encodeURIComponent(addressFilter)}`;
