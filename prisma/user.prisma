@@ -123,8 +123,8 @@ model UserProfile {
   bio         String?
   // 好きIP（お気に入りガチャのIPから選択・プロフィールに表示）
   favoriteIps String[] @default([])
-  // 地図の検索範囲（メートル）
-  mapRadiusM  Int      @default(20000)
+  // 地図の検索範囲（メートル）。既定 5km。
+  mapRadiusM  Int      @default(5000)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
