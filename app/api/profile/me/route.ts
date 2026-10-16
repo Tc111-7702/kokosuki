@@ -23,6 +23,7 @@ export async function GET() {
     handle:        profile?.handle ?? null,
     avatarUrl:     user.image ?? null,
     bio:           profile?.bio ?? null,
+    mapRadiusM:    profile?.mapRadiusM ?? 5000,
     likedGachaIds,
   });
 }

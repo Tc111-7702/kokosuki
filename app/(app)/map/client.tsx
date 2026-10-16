@@ -14,6 +14,7 @@ import {
   createRedPinEl,
   loadNearbySpots,
   loadSearchContentMarkers,
+  setNearbyRadiusM,
   type NearbySpot,
 } from '@/map/markers';
 import SpotListPanel from '@/components/SpotListPanel';
@@ -482,7 +483,11 @@ export default function MapPage() {
       }
     };
     loadFilters();
-    fetch('/api/profile/me').then(r => r.json()).then(d => { if (Array.isArray(d.favoriteIps)) setFavoriteIps(d.favoriteIps); }).catch(() => {});
+    fetch('/api/profile/me').then(r => r.json()).then(d => {
+      if (Array.isArray(d.favoriteIps)) setFavoriteIps(d.favoriteIps);
+      // ユーザーの検索範囲(mapRadiusM)を近隣スポット読み込みの既定半径に反映する。
+      if (typeof d.mapRadiusM === 'number') setNearbyRadiusM(d.mapRadiusM);
+    }).catch(() => {});
   }, []);
 
   // Mapbox初期化
