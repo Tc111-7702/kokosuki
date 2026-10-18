@@ -781,7 +781,7 @@ export async function getGachaRelatedLists(gachaId: string): Promise<{ ipName: s
   const ipName = gacha?.ip?.name ?? '';
   const [ipGachas, weeklyGachas] = await Promise.all([
     getIpGachasByLikes(ipName, 5, gachaId),
-    getWeeklyGachasByLikes(3, gachaId),
+    getWeeklyGachasByLikes(5, gachaId),
   ]);
   return { ipName, ipGachas, weeklyGachas };
 }
