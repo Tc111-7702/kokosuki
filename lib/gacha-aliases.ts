@@ -49,6 +49,9 @@ export const GACHA_ALIASES: Record<string, string> = {
   // マインクラフト
   'マインクラフト':      'MINECRAFT',
   'マイクラ':            'MINECRAFT',
+  // 鋼の錬金術師
+  'はがれん':            '鋼の錬金術師',
+  'ハガレン':            '鋼の錬金術師',
 };
 
 /**
