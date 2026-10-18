@@ -768,6 +768,69 @@ export async function setWeeklyNotify(
   return { notified: on, liked: on, likeCount };
 }
 
+// 楽しみの声（WeeklyVoice）。1ユーザー何回でも投稿可・いいね/返信なし。
+export type WeeklyVoiceItem = {
+  id: string;
+  text: string;
+  createdAt: Date;
+  user: { id: string; name: string; image: string | null };
+};
+
+const countWeeklyVoiceUsers = (pickupId: string) =>
+  prisma.weeklyVoice
+    .findMany({ where: { pickupId }, select: { userId: true }, distinct: ['userId'] })
+    .then((rows) => rows.length);
+
+/** 楽しみの声一覧（新しい順）。ユーザー名/アイコンを付与して返す。枠外なら空配列。 */
+export async function getWeeklyVoices(gachaId: string): Promise<WeeklyVoiceItem[]> {
+  const pickup = await prisma.weeklyPickup.findUnique({ where: { gachaId }, select: { id: true } });
+  if (!pickup) return [];
+  const voices = await prisma.weeklyVoice.findMany({
+    where: { pickupId: pickup.id },
+    orderBy: { createdAt: 'desc' },
+    select: { id: true, userId: true, text: true, createdAt: true },
+  });
+  const userIds = [...new Set(voices.map((v) => v.userId))];
+  const users = userIds.length
+    ? await prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, name: true, image: true } })
+    : [];
+  const byId = new Map(users.map((u) => [u.id, u]));
+  return voices.map((v) => ({
+    id: v.id,
+    text: v.text,
+    createdAt: v.createdAt,
+    user: { id: v.userId, name: byId.get(v.userId)?.name ?? '', image: byId.get(v.userId)?.image ?? null },
+  }));
+}
+
+/** 楽しみの声を投稿。枠外なら null。戻り値に作成した声＋更新後の投稿ユーザー数。 */
+export async function addWeeklyVoice(
+  gachaId: string,
+  user: { id: string; name: string; image: string | null },
+  text: string,
+): Promise<{ voice: WeeklyVoiceItem; voiceUserCount: number } | null> {
+  const pickup = await prisma.weeklyPickup.findUnique({ where: { gachaId }, select: { id: true } });
+  if (!pickup) return null;
+  const created = await prisma.weeklyVoice.create({
+    data: { pickupId: pickup.id, userId: user.id, text },
+    select: { id: true, text: true, createdAt: true },
+  });
+  const voiceUserCount = await countWeeklyVoiceUsers(pickup.id);
+  return { voice: { ...created, user }, voiceUserCount };
+}
+
+/** 楽しみの声を削除（本人のみ）。戻り値に更新後の投稿ユーザー数。対象なし/他人なら null。 */
+export async function deleteWeeklyVoice(
+  voiceId: string,
+  userId: string,
+): Promise<{ voiceUserCount: number } | null> {
+  const voice = await prisma.weeklyVoice.findUnique({ where: { id: voiceId }, select: { pickupId: true, userId: true } });
+  if (!voice || voice.userId !== userId) return null;
+  await prisma.weeklyVoice.delete({ where: { id: voiceId } });
+  const voiceUserCount = await countWeeklyVoiceUsers(voice.pickupId);
+  return { voiceUserCount };
+}
+
 export async function getRecommendedByLikedGachas(userId: string, perIp = 9, maxIps = 5) {
   // ユーザーのハート済みガチャとその IpName を取得
   const likes = await prisma.gachaLike.findMany({

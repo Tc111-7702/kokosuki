@@ -7,6 +7,7 @@ import { useIsMobile } from '@/hooks/useIsMobile';
 import type { GachaDetail, NearbySpot } from '@/components/gacha-types';
 import { NearbyButton } from '@/components/NearbyButton';
 import { LineupSection } from '@/components/LineupSection';
+import { WeeklyVoices } from '@/components/WeeklyVoices';
 import { StatCard } from '@/components/ui/StatCard';
 import { PostCard } from '@/components/PostCard';
 import { StockPostCard, type StockFeedPost } from '@/components/StockPostCard';
@@ -545,6 +546,7 @@ export function GachaDetailView({ gachaId, onClose }: { gachaId: string; onClose
               {inWeekly && notifyButton}
               {statsBlockComingSoon}
               <LineupSection gacha={gacha} />
+              {inWeekly && <WeeklyVoices gachaId={id} isDark={isDark} onCountChange={setVoiceUserCount} />}
             </>
           ) : (
             <>
@@ -581,6 +583,7 @@ export function GachaDetailView({ gachaId, onClose }: { gachaId: string; onClose
                   {inWeekly && notifyButton}
                   {statsBlockComingSoon}
                   <LineupSection gacha={gacha} />
+                  {inWeekly && <WeeklyVoices gachaId={id} isDark={isDark} onCountChange={setVoiceUserCount} />}
                 </>
               ) : (
                 <NearbyButton gacha={gacha} alwaysOpen nearbyOpen={nearbyOpen} nearbyLoading={nearbyLoading}
