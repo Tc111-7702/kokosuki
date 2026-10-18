@@ -17,7 +17,7 @@ export async function GET(
     return NextResponse.json({ error: 'invalid section' }, { status: 400 });
   }
   try {
-    const gachas = await db.getHomePickupGachas(section);
+    const gachas = await db.getPickupGachas(section);
     return NextResponse.json({ gachas });
   } catch (e) {
     console.error('[/api/gacha/home-pickup]', e);
