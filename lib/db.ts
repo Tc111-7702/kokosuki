@@ -716,56 +716,19 @@ export async function getPickupGachas(section: string) {
   return rows.map(({ gacha: { _count, ...g } }) => ({ ...flatIp(g), likeCount: _count.gachaLikes }));
 }
 
-// ─── 今週発売(WeeklyPickup): 発売通知の購読・楽しみの声の集計 ───────────────────
-
-/** いいね状態を on/off で確定させる（トグルではなくセット）。発売通知ON/OFFと連動させる用。 */
-export async function setGachaLike(userId: string, gachaId: string, liked: boolean) {
-  const existing = await prisma.gachaLike.findUnique({ where: { userId_gachaId: { userId, gachaId } } });
-  if (liked && !existing) {
-    await prisma.gachaLike.create({ data: { userId, gachaId } });
-    await addGachaToFilter(userId, gachaId);
-  } else if (!liked && existing) {
-    await prisma.gachaLike.delete({ where: { userId_gachaId: { userId, gachaId } } });
-    await removeGachaFromFilter(userId, gachaId);
-  }
-}
-
-/** 今週発売の情報（通知購読中か・楽しみの声を投稿したユーザー数）。枠外なら inWeekly=false。 */
-export async function getWeeklyInfo(gachaId: string, userId?: string) {
-  const pickup = await prisma.weeklyPickup.findUnique({ where: { gachaId }, select: { id: true } });
-  if (!pickup) return { inWeekly: false, notified: false, voiceUserCount: 0 };
-  const [voiceUsers, notify] = await Promise.all([
-    prisma.weeklyVoice.findMany({ where: { pickupId: pickup.id }, select: { userId: true }, distinct: ['userId'] }),
-    userId
-      ? prisma.weeklyReleaseNotify.findUnique({ where: { pickupId_userId: { pickupId: pickup.id, userId } }, select: { id: true } })
-      : Promise.resolve(null),
-  ]);
-  return { inWeekly: true, notified: !!notify, voiceUserCount: voiceUsers.length };
-}
+// ─── 今週発売(WeeklyPickup): 楽しみの声の集計 ───────────────────────────────────
 
 /**
- * 発売通知の購読を on/off する。on のときは WeeklyReleaseNotify を追加＋いいねON、
- * off のときは削除＋いいねOFF。枠外(WeeklyPickupなし)なら null。
+ * 今週発売の情報（今週発売枠か・楽しみの声を投稿したユーザー数）。枠外なら inWeekly=false。
+ * 発売通知の購読状態は gachaLike(いいね) と同義なので、通知の購読は別管理しない。
  */
-export async function setWeeklyNotify(
-  gachaId: string,
-  userId: string,
-  on: boolean,
-): Promise<{ notified: boolean; liked: boolean; likeCount: number } | null> {
+export async function getWeeklyInfo(gachaId: string) {
   const pickup = await prisma.weeklyPickup.findUnique({ where: { gachaId }, select: { id: true } });
-  if (!pickup) return null;
-  if (on) {
-    await prisma.weeklyReleaseNotify.upsert({
-      where: { pickupId_userId: { pickupId: pickup.id, userId } },
-      update: {},
-      create: { pickupId: pickup.id, userId },
-    });
-  } else {
-    await prisma.weeklyReleaseNotify.deleteMany({ where: { pickupId: pickup.id, userId } });
-  }
-  await setGachaLike(userId, gachaId, on);
-  const likeCount = await getGachaLikeCount(gachaId);
-  return { notified: on, liked: on, likeCount };
+  if (!pickup) return { inWeekly: false, voiceUserCount: 0 };
+  const voiceUsers = await prisma.weeklyVoice.findMany({
+    where: { pickupId: pickup.id }, select: { userId: true }, distinct: ['userId'],
+  });
+  return { inWeekly: true, voiceUserCount: voiceUsers.length };
 }
 
 // 楽しみの声（WeeklyVoice）。1ユーザー何回でも投稿可・いいね/返信なし。
