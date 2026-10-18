@@ -8,6 +8,7 @@ import type { GachaDetail, NearbySpot } from '@/components/gacha-types';
 import { NearbyButton } from '@/components/NearbyButton';
 import { LineupSection } from '@/components/LineupSection';
 import { WeeklyVoices } from '@/components/WeeklyVoices';
+import { GachaRelatedLists } from '@/components/GachaRelatedLists';
 import { StatCard } from '@/components/ui/StatCard';
 import { PostCard } from '@/components/PostCard';
 import { StockPostCard, type StockFeedPost } from '@/components/StockPostCard';
@@ -570,11 +571,12 @@ export function GachaDetailView({ gachaId, onClose }: { gachaId: string; onClose
               {tags}
               {titleBlock(24)}
               {isComingSoon ? (
-                /* 発売予定: 近くにある？があった位置に 発売をお知らせ＋統計＋ラインナップ を縦に配置 */
+                /* 発売予定: 近くにある？があった位置に 発売をお知らせ＋統計＋ラインナップ＋関連リスト を縦に配置 */
                 <>
                   {inWeekly && notifyButton}
                   {statsBlockComingSoon}
                   <LineupSection gacha={gacha} />
+                  <GachaRelatedLists gachaId={id} isDark={isDark} />
                 </>
               ) : (
                 <NearbyButton gacha={gacha} alwaysOpen nearbyOpen={nearbyOpen} nearbyLoading={nearbyLoading}

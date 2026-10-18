@@ -731,6 +731,61 @@ export async function getWeeklyInfo(gachaId: string) {
   return { inWeekly: true, voiceUserCount: voiceUsers.length };
 }
 
+// 発売予定ページの右サイドリスト用の軽量ガチャ型。
+export type RelatedGachaItem = {
+  id: string;
+  seriesName: string;
+  imageUrl: string | null;
+  gradientFrom: string;
+  gradientTo: string;
+  status: string;
+  likeCount: number;
+};
+
+const RELATED_SELECT = {
+  id: true, seriesName: true, imageUrl: true, gradientFrom: true, gradientTo: true, status: true,
+  _count: { select: { gachaLikes: true } },
+} as const;
+type RelatedRow = { id: string; seriesName: string; imageUrl: string | null; gradientFrom: string; gradientTo: string; status: string; _count: { gachaLikes: number } };
+const toRelated = (g: RelatedRow): RelatedGachaItem => ({
+  id: g.id, seriesName: g.seriesName, imageUrl: g.imageUrl,
+  gradientFrom: g.gradientFrom, gradientTo: g.gradientTo, status: g.status, likeCount: g._count.gachaLikes,
+});
+
+/** 同一IPのガチャをいいね数の多い順に取得（終了は除く・指定IDは除外）。 */
+async function getIpGachasByLikes(ipName: string, limit: number, excludeId: string): Promise<RelatedGachaItem[]> {
+  if (!ipName) return [];
+  const rows = await prisma.gacha.findMany({
+    where: { status: { not: 'ended' }, ip: { name: ipName }, id: { not: excludeId } },
+    orderBy: { gachaLikes: { _count: 'desc' } },
+    take: limit,
+    select: RELATED_SELECT,
+  });
+  return rows.map(toRelated);
+}
+
+/** 今週発売(WeeklyPickup)のガチャをいいね数の多い順に取得（終了は除く・指定IDは除外）。 */
+async function getWeeklyGachasByLikes(limit: number, excludeId: string): Promise<RelatedGachaItem[]> {
+  const rows = await prisma.weeklyPickup.findMany({ select: { gacha: { select: RELATED_SELECT } } });
+  return rows
+    .map((r) => r.gacha)
+    .filter((g) => g.id !== excludeId && g.status !== 'ended')
+    .map(toRelated)
+    .sort((a, b) => b.likeCount - a.likeCount)
+    .slice(0, limit);
+}
+
+/** 発売予定ページの右サイド用: 同一IP上位5件＋今週発売上位3件（いずれもいいね順）。 */
+export async function getGachaRelatedLists(gachaId: string): Promise<{ ipName: string; ipGachas: RelatedGachaItem[]; weeklyGachas: RelatedGachaItem[] }> {
+  const gacha = await prisma.gacha.findUnique({ where: { id: gachaId }, select: { ...IP_NAME_SELECT } });
+  const ipName = gacha?.ip?.name ?? '';
+  const [ipGachas, weeklyGachas] = await Promise.all([
+    getIpGachasByLikes(ipName, 5, gachaId),
+    getWeeklyGachasByLikes(3, gachaId),
+  ]);
+  return { ipName, ipGachas, weeklyGachas };
+}
+
 // 楽しみの声（WeeklyVoice）。1ユーザー何回でも投稿可・いいね/返信なし。
 export type WeeklyVoiceItem = {
   id: string;
