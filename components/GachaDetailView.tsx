@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Heart, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Heart, ChevronRight, Bell } from 'lucide-react';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import type { GachaDetail, NearbySpot } from '@/components/gacha-types';
 import { NearbyButton } from '@/components/NearbyButton';
@@ -259,6 +259,11 @@ export function GachaDetailView({ gachaId, onClose }: { gachaId: string; onClose
   const [imgRatio,      setImgRatio]      = useState(1);
   const [liked,         setLiked]         = useState(false);
   const [likeCount,     setLikeCount]     = useState(0);
+  // 今週発売(coming_soon)用: 今週発売枠か・発売通知の購読中か・楽しみの声を投稿したユーザー数
+  const [inWeekly,      setInWeekly]      = useState(false);
+  const [notified,      setNotified]      = useState(false);
+  const [voiceUserCount, setVoiceUserCount] = useState(0);
+  const [notifyPending, setNotifyPending] = useState(false);
   const [nearbyOpen,    setNearbyOpen]    = useState(false);
   const [nearbySpots,   setNearbySpots]   = useState<NearbySpot[]>([]);
   const [nearbyLoading, setNearbyLoading] = useState(false);
@@ -285,6 +290,14 @@ export function GachaDetailView({ gachaId, onClose }: { gachaId: string; onClose
     fetch('/api/gacha/' + id + '/like')
       .then((r) => r.json())
       .then((d) => { setLiked(!!d.liked); setLikeCount(d.count ?? 0); })
+      .catch(() => {});
+    // 今週発売の購読状態・楽しみの声のユーザー数（枠外なら inWeekly=false）
+    setInWeekly(false);
+    setNotified(false);
+    setVoiceUserCount(0);
+    fetch('/api/gacha/' + id + '/weekly')
+      .then((r) => r.json())
+      .then((d) => { setInWeekly(!!d.inWeekly); setNotified(!!d.notified); setVoiceUserCount(d.voiceUserCount ?? 0); })
       .catch(() => {});
   }, [id]);
 
@@ -347,6 +360,24 @@ export function GachaDetailView({ gachaId, onClose }: { gachaId: string; onClose
     // 全カード共通の likedSet も同期する。
     // これで見つける/ホーム検索の（非制御）カードのハートが即座に追従する。
     setGachaLiked(id, !!d.liked);
+  };
+
+  // 発売通知トグル: ON→WeeklyReleaseNotify追加＋いいねON＋ハートactive / OFF→全解除。
+  const handleNotifyToggle = async () => {
+    if (notifyPending) return;
+    setNotifyPending(true);
+    try {
+      const res = await fetch('/api/gacha/' + id + '/weekly/notify', { method: notified ? 'DELETE' : 'POST' });
+      if (!res.ok) return;
+      const d = await res.json();
+      setNotified(!!d.notified);
+      setLiked(!!d.liked);
+      setLikeCount(d.likeCount ?? likeCount);
+      // 右上ハート＋全カード共通の likedSet を同期
+      setGachaLiked(id, !!d.liked);
+    } finally {
+      setNotifyPending(false);
+    }
   };
 
   // 店舗詳細（マップ）へ。オーバーレイを閉じてから遷移する。
@@ -425,6 +456,36 @@ export function GachaDetailView({ gachaId, onClose }: { gachaId: string; onClose
     </div>
   );
 
+  // 今週発売の統計（価格＋楽しみ＝声を投稿したユーザー数）。発売時期は出さない。既存 StatCard と同じ見た目。
+  const statsBlockComingSoon = (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+      <StatCard label="1回の価格" value={'¥' + gacha.price}        accent="#F2B800" />
+      <StatCard label="楽しみ"    value={String(voiceUserCount)}  />
+    </div>
+  );
+
+  // 発売をお知らせ（発売通知の購読トグル）。ON=「通知オン」、OFF=「発売をお知らせ」。
+  const notifyButton = (
+    <button
+      type="button"
+      onClick={handleNotifyToggle}
+      disabled={notifyPending}
+      aria-pressed={notified}
+      style={{
+        width: '100%', padding: '16px 0', borderRadius: 16,
+        border: notified ? '2px solid #F2B800' : 'none',
+        background: notified ? (isDark ? 'rgba(242,184,0,0.12)' : '#FFF8D0') : '#F2B800',
+        color: notified ? (isDark ? '#F2B800' : '#B45309') : '#3A2B00',
+        fontWeight: 800, fontSize: 15, cursor: notifyPending ? 'default' : 'pointer',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+        opacity: notifyPending ? 0.6 : 1,
+      }}
+    >
+      <Bell size={18} fill={notified ? 'currentColor' : 'none'} aria-hidden="true" />
+      {notified ? '通知オン' : '発売をお知らせ'}
+    </button>
+  );
+
   return (
     <div style={{ height: '100%', background: '#FFFFFF', overflowY: 'auto' }}>
 
@@ -477,14 +538,22 @@ export function GachaDetailView({ gachaId, onClose }: { gachaId: string; onClose
           </div>
           {tags}
           {titleBlock(20)}
-          {!isComingSoon && (
-            <NearbyButton gacha={gacha} nearbyOpen={nearbyOpen} nearbyLoading={nearbyLoading}
-              nearbyError={nearbyError} nearbySpots={nearbySpots}
-              onToggle={handleNearby} onSpotClick={handleSpotClick} isMobile={true} />
+          {isComingSoon ? (
+            <>
+              {inWeekly && notifyButton}
+              {statsBlockComingSoon}
+              <LineupSection gacha={gacha} />
+            </>
+          ) : (
+            <>
+              <NearbyButton gacha={gacha} nearbyOpen={nearbyOpen} nearbyLoading={nearbyLoading}
+                nearbyError={nearbyError} nearbySpots={nearbySpots}
+                onToggle={handleNearby} onSpotClick={handleSpotClick} isMobile={true} />
+              {statsBlock(3)}
+              <LineupSection gacha={gacha} />
+              <GachaPostsSection gachaId={id} seriesName={gacha.seriesName} isMobile={true} onClose={onClose} />
+            </>
           )}
-          {!isComingSoon && statsBlock(3)}
-          {!isComingSoon && <LineupSection gacha={gacha} />}
-          {!isComingSoon && <GachaPostsSection gachaId={id} seriesName={gacha.seriesName} isMobile={true} onClose={onClose} />}
         </div>
       ) : (
         /* ── デスクトップレイアウト ── */
@@ -504,20 +573,29 @@ export function GachaDetailView({ gachaId, onClose }: { gachaId: string; onClose
             <div style={{ flex: 1, minWidth: 240, paddingTop: 4, display: 'flex', flexDirection: 'column', gap: 12 }}>
               {tags}
               {titleBlock(24)}
-              {!isComingSoon && (
+              {isComingSoon ? (
+                inWeekly ? notifyButton : null
+              ) : (
                 <NearbyButton gacha={gacha} alwaysOpen nearbyOpen={nearbyOpen} nearbyLoading={nearbyLoading}
                   nearbyError={nearbyError} nearbySpots={nearbySpots}
                   onToggle={handleNearby} onSpotClick={handleSpotClick} isMobile={false} />
               )}
             </div>
           </div>
-          {!isComingSoon && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-              {statsBlock(3)}
-              <LineupSection gacha={gacha} />
-              <GachaPostsSection gachaId={id} seriesName={gacha.seriesName} isMobile={false} onClose={onClose} />
-            </div>
-          )}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {isComingSoon ? (
+              <>
+                {statsBlockComingSoon}
+                <LineupSection gacha={gacha} />
+              </>
+            ) : (
+              <>
+                {statsBlock(3)}
+                <LineupSection gacha={gacha} />
+                <GachaPostsSection gachaId={id} seriesName={gacha.seriesName} isMobile={false} onClose={onClose} />
+              </>
+            )}
+          </div>
         </div>
       )}
     </div>
