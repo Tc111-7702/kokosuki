@@ -352,6 +352,8 @@ export function GachaDetailView({ gachaId, onClose }: { gachaId: string; onClose
   };
 
   const handleLike = async () => {
+    // 今週発売枠のガチャは、ハート＝発売通知のトグルと連動させる（notify API を叩く）。
+    if (inWeekly) { await handleNotifyToggle(); return; }
     const res = await fetch('/api/gacha/' + id + '/like', { method: 'POST' });
     if (!res.ok) return;
     const d = await res.json();
@@ -574,7 +576,12 @@ export function GachaDetailView({ gachaId, onClose }: { gachaId: string; onClose
               {tags}
               {titleBlock(24)}
               {isComingSoon ? (
-                inWeekly ? notifyButton : null
+                /* 発売予定: 近くにある？があった位置に 発売をお知らせ＋統計＋ラインナップ を縦に配置 */
+                <>
+                  {inWeekly && notifyButton}
+                  {statsBlockComingSoon}
+                  <LineupSection gacha={gacha} />
+                </>
               ) : (
                 <NearbyButton gacha={gacha} alwaysOpen nearbyOpen={nearbyOpen} nearbyLoading={nearbyLoading}
                   nearbyError={nearbyError} nearbySpots={nearbySpots}
@@ -582,20 +589,13 @@ export function GachaDetailView({ gachaId, onClose }: { gachaId: string; onClose
               )}
             </div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            {isComingSoon ? (
-              <>
-                {statsBlockComingSoon}
-                <LineupSection gacha={gacha} />
-              </>
-            ) : (
-              <>
-                {statsBlock(3)}
-                <LineupSection gacha={gacha} />
-                <GachaPostsSection gachaId={id} seriesName={gacha.seriesName} isMobile={false} onClose={onClose} />
-              </>
-            )}
-          </div>
+          {!isComingSoon && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              {statsBlock(3)}
+              <LineupSection gacha={gacha} />
+              <GachaPostsSection gachaId={id} seriesName={gacha.seriesName} isMobile={false} onClose={onClose} />
+            </div>
+          )}
         </div>
       )}
     </div>
