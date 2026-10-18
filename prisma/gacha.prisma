@@ -28,7 +28,8 @@ model Gacha {
   posts       Post[]
   stockPosts  StockPost[]
   gachaLikes  GachaLike[]
-  homePickups HomePickup[]
+  reissuePickup ReissuePickup?
+  weeklyPickup  WeeklyPickup?
   ip          IpName?      @relation(fields: [ipNameId], references: [id])
 
   @@index([ipNameId])
@@ -70,18 +71,57 @@ model GachaLike {
 }
 
 // ホームのピックアップ枠（admin と共有）。管理者が手動で選定してホームの各セクションに掲載する。
-// section='weekly'（今週発売）|'reissue'（再販・また引ける）ごとに、掲載ガチャと表示順(sortOrder)を保持。
-model HomePickup {
+// 旧 HomePickup(section で2用途を兼ねた)を、用途ごとに別テーブルへ分割。
+// 再販・また引ける（既存と同じカラム構成）。
+model ReissuePickup {
   id        String   @id @default(cuid())
-  section   String
-  gachaId   String
+  gachaId   String   @unique
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
 
   gacha Gacha @relation(fields: [gachaId], references: [id], onDelete: Cascade)
 
-  @@unique([section, gachaId])
-  @@index([section, sortOrder])
+  @@index([sortOrder])
+}
+
+// 今週発売。ガチャ詳細をカスタム表示するため、発売通知の購読と「楽しみの声」を併せ持つ。
+model WeeklyPickup {
+  id        String   @id @default(cuid())
+  gachaId   String   @unique
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  gacha    Gacha                 @relation(fields: [gachaId], references: [id], onDelete: Cascade)
+  notifies WeeklyReleaseNotify[]
+  voices   WeeklyVoice[]
+
+  @@index([sortOrder])
+}
+
+// 発売開始を通知してほしいユーザー（1ユーザー1件＝重複不可）。WeeklyPickup 削除で cascade 削除。
+model WeeklyReleaseNotify {
+  id        String   @id @default(cuid())
+  pickupId  String
+  userId    String
+  createdAt DateTime @default(now())
+
+  pickup WeeklyPickup @relation(fields: [pickupId], references: [id], onDelete: Cascade)
+
+  @@unique([pickupId, userId])
+  @@index([pickupId])
+}
+
+// 楽しみの声（1ユーザー何回でも／いいね・返信なし）。WeeklyPickup 削除で cascade 削除。
+model WeeklyVoice {
+  id        String   @id @default(cuid())
+  pickupId  String
+  userId    String
+  text      String
+  createdAt DateTime @default(now())
+
+  pickup WeeklyPickup @relation(fields: [pickupId], references: [id], onDelete: Cascade)
+
+  @@index([pickupId, createdAt])
 }
 
 // スクレイプ実行の記録テーブル。実行時刻は GitHub Actions cron + コード定数(SCRAPE_TIMES)で

@@ -693,12 +693,12 @@ export async function getPopularGachas(limit = 20, excludeIds: string[] = []) {
 }
 
 // ホームのピックアップ枠（admin が手動設定）の選択中ガチャを sortOrder 順に返す。section='weekly'|'reissue'。
-// 終了(ended)ガチャは表示側で除外する（weekly は発売予定=coming_soon を残し、reissue は実質 on_sale のみ）。
-// HomePickup に終了ガチャが残っていても見つけるに ended が出ない。
-export async function getHomePickupGachas(section: string) {
-  const rows = await prisma.homePickup.findMany({
-    where: { section, gacha: { status: { not: 'ended' } } },
-    orderBy: { sortOrder: 'asc' },
+// 用途別テーブル: weekly=WeeklyPickup / reissue=ReissuePickup。終了(ended)ガチャは表示側で除外する
+// （weekly は発売予定=coming_soon を残し、reissue は実質 on_sale のみ）。残骸が出続けても見つけるに ended が出ない。
+export async function getPickupGachas(section: string) {
+  const args = {
+    where: { gacha: { status: { not: 'ended' } } },
+    orderBy: { sortOrder: 'asc' as const },
     select: {
       gacha: {
         select: {
@@ -709,7 +709,10 @@ export async function getHomePickupGachas(section: string) {
         },
       },
     },
-  });
+  };
+  const rows = section === 'weekly'
+    ? await prisma.weeklyPickup.findMany(args)
+    : await prisma.reissuePickup.findMany(args);
   return rows.map(({ gacha: { _count, ...g } }) => ({ ...flatIp(g), likeCount: _count.gachaLikes }));
 }
 
