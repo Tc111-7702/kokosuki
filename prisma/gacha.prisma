@@ -92,23 +92,9 @@ model WeeklyPickup {
   createdAt DateTime @default(now())
 
   gacha    Gacha                 @relation(fields: [gachaId], references: [id], onDelete: Cascade)
-  notifies WeeklyReleaseNotify[]
   voices   WeeklyVoice[]
 
   @@index([sortOrder])
-}
-
-// 発売開始を通知してほしいユーザー（1ユーザー1件＝重複不可）。WeeklyPickup 削除で cascade 削除。
-model WeeklyReleaseNotify {
-  id        String   @id @default(cuid())
-  pickupId  String
-  userId    String
-  createdAt DateTime @default(now())
-
-  pickup WeeklyPickup @relation(fields: [pickupId], references: [id], onDelete: Cascade)
-
-  @@unique([pickupId, userId])
-  @@index([pickupId])
 }
 
 // 楽しみの声（1ユーザー何回でも／いいね・返信なし）。WeeklyPickup 削除で cascade 削除。
