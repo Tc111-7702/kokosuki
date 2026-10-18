@@ -549,16 +549,22 @@ export function GachaDetailView({ gachaId, onClose }: { gachaId: string; onClose
         /* ── デスクトップレイアウト ── */
         <div style={{ padding: '0 24px 40px', display: 'flex', flexDirection: 'column', gap: 24 }}>
           <div style={{ display: 'flex', gap: 28, alignItems: 'flex-start' }}>
-            <div style={{ width: cardW, flexShrink: 0, borderRadius: 20, overflow: 'hidden',
-              boxShadow: '0 4px 24px rgba(0,0,0,0.10)',
-              background: 'linear-gradient(135deg, ' + gacha.gradientFrom + ', ' + gacha.gradientTo + ')',
-              minHeight: 320 }}>
-              {gacha.imageUrl
-                ? <img src={gacha.imageUrl} alt={gacha.seriesName}
-                    onLoad={(e) => { const img = e.currentTarget; if (img.naturalWidth > 0) setImgRatio(img.naturalHeight / img.naturalWidth); }}
-                    style={{ width: '100%', height: imgH || 'auto', objectFit: 'cover', display: 'block' }} />
-                : <div style={{ height: 480 }} />
-              }
+            {/* 左カラム: 画像＋（発売予定なら）その下に楽しみの声（入力欄＋一覧・個別スクロール） */}
+            <div style={{ width: cardW, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ borderRadius: 20, overflow: 'hidden',
+                boxShadow: '0 4px 24px rgba(0,0,0,0.10)',
+                background: 'linear-gradient(135deg, ' + gacha.gradientFrom + ', ' + gacha.gradientTo + ')',
+                minHeight: 320 }}>
+                {gacha.imageUrl
+                  ? <img src={gacha.imageUrl} alt={gacha.seriesName}
+                      onLoad={(e) => { const img = e.currentTarget; if (img.naturalWidth > 0) setImgRatio(img.naturalHeight / img.naturalWidth); }}
+                      style={{ width: '100%', height: imgH || 'auto', objectFit: 'cover', display: 'block' }} />
+                  : <div style={{ height: 480 }} />
+                }
+              </div>
+              {isComingSoon && inWeekly && (
+                <WeeklyVoices gachaId={id} isDark={isDark} onCountChange={setVoiceUserCount} listMaxHeight={420} />
+              )}
             </div>
             <div style={{ flex: 1, minWidth: 240, paddingTop: 4, display: 'flex', flexDirection: 'column', gap: 12 }}>
               {tags}
@@ -569,7 +575,6 @@ export function GachaDetailView({ gachaId, onClose }: { gachaId: string; onClose
                   {inWeekly && notifyButton}
                   {statsBlockComingSoon}
                   <LineupSection gacha={gacha} />
-                  {inWeekly && <WeeklyVoices gachaId={id} isDark={isDark} onCountChange={setVoiceUserCount} />}
                 </>
               ) : (
                 <NearbyButton gacha={gacha} alwaysOpen nearbyOpen={nearbyOpen} nearbyLoading={nearbyLoading}

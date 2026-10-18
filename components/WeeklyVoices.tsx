@@ -18,10 +18,13 @@ export function WeeklyVoices({
   gachaId,
   isDark,
   onCountChange,
+  listMaxHeight,
 }: {
   gachaId: string;
   isDark: boolean;
   onCountChange?: (n: number) => void;
+  /** 指定すると投稿一覧に個別スクロール（この高さを超えるとスクロール）。 */
+  listMaxHeight?: number;
 }) {
   const [voices, setVoices] = useState<Voice[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -119,7 +122,10 @@ export function WeeklyVoices({
         {voices.length === 0 ? (
           <p style={{ fontSize: 13, color: '#CCC', textAlign: 'center', padding: '16px 0' }}>まだ声がありません</p>
         ) : (
-          <div style={{ border: '1px solid ' + border, borderRadius: 16, overflow: 'hidden' }}>
+          <div style={{
+            border: '1px solid ' + border, borderRadius: 16, overflow: 'hidden',
+            ...(listMaxHeight ? { maxHeight: listMaxHeight, overflowY: 'auto' as const } : {}),
+          }}>
             {voices.map((v, i) => (
               <div key={v.id} style={{ position: 'relative', display: 'flex', gap: 10, padding: '12px 14px', borderTop: i > 0 ? '1px solid ' + border : 'none' }}>
                 <Avatar user={v.user} size={32} />
