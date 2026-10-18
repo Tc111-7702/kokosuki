@@ -389,6 +389,8 @@ export function GachaDetailView({ gachaId, onClose }: { gachaId: string; onClose
   const imgH        = Math.round(cardW * imgRatio);
   const statusColor = gacha.status === 'on_sale' ? '#22C55E'
     : gacha.status === 'coming_soon' ? '#F59E0B' : '#9CA3AF';
+  // 発売予定(coming_soon)は専用UI。近くにある/統計/ラインナップ/投稿一覧は出さない（発売後の情報のため）。
+  const isComingSoon = gacha.status === 'coming_soon';
 
   const tags = (
     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -475,12 +477,14 @@ export function GachaDetailView({ gachaId, onClose }: { gachaId: string; onClose
           </div>
           {tags}
           {titleBlock(20)}
-          <NearbyButton gacha={gacha} nearbyOpen={nearbyOpen} nearbyLoading={nearbyLoading}
-            nearbyError={nearbyError} nearbySpots={nearbySpots}
-            onToggle={handleNearby} onSpotClick={handleSpotClick} isMobile={true} />
-          {statsBlock(3)}
-          <LineupSection gacha={gacha} />
-          <GachaPostsSection gachaId={id} seriesName={gacha.seriesName} isMobile={true} onClose={onClose} />
+          {!isComingSoon && (
+            <NearbyButton gacha={gacha} nearbyOpen={nearbyOpen} nearbyLoading={nearbyLoading}
+              nearbyError={nearbyError} nearbySpots={nearbySpots}
+              onToggle={handleNearby} onSpotClick={handleSpotClick} isMobile={true} />
+          )}
+          {!isComingSoon && statsBlock(3)}
+          {!isComingSoon && <LineupSection gacha={gacha} />}
+          {!isComingSoon && <GachaPostsSection gachaId={id} seriesName={gacha.seriesName} isMobile={true} onClose={onClose} />}
         </div>
       ) : (
         /* ── デスクトップレイアウト ── */
@@ -500,16 +504,20 @@ export function GachaDetailView({ gachaId, onClose }: { gachaId: string; onClose
             <div style={{ flex: 1, minWidth: 240, paddingTop: 4, display: 'flex', flexDirection: 'column', gap: 12 }}>
               {tags}
               {titleBlock(24)}
-              <NearbyButton gacha={gacha} alwaysOpen nearbyOpen={nearbyOpen} nearbyLoading={nearbyLoading}
-                nearbyError={nearbyError} nearbySpots={nearbySpots}
-                onToggle={handleNearby} onSpotClick={handleSpotClick} isMobile={false} />
+              {!isComingSoon && (
+                <NearbyButton gacha={gacha} alwaysOpen nearbyOpen={nearbyOpen} nearbyLoading={nearbyLoading}
+                  nearbyError={nearbyError} nearbySpots={nearbySpots}
+                  onToggle={handleNearby} onSpotClick={handleSpotClick} isMobile={false} />
+              )}
             </div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            {statsBlock(3)}
-            <LineupSection gacha={gacha} />
-            <GachaPostsSection gachaId={id} seriesName={gacha.seriesName} isMobile={false} onClose={onClose} />
-          </div>
+          {!isComingSoon && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              {statsBlock(3)}
+              <LineupSection gacha={gacha} />
+              <GachaPostsSection gachaId={id} seriesName={gacha.seriesName} isMobile={false} onClose={onClose} />
+            </div>
+          )}
         </div>
       )}
     </div>
