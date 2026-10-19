@@ -692,12 +692,17 @@ export async function getPopularGachas(limit = 20, excludeIds: string[] = []) {
   return rows.map(({ _count, ...g }) => ({ ...flatIp(g), likeCount: _count.gachaLikes }));
 }
 
-// ホームのピックアップ枠（admin が手動設定）の選択中ガチャを sortOrder 順に返す。section='weekly'|'reissue'。
-// 用途別テーブル: weekly=WeeklyPickup / reissue=ReissuePickup。終了(ended)ガチャは表示側で除外する
-// （weekly は発売予定=coming_soon を残し、reissue は実質 on_sale のみ）。残骸が出続けても見つけるに ended が出ない。
-export async function getPickupGachas(section: string) {
-  const args = {
-    where: { gacha: { status: { not: 'ended' } } },
+// ホームの今週発売ピックアップ枠（admin が手動設定）の選択中ガチャを sortOrder 順に返す。
+// 終了(ended)ガチャは除外し、excludeIds（＝ログインユーザーが既にいいね済み）のガチャも除外する。
+// （再販・また引ける枠は ReissuePickup テーブルを廃止し getReissueGachas で動的生成する方式へ移行）
+export async function getPickupGachas(_section: string, excludeIds: string[] = []) {
+  const rows = await prisma.weeklyPickup.findMany({
+    where: {
+      gacha: {
+        status: { not: 'ended' },
+        ...(excludeIds.length ? { id: { notIn: excludeIds } } : {}),
+      },
+    },
     orderBy: { sortOrder: 'asc' as const },
     select: {
       gacha: {
@@ -709,11 +714,29 @@ export async function getPickupGachas(section: string) {
         },
       },
     },
-  };
-  const rows = section === 'weekly'
-    ? await prisma.weeklyPickup.findMany(args)
-    : await prisma.reissuePickup.findMany(args);
+  });
   return rows.map(({ gacha: { _count, ...g } }) => ({ ...flatIp(g), likeCount: _count.gachaLikes }));
+}
+
+// 再販・また引ける（動的）：名前に「再販」を含む発売中(on_sale)ガチャを、
+// excludeIds（ログインユーザーのいいね済み）を除外し、いいね数の多い順に limit 件返す。
+export async function getReissueGachas(limit = 10, excludeIds: string[] = []) {
+  const rows = await prisma.gacha.findMany({
+    where: {
+      status: 'on_sale',
+      seriesName: { contains: '再販' },
+      ...(excludeIds.length ? { id: { notIn: excludeIds } } : {}),
+    },
+    orderBy: { gachaLikes: { _count: 'desc' } },
+    take: limit,
+    select: {
+      id: true, seriesName: true, ...IP_NAME_SELECT,
+      imageUrl: true, gradientFrom: true, gradientTo: true,
+      status: true, releaseDate: true,
+      _count: { select: { gachaLikes: true } },
+    },
+  });
+  return rows.map(({ _count, ...g }) => ({ ...flatIp(g), likeCount: _count.gachaLikes }));
 }
 
 export async function getRecommendedByLikedGachas(userId: string, perIp = 9, maxIps = 5) {
