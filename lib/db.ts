@@ -718,6 +718,150 @@ export async function getPickupGachas(_section: string, excludeIds: string[] = [
   return rows.map(({ gacha: { _count, ...g } }) => ({ ...flatIp(g), likeCount: _count.gachaLikes }));
 }
 
+// ─── 今週発売(WeeklyPickup): 楽しみの声の集計 ───────────────────────────────────
+
+/**
+ * 今週発売の情報（今週発売枠か・楽しみの声を投稿したユーザー数）。枠外なら inWeekly=false。
+ * 発売通知の購読状態は gachaLike(いいね) と同義なので、通知の購読は別管理しない。
+ */
+export async function getWeeklyInfo(gachaId: string) {
+  const pickup = await prisma.weeklyPickup.findUnique({ where: { gachaId }, select: { id: true } });
+  if (!pickup) return { inWeekly: false, voiceUserCount: 0 };
+  const voiceUsers = await prisma.weeklyVoice.findMany({
+    where: { pickupId: pickup.id }, select: { userId: true }, distinct: ['userId'],
+  });
+  return { inWeekly: true, voiceUserCount: voiceUsers.length };
+}
+
+// 発売予定ページの右サイドリスト用の軽量ガチャ型。
+export type RelatedGachaItem = {
+  id: string;
+  seriesName: string;
+  imageUrl: string | null;
+  gradientFrom: string;
+  gradientTo: string;
+  status: string;
+  likeCount: number;
+};
+
+const RELATED_SELECT = {
+  id: true, seriesName: true, imageUrl: true, gradientFrom: true, gradientTo: true, status: true,
+  _count: { select: { gachaLikes: true } },
+} as const;
+type RelatedRow = { id: string; seriesName: string; imageUrl: string | null; gradientFrom: string; gradientTo: string; status: string; _count: { gachaLikes: number } };
+const toRelated = (g: RelatedRow): RelatedGachaItem => ({
+  id: g.id, seriesName: g.seriesName, imageUrl: g.imageUrl,
+  gradientFrom: g.gradientFrom, gradientTo: g.gradientTo, status: g.status, likeCount: g._count.gachaLikes,
+});
+
+/** 同一IPのガチャをいいね数の多い順に取得（発売中のみ・指定IDは除外）。 */
+async function getIpGachasByLikes(ipName: string, limit: number, excludeId: string): Promise<RelatedGachaItem[]> {
+  if (!ipName) return [];
+  const rows = await prisma.gacha.findMany({
+    where: { status: 'on_sale', ip: { name: ipName }, id: { not: excludeId } },
+    orderBy: { gachaLikes: { _count: 'desc' } },
+    take: limit,
+    select: RELATED_SELECT,
+  });
+  return rows.map(toRelated);
+}
+
+/** 今週発売(WeeklyPickup)のガチャをいいね数の多い順に取得（終了は除く・指定IDは除外）。 */
+async function getWeeklyGachasByLikes(limit: number, excludeId: string): Promise<RelatedGachaItem[]> {
+  const rows = await prisma.weeklyPickup.findMany({ select: { gacha: { select: RELATED_SELECT } } });
+  return rows
+    .map((r) => r.gacha)
+    .filter((g) => g.id !== excludeId && g.status !== 'ended')
+    .map(toRelated)
+    .sort((a, b) => b.likeCount - a.likeCount)
+    .slice(0, limit);
+}
+
+/** 発売予定ページの右サイド用: 同一IP上位5件＋今週発売上位3件（いずれもいいね順）。 */
+export async function getGachaRelatedLists(gachaId: string): Promise<{ ipName: string; ipGachas: RelatedGachaItem[]; weeklyGachas: RelatedGachaItem[] }> {
+  const gacha = await prisma.gacha.findUnique({ where: { id: gachaId }, select: { ...IP_NAME_SELECT } });
+  const ipName = gacha?.ip?.name ?? '';
+  const [ipGachas, weeklyGachas] = await Promise.all([
+    getIpGachasByLikes(ipName, 5, gachaId),
+    getWeeklyGachasByLikes(3, gachaId),
+  ]);
+  return { ipName, ipGachas, weeklyGachas };
+}
+
+// 楽しみの声（WeeklyVoice）。1ユーザー何回でも投稿可・いいね/返信なし。
+export type WeeklyVoiceItem = {
+  id: string;
+  text: string;
+  createdAt: Date;
+  user: { id: string; name: string; image: string | null };
+};
+
+const countWeeklyVoiceUsers = (pickupId: string) =>
+  prisma.weeklyVoice
+    .findMany({ where: { pickupId }, select: { userId: true }, distinct: ['userId'] })
+    .then((rows) => rows.length);
+
+/** 楽しみの声一覧（新しい順）。ユーザー名/アイコンを付与して返す。枠外なら空配列。 */
+export async function getWeeklyVoices(gachaId: string): Promise<WeeklyVoiceItem[]> {
+  const pickup = await prisma.weeklyPickup.findUnique({ where: { gachaId }, select: { id: true } });
+  if (!pickup) return [];
+  const voices = await prisma.weeklyVoice.findMany({
+    where: { pickupId: pickup.id },
+    orderBy: { createdAt: 'desc' },
+    select: { id: true, userId: true, text: true, createdAt: true },
+  });
+  const userIds = [...new Set(voices.map((v) => v.userId))];
+  const users = userIds.length
+    ? await prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, name: true, image: true } })
+    : [];
+  const byId = new Map(users.map((u) => [u.id, u]));
+  return voices.map((v) => ({
+    id: v.id,
+    text: v.text,
+    createdAt: v.createdAt,
+    user: { id: v.userId, name: byId.get(v.userId)?.name ?? '', image: byId.get(v.userId)?.image ?? null },
+  }));
+}
+
+/** 楽しみの声を投稿。枠外なら null。戻り値に作成した声＋更新後の投稿ユーザー数。 */
+export async function addWeeklyVoice(
+  gachaId: string,
+  user: { id: string; name: string; image: string | null },
+  text: string,
+): Promise<{ voice: WeeklyVoiceItem; voiceUserCount: number } | null> {
+  const pickup = await prisma.weeklyPickup.findUnique({ where: { gachaId }, select: { id: true } });
+  if (!pickup) return null;
+  const created = await prisma.weeklyVoice.create({
+    data: { pickupId: pickup.id, userId: user.id, text },
+    select: { id: true, text: true, createdAt: true },
+  });
+  const voiceUserCount = await countWeeklyVoiceUsers(pickup.id);
+  return { voice: { ...created, user }, voiceUserCount };
+}
+
+/** 楽しみの声を削除（本人のみ）。戻り値に更新後の投稿ユーザー数。対象なし/他人なら null。 */
+export async function deleteWeeklyVoice(
+  voiceId: string,
+  userId: string,
+): Promise<{ voiceUserCount: number } | null> {
+  const voice = await prisma.weeklyVoice.findUnique({ where: { id: voiceId }, select: { pickupId: true, userId: true } });
+  if (!voice || voice.userId !== userId) return null;
+  await prisma.weeklyVoice.delete({ where: { id: voiceId } });
+  const voiceUserCount = await countWeeklyVoiceUsers(voice.pickupId);
+  return { voiceUserCount };
+}
+
+/** 楽しみの声を編集（本人のみ）。対象なし/他人なら null。更新後の本文を返す。 */
+export async function updateWeeklyVoice(
+  voiceId: string,
+  userId: string,
+  text: string,
+): Promise<{ id: string; text: string } | null> {
+  const voice = await prisma.weeklyVoice.findUnique({ where: { id: voiceId }, select: { userId: true } });
+  if (!voice || voice.userId !== userId) return null;
+  return prisma.weeklyVoice.update({ where: { id: voiceId }, data: { text }, select: { id: true, text: true } });
+}
+
 // 再販・また引ける（動的）：名前に「再販」を含む発売中(on_sale)ガチャを、
 // excludeIds（ログインユーザーのいいね済み）を除外し、いいね数の多い順に limit 件返す。
 export async function getReissueGachas(limit = 10, excludeIds: string[] = []) {

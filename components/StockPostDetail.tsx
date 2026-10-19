@@ -172,6 +172,7 @@ export function StockPostDetail({ post, onBack, onReplied, onDeleted }: { post: 
             renderMentionText={renderMentionText}
             onSubmit={handleSubmit}
             submitting={submitting}
+            placeholder="返信を投稿"
           />
         </div>
       </div>

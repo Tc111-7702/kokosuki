@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { type StockFeedPost } from '@/components/StockPostCard';
 import { type FeedPost, type TrendingGacha, type TrendingIP } from '@/components/community-types';
 import { Feed } from '@/components/CommunityFeed';
@@ -12,6 +12,7 @@ import { CommunitySearchBar } from '@/components/CommunitySearchBar';
 import { useGachaDetail } from '@/components/GachaDetailProvider';
 import { GachaAvatar } from '@/components/ui/GachaAvatar';
 import { TrendingSection, TrendingRow } from '@/components/ui/TrendingCard';
+import { TrendingIpsSection } from '@/components/TrendingIpsSection';
 
 // ─── RightSidebar ─────────────────────────────────────────────────────────────
 
@@ -26,7 +27,6 @@ function RightSidebar({
   searchActive: boolean;
   initialValue?: string;
 }) {
-  const router = useRouter();
   const { openGacha } = useGachaDetail();
   const [trendingGachas, setTrendingGachas] = useState<TrendingGacha[]>([]);
   const [trendingIPs,    setTrendingIPs]    = useState<TrendingIP[]>([]);
@@ -46,29 +46,7 @@ function RightSidebar({
       <div className="space-y-4 pb-8">
         <CommunitySearchBar onSearch={onSearch} onClear={onClear} searchActive={searchActive} initialValue={initialValue} />
 
-        {trendingIPs.length > 0 && (
-          <TrendingSection title="話題のIP">
-            {trendingIPs.map((ip, i) => (
-              <TrendingRow
-                key={ip.ipName}
-                rank={i + 1}
-                isLast={i === trendingIPs.length - 1}
-                avatar={
-                  <GachaAvatar
-                    imageUrl={ip.imageUrl}
-                    gradientFrom={ip.gradientFrom}
-                    gradientTo={ip.gradientTo}
-                    name={ip.ipName}
-                    size={38}
-                  />
-                }
-                title={ip.ipName}
-                likeCount={ip.likeCount}
-                onClick={() => router.push(`/home/search?ipName=${encodeURIComponent(ip.ipName)}&label=${encodeURIComponent(ip.ipName)}`)}
-              />
-            ))}
-          </TrendingSection>
-        )}
+        <TrendingIpsSection ips={trendingIPs} />
 
         {trendingGachas.length > 0 && (
           <TrendingSection title="話題のガチャ">
