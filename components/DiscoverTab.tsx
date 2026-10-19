@@ -26,7 +26,7 @@ export function DiscoverTab() {
         apiUrl="/api/gacha/home-pickup/weekly"
         scrollId="home-weekly"
         showRank={false}
-        badgeLabel="今週発売"
+        badgeLabel="発売予定"
       />
       <HorizontalGachaSection
         title="再販・また引ける"

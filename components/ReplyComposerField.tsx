@@ -150,7 +150,7 @@ export function ReplyComposerField({
       type="button"
       onClick={onSubmit}
       disabled={!canSend}
-      className={`flex-shrink-0 flex items-center justify-center w-6 h-6 mb-0.5 rounded-full transition-colors ${canSend ? 'text-[#F2B800]' : 'text-gray-300'}`}
+      className={`flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full transition-colors ${canSend ? 'text-[#F2B800]' : 'text-gray-300'}`}
       aria-label="返信を送信"
     >
       {submitting
@@ -162,7 +162,7 @@ export function ReplyComposerField({
   if (plainText) {
     return (
       <div
-        className={`reply-composer-input-shell flex items-end gap-0.5 min-w-0 w-full ${rounded} py-1.5 md:py-0.5 pr-0.5`}
+        className={`reply-composer-input-shell flex items-center md:items-end gap-0.5 min-w-0 w-full ${rounded} py-1.5 md:py-0.5 pr-0.5`}
       >
         <div ref={plainWrapRef} className="relative flex-1 min-w-0 overflow-hidden min-h-[1.45em]">
           {/* フロー内ミラー: 折り返し後の高さを決める */}
@@ -194,7 +194,7 @@ export function ReplyComposerField({
 
   return (
     <div
-      className={`reply-composer-input-shell flex items-end gap-0.5 min-w-0 w-full ${rounded} py-1.5 md:py-0.5 pr-0.5`}
+      className={`reply-composer-input-shell flex items-center md:items-end gap-0.5 min-w-0 w-full ${rounded} py-1.5 md:py-0.5 pr-0.5`}
     >
       <div ref={wrapRef} className="relative flex-1 min-w-0 overflow-hidden min-h-[1.45em]">
         <div
