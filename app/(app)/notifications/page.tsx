@@ -3,8 +3,9 @@ import { useSetNavActive } from '@/lib/navActiveStore';
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Bell, Heart, MessageCircle, Package, AtSign } from 'lucide-react';
+import { Bell, Heart, MessageCircle, Package, AtSign, Sparkles } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
+import { useGachaDetail } from '@/components/GachaDetailProvider';
 import { NOTIFICATION_POLL_SECONDS, reloadUnreadNotificationCount } from '@/hooks/useUnreadNotificationCount';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { usePolling } from '@/hooks/usePolling';
@@ -17,7 +18,7 @@ interface NotifActor { id: string; name: string; image: string | null }
 
 interface NotificationItem {
   id: string;
-  type: string; // favorite_stock / like / reply / mention
+  type: string; // favorite_stock / gacha_release / like / reply / mention
   title: string;
   body: string;
   gachaId: string | null;
@@ -95,6 +96,7 @@ function timeAgo(iso: string): string {
 // タイトル行に文字と同じ大きさで並べるアイコン
 function typeIcon(type: string) {
   if (type === 'favorite_stock') return <Package size={14} color="#F2B800" />;
+  if (type === 'gacha_release') return <Sparkles size={14} color="#F2B800" />;
   if (type === 'like') return <Heart size={14} color="#E5484D" fill="#E5484D" />;
   if (type === 'reply') return <MessageCircle size={14} color="#0891b2" />;
   if (type === 'mention') return <AtSign size={14} color="#7C3AED" />;
@@ -320,6 +322,7 @@ function EveryoneTab({ onMarkedRead }: { onMarkedRead?: () => void }) {
 
 function PersonalNotificationsTab({ onMarkedRead }: { onMarkedRead?: () => void }) {
   const router = useRouter();
+  const { openGacha } = useGachaDetail();
   const isMobile = useIsMobile(MOBILE_BREAKPOINT);
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -402,24 +405,47 @@ function PersonalNotificationsTab({ onMarkedRead }: { onMarkedRead?: () => void 
   return (
     <>
       {items.map((n) => {
-        const dest = destinationUrl(n);
+        const isGachaRelease = n.type === 'gacha_release' && !!n.gachaId;
+        const dest = isGachaRelease ? null : destinationUrl(n);
         const actor = n.actors[0] ?? null;
         const showLikeRow = n.type === 'like' && n.actors.length > 0;
+        const clickable = isGachaRelease || !!dest;
         return (
           <button
             key={n.id}
-            onClick={() => { if (dest) router.push(dest); }}
+            onClick={() => {
+              if (isGachaRelease && n.gachaId) openGacha(n.gachaId);
+              else if (dest) router.push(dest);
+            }}
             className={"w-full flex items-start gap-3 px-4 text-left active:opacity-70" + (n.read ? "" : " notif-shine")}
             style={{
               ...personalNotifRowStyle(isMobile),
               background: n.read ? 'transparent' : '#FFF8D0',
-              cursor: dest ? 'pointer' : 'default',
+              cursor: clickable ? 'pointer' : 'default',
               ...(showLikeRow ? { height: 'auto', overflow: 'visible' } : {}),
             }}
           >
-            {/* 左: 相手ユーザーのアイコン（アクター不明時は種別アイコンにフォールバック） */}
+            {/* 左: 発売開始は四角いガチャ画像、それ以外は相手アバター（不明時は種別アイコン） */}
             <div className="flex-shrink-0">
-              {actor ? (
+              {isGachaRelease ? (
+                n.thumbnailUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={n.thumbnailUrl}
+                    alt=""
+                    className="object-cover rounded-md"
+                    style={{ width: NOTIF_AVATAR_SIZE, height: NOTIF_AVATAR_SIZE, background: '#F0ECD8' }}
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <div
+                    className="flex items-center justify-center rounded-md"
+                    style={{ width: NOTIF_AVATAR_SIZE, height: NOTIF_AVATAR_SIZE, background: '#F0ECD8' }}
+                  >
+                    {typeIcon(n.type)}
+                  </div>
+                )
+              ) : actor ? (
                 <Avatar user={actor} size={NOTIF_AVATAR_SIZE} />
               ) : (
                 <div
@@ -466,8 +492,8 @@ function PersonalNotificationsTab({ onMarkedRead }: { onMarkedRead?: () => void 
               <p className="text-[11px] mt-1" style={{ color: '#AAA' }}>{timeAgo(n.createdAt)}</p>
             </div>
 
-            {/* 右: 投稿写真 / ガチャ画像のサムネ */}
-            {n.thumbnailUrl && (
+            {/* 右: 投稿写真 / ガチャ画像のサムネ（発売開始は左に出すため省略） */}
+            {!isGachaRelease && n.thumbnailUrl && (
               // 任意ホストの画像に対応するため next/image ではなく img を使用
               // eslint-disable-next-line @next/next/no-img-element
               <img

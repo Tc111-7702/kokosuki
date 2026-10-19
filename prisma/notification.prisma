@@ -2,6 +2,7 @@
 
 // type:
 //   favorite_stock … お気に入りガチャの在庫情報が投稿された
+//   gacha_release  … お気に入りガチャが発売開始した（WeeklyPickup から on_sale へ）
 //   like           … 自分の投稿（引いた！/在庫報告/口コミ）にいいねされた
 //   reply          … 自分の投稿（引いた！/在庫報告/口コミ）に返信された
 model Notification {
