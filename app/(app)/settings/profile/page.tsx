@@ -16,11 +16,18 @@ interface FavoriteGacha {
   ipName: string;
 }
 
+type HandleStatus = 'idle' | 'checking' | 'ok' | 'taken' | 'invalid';
+
+const HANDLE_TAKEN_HINT = 'このユーザーIDはすでに使われています';
+const HANDLE_FORMAT_HINT = '4-20字・半角英数字';
+
 // プロフィール設定（旧 ProfileSettingsSheet を直書き）。保存はヘッダー右のボタン。
 export default function SettingsProfilePage() {
   useSetNavActive('mypage');
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
+  const handleDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestHandleRef = useRef('');
 
   const [name, setName] = useState('');
   const [handle, setHandle] = useState('');
@@ -32,6 +39,11 @@ export default function SettingsProfilePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [handleStatus, setHandleStatus] = useState<HandleStatus>('idle');
+
+  useEffect(() => () => {
+    if (handleDebounce.current) clearTimeout(handleDebounce.current);
+  }, []);
 
   useEffect(() => {
     setError(null);
@@ -40,7 +52,10 @@ export default function SettingsProfilePage() {
       .then((d) => {
         if (!d) return;
         setName(d.name ?? '');
-        setHandle(d.handle ?? '');
+        const nextHandle = d.handle ?? '';
+        setHandle(nextHandle);
+        latestHandleRef.current = nextHandle;
+        setHandleStatus(nextHandle ? 'ok' : 'idle');
         setBio(d.bio ?? '');
         setAvatarUrl(d.avatarUrl ?? null);
         setFavoriteIps(d.favoriteIps ?? []);
@@ -55,6 +70,43 @@ export default function SettingsProfilePage() {
       })
       .catch(() => {});
   }, []);
+
+  const checkHandleAvailability = (next: string) => {
+    latestHandleRef.current = next;
+    if (handleDebounce.current) clearTimeout(handleDebounce.current);
+
+    if (!next) {
+      setHandleStatus('idle');
+      return;
+    }
+    if (!isSignupHandleFormatValid(next)) {
+      setHandleStatus('invalid');
+      return;
+    }
+
+    setHandleStatus('checking');
+    handleDebounce.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/profile/handle-available?handle=${encodeURIComponent(next)}`);
+        const data = await res.json().catch(() => null);
+        if (latestHandleRef.current !== next) return;
+        if (!res.ok || data?.available === false) {
+          setHandleStatus(data?.reason === 'invalid' ? 'invalid' : 'taken');
+          return;
+        }
+        setHandleStatus('ok');
+      } catch {
+        if (latestHandleRef.current === next) setHandleStatus('idle');
+      }
+    }, 400);
+  };
+
+  const onHandleChange = (value: string) => {
+    const next = normalizeSignupHandleInput(value);
+    setHandle(next);
+    setError(null);
+    checkHandleAvailability(next);
+  };
 
   const toggleIp = (ip: string) =>
     setFavoriteIps((prev) => (prev.includes(ip) ? prev.filter((i) => i !== ip) : prev.length < 10 ? [...prev, ip] : prev));
@@ -78,10 +130,15 @@ export default function SettingsProfilePage() {
     }
   };
 
+  const trimmedHandle = handle.trim();
+  const handleOk =
+    !trimmedHandle ||
+    (isSignupHandleFormatValid(trimmedHandle) && handleStatus === 'ok');
+
   const handleSave = async () => {
+    if (!handleOk || uploading) return;
     setSaving(true);
     setError(null);
-    const trimmedHandle = handle.trim();
     if (trimmedHandle && !isSignupHandleFormatValid(trimmedHandle)) {
       setError(HANDLE_FORMAT_ERROR);
       setSaving(false);
@@ -109,7 +166,14 @@ export default function SettingsProfilePage() {
     }
   };
 
-  const saveDisabled = !loaded || saving || !name.trim();
+  const saveDisabled = !loaded || saving || uploading || !name.trim() || !handleOk || handleStatus === 'checking';
+
+  const handleHint =
+    trimmedHandle && handleStatus === 'taken' ? HANDLE_TAKEN_HINT
+    : trimmedHandle && handleStatus === 'invalid' ? HANDLE_FORMAT_ERROR
+    : HANDLE_FORMAT_HINT;
+  const handleHintTone =
+    trimmedHandle && (handleStatus === 'taken' || handleStatus === 'invalid') ? '#DC2626' : '#BBB';
 
   return (
     <div className="flex flex-col h-full bg-white min-h-0">
@@ -176,12 +240,12 @@ export default function SettingsProfilePage() {
           </Field>
 
           {/* ユーザーID */}
-          <Field label="ユーザーID" hint="4-20字・半角英数字">
+          <Field label="ユーザーID" hint={handleHint} hintColor={handleHintTone}>
             <div className="flex items-center gap-1 px-4 py-3 rounded-2xl" style={{ background: 'white', border: '1.5px solid #EDE9D8' }}>
               <span className="text-[14px]" style={{ color: '#AAA' }}>@</span>
               <input
                 value={handle}
-                onChange={(e) => setHandle(normalizeSignupHandleInput(e.target.value))}
+                onChange={(e) => onHandleChange(e.target.value)}
                 maxLength={20}
                 aria-label="ユーザーID"
                 placeholder="user_id"
@@ -227,12 +291,29 @@ export default function SettingsProfilePage() {
   );
 }
 
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+function Field({
+  label,
+  hint,
+  hintColor = '#BBB',
+  children,
+}: {
+  label: string;
+  hint?: string;
+  hintColor?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="mt-6">
       <div className="flex items-baseline gap-2 mb-2">
         <p className="text-[13px] font-bold" style={{ color: '#555' }}>{label}</p>
-        {hint && <p className="text-[11px]" style={{ color: '#BBB' }}>{hint}</p>}
+        {hint && (
+          <p
+            className="text-[11px]"
+            style={{ color: hintColor, fontWeight: hintColor === '#DC2626' ? 700 : undefined }}
+          >
+            {hint}
+          </p>
+        )}
       </div>
       {children}
     </div>

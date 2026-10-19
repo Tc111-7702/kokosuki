@@ -68,7 +68,7 @@ function RelatedSection({
  * 発売予定ページの右サイドリスト。
  * - 同一IP（タイトル=IP名）の発売中ガチャ上位5件（いいね順・発売状況タグ付き）。
  *   IPが不明な場合は、代わりにホーム投稿一覧と同じ「話題のIP」を差し込む。
- * - 今週発売のガチャ上位3件（いいね順）。
+ * - 今週発売上位3件（いいね順）。タイトルはデスクトップ右サイド用の「今週発売」。
  * クリックでそのガチャのガチャ詳細に切り替える（openGacha）。
  *
  * gachaId 変更時は key でリマウントして状態を初期化する（effect 内の同期 setState を避ける）。
@@ -105,7 +105,7 @@ function GachaRelatedListsInner({ gachaId, isDark }: { gachaId: string; isDark: 
       ) : (
         <TrendingIpsSection />
       )}
-      <RelatedSection title="今週発売のガチャ" items={weeklyGachas} isDark={isDark} onOpen={openGacha} />
+      <RelatedSection title="今週発売" items={weeklyGachas} isDark={isDark} onOpen={openGacha} />
     </div>
   );
 }
