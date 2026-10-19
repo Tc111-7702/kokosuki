@@ -14,6 +14,17 @@ const WRAP_STYLE = {
   boxSizing: 'border-box' as const,
 };
 
+/** div の pre-wrap は末尾改行だけでは行が増えない。textarea のキャレット行と高さを揃える。 */
+function mirrorContent(text: string, render: (t: string) => React.ReactNode): React.ReactNode {
+  if (!text) return '\u00a0';
+  return (
+    <>
+      {render(text)}
+      {text.endsWith('\n') ? '\u00a0' : null}
+    </>
+  );
+}
+
 export function ReplyComposerField({
   text,
   textareaRef,
@@ -46,16 +57,40 @@ export function ReplyComposerField({
   const plainWrapRef = useRef<HTMLDivElement>(null);
   const plainMirrorRef = useRef<HTMLDivElement>(null);
 
+  // 親に固定高さ+overflow:hidden が付いたままだとミラーが潰れて高さが伸びない。
+  // いったん auto にしてから中身の高さを測る。
+  const measureHeight = (wrap: HTMLElement, mirror: HTMLElement) => {
+    const prev = wrap.style.height;
+    wrap.style.height = 'auto';
+    const contentHeight = mirror.scrollHeight;
+    wrap.style.height = prev;
+    return contentHeight;
+  };
+
+  const applyHeight = (
+    wrap: HTMLElement,
+    textarea: HTMLTextAreaElement,
+    contentHeight: number,
+    visible?: HTMLElement | null,
+  ) => {
+    const capped = Math.min(Math.max(contentHeight, 1), MAX_HEIGHT_PX);
+    wrap.style.height = `${capped}px`;
+    const scrollable = contentHeight > MAX_HEIGHT_PX;
+    textarea.style.overflowY = scrollable ? 'auto' : 'hidden';
+    if (visible) visible.style.overflowY = scrollable ? 'auto' : 'hidden';
+    if (!scrollable) {
+      // 上限内なら先頭から全部見せる（改行直後に1行目が消えるのを防ぐ）
+      textarea.scrollTop = 0;
+      if (visible) visible.scrollTop = 0;
+    }
+  };
+
   const syncPlainLayout = useCallback(() => {
     const wrap = plainWrapRef.current;
     const mirror = plainMirrorRef.current;
     const textarea = textareaRef.current;
     if (!wrap || !mirror || !textarea) return;
-
-    const contentHeight = mirror.offsetHeight;
-    const capped = Math.min(contentHeight, MAX_HEIGHT_PX);
-    wrap.style.height = `${capped}px`;
-    textarea.style.overflowY = contentHeight > MAX_HEIGHT_PX ? 'auto' : 'hidden';
+    applyHeight(wrap, textarea, measureHeight(wrap, mirror));
   }, [textareaRef]);
 
   const syncMirrorLayout = useCallback(() => {
@@ -71,11 +106,7 @@ export function ReplyComposerField({
       if (visible) visible.style.width = `${w}px`;
     }
 
-    const contentHeight = mirror.scrollHeight;
-    const capped = Math.min(contentHeight, MAX_HEIGHT_PX);
-    wrap.style.height = `${capped}px`;
-    textarea.style.overflowY = contentHeight > MAX_HEIGHT_PX ? 'auto' : 'hidden';
-    if (visible) visible.style.overflowY = contentHeight > MAX_HEIGHT_PX ? 'auto' : 'hidden';
+    applyHeight(wrap, textarea, measureHeight(wrap, mirror), visible);
   }, [textareaRef]);
 
   useLayoutEffect(() => {
@@ -99,6 +130,11 @@ export function ReplyComposerField({
     onChange(e);
     queueMicrotask(syncPlainLayout);
   }, [onChange, syncPlainLayout]);
+
+  const handleMirrorChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    onChange(e);
+    queueMicrotask(syncMirrorLayout);
+  }, [onChange, syncMirrorLayout]);
 
   const rounded = variant === 'inline' ? 'rounded-xl' : 'rounded-2xl';
   const padX = variant === 'inline' ? 'pl-2.5' : 'pl-3';
@@ -127,7 +163,7 @@ export function ReplyComposerField({
   if (plainText) {
     return (
       <div
-        className={`reply-composer-input-shell flex items-center gap-0.5 min-w-0 w-full ${rounded} py-0.5 pr-0.5`}
+        className={`reply-composer-input-shell flex items-end gap-0.5 min-w-0 w-full ${rounded} py-0.5 pr-0.5`}
       >
         <div ref={plainWrapRef} className="relative flex-1 min-w-0 overflow-hidden min-h-[1.45em]">
           {/* フロー内ミラー: 折り返し後の高さを決める */}
@@ -137,7 +173,7 @@ export function ReplyComposerField({
             className={`invisible pointer-events-none ${plainPadClass}`}
             style={WRAP_STYLE}
           >
-            {text || '\u00a0'}
+            {mirrorContent(text, (t) => t)}
           </div>
           <textarea
             ref={textareaRef}
@@ -159,7 +195,7 @@ export function ReplyComposerField({
 
   return (
     <div
-      className={`reply-composer-input-shell flex items-center gap-0.5 min-w-0 w-full ${rounded} py-0.5 pr-0.5`}
+      className={`reply-composer-input-shell flex items-end gap-0.5 min-w-0 w-full ${rounded} py-0.5 pr-0.5`}
     >
       <div ref={wrapRef} className="relative flex-1 min-w-0 overflow-hidden min-h-[1.45em]">
         <div
@@ -169,10 +205,12 @@ export function ReplyComposerField({
           <div
             ref={mirrorRef}
             aria-hidden
-            className={`${cellClass} invisible pointer-events-none`}
+            // self-start: グリッドの行高に引き伸ばされると scrollHeight が縮まらず、
+            // backspace で入力欄が小さくならない不具合になるため、内容の高さだけを測る。
+            className={`${cellClass} self-start invisible pointer-events-none`}
             style={WRAP_STYLE}
           >
-            {renderMentionText(text) || '\u00a0'}
+            {mirrorContent(text, renderMentionText)}
           </div>
           <div
             ref={visibleRef}
@@ -180,12 +218,15 @@ export function ReplyComposerField({
             className={`${cellClass} pointer-events-none text-gray-800 dark:text-gray-100 overflow-hidden`}
             style={WRAP_STYLE}
           >
-            {renderMentionText(text)}
+            {/* textarea 本体は文字色が透明なので placeholder も見えない。空のときはここで代わりに表示する。 */}
+            {text
+              ? mirrorContent(text, renderMentionText)
+              : <span className="text-gray-400 dark:text-gray-500">{placeholder}</span>}
           </div>
           <textarea
             ref={textareaRef}
             value={text}
-            onChange={onChange}
+            onChange={handleMirrorChange}
             onSelect={onSelect}
             onScroll={e => { if (visibleRef.current) visibleRef.current.scrollTop = e.currentTarget.scrollTop; }}
             onKeyDown={onKeyDown}

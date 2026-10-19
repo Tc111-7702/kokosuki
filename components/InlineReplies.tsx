@@ -146,6 +146,7 @@ export function InlineReplies({
             renderMentionText={renderMentionText}
             onSubmit={handleSubmit}
             submitting={submitting}
+            placeholder="返信を投稿"
             variant="inline"
           />
         </div>
