@@ -138,11 +138,10 @@ export function ReplyComposerField({
 
   const rounded = variant === 'inline' ? 'rounded-xl' : 'rounded-2xl';
   const padX = variant === 'inline' ? 'pl-2.5' : 'pl-3';
-  // モバイルはグローバルの拡大防止で textarea が 16px 固定になる。表示divも 16px に揃えると、
-  // 12px の文字が 16px の行ボックス内で上寄せになって生じる「下側の余白（padding風）」が消え、
-  // フォントも大きくなる。縦paddingも詰める。デスクトップは従来どおり小さめ。
-  const cellClass = `col-start-1 row-start-1 w-full min-w-0 max-w-full ${padX} pr-1 py-0 text-[16px] md:py-0.5 md:text-xs box-border`;
-  const plainPadClass = `${padX} pr-1 py-0 text-[16px] md:py-0.5 md:text-xs w-full min-w-0 max-w-full`;
+  // モバイルはグローバルの拡大防止で textarea が 16px 固定になる。表示divも 16px に揃える。
+  // 上下 padding は少し広めにしてタップしやすくする。デスクトップは従来どおり小さめ。
+  const cellClass = `col-start-1 row-start-1 w-full min-w-0 max-w-full ${padX} pr-1 py-1.5 text-[16px] md:py-0.5 md:text-xs box-border`;
+  const plainPadClass = `${padX} pr-1 py-1.5 text-[16px] md:py-0.5 md:text-xs w-full min-w-0 max-w-full`;
 
   const canSend = !!text.trim() && !submitting;
 
@@ -163,7 +162,7 @@ export function ReplyComposerField({
   if (plainText) {
     return (
       <div
-        className={`reply-composer-input-shell flex items-end gap-0.5 min-w-0 w-full ${rounded} py-0.5 pr-0.5`}
+        className={`reply-composer-input-shell flex items-end gap-0.5 min-w-0 w-full ${rounded} py-1.5 md:py-0.5 pr-0.5`}
       >
         <div ref={plainWrapRef} className="relative flex-1 min-w-0 overflow-hidden min-h-[1.45em]">
           {/* フロー内ミラー: 折り返し後の高さを決める */}
@@ -195,7 +194,7 @@ export function ReplyComposerField({
 
   return (
     <div
-      className={`reply-composer-input-shell flex items-end gap-0.5 min-w-0 w-full ${rounded} py-0.5 pr-0.5`}
+      className={`reply-composer-input-shell flex items-end gap-0.5 min-w-0 w-full ${rounded} py-1.5 md:py-0.5 pr-0.5`}
     >
       <div ref={wrapRef} className="relative flex-1 min-w-0 overflow-hidden min-h-[1.45em]">
         <div

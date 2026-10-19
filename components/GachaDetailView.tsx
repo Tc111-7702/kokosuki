@@ -533,7 +533,12 @@ export function GachaDetailView({ gachaId, onClose }: { gachaId: string; onClose
               {inWeekly && notifyButton}
               {statsBlockComingSoon}
               <LineupSection gacha={gacha} />
-              {inWeekly && <WeeklyVoices gachaId={id} isDark={isDark} onCountChange={setVoiceUserCount} />}
+              {/* ラインナップと楽しみの声の入力欄のあいだを少し開ける */}
+              {inWeekly && (
+                <div style={{ marginTop: 8 }}>
+                  <WeeklyVoices gachaId={id} isDark={isDark} onCountChange={setVoiceUserCount} />
+                </div>
+              )}
             </>
           ) : (
             <>
