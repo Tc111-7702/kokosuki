@@ -125,7 +125,7 @@ export function ReviewRepliesPanel({
             renderMentionText={renderMentionText}
             onSubmit={handleSubmit}
             submitting={submitting}
-            placeholder="返信する…"
+            placeholder="返信を投稿"
             variant="inline"
             plainText
           />

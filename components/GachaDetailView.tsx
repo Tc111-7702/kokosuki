@@ -564,7 +564,7 @@ export function GachaDetailView({ gachaId, onClose }: { gachaId: string; onClose
                 }
               </div>
               {isComingSoon && inWeekly && (
-                <WeeklyVoices gachaId={id} isDark={isDark} onCountChange={setVoiceUserCount} listMaxHeight={420} />
+                <WeeklyVoices gachaId={id} isDark={isDark} onCountChange={setVoiceUserCount} />
               )}
             </div>
             <div style={{ flex: 1, minWidth: 240, paddingTop: 4, display: 'flex', flexDirection: 'column', gap: 12 }}>

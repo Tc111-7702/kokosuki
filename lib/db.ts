@@ -754,11 +754,11 @@ const toRelated = (g: RelatedRow): RelatedGachaItem => ({
   gradientFrom: g.gradientFrom, gradientTo: g.gradientTo, status: g.status, likeCount: g._count.gachaLikes,
 });
 
-/** 同一IPのガチャをいいね数の多い順に取得（終了は除く・指定IDは除外）。 */
+/** 同一IPのガチャをいいね数の多い順に取得（発売中のみ・指定IDは除外）。 */
 async function getIpGachasByLikes(ipName: string, limit: number, excludeId: string): Promise<RelatedGachaItem[]> {
   if (!ipName) return [];
   const rows = await prisma.gacha.findMany({
-    where: { status: { not: 'ended' }, ip: { name: ipName }, id: { not: excludeId } },
+    where: { status: 'on_sale', ip: { name: ipName }, id: { not: excludeId } },
     orderBy: { gachaLikes: { _count: 'desc' } },
     take: limit,
     select: RELATED_SELECT,
@@ -783,7 +783,7 @@ export async function getGachaRelatedLists(gachaId: string): Promise<{ ipName: s
   const ipName = gacha?.ip?.name ?? '';
   const [ipGachas, weeklyGachas] = await Promise.all([
     getIpGachasByLikes(ipName, 5, gachaId),
-    getWeeklyGachasByLikes(5, gachaId),
+    getWeeklyGachasByLikes(3, gachaId),
   ]);
   return { ipName, ipGachas, weeklyGachas };
 }
@@ -849,6 +849,17 @@ export async function deleteWeeklyVoice(
   await prisma.weeklyVoice.delete({ where: { id: voiceId } });
   const voiceUserCount = await countWeeklyVoiceUsers(voice.pickupId);
   return { voiceUserCount };
+}
+
+/** 楽しみの声を編集（本人のみ）。対象なし/他人なら null。更新後の本文を返す。 */
+export async function updateWeeklyVoice(
+  voiceId: string,
+  userId: string,
+  text: string,
+): Promise<{ id: string; text: string } | null> {
+  const voice = await prisma.weeklyVoice.findUnique({ where: { id: voiceId }, select: { userId: true } });
+  if (!voice || voice.userId !== userId) return null;
+  return prisma.weeklyVoice.update({ where: { id: voiceId }, data: { text }, select: { id: true, text: true } });
 }
 
 // 再販・また引ける（動的）：名前に「再販」を含む発売中(on_sale)ガチャを、

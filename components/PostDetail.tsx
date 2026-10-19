@@ -238,6 +238,7 @@ export function PostDetail({ post, onBack, onReplied, onDeleted }: { post: FeedP
             renderMentionText={renderMentionText}
             onSubmit={handleSubmit}
             submitting={submitting}
+            placeholder="返信を投稿"
           />
         </div>
       </div>

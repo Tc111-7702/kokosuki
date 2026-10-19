@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useGachaDetail } from '@/components/GachaDetailProvider';
 import { GachaStatusBadge } from '@/components/ui/GachaCard';
+import { TrendingIpsSection } from '@/components/TrendingIpsSection';
 
 type Item = {
   id: string;
@@ -16,8 +17,9 @@ type Item = {
 
 /**
  * 発売予定ページの右サイドリスト。
- * - 同一IP（タイトル=IP名）のガチャ上位5件（いいね順・発売状況タグ付き）
- * - 今週発売のガチャ上位3件（いいね順）
+ * - 同一IP（タイトル=IP名）の発売中ガチャ上位5件（いいね順・発売状況タグ付き）。
+ *   IPが不明な場合は、代わりにホーム投稿一覧と同じ「話題のIP」を差し込む。
+ * - 今週発売のガチャ上位3件（いいね順）。
  * クリックでそのガチャのガチャ詳細に切り替える（openGacha）。
  */
 export function GachaRelatedLists({ gachaId, isDark }: { gachaId: string; isDark: boolean }) {
@@ -78,11 +80,10 @@ export function GachaRelatedLists({ gachaId, isDark }: { gachaId: string; isDark
     );
   };
 
-  if (ipGachas.length === 0 && weeklyGachas.length === 0) return null;
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {ipName && <Section title={ipName} items={ipGachas} />}
+      {/* IPが判明していればそのIPのガチャ一覧、不明ならホームと同じ「話題のIP」を差し込む */}
+      {ipName ? <Section title={ipName} items={ipGachas} /> : <TrendingIpsSection />}
       <Section title="今週発売のガチャ" items={weeklyGachas} />
     </div>
   );

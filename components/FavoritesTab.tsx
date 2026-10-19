@@ -114,10 +114,13 @@ export function FavoritesTab({
   };
 
   const cols = isMobile ? 2 : 4;
-  // ホームタブ(hideEnded)では発売終了ガチャを非表示。マイページは発売中を上、終了を下に並べる。
-  const onSale = gachas.filter(g => g.status !== 'ended');
+  // 発売予定 → 発売中 → 終了。終了は末尾、発売予定は発売中より上。
+  const comingSoon = gachas.filter(g => g.status === 'coming_soon');
+  const onSale = gachas.filter(g => g.status === 'on_sale');
   const ended = gachas.filter(g => g.status === 'ended');
-  const visible = hideEnded ? onSale : [...onSale, ...ended];
+  // ホームタブ(hideEnded)では終了を非表示。マイページは3区分すべて出す。
+  const visible = hideEnded ? [...comingSoon, ...onSale] : [...comingSoon, ...onSale, ...ended];
+  // 「販売中」は発売中のみ。分母の「全」には発売予定も含める。
   const countLabel = loading
     ? '…'
     : hideEnded
