@@ -241,7 +241,10 @@ export default function SettingsProfilePage() {
 
           {/* ユーザーID */}
           <Field label="ユーザーID" hint={handleHint} hintColor={handleHintTone}>
-            <div className="flex items-center gap-1 px-4 py-3 rounded-2xl" style={{ background: 'white', border: '1.5px solid #EDE9D8' }}>
+            <div
+              className="flex items-center gap-1 px-4 py-3 rounded-2xl"
+              style={{ background: 'var(--app-input-bg)', border: '1.5px solid var(--app-input-border)' }}
+            >
               <span className="text-[14px]" style={{ color: '#AAA' }}>@</span>
               <input
                 value={handle}
@@ -249,7 +252,9 @@ export default function SettingsProfilePage() {
                 maxLength={20}
                 aria-label="ユーザーID"
                 placeholder="user_id"
-                className="flex-1 text-[14px]" style={{ color: '#111', outline: 'none', background: 'transparent' }} />
+                className="flex-1 text-[14px]"
+                style={{ color: '#111', outline: 'none', background: 'transparent', border: 'none' }}
+              />
             </div>
           </Field>
 
