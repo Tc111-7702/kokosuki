@@ -78,6 +78,13 @@ export function ReplyComposerField({
     const scrollable = contentHeight > MAX_HEIGHT_PX;
     textarea.style.overflowY = scrollable ? 'auto' : 'hidden';
     if (visible) visible.style.overflowY = scrollable ? 'auto' : 'hidden';
+    // 非plain（mention）経路では textarea / 表示divがグリッドセルで内容高さ(143px等)まで伸び、
+    // wrap(=capped)が下をクリップするだけで内部スクロールしない。明示的に capped へ固定して
+    // 自前でスクロールできるようにする（plain経路は absolute inset-0 なので height は触らない）。
+    if (visible) {
+      textarea.style.height = scrollable ? `${capped}px` : '';
+      visible.style.height = scrollable ? `${capped}px` : '';
+    }
     if (!scrollable) {
       // 上限内なら先頭から全部見せる（改行直後に1行目が消えるのを防ぐ）
       textarea.scrollTop = 0;
