@@ -231,7 +231,16 @@ export function ReplyComposerField({
             value={text}
             onChange={handleMirrorChange}
             onSelect={onSelect}
-            onScroll={e => { if (visibleRef.current) visibleRef.current.scrollTop = e.currentTarget.scrollTop; }}
+            onScroll={e => {
+              const ta = e.currentTarget;
+              const v = visibleRef.current;
+              if (!v) return;
+              // textarea と表示用 div は高さが一致しないことがあるため、スクロール量を「比率」で同期する。
+              // こうすると textarea が最下部のとき表示 div も確実に最下部（＝文末/カーソル）まで来る。
+              const taMax = ta.scrollHeight - ta.clientHeight;
+              const vMax = v.scrollHeight - v.clientHeight;
+              v.scrollTop = taMax > 0 ? (ta.scrollTop / taMax) * vMax : 0;
+            }}
             onKeyDown={onKeyDown}
             placeholder={placeholder}
             rows={1}
