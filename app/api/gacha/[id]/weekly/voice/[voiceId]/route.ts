@@ -4,8 +4,6 @@ import { headers } from 'next/headers';
 import { auth } from '@/lib/auth';
 import * as db from '@/lib/db';
 
-const MAX_LEN = 200;
-
 // PUT: 楽しみの声を編集（本人のみ）。更新後の本文を返す。
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string; voiceId: string }> }) {
   try {
@@ -16,7 +14,6 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const body = (await req.json().catch(() => ({}))) as { text?: unknown };
     const text = typeof body.text === 'string' ? body.text.trim() : '';
     if (!text) return NextResponse.json({ error: 'text is required' }, { status: 400 });
-    if (text.length > MAX_LEN) return NextResponse.json({ error: `${MAX_LEN}文字以内で入力してください` }, { status: 400 });
 
     const result = await db.updateWeeklyVoice(voiceId, session.user.id, text);
     if (!result) return NextResponse.json({ error: 'not found' }, { status: 404 });

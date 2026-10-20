@@ -4,8 +4,6 @@ import { headers } from 'next/headers';
 import { auth } from '@/lib/auth';
 import * as db from '@/lib/db';
 
-const MAX_LEN = 200;
-
 // GET: 楽しみの声一覧（新しい順）＋ 現在ユーザーID（自分の投稿に削除ボタンを出すため）。
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -28,7 +26,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const body = (await req.json().catch(() => ({}))) as { text?: unknown };
     const text = typeof body.text === 'string' ? body.text.trim() : '';
     if (!text) return NextResponse.json({ error: 'text is required' }, { status: 400 });
-    if (text.length > MAX_LEN) return NextResponse.json({ error: `${MAX_LEN}文字以内で入力してください` }, { status: 400 });
 
     const result = await db.addWeeklyVoice(
       id,

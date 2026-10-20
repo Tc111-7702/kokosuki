@@ -78,10 +78,21 @@ export function ReplyComposerField({
     const scrollable = contentHeight > MAX_HEIGHT_PX;
     textarea.style.overflowY = scrollable ? 'auto' : 'hidden';
     if (visible) visible.style.overflowY = scrollable ? 'auto' : 'hidden';
+    // 非plain（mention）経路では textarea / 表示divがグリッドセルで内容高さ(143px等)まで伸び、
+    // wrap(=capped)が下をクリップするだけで内部スクロールしない。明示的に capped へ固定して
+    // 自前でスクロールできるようにする（plain経路は absolute inset-0 なので height は触らない）。
+    if (visible) {
+      textarea.style.height = scrollable ? `${capped}px` : '';
+      visible.style.height = scrollable ? `${capped}px` : '';
+    }
     if (!scrollable) {
       // 上限内なら先頭から全部見せる（改行直後に1行目が消えるのを防ぐ）
       textarea.scrollTop = 0;
       if (visible) visible.scrollTop = 0;
+    } else {
+      // 上限を超えたら、文末（入力中のカーソル）が見えるよう最下部にスクロールする。
+      textarea.scrollTop = textarea.scrollHeight;
+      if (visible) visible.scrollTop = visible.scrollHeight;
     }
   };
 
@@ -140,8 +151,9 @@ export function ReplyComposerField({
   const padX = variant === 'inline' ? 'pl-2.5' : 'pl-3';
   // モバイルはグローバルの拡大防止で textarea が 16px 固定になる。表示divも 16px に揃える。
   // 上下 padding は少し広めにしてタップしやすくする。デスクトップは従来どおり小さめ。
-  const cellClass = `col-start-1 row-start-1 w-full min-w-0 max-w-full ${padX} pr-1 py-1.5 text-[16px] md:py-0.5 md:text-xs box-border`;
-  const plainPadClass = `${padX} pr-1 py-1.5 text-[16px] md:py-0.5 md:text-xs w-full min-w-0 max-w-full`;
+  // デスクトップも縦幅をモバイルに揃える（md: の縮小指定は付けない）。
+  const cellClass = `col-start-1 row-start-1 w-full min-w-0 max-w-full ${padX} pr-1 py-1.5 text-[16px] box-border`;
+  const plainPadClass = `${padX} pr-1 py-1.5 text-[16px] w-full min-w-0 max-w-full`;
 
   const canSend = !!text.trim() && !submitting;
 
@@ -162,7 +174,7 @@ export function ReplyComposerField({
   if (plainText) {
     return (
       <div
-        className={`reply-composer-input-shell flex items-center md:items-end gap-0.5 min-w-0 w-full ${rounded} py-1.5 md:py-0.5 pr-0.5`}
+        className={`reply-composer-input-shell flex items-center gap-0.5 min-w-0 w-full ${rounded} py-1.5 pr-0.5`}
       >
         <div ref={plainWrapRef} className="relative flex-1 min-w-0 overflow-hidden min-h-[1.45em]">
           {/* フロー内ミラー: 折り返し後の高さを決める */}
@@ -183,7 +195,7 @@ export function ReplyComposerField({
             placeholder={placeholder}
             rows={1}
             wrap="soft"
-            className={`shell-field absolute inset-0 block resize-none bg-transparent text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none ${plainPadClass}`}
+            className={`shell-field absolute inset-0 block resize-none bg-transparent text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none ${plainPadClass}`}
             style={{ ...WRAP_STYLE, overflowX: 'hidden', overflowY: 'hidden' }}
           />
         </div>
@@ -194,7 +206,7 @@ export function ReplyComposerField({
 
   return (
     <div
-      className={`reply-composer-input-shell flex items-center md:items-end gap-0.5 min-w-0 w-full ${rounded} py-1.5 md:py-0.5 pr-0.5`}
+      className={`reply-composer-input-shell flex items-center gap-0.5 min-w-0 w-full ${rounded} py-1.5 pr-0.5`}
     >
       <div ref={wrapRef} className="relative flex-1 min-w-0 overflow-hidden min-h-[1.45em]">
         <div
@@ -214,7 +226,7 @@ export function ReplyComposerField({
           <div
             ref={visibleRef}
             aria-hidden
-            className={`${cellClass} pointer-events-none text-gray-800 dark:text-gray-100 overflow-hidden`}
+            className={`${cellClass} pointer-events-none text-gray-800 dark:text-white overflow-hidden`}
             style={WRAP_STYLE}
           >
             {/* textarea 本体は文字色が透明なので placeholder も見えない。空のときはここで代わりに表示する。 */}
@@ -227,7 +239,16 @@ export function ReplyComposerField({
             value={text}
             onChange={handleMirrorChange}
             onSelect={onSelect}
-            onScroll={e => { if (visibleRef.current) visibleRef.current.scrollTop = e.currentTarget.scrollTop; }}
+            onScroll={e => {
+              const ta = e.currentTarget;
+              const v = visibleRef.current;
+              if (!v) return;
+              // textarea と表示用 div は高さが一致しないことがあるため、スクロール量を「比率」で同期する。
+              // こうすると textarea が最下部のとき表示 div も確実に最下部（＝文末/カーソル）まで来る。
+              const taMax = ta.scrollHeight - ta.clientHeight;
+              const vMax = v.scrollHeight - v.clientHeight;
+              v.scrollTop = taMax > 0 ? (ta.scrollTop / taMax) * vMax : 0;
+            }}
             onKeyDown={onKeyDown}
             placeholder={placeholder}
             rows={1}

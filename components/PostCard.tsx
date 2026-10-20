@@ -54,7 +54,7 @@ export function PostCard({
   compactY?: boolean;
 }) {
   const router = useRouter();
-  const { openGacha } = useGachaDetail();
+  const { openGacha, closeGacha } = useGachaDetail();
   const isDark = useSyncExternalStore(
     subscribeTheme,
     () => getThemeSnapshot() === 'dark',
@@ -223,7 +223,7 @@ export function PostCard({
             </span>
           ) : (
             <button
-              onClick={e => { e.stopPropagation(); router.push('/map?spotId=' + post.spot.id); }}
+              onClick={e => { e.stopPropagation(); closeGacha(); router.push('/map?spotId=' + post.spot.id); }}
               className="text-[10px] lg:text-xs text-gray-400 font-normal hover:text-yellow-600 transition-colors text-left leading-tight truncate"
             >
               {post.spot.name}
