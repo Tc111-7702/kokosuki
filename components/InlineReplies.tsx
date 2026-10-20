@@ -136,7 +136,7 @@ export function InlineReplies({
             ))}
           </div>
         )}
-        <div className="px-3 pt-0 pb-2">
+        <div className="px-3 py-2">
           <ReplyComposerField
             text={text}
             textareaRef={textareaRef}
