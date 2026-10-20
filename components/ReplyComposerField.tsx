@@ -82,6 +82,10 @@ export function ReplyComposerField({
       // 上限内なら先頭から全部見せる（改行直後に1行目が消えるのを防ぐ）
       textarea.scrollTop = 0;
       if (visible) visible.scrollTop = 0;
+    } else {
+      // 上限を超えたら、文末（入力中のカーソル）が見えるよう最下部にスクロールする。
+      textarea.scrollTop = textarea.scrollHeight;
+      if (visible) visible.scrollTop = visible.scrollHeight;
     }
   };
 
@@ -183,7 +187,7 @@ export function ReplyComposerField({
             placeholder={placeholder}
             rows={1}
             wrap="soft"
-            className={`shell-field absolute inset-0 block resize-none bg-transparent text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none ${plainPadClass}`}
+            className={`shell-field absolute inset-0 block resize-none bg-transparent text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none ${plainPadClass}`}
             style={{ ...WRAP_STYLE, overflowX: 'hidden', overflowY: 'hidden' }}
           />
         </div>
@@ -214,7 +218,7 @@ export function ReplyComposerField({
           <div
             ref={visibleRef}
             aria-hidden
-            className={`${cellClass} pointer-events-none text-gray-800 dark:text-gray-100 overflow-hidden`}
+            className={`${cellClass} pointer-events-none text-gray-800 dark:text-white overflow-hidden`}
             style={WRAP_STYLE}
           >
             {/* textarea 本体は文字色が透明なので placeholder も見えない。空のときはここで代わりに表示する。 */}
