@@ -162,7 +162,7 @@ export function ReplyComposerField({
       type="button"
       onClick={onSubmit}
       disabled={!canSend}
-      className={`flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full transition-colors ${canSend ? 'text-[#F2B800]' : 'text-gray-300'}`}
+      className={`flex-shrink-0 flex items-center justify-center w-6 h-6 mb-1.5 rounded-full transition-colors ${canSend ? 'text-[#F2B800]' : 'text-gray-300'}`}
       aria-label="返信を送信"
     >
       {submitting
