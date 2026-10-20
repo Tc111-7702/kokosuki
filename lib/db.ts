@@ -2,6 +2,7 @@ import { PrismaClient, Prisma } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
 import { decodeHtmlEntities } from '@/lib/htmlEntities';
+import { removeUploadedImages } from '@/lib/supabase';
 
 export type ScrapeType = 'gacha' | 'phone';
 
@@ -1474,7 +1475,7 @@ export const createPost = (data: Prisma.PostUncheckedCreateInput) =>
   prisma.post.create({ data });
 
 export const getPostOwnerId = (id: string) =>
-  prisma.post.findUnique({ where: { id }, select: { userId: true } });
+  prisma.post.findUnique({ where: { id }, select: { userId: true, imageUrl: true } });
 
 export const deletePost = (id: string) =>
   // 投稿本体と、その投稿を参照する通知（いいね/返信）を同時に削除
@@ -1923,8 +1924,14 @@ export async function toggleSpotReviewLike(userId: string, reviewId: string) {
 const LIKE_NOTIF_TARGET_LABEL = (n: { postId: string | null; stockPostId: string | null; spotReviewId: string | null }) =>
   n.postId ? '投稿' : n.stockPostId ? '在庫報告' : n.spotReviewId ? '口コミ' : '投稿';
 
-/** 退会（関連データは onDelete: Cascade。通知は退会前に明示クリーンアップ） */
+/** 退会（関連データは onDelete: Cascade。通知は退会前に明示クリーンアップ。アップロード画像の実ファイルも削除） */
 export async function deleteUser(id: string) {
+  // 退会前に、本人がアップロードした画像URL（アイコン＋投稿画像）を収集しておく（DB削除後にストレージからも消すため）。
+  const [userRow, postRows] = await Promise.all([
+    prisma.user.findUnique({ where: { id }, select: { image: true } }),
+    prisma.post.findMany({ where: { userId: id }, select: { imageUrl: true } }),
+  ]);
+
   await prisma.$transaction(async (tx) => {
     // 1. 投稿主（受信者）として届いている通知をすべて削除
     await tx.notification.deleteMany({ where: { userId: id } });
@@ -1967,6 +1974,9 @@ export async function deleteUser(id: string) {
 
     await tx.user.delete({ where: { id } });
   });
+
+  // DB削除後に、収集しておいた画像の実ファイルをストレージからも削除（ベストエフォート）。
+  await removeUploadedImages([userRow?.image, ...postRows.map((p) => p.imageUrl)]);
 }
 
 /** ユーザー名を更新 */
@@ -1982,6 +1992,9 @@ export const markUserEmailVerified = (id: string) =>
   prisma.user.update({ where: { id }, data: { emailVerified: true } });
 
 /** ユーザーの表示画像（User.image）を更新（プロフィールアイコンと同期・削除時はnull） */
+export const getUserImage = (id: string) =>
+  prisma.user.findUnique({ where: { id }, select: { image: true } }).then((u) => u?.image ?? null);
+
 export const updateUserImage = (id: string, image: string | null) =>
   prisma.user.update({ where: { id }, data: { image } });
 
