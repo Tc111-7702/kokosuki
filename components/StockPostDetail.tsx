@@ -162,7 +162,7 @@ export function StockPostDetail({ post, onBack, onReplied, onDeleted }: { post: 
             ))}
           </div>
         )}
-        <div className="reply-composer-bar px-4 py-2 lg:pb-4">
+        <div className="reply-composer-bar px-4 py-2 lg:pb-6">
           <ReplyComposerField
             text={text}
             textareaRef={textareaRef}
