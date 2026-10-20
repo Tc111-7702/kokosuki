@@ -331,7 +331,7 @@ export function StoreReviews({ spotId, autoOpenReviewId }: { spotId: string; aut
                     <button onClick={() => setEditingId(null)} style={{ padding: '4px 12px', borderRadius: 20, border: '1px solid #E0E0E0', background: 'white', fontSize: 12, cursor: 'pointer', color: '#888' }}>
                       <X size={11} style={{ display: 'inline', marginRight: 3 }} />キャンセル
                     </button>
-                    <button onClick={() => saveEdit(review.id)} disabled={!editText.trim()} style={{ padding: '4px 12px', borderRadius: 20, border: 'none', background: '#F2B800', color: 'white', fontSize: 12, cursor: 'pointer', fontWeight: 700 }}>
+                    <button onClick={() => saveEdit(review.id)} disabled={!editText.trim()} style={{ padding: '4px 12px', borderRadius: 20, border: 'none', background: editText.trim() ? '#F2B800' : (isDark ? '#262626' : '#EDE9D8'), color: editText.trim() ? 'white' : '#AAA', fontSize: 12, cursor: editText.trim() ? 'pointer' : 'default', fontWeight: 700 }}>
                       保存
                     </button>
                   </div>

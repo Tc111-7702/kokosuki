@@ -292,7 +292,7 @@ export function WeeklyVoices({
                               type="button"
                               onClick={() => saveEdit(v.id)}
                               disabled={!editText.trim()}
-                              style={{ padding: '4px 12px', borderRadius: 20, border: 'none', background: '#F2B800', color: 'white', fontSize: 12, cursor: 'pointer', fontWeight: 700 }}
+                              style={{ padding: '4px 12px', borderRadius: 20, border: 'none', background: editText.trim() ? '#F2B800' : (isDark ? '#262626' : '#EDE9D8'), color: editText.trim() ? 'white' : '#AAA', fontSize: 12, cursor: editText.trim() ? 'pointer' : 'default', fontWeight: 700 }}
                             >
                               保存
                             </button>
