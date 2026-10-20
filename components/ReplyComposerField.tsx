@@ -174,7 +174,7 @@ export function ReplyComposerField({
   if (plainText) {
     return (
       <div
-        className={`reply-composer-input-shell flex items-center gap-0.5 min-w-0 w-full ${rounded} py-1.5 pr-0.5`}
+        className={`reply-composer-input-shell flex items-end gap-0.5 min-w-0 w-full ${rounded} py-1.5 pr-0.5`}
       >
         <div ref={plainWrapRef} className="relative flex-1 min-w-0 overflow-hidden min-h-[1.45em]">
           {/* フロー内ミラー: 折り返し後の高さを決める */}
@@ -206,7 +206,7 @@ export function ReplyComposerField({
 
   return (
     <div
-      className={`reply-composer-input-shell flex items-center gap-0.5 min-w-0 w-full ${rounded} py-1.5 pr-0.5`}
+      className={`reply-composer-input-shell flex items-end gap-0.5 min-w-0 w-full ${rounded} py-1.5 pr-0.5`}
     >
       <div ref={wrapRef} className="relative flex-1 min-w-0 overflow-hidden min-h-[1.45em]">
         <div
