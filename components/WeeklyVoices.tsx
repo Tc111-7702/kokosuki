@@ -44,6 +44,7 @@ export function WeeklyVoices({
   const [shown, setShown] = useState(PAGE_SIZE); // モバイル: 表示件数
   const menuRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const editRef = useRef<HTMLTextAreaElement>(null);
 
   // デスクトップの入力欄(textarea)を内容に合わせて自動で高さ調整（末尾で折り返し→行が増える）。
   useLayoutEffect(() => {
@@ -53,6 +54,24 @@ export function WeeklyVoices({
     el.style.height = 'auto';
     el.style.height = el.scrollHeight + 'px'; // 内容に合わせて伸ばす（上限なし・スクロールバーを出さない）
   }, [text, isMobile]);
+
+  // 編集欄も内容に合わせて高さ調整（文字を減らすと行数も縮む）。
+  useLayoutEffect(() => {
+    const el = editRef.current;
+    if (!el || editingId === null) return;
+    el.style.height = 'auto';
+    el.style.height = el.scrollHeight + 'px';
+  }, [editText, editingId]);
+
+  // 編集開始時: フォーカスしてカーソルを末尾に置く。
+  useEffect(() => {
+    if (editingId === null) return;
+    const el = editRef.current;
+    if (!el) return;
+    el.focus();
+    const len = el.value.length;
+    el.setSelectionRange(len, len);
+  }, [editingId]);
 
   useEffect(() => {
     let alive = true;
@@ -133,7 +152,7 @@ export function WeeklyVoices({
   const canPost = !!text.trim() && !posting;
   const border = isDark ? '#262626' : '#EDE9D8';
   const subColor = isDark ? '#9CA3AF' : '#999';
-  const textColor = isDark ? '#E5E5E5' : '#333';
+  const textColor = isDark ? '#FFFFFF' : '#333';
 
   const pageCount = Math.max(1, Math.ceil(voices.length / PAGE_SIZE));
   const safePage = Math.min(page, pageCount - 1);
@@ -171,7 +190,6 @@ export function WeeklyVoices({
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="発売が楽しみな気持ちを一言…"
-            maxLength={200}
             rows={1}
             style={{
               flex: 1, minHeight: 44, borderRadius: 14, border: '1px solid ' + border,
@@ -252,15 +270,14 @@ export function WeeklyVoices({
                       {editingId === v.id ? (
                         <div style={{ marginTop: 6 }}>
                           <textarea
+                            ref={editRef}
                             value={editText}
                             onChange={(e) => setEditText(e.target.value)}
-                            rows={3}
-                            autoFocus
-                            maxLength={200}
+                            rows={1}
                             style={{
                               width: '100%', resize: 'none', border: '1px solid ' + border, borderRadius: 10,
                               padding: '8px 10px', fontSize: 13, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
-                              background: isDark ? '#0a0a0a' : '#fff', color: textColor,
+                              overflow: 'hidden', background: isDark ? '#0a0a0a' : '#fff', color: textColor,
                             }}
                           />
                           <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', marginTop: 4 }}>
@@ -275,7 +292,7 @@ export function WeeklyVoices({
                               type="button"
                               onClick={() => saveEdit(v.id)}
                               disabled={!editText.trim()}
-                              style={{ padding: '4px 12px', borderRadius: 20, border: 'none', background: '#F2B800', color: 'white', fontSize: 12, cursor: 'pointer', fontWeight: 700 }}
+                              style={{ padding: '4px 12px', borderRadius: 20, border: 'none', background: editText.trim() ? '#F2B800' : (isDark ? '#262626' : '#EDE9D8'), color: editText.trim() ? 'white' : '#AAA', fontSize: 12, cursor: editText.trim() ? 'pointer' : 'default', fontWeight: 700 }}
                             >
                               保存
                             </button>

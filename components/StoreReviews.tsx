@@ -55,6 +55,25 @@ export function StoreReviews({ spotId, autoOpenReviewId }: { spotId: string; aut
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const newTextRef = useRef<HTMLTextAreaElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const editRef = useRef<HTMLTextAreaElement>(null);
+
+  // 編集欄を内容に合わせて高さ調整（文字を減らすと行数も縮む）。
+  useEffect(() => {
+    const el = editRef.current;
+    if (!el || editingId === null) return;
+    el.style.height = 'auto';
+    el.style.height = el.scrollHeight + 'px';
+  }, [editText, editingId]);
+
+  // 編集開始時: フォーカスしてカーソルを末尾に置く。
+  useEffect(() => {
+    if (editingId === null) return;
+    const el = editRef.current;
+    if (!el) return;
+    el.focus();
+    const len = el.value.length;
+    el.setSelectionRange(len, len);
+  }, [editingId]);
 
   useEffect(() => {
     if (!menuOpenId) return;
@@ -302,17 +321,17 @@ export function StoreReviews({ spotId, autoOpenReviewId }: { spotId: string; aut
               {editingId === review.id ? (
                 <div style={{ marginBottom: 8 }}>
                   <textarea
+                    ref={editRef}
                     value={editText}
                     onChange={e => setEditText(e.target.value)}
-                    rows={3}
-                    autoFocus
-                    style={{ width: '100%', resize: 'none', border: '1px solid #E8E8E8', borderRadius: 10, padding: '8px 10px', fontSize: 13, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                    rows={1}
+                    style={{ width: '100%', resize: 'none', border: '1px solid ' + (isDark ? '#262626' : '#E8E8E8'), borderRadius: 10, padding: '8px 10px', fontSize: 13, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', overflow: 'hidden', background: isDark ? '#0a0a0a' : '#fff', color: isDark ? '#FFFFFF' : '#333' }}
                   />
                   <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', marginTop: 4 }}>
                     <button onClick={() => setEditingId(null)} style={{ padding: '4px 12px', borderRadius: 20, border: '1px solid #E0E0E0', background: 'white', fontSize: 12, cursor: 'pointer', color: '#888' }}>
                       <X size={11} style={{ display: 'inline', marginRight: 3 }} />キャンセル
                     </button>
-                    <button onClick={() => saveEdit(review.id)} disabled={!editText.trim()} style={{ padding: '4px 12px', borderRadius: 20, border: 'none', background: '#F2B800', color: 'white', fontSize: 12, cursor: 'pointer', fontWeight: 700 }}>
+                    <button onClick={() => saveEdit(review.id)} disabled={!editText.trim()} style={{ padding: '4px 12px', borderRadius: 20, border: 'none', background: editText.trim() ? '#F2B800' : (isDark ? '#262626' : '#EDE9D8'), color: editText.trim() ? 'white' : '#AAA', fontSize: 12, cursor: editText.trim() ? 'pointer' : 'default', fontWeight: 700 }}>
                       保存
                     </button>
                   </div>

@@ -572,7 +572,7 @@ export function GachaDetailView({ gachaId, onClose }: { gachaId: string; onClose
                 <WeeklyVoices gachaId={id} isDark={isDark} onCountChange={setVoiceUserCount} />
               )}
             </div>
-            <div style={{ flex: 1, minWidth: 240, paddingTop: 4, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ flex: 1, minWidth: 240, paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
               {tags}
               {titleBlock(24)}
               {isComingSoon ? (
