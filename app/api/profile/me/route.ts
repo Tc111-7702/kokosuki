@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import * as db from '@/lib/db';
 import { headers } from 'next/headers';
+import { removeUploadedImages } from '@/lib/supabase';
 import { HANDLE_FORMAT_ERROR, isSignupHandleFormatValid } from '@/lib/signupHandle';
 
 export async function GET() {
@@ -92,7 +93,10 @@ export async function PATCH(req: Request) {
   // アイコン：空文字/nullは削除扱い。アバターは User.image に一本化（全ポストカードに反映）
   if (avatarUrl !== undefined) {
     const normalized = avatarUrl ? avatarUrl : null;
+    const prev = await db.getUserImage(userId);
     await db.updateUserImage(userId, normalized);
+    // 旧アイコンの実ファイルをストレージから削除（差し替え/削除時・ベストエフォート）
+    if (prev && prev !== normalized) await removeUploadedImages([prev]);
   }
   if (favoriteIps !== undefined) profileData.favoriteIps = favoriteIps.map((ip) => ip.trim());
   if (mapRadiusM !== undefined) profileData.mapRadiusM = mapRadiusM;

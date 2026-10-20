@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import * as db from '@/lib/db';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
+import { removeUploadedImages } from '@/lib/supabase';
 
 // GET /api/posts/[id] — 単体投稿（カード表示用・閲覧者のいいね状態付き）
 export async function GET(
@@ -49,6 +50,8 @@ export async function DELETE(
     }
 
     await db.deletePost(id);
+    // 投稿画像の実ファイルもストレージから削除（ベストエフォート）
+    await removeUploadedImages([post.imageUrl]);
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error('[posts DELETE]', e);
