@@ -746,6 +746,7 @@ export default function MapPage() {
             onClear={handleSearchClear}
             hasSearchResult={hasSearchResult}
             currentPos={currentPos}
+            activeLabel={contentSearchLabel}
           />
 
           {/* フィルター行 */}
