@@ -243,6 +243,7 @@ export function StoreDetailView({
   openReviewId = null,
   onClose,
   onSavedFilterChange,
+  onContentSearchChange,
 }: {
   spotId: string;
   contentSearch?: string;
@@ -253,6 +254,8 @@ export function StoreDetailView({
   onClose: () => void;
   /** 適用で DB の gachaFilterIds が変わったとき。マップ側の保存選択を合わせる。 */
   onSavedFilterChange?: (ids: string[]) => void;
+  /** 店舗詳細でコンテンツ検索/解除したときにマップへ反映する。label='' & ids=null で解除。 */
+  onContentSearchChange?: (label: string, gachaIds: string[] | null) => void;
 }) {
   useSetNavActive('map');
   // 開いた時に、7日以上更新の無い在庫状態を「不明」に戻す（Map/店舗詳細で共有）。
@@ -349,13 +352,15 @@ export function StoreDetailView({
       .catch(() => {});
   }, [contentSearchParam, spot]);
 
-  const applySearchFilter = useCallback((ids: string[], _label: string) => {
+  const applySearchFilter = useCallback((ids: string[], label: string) => {
     setSearchGachaIds(ids);
-  }, []);
+    onContentSearchChange?.(label, ids);
+  }, [onContentSearchChange]);
 
   const clearSearch = useCallback(() => {
     setSearchGachaIds(null);
-  }, []);
+    onContentSearchChange?.('', null);
+  }, [onContentSearchChange]);
 
   const handleFilterApply = useCallback((ids: string[]) => {
     setSavedFilterIds(ids);
@@ -443,6 +448,7 @@ export function StoreDetailView({
           onApplyFilter={applySearchFilter}
           filterActive={isSearchActive}
           onDismissFilter={clearSearch}
+          initialValue={contentSearch}
           wrapperClassName={isMobile ? 'pt-2.5 pb-1' : 'pb-0.5'}
         />
       </div>

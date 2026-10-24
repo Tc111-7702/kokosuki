@@ -888,6 +888,11 @@ export default function MapPage() {
               setSavedFilterIds(ids);
               if (filterRef.current.length > 0) applyPageFilter(ids);
             }}
+            onContentSearchChange={(label, ids) => {
+              // 店舗詳細の検索/解除をマップにも反映（完全一致）
+              if (ids === null) handleSearchClear();
+              else handleSearch('', label);
+            }}
           />
         </div>
       )}
