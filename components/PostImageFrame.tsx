@@ -45,17 +45,12 @@ export function PostImageFrame({
   const [portrait, setPortrait] = useState(false);
   const [zoomed, setZoomed] = useState(false);
 
-  // 拡大中は Esc で閉じ、背面スクロールを止める。
+  // 拡大中は背面スクロールを止める（閉じるのは×ボタンのみ）。
   useEffect(() => {
     if (!zoomed) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setZoomed(false); };
-    window.addEventListener('keydown', onKey);
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prevOverflow;
-    };
+    return () => { document.body.style.overflow = prevOverflow; };
   }, [zoomed]);
 
   const imgClass = portrait
@@ -85,7 +80,8 @@ export function PostImageFrame({
           className="fixed inset-0 z-[1000] flex items-center justify-center bg-black"
           role="dialog"
           aria-modal="true"
-          onClick={() => setZoomed(false)}
+          // 背景クリックでは閉じない＆投稿詳細にも伝播させない（Reactのportalはツリー経由で親に伝播するため）。
+          onClick={(e) => e.stopPropagation()}
         >
           <button
             type="button"
