@@ -45,12 +45,28 @@ export function PostImageFrame({
   const [portrait, setPortrait] = useState(false);
   const [zoomed, setZoomed] = useState(false);
 
-  // 拡大中は背面スクロールを止める（閉じるのは×ボタンのみ）。
+  // 拡大中は背面スクロールを止める。閉じるのは×ボタン、または上下スクロール
+  // （デスクトップ=ホイール／モバイル=縦スワイプ）。
   useEffect(() => {
     if (!zoomed) return;
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = prevOverflow; };
+    const close = () => setZoomed(false);
+    const onWheel = (e: WheelEvent) => { if (Math.abs(e.deltaY) > 8) close(); };
+    let startY = 0;
+    const onTouchStart = (e: TouchEvent) => { startY = e.touches[0]?.clientY ?? 0; };
+    const onTouchMove = (e: TouchEvent) => {
+      if (Math.abs((e.touches[0]?.clientY ?? 0) - startY) > 30) close();
+    };
+    window.addEventListener('wheel', onWheel, { passive: true });
+    window.addEventListener('touchstart', onTouchStart, { passive: true });
+    window.addEventListener('touchmove', onTouchMove, { passive: true });
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('wheel', onWheel);
+      window.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('touchmove', onTouchMove);
+    };
   }, [zoomed]);
 
   const imgClass = portrait
