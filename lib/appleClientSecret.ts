@@ -15,6 +15,28 @@ function base64url(input: Buffer | string): string {
   return Buffer.from(input).toString('base64url');
 }
 
+/**
+ * APPLE_PRIVATE_KEY を PEM 文字列に正規化する。
+ * - 前後の空白／値ごと残った引用符を除去
+ * - 1行で入れた場合の "\n"/"\r" エスケープを実改行へ復元
+ * - BEGIN/END マーカーが無い（.p8 の base64 本体だけを貼った）場合は
+ *   64文字折り返し＋PKCS#8 マーカーで PEM を組み立てる
+ */
+function normalizeApplePrivateKey(rawKey: string): string {
+  const s = rawKey
+    .trim()
+    .replace(/^["']|["']$/g, '')
+    .replace(/\\r/g, '')
+    .replace(/\\n/g, '\n')
+    .trim();
+
+  if (/-----BEGIN [A-Z ]*PRIVATE KEY-----/.test(s)) return s;
+
+  const body = s.replace(/\s+/g, '');
+  const wrapped = body.replace(/(.{64})/g, '$1\n').trim();
+  return `-----BEGIN PRIVATE KEY-----\n${wrapped}\n-----END PRIVATE KEY-----\n`;
+}
+
 /** 設定が揃っていれば client_secret(JWT) を返す。未設定なら空文字。 */
 export function getAppleClientSecret(): string {
   const teamId = process.env.APPLE_TEAM_ID;
@@ -34,12 +56,21 @@ export function getAppleClientSecret(): string {
   };
   const signingInput = `${base64url(JSON.stringify(header))}.${base64url(JSON.stringify(payload))}`;
 
-  // 1行で入れた場合の "\n" を実改行へ復元してから鍵を読む。
-  const privateKey = crypto.createPrivateKey(rawKey.replace(/\\n/g, '\n'));
-  // dsaEncoding: 'ieee-p1363' で ECDSA 署名を JOSE 形式(R||S)で得る。
-  const signature = crypto
-    .sign('sha256', Buffer.from(signingInput), { key: privateKey, dsaEncoding: 'ieee-p1363' })
-    .toString('base64url');
-
-  return `${signingInput}.${signature}`;
+  // 鍵のパース/署名が失敗しても例外を投げず空文字を返す。
+  // この関数は auth.ts のモジュール評価時に呼ばれるため、ここで throw すると
+  // Apple だけでなく全 auth API が 500 になってしまう。失敗時は Apple だけ無効化する。
+  try {
+    const privateKey = crypto.createPrivateKey(normalizeApplePrivateKey(rawKey));
+    // dsaEncoding: 'ieee-p1363' で ECDSA 署名を JOSE 形式(R||S)で得る。
+    const signature = crypto
+      .sign('sha256', Buffer.from(signingInput), { key: privateKey, dsaEncoding: 'ieee-p1363' })
+      .toString('base64url');
+    return `${signingInput}.${signature}`;
+  } catch (e) {
+    const reason = e instanceof Error ? e.message : String(e);
+    console.error(
+      `[appleClientSecret] APPLE_PRIVATE_KEY の読み込みに失敗したため Apple 認証を無効化します: ${reason}`,
+    );
+    return '';
+  }
 }
