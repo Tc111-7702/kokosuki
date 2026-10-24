@@ -339,9 +339,9 @@ export default function MapPage() {
   }, [clearSearchResults, placeSearchPin]);
 
   // 検索クリア
-  const handleSearchClear = useCallback(() => {
+  const handleSearchClear = useCallback((keepSpot = false) => {
     clearSearchResults();
-    setSelectedSpot(null);
+    if (!keepSpot) setSelectedSpot(null);
     // ピンと住所を元の現在地に戻す
     if (currentPosRef.current && mapRef.current) {
       const { lat, lng } = currentPosRef.current;
@@ -889,8 +889,9 @@ export default function MapPage() {
               if (filterRef.current.length > 0) applyPageFilter(ids);
             }}
             onContentSearchChange={(label, ids) => {
-              // 店舗詳細の検索/解除をマップにも反映（完全一致）
-              if (ids === null) handleSearchClear();
+              // 店舗詳細の検索/解除をマップにも反映（完全一致）。
+              // 解除時は店舗カード(selectedSpot)は閉じない（keepSpot=true）。
+              if (ids === null) handleSearchClear(true);
               else handleSearch('', label);
             }}
           />
