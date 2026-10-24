@@ -237,9 +237,12 @@ export async function addGachasToFilter(userId: string, gachaIds: string[]) {
 export const getGachaLikeCount = (gachaId: string) =>
   prisma.gachaLike.count({ where: { gachaId } });
 
-export const getLikedGachaIds = (userId: string) =>
+export const getLikedGachaIds = (userId: string, onSaleOnly = false) =>
   prisma.gachaLike
-    .findMany({ where: { userId }, select: { gachaId: true } })
+    .findMany({
+      where: { userId, ...(onSaleOnly ? { gacha: { status: 'on_sale' } } : {}) },
+      select: { gachaId: true },
+    })
     .then((rows) => rows.map((r) => r.gachaId));
 
 // ─── Spot ─────────────────────────────────────────────────────────────────────
