@@ -339,9 +339,9 @@ export default function MapPage() {
   }, [clearSearchResults, placeSearchPin]);
 
   // 検索クリア
-  const handleSearchClear = useCallback(() => {
+  const handleSearchClear = useCallback((keepSpot = false) => {
     clearSearchResults();
-    setSelectedSpot(null);
+    if (!keepSpot) setSelectedSpot(null);
     // ピンと住所を元の現在地に戻す
     if (currentPosRef.current && mapRef.current) {
       const { lat, lng } = currentPosRef.current;
@@ -656,6 +656,9 @@ export default function MapPage() {
 
   const applyPageFilter = useCallback((ids: string[]) => {
     setFilterGachaIds(ids); filterRef.current = ids;
+    // 検索中はフィルターだけ更新し、検索（結果・ピン・状態）は解除しない。
+    // 店舗カード/詳細の「フィルター中」表示だけが更新される。
+    if (hasSearchResultRef.current) return;
     clearSearchResults();
     const pos = tempSearchPosRef.current ?? currentPosRef.current;
     if (mapRef.current && pos) {
@@ -884,6 +887,12 @@ export default function MapPage() {
             onSavedFilterChange={(ids) => {
               setSavedFilterIds(ids);
               if (filterRef.current.length > 0) applyPageFilter(ids);
+            }}
+            onContentSearchChange={(label, ids) => {
+              // 店舗詳細の検索/解除をマップにも反映（完全一致）。
+              // 解除時は店舗カード(selectedSpot)は閉じない（keepSpot=true）。
+              if (ids === null) handleSearchClear(true);
+              else handleSearch('', label);
             }}
           />
         </div>

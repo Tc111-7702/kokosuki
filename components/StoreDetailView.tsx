@@ -243,6 +243,7 @@ export function StoreDetailView({
   openReviewId = null,
   onClose,
   onSavedFilterChange,
+  onContentSearchChange,
 }: {
   spotId: string;
   contentSearch?: string;
@@ -253,6 +254,8 @@ export function StoreDetailView({
   onClose: () => void;
   /** 適用で DB の gachaFilterIds が変わったとき。マップ側の保存選択を合わせる。 */
   onSavedFilterChange?: (ids: string[]) => void;
+  /** 店舗詳細でコンテンツ検索/解除したときにマップへ反映する。label='' & ids=null で解除。 */
+  onContentSearchChange?: (label: string, gachaIds: string[] | null) => void;
 }) {
   useSetNavActive('map');
   // 開いた時に、7日以上更新の無い在庫状態を「不明」に戻す（Map/店舗詳細で共有）。
@@ -349,13 +352,15 @@ export function StoreDetailView({
       .catch(() => {});
   }, [contentSearchParam, spot]);
 
-  const applySearchFilter = useCallback((ids: string[], _label: string) => {
+  const applySearchFilter = useCallback((ids: string[], label: string) => {
     setSearchGachaIds(ids);
-  }, []);
+    onContentSearchChange?.(label, ids);
+  }, [onContentSearchChange]);
 
   const clearSearch = useCallback(() => {
     setSearchGachaIds(null);
-  }, []);
+    onContentSearchChange?.('', null);
+  }, [onContentSearchChange]);
 
   const handleFilterApply = useCallback((ids: string[]) => {
     setSavedFilterIds(ids);
@@ -385,44 +390,53 @@ export function StoreDetailView({
     </div>
   );
 
-  // ─── 表示商品の計算 ──────────────────────────────────────────────────
+  // ─── 表示商品の計算（検索中/フィルター中の2グループ。重複は検索中を優先） ──────────
   const isSearchActive = searchGachaIds !== null;
   const searchSet      = isSearchActive ? new Set(searchGachaIds) : null;
   const isFiltered     = filterGachaIds.length > 0;
+  const filterSet      = new Set(filterGachaIds);
 
-  const visibleGachas = spot.gachaIds
-    .filter(id => {
-      const matchesFilter = filterGachaIds.length === 0 || filterGachaIds.includes(id);
-      if (searchSet != null) return searchSet.has(id) && matchesFilter;
-      return matchesFilter;
-    })
-    .map(id => gachaMap.get(id))
-    .filter((g): g is SpotGachaInfo => g !== undefined)
-    .sort((a, b) => {
-      if (searchSet != null) {
-        const aS = searchSet.has(a.id), bS = searchSet.has(b.id);
-        if (aS && !bS) return -1;
-        if (!aS && bS) return 1;
-      }
-      return 0;
-    });
+  const toCards = (ids: string[]) =>
+    ids.map(id => gachaMap.get(id)).filter((g): g is SpotGachaInfo => g !== undefined);
+
+  // 検索一致（この店にあるもの）を全部
+  const searchGachas = searchSet ? toCards(spot.gachaIds.filter(id => searchSet.has(id))) : [];
+  // フィルター該当（この店にあるもの）から検索一致を除いたもの（重複除外）
+  const filterGachas = isFiltered
+    ? toCards(spot.gachaIds.filter(id => filterSet.has(id) && !(searchSet?.has(id))))
+    : [];
+  // 検索もフィルターも無いときは全ガチャをそのまま表示
+  const allGachas = !isSearchActive && !isFiltered ? toCards(spot.gachaIds) : [];
+  const hasAnyGacha = searchGachas.length + filterGachas.length + allGachas.length > 0;
 
   const distance = currentPos ? haversineM(currentPos.lat, currentPos.lng, spot.lat, spot.lng) : null;
 
-  // 検索ヒット件数
-  const searchMatchCount = searchSet != null
-    ? visibleGachas.filter(g => searchSet.has(g.id)).length
-    : 0;
-
-  const productCountLabel = isSearchActive && !isFiltered
-    ? `ガチャ ${visibleGachas.length}件 うち検索結果 ${searchMatchCount}件`
-    : isSearchActive && isFiltered
-    ? `フィルター結果 ${visibleGachas.length}件 うち検索結果 ${searchMatchCount}件`
-    : isFiltered
-    ? `フィルター結果 ${visibleGachas.length}件`
-    : `ガチャ ${visibleGachas.length}件`;
-
   // ─── ガチャ一覧エリア ────────────────────────────────────────────────────
+  const gachaGrid = (list: SpotGachaInfo[], highlight: boolean) => (
+    <div style={{
+      display: 'grid',
+      width: '100%',
+      gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(auto-fill, minmax(200px, 1fr))',
+      gap: isMobile ? 12 : 16,
+    }}>
+      {list.map((g, rank) => (
+        <div key={g.id} style={{ minWidth: 0, width: '100%' }}>
+          <GachaCard
+            gacha={toGachaItem(g)}
+            rank={rank}
+            showRank={false}
+            isMobile={isMobile}
+            variant="favorite"
+            fullWidth
+            stockStatus={spot.stockMap[g.id] ?? null}
+            highlight={highlight}
+          />
+        </div>
+      ))}
+    </div>
+  );
+  const sectionLabelStyle = { fontSize: 12, fontWeight: 700, color: isDark ? '#737373' : '#888' } as const;
+
   const ProductsArea = (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minWidth: 0, background: sectionBg }}>
       <div style={{ position: 'relative', flexShrink: 0, zIndex: 20 }}>
@@ -434,40 +448,39 @@ export function StoreDetailView({
           onApplyFilter={applySearchFilter}
           filterActive={isSearchActive}
           onDismissFilter={clearSearch}
+          initialValue={contentSearch}
           wrapperClassName={isMobile ? 'pt-2.5 pb-1' : 'pb-0.5'}
         />
       </div>
-      <div style={{ padding: '0 16px 8px', flexShrink: 0 }}>
-        <span style={{ fontSize: 12, fontWeight: 600, color: isDark ? '#737373' : '#888' }}>{productCountLabel}</span>
-      </div>
-      {/* ガチャグリッド */}
       <div style={{ flex: 1, minWidth: 0, overflowY: 'auto', overflowX: 'hidden', padding: '4px 16px 32px' }}>
-        {visibleGachas.length === 0 ? (
+        {!hasAnyGacha ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: 60, color: '#BBB' }}>
             <p style={{ fontSize: 14, margin: 0 }}>該当するガチャがありません</p>
           </div>
+        ) : !isSearchActive && !isFiltered ? (
+          <>
+            <div style={{ ...sectionLabelStyle, padding: '0 0 8px' }}>ガチャ {allGachas.length}件</div>
+            {gachaGrid(allGachas, false)}
+          </>
         ) : (
-          <div style={{
-            display: 'grid',
-            width: '100%',
-            gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(auto-fill, minmax(200px, 1fr))',
-            gap: isMobile ? 12 : 16,
-          }}>
-            {visibleGachas.map((g, rank) => (
-              <div key={g.id} style={{ minWidth: 0, width: '100%' }}>
-                <GachaCard
-                  gacha={toGachaItem(g)}
-                  rank={rank}
-                  showRank={false}
-                  isMobile={isMobile}
-                  variant="favorite"
-                  fullWidth
-                  stockStatus={spot.stockMap[g.id] ?? null}
-                  highlight={searchSet != null && searchSet.has(g.id)}
-                />
+          <>
+            {isSearchActive && (
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ ...sectionLabelStyle, padding: '0 0 8px' }}>検索中 {searchGachas.length}件</div>
+                {searchGachas.length > 0
+                  ? gachaGrid(searchGachas, true)
+                  : <p style={{ fontSize: 13, color: '#BBB', margin: '4px 0' }}>該当するガチャがありません</p>}
               </div>
-            ))}
-          </div>
+            )}
+            {isFiltered && (
+              <div>
+                <div style={{ ...sectionLabelStyle, padding: '0 0 8px' }}>フィルター中 {filterGachas.length}件</div>
+                {filterGachas.length > 0
+                  ? gachaGrid(filterGachas, false)
+                  : <p style={{ fontSize: 13, color: '#BBB', margin: '4px 0' }}>該当するガチャがありません</p>}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
