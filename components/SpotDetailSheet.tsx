@@ -191,12 +191,6 @@ export default function SpotDetailSheet({
       ))}
     </div>
   );
-  const sheetSectionLabel = (text: string) => (
-    <div className={`px-4 text-[13px] font-bold ${isMobile ? 'py-1.5' : 'py-2'}`}
-      style={{ color: sheetMutedColor, background: sheetSectionBg, borderBottom: `1px solid ${sheetBorderColor}` }}>
-      {text}
-    </div>
-  );
   const noneMsg = (
     <div className="py-6 text-center"><p style={{ fontSize: 13, color: '#aaa' }}>該当するガチャがありません</p></div>
   );
@@ -349,17 +343,27 @@ export default function SpotDetailSheet({
             gachaRow(allGachas, false)
           ) : (
             <>
-              {isSearchMode && (
-                <>
-                  {sheetSectionLabel(`検索中 ${searchGachas.length}件`)}
-                  {searchGachas.length > 0 ? gachaRow(searchGachas, true) : noneMsg}
-                </>
-              )}
-              {isFiltered && (
-                <>
-                  {sheetSectionLabel(`フィルター中 ${filterGachas.length}件`)}
-                  {filterGachas.length > 0 ? gachaRow(filterGachas, false) : noneMsg}
-                </>
+              {/* 検索中・フィルター中は1行に横並び（件数は見出しにまとめて表示） */}
+              <div className={`px-4 flex items-center gap-2 text-[13px] font-bold ${isMobile ? 'pt-1.5' : 'pt-2'}`} style={{ color: sheetMutedColor }}>
+                {isSearchMode && <span>検索中 {searchGachas.length}件</span>}
+                {isSearchMode && isFiltered && <span style={{ color: '#D0D0D0' }}>／</span>}
+                {isFiltered && <span>フィルター中 {filterGachas.length}件</span>}
+              </div>
+              {searchGachas.length + filterGachas.length === 0 ? noneMsg : (
+                <div
+                  className={isMobile ? 'spot-gacha-scroll' : ''}
+                  style={{ display: 'flex', gap: isMobile ? 12 : 32, padding: isMobile ? '10px 16px 6px' : '12px 16px', overflowX: 'auto', scrollbarWidth: 'none', alignItems: 'stretch' }}
+                >
+                  {searchGachas.map((g, rank) => (
+                    <GachaCard key={`s-${g.id}`} gacha={toGachaItem(g)} rank={rank} showRank={false} isMobile={isMobile} narrow={isNarrow} variant="favorite" stockStatus={spot.stockMap[g.id] ?? null} highlight />
+                  ))}
+                  {searchGachas.length > 0 && filterGachas.length > 0 && (
+                    <div style={{ width: 1, alignSelf: 'stretch', background: sheetBorderColor, flexShrink: 0 }} />
+                  )}
+                  {filterGachas.map((g, rank) => (
+                    <GachaCard key={`f-${g.id}`} gacha={toGachaItem(g)} rank={rank} showRank={false} isMobile={isMobile} narrow={isNarrow} variant="favorite" stockStatus={spot.stockMap[g.id] ?? null} highlight={false} />
+                  ))}
+                </div>
               )}
             </>
           )}
