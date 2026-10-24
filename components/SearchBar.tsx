@@ -18,9 +18,11 @@ interface SearchBarProps {
   onClear: () => void;
   hasSearchResult: boolean;
   currentPos?: { lat: number; lng: number } | null;
+  /** 外部（店舗詳細）から適用された検索語を入力欄にも反映する */
+  activeLabel?: string | null;
 }
 
-export default function SearchBar({ onSearch, onClear, hasSearchResult, currentPos }: SearchBarProps) {
+export default function SearchBar({ onSearch, onClear, hasSearchResult, currentPos, activeLabel }: SearchBarProps) {
   const [value, setValue]             = useState('');
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [focused, setFocused]         = useState(false);
@@ -40,6 +42,12 @@ export default function SearchBar({ onSearch, onClear, hasSearchResult, currentP
     }, 0);
     return () => window.clearTimeout(t);
   }, [hasSearchResult]);
+  // 店舗詳細など外部から適用された検索語を入力欄にも反映する。
+  useEffect(() => {
+    if (!activeLabel) return;
+    const t = window.setTimeout(() => setValue(activeLabel), 0);
+    return () => window.clearTimeout(t);
+  }, [activeLabel]);
 
   const fetchSuggestions = useCallback((v: string) => {
     if (timerRef.current) clearTimeout(timerRef.current);
