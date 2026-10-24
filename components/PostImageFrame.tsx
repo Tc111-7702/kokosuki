@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+
 /** 投稿一覧（PostCard）の画像枠。
  *  1:1 を基準に、横長〜正方形は横幅をデバイス幅に合わせて高さ自動、
  *  1:1 より縦長の写真は高さを基準値で固定して比率を保ったまま横幅を縮める（中央寄せ）。 */
@@ -32,16 +34,27 @@ export function PostImageFrame({
   overlay,
   className = '',
 }: PostImageFrameProps) {
-  // 横長〜正方形: max-w-full で横幅いっぱい・高さ自動。
-  // 縦長: max-h で高さが頭打ちになり、w-auto で横幅が比率に応じて縮む（中央寄せ）。
-  const imgClass = `block h-auto w-auto max-w-full ${POST_IMAGE_MAX_HEIGHT_CLASS}`;
+  // 縦長(高さ>幅)のときだけ高さを基準値で固定し、横幅を比率に応じて縮める（中央寄せ）。
+  // 横長・正方形は横幅いっぱい・高さ自動（キャップしない）。縦横は画像ロード時に判定する。
+  const [portrait, setPortrait] = useState(false);
+  const imgClass = portrait
+    ? `block h-auto w-auto max-w-full ${POST_IMAGE_MAX_HEIGHT_CLASS}`
+    : 'block h-auto w-full';
   return (
     <div className={`${POST_IMAGE_FRAME_CLASS} ${className}`}>
       <div
         className="relative max-w-full overflow-hidden rounded-2xl"
         style={background ? { background } : undefined}
       >
-        <img src={src} alt={alt} className={imgClass} />
+        <img
+          src={src}
+          alt={alt}
+          className={imgClass}
+          onLoad={(e) => {
+            const im = e.currentTarget;
+            setPortrait(im.naturalHeight > im.naturalWidth);
+          }}
+        />
         {overlay}
       </div>
     </div>
