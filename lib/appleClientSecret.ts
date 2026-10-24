@@ -16,11 +16,13 @@ function base64url(input: Buffer | string): string {
 }
 
 /**
- * APPLE_PRIVATE_KEY を PEM 文字列に正規化する。
- * - 前後の空白／値ごと残った引用符を除去
- * - 1行で入れた場合の "\n"/"\r" エスケープを実改行へ復元
- * - BEGIN/END マーカーが無い（.p8 の base64 本体だけを貼った）場合は
- *   64文字折り返し＋PKCS#8 マーカーで PEM を組み立てる
+ * APPLE_PRIVATE_KEY をどんな貼り方でも有効な PEM に正規化する。
+ * 以下のいずれでも動くよう、一度 base64 本体だけを取り出して正規の PEM に組み直す:
+ *   - 複数行（.p8 のマーカー込み・各行改行あり）
+ *   - 1行に詰まった形（マーカーありだが改行なし）
+ *   - "\n"/"\r" エスケープで改行を表した1行
+ *   - base64 本体だけ（マーカーなし）
+ * 前後の空白／値ごと残った引用符も除去する。
  */
 function normalizeApplePrivateKey(rawKey: string): string {
   const s = rawKey
@@ -30,11 +32,19 @@ function normalizeApplePrivateKey(rawKey: string): string {
     .replace(/\\n/g, '\n')
     .trim();
 
-  if (/-----BEGIN [A-Z ]*PRIVATE KEY-----/.test(s)) return s;
+  // マーカーのラベル（通常 "PRIVATE KEY"）を保持。無ければ PKCS#8 とみなす。
+  const beginMatch = s.match(/-----BEGIN ([A-Z0-9 ]*PRIVATE KEY)-----/);
+  const label = beginMatch ? beginMatch[1] : 'PRIVATE KEY';
 
-  const body = s.replace(/\s+/g, '');
+  // マーカーを外し、空白を全除去して base64 本体だけにする。
+  const body = s
+    .replace(/-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----/g, '')
+    .replace(/-----END [A-Z0-9 ]*PRIVATE KEY-----/g, '')
+    .replace(/\s+/g, '');
+
+  // 64文字ごとに折り返して正規の PEM を組み立てる。
   const wrapped = body.replace(/(.{64})/g, '$1\n').trim();
-  return `-----BEGIN PRIVATE KEY-----\n${wrapped}\n-----END PRIVATE KEY-----\n`;
+  return `-----BEGIN ${label}-----\n${wrapped}\n-----END ${label}-----\n`;
 }
 
 /** 設定が揃っていれば client_secret(JWT) を返す。未設定なら空文字。 */
