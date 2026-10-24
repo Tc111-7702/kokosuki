@@ -35,7 +35,7 @@ function AnnouncementImage({ src, alt }: { src: string; alt: string }) {
     : 'block h-auto w-full';
   return (
     <div className="flex w-full justify-start">
-      <div className="relative max-w-full overflow-hidden rounded-xl">
+      <div className="relative max-w-full overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={src}
