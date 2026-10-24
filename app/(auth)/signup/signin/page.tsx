@@ -18,7 +18,11 @@ export default function SignupSignInPage() {
       window.location.href = '/api/auth/signup/google/start';
       return;
     }
-    router.push(`/signup/email?provider=${provider}`);
+    if (provider === 'apple') {
+      window.location.href = '/api/auth/signup/apple/start';
+      return;
+    }
+    router.push('/signup/email');
   };
 
   return (
