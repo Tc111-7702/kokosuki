@@ -13,6 +13,7 @@ import * as db from './db';
 import { clearRateLimit, getClientIp } from './rateLimit';
 import { loginEmailRateKey } from './loginEmailRateLimit';
 import { loginPasswordRateKey } from './loginPasswordRateLimit';
+import { getAppleClientSecret } from './appleClientSecret';
 
 /** Better Auth の Origin 検証用。www/apex 両方と env を許可（Cookie 付き POST 向け） */
 function getKokosukiTrustedOrigins(): string[] {
@@ -37,11 +38,19 @@ function getKokosukiTrustedOrigins(): string[] {
     if (trimmed) origins.add(trimmed);
   }
 
+  // Apple のフォーム送信(form_post)等の Origin を許可する。
+  origins.add('https://appleid.apple.com');
+
   return [...origins];
 }
 
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+const appleClientId = process.env.APPLE_CLIENT_ID;
+const appleClientSecret = getAppleClientSecret();
+const appleAppBundleIdentifier = process.env.APPLE_APP_BUNDLE_IDENTIFIER;
+const hasGoogle = !!(googleClientId && googleClientSecret);
+const hasApple = !!(appleClientId && appleClientSecret);
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
@@ -60,27 +69,43 @@ export const auth = betterAuth({
       finalizeMailDelivery(result);
     },
   },
-  // Google ログイン（ログイン専用）。環境変数が揃っている場合のみ有効化する。
-  // disableImplicitSignUp: 未登録の Google アカウントではユーザーを作成せず、
+  // Google / Apple ログイン。環境変数が揃っているプロバイダのみ有効化する。
+  // disableImplicitSignUp: 未登録アカウントではユーザーを作成せず、ログインは
   // errorCallbackURL に error=signup_disabled を付けて戻す（＝新規登録はさせない）。
-  ...(googleClientId && googleClientSecret
+  ...(hasGoogle || hasApple
     ? {
         socialProviders: {
-          google: {
-            clientId: googleClientId,
-            clientSecret: googleClientSecret,
-            disableImplicitSignUp: true,
-          },
+          ...(hasGoogle
+            ? {
+                google: {
+                  clientId: googleClientId!,
+                  clientSecret: googleClientSecret!,
+                  disableImplicitSignUp: true,
+                },
+              }
+            : {}),
+          ...(hasApple
+            ? {
+                apple: {
+                  clientId: appleClientId!,
+                  clientSecret: appleClientSecret,
+                  disableImplicitSignUp: true,
+                  ...(appleAppBundleIdentifier
+                    ? { appBundleIdentifier: appleAppBundleIdentifier }
+                    : {}),
+                },
+              }
+            : {}),
         },
       }
     : {}),
-  // 既存ユーザーが Google でログイン/新規登録フローに入ったとき、同じ検証済みメールの
-  // 既存アカウントへ Google を自動リンクしてログインさせる。Google は email を検証するため安全。
+  // 既存ユーザーが Google/Apple でログイン/新規登録フローに入ったとき、同じ検証済みメールの
+  // 既存アカウントへ自動リンクしてログインさせる。両者とも email を検証するため安全。
   // requireLocalEmailVerified は既定 true のまま（なりすまし登録対策）。
   account: {
     accountLinking: {
       enabled: true,
-      trustedProviders: ['google'],
+      trustedProviders: ['google', 'apple'],
     },
   },
   baseURL: process.env.BETTER_AUTH_URL ?? 'http://localhost:3000',
