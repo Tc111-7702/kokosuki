@@ -149,31 +149,57 @@ export default function SpotDetailSheet({
 
   if (!spot) return null;
 
-  const searchSet = searchOverrideIds ? new Set(searchOverrideIds) : null;
-  const allMatchedGacha = spot.gachaIds
-    .filter(id => {
-      if (searchSet != null) return searchSet.has(id) || filterGachaIds.length === 0 || filterGachaIds.includes(id);
-      return filterGachaIds.length === 0 || filterGachaIds.includes(id);
-    })
-    .map(id => gachaMap.get(id))
-    .filter((g): g is GachaInfo => g !== undefined)
-    .sort((a, b) => {
-      if (searchSet != null) {
-        const aS = searchSet.has(a.id), bS = searchSet.has(b.id);
-        if (aS && !bS) return -1; if (!aS && bS) return 1;
-      }
-      if (highlightGachaId) {
-        if (a.id === highlightGachaId) return -1;
-        if (b.id === highlightGachaId) return 1;
-      }
-      return 0;
-    });
-  // 表示するガチャカードは10枚に制限するが、件数は制限せず全件（allMatchedGacha）で数える
-  const matchedGacha = allMatchedGacha.slice(0, 10);
-  const totalCount   = allMatchedGacha.length;
-  const knownCount   = allMatchedGacha.filter(g => spot.stockMap[g.id]).length;
+  const searchSet    = searchOverrideIds ? new Set(searchOverrideIds) : null;
+  const filterSet    = new Set(filterGachaIds);
   const isSearchMode = searchOverrideIds != null;
-  const isEmpty      = allMatchedGacha.length === 0;
+  const isFiltered   = filterGachaIds.length > 0;
+
+  const toCards = (ids: string[]) =>
+    ids.map(id => gachaMap.get(id)).filter((g): g is GachaInfo => g !== undefined);
+  const byHighlight = (list: GachaInfo[]) => highlightGachaId
+    ? [...list].sort((a, b) => (a.id === highlightGachaId ? -1 : b.id === highlightGachaId ? 1 : 0))
+    : list;
+
+  // 検索一致（この店にあるもの）を全部／フィルター該当（検索と重複しないもの）／
+  // どちらも無ければ全ガチャ。件数・カードとも制限しない（全件表示）。
+  const searchGachas = searchSet ? byHighlight(toCards(spot.gachaIds.filter(id => searchSet.has(id)))) : [];
+  const filterGachas = isFiltered
+    ? toCards(spot.gachaIds.filter(id => filterSet.has(id) && !(searchSet?.has(id))))
+    : [];
+  const allGachas    = !isSearchMode && !isFiltered ? byHighlight(toCards(spot.gachaIds)) : [];
+
+  const knownCount = [...searchGachas, ...filterGachas, ...allGachas].filter(g => spot.stockMap[g.id]).length;
+  const isEmpty    = searchGachas.length + filterGachas.length + allGachas.length === 0;
+
+  const gachaRow = (list: GachaInfo[], highlight: boolean) => (
+    <div
+      className={isMobile && list.length > 2 ? 'spot-gacha-scroll' : ''}
+      style={{ display: 'flex', gap: isMobile ? 12 : 32, padding: isMobile ? '10px 16px 6px' : '12px 16px', overflowX: 'auto', scrollbarWidth: 'none' }}
+    >
+      {list.map((g, rank) => (
+        <GachaCard
+          key={g.id}
+          gacha={toGachaItem(g)}
+          rank={rank}
+          showRank={false}
+          isMobile={isMobile}
+          narrow={isNarrow}
+          variant="favorite"
+          stockStatus={spot.stockMap[g.id] ?? null}
+          highlight={highlight}
+        />
+      ))}
+    </div>
+  );
+  const sheetSectionLabel = (text: string) => (
+    <div className={`px-4 text-[13px] font-bold ${isMobile ? 'py-1.5' : 'py-2'}`}
+      style={{ color: sheetMutedColor, background: sheetSectionBg, borderBottom: `1px solid ${sheetBorderColor}` }}>
+      {text}
+    </div>
+  );
+  const noneMsg = (
+    <div className="py-6 text-center"><p style={{ fontSize: 13, color: '#aaa' }}>該当するガチャがありません</p></div>
+  );
   // 距離は「その場で取り直した現在地(freshPos)」だけで計算する。渡された currentPos は
   // 偽装され得るためここでは使わない。fresh が無いときの表示のみ、サーバー算出の
   // spot.distance にフォールバックする（表示が空にならないように）。
@@ -294,9 +320,11 @@ export default function SpotDetailSheet({
           onTouchEnd={() => { bodyTouchStartY.current = null; }}
           onTouchCancel={() => { bodyTouchStartY.current = null; }}
         >
+          <style>{`.spot-gacha-scroll::-webkit-scrollbar { display: none; }`}</style>
+          {/* コントロールバー: 在庫情報 + フィルターボタン */}
           <div className="px-4 py-2 text-[13px] font-bold flex items-center justify-between"
             style={{ color: sheetMutedColor, background: sheetSectionBg, borderBottom: `1px solid ${sheetBorderColor}` }}>
-            <span>{isSearchMode ? '検索結果' : '取扱商品'} {isEmpty ? 0 : totalCount}件</span>
+            <span>{!isSearchMode && !isFiltered ? `取扱商品 ${isEmpty ? 0 : allGachas.length}件` : ''}</span>
             <div className="flex items-center gap-2">
               {knownCount > 0 && (
                 <span style={{ fontSize: 10, color: '#16a34a', fontWeight: 600 }}>在庫情報あり {knownCount}件</span>
@@ -317,36 +345,22 @@ export default function SpotDetailSheet({
                 {isSearchMode ? 'このガチャ/ジャンルは取り扱いがありません' : '商品情報がありません'}
               </p>
             </div>
+          ) : !isSearchMode && !isFiltered ? (
+            gachaRow(allGachas, false)
           ) : (
             <>
-              {isMobile && matchedGacha.length > 2 && (
-                <style>{`
-                  .spot-gacha-scroll::-webkit-scrollbar { display: none; }
-                `}</style>
+              {isSearchMode && (
+                <>
+                  {sheetSectionLabel(`検索中 ${searchGachas.length}件`)}
+                  {searchGachas.length > 0 ? gachaRow(searchGachas, true) : noneMsg}
+                </>
               )}
-              <div
-                className={isMobile && matchedGacha.length > 2 ? 'spot-gacha-scroll' : ''}
-                style={{
-                  display: 'flex', gap: isMobile ? 12 : 32,
-                  padding: isMobile ? '10px 16px 6px' : '12px 16px',
-                  overflowX: 'auto',
-                  scrollbarWidth: 'none',
-                }}
-              >
-                {matchedGacha.map((g, rank) => (
-                  <GachaCard
-                    key={g.id}
-                    gacha={toGachaItem(g)}
-                    rank={rank}
-                    showRank={false}
-                    isMobile={isMobile}
-                    narrow={isNarrow}
-                    variant="favorite"
-                    stockStatus={spot.stockMap[g.id] ?? null}
-                    highlight={searchSet != null && searchSet.has(g.id)}
-                  />
-                ))}
-              </div>
+              {isFiltered && (
+                <>
+                  {sheetSectionLabel(`フィルター中 ${filterGachas.length}件`)}
+                  {filterGachas.length > 0 ? gachaRow(filterGachas, false) : noneMsg}
+                </>
+              )}
             </>
           )}
 
