@@ -42,7 +42,7 @@ function RightSidebar({
   }, []);
 
   return (
-    <div className="hidden lg:block w-[480px] xl:w-[560px] flex-shrink-0 pl-6 pr-4 pt-4 h-full overflow-y-auto">
+    <div className="hidden lg:block lg:flex-[5] min-w-0 pl-6 pr-4 pt-4 h-full overflow-y-auto">
       <div className="space-y-4 pb-8">
         <CommunitySearchBar onSearch={onSearch} onClear={onClear} searchActive={searchActive} initialValue={initialValue} />
 
@@ -133,7 +133,7 @@ export function CommunityTab() {
   return (
     <InteractionProvider>
     <div className="flex w-full h-full overflow-hidden">
-      <div className="community-feed-bg flex-1 min-w-0 relative overflow-hidden">
+      <div className="community-feed-bg flex-1 lg:flex-[4] min-w-0 relative overflow-hidden">
 
         {/* フィード — 常時マウント、detail open 中は背面に隠す */}
         <div className="absolute inset-0 overflow-y-auto flex flex-col" style={{ visibility: detailOpen ? 'hidden' : 'visible' }}>
