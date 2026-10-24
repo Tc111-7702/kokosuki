@@ -21,16 +21,16 @@ function LoginSignInInner() {
   );
 
   const handleSelectProvider = (provider: LoginSignInProvider) => {
-    if (provider === 'google') {
+    if (provider === 'google' || provider === 'apple') {
       // 成功（既存ユーザー）→ /home へ即時ログイン。未登録 → /login/signin?error=signup_disabled。
       void authClient.signIn.social({
-        provider: 'google',
+        provider,
         callbackURL: '/home',
         errorCallbackURL: '/login/signin',
       });
       return;
     }
-    router.push(`/login/email?provider=${provider}`);
+    router.push('/login/email');
   };
 
   const closeNotRegistered = () => {
@@ -61,7 +61,7 @@ function LoginSignInInner() {
               className="text-[18px] md:text-[22px] font-black leading-snug"
               style={{ color: titleColor }}
             >
-              このGoogleアカウントは
+              このアカウントは
               <br />
               登録されていません
             </h1>

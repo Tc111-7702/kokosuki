@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useState } from 'react';
 import { ChevronLeft, X } from 'lucide-react';
 import { PasswordResetGlobeIllustration } from '@/components/ui/PasswordResetGlobeIllustration';
 import { formatMailDeliveryNotice } from '@/lib/mailDeliveryNotice';
@@ -11,29 +11,14 @@ import {
   useAuthPrimaryButtonStyle,
   useAuthResendLinkColor,
 } from '@/hooks/useAuthPrimaryButtonStyle';
-import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 import { containsFullWidth, FULLWIDTH_EMAIL_ERROR } from '@/lib/emailFullWidth';
 
 const NETWORK_ERROR = '通信エラーが発生しました。接続を確認して、もう一度お試しください。';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const LOCAL_PART_RE = /^[^\s@]+$/;
-
-export type LoginEmailProvider = 'email' | 'google' | 'apple';
-
-const FIXED_SUFFIX: Partial<Record<LoginEmailProvider, string>> = {
-  google: '@gmail.com',
-  apple: '@icloud.com',
-};
-
-const FULL_DOMAIN: Partial<Record<LoginEmailProvider, string>> = {
-  google: '@gmail.com',
-  apple: '@icloud.com',
-};
 
 export type LoginEmailFlow = 'login' | 'signup';
 
 interface Props {
-  provider: LoginEmailProvider;
   flow?: LoginEmailFlow;
   onBack: () => void;
   onSent?: (email: string, notice?: string) => void;
@@ -41,7 +26,6 @@ interface Props {
 }
 
 export function LoginEmailStep({
-  provider,
   flow = 'login',
   onBack,
   onSent,
@@ -78,29 +62,18 @@ export function LoginEmailStep({
     };
   }, [isLogin]);
 
-  const suffix = FIXED_SUFFIX[provider];
   const trimmed = value.trim();
   const busy = sending || verifyingEmail;
 
-  const fullEmail = suffix
-    ? `${trimmed}${FULL_DOMAIN[provider] ?? ''}`.toLowerCase()
-    : trimmed.toLowerCase();
+  const fullEmail = trimmed.toLowerCase();
 
-  const canSubmit = suffix
-    ? LOCAL_PART_RE.test(trimmed) && trimmed.length > 0 && !busy
-    : EMAIL_RE.test(trimmed) && !busy;
+  const canSubmit = EMAIL_RE.test(trimmed) && !busy;
   // ロック中は認証コード送信・パスワードログイン両方のボタンを無効化（見た目もグレーに）。
   const canSubmitEmail = canSubmit && !(isLogin && locked);
   const submitStyle = useAuthPrimaryButtonStyle(canSubmitEmail);
   const backIconColor = useAuthBackIconColor();
   const backLinkColor = useAuthMutedTextColor();
   const passwordLoginLinkColor = useAuthResendLinkColor(!canSubmitEmail);
-  const isDark = useSyncExternalStore(
-    subscribeTheme,
-    () => getThemeSnapshot() === 'dark',
-    () => false,
-  );
-  const suffixColor = isDark ? '#ffffff' : '#111111';
 
   const isSignup = flow === 'signup';
   const sendOtpPath = isSignup ? '/api/auth/signup/send-otp' : '/api/auth/login/send-otp';
@@ -115,7 +88,7 @@ export function LoginEmailStep({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ email: fullEmail, provider }),
+        body: JSON.stringify({ email: fullEmail, provider: 'email' }),
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
@@ -150,7 +123,7 @@ export function LoginEmailStep({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ email: fullEmail, provider }),
+        body: JSON.stringify({ email: fullEmail, provider: 'email' }),
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
@@ -224,28 +197,23 @@ export function LoginEmailStep({
                 メールアドレス
               </label>
               <div
-                className={`relative${suffix ? ' login-email-input-wrap' : ''}${value ? ' login-email-input-wrap-has-value' : ''}`}
+                className={`relative${value ? ' login-email-input-wrap-has-value' : ''}`}
               >
               <input
                 id="login-email-field"
-                type={suffix ? 'text' : 'email'}
+                type="email"
                 value={value}
                 onChange={(e) => {
                   setValue(e.target.value);
                   setError(null);
                 }}
-                placeholder={suffix ? '例：cocosuki' : '例：cocosuki@example.com'}
+                placeholder="例：cocosuki@example.com"
                 disabled={busy}
-                autoComplete={suffix ? 'username' : 'email'}
+                autoComplete="email"
                 aria-invalid={error ? true : undefined}
                 aria-describedby={error ? 'login-email-error' : undefined}
-                className={`login-email-input w-full h-[52px] rounded-2xl px-4 text-[15px] outline-none disabled:opacity-50${suffix ? ' login-email-input-suffix' : ' pr-11'}`}
+                className="login-email-input w-full h-[52px] rounded-2xl px-4 text-[15px] outline-none disabled:opacity-50 pr-11"
               />
-              {suffix ? (
-                <span className="login-email-fixed-suffix" style={{ color: suffixColor }} aria-hidden="true">
-                  {suffix}
-                </span>
-              ) : null}
               {value ? (
                 <button
                   type="button"
