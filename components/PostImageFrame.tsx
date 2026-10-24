@@ -2,9 +2,11 @@
 
 import Image from 'next/image';
 
-/** 投稿一覧（PostCard）と同じ画像枠 */
+/** 投稿一覧（PostCard）と同じ画像枠。
+ *  アスペクト比は固定せず、横幅はデバイス幅に合わせ（w-full）、
+ *  高さは元画像の比率を保って自動調整する（クロップしない）。 */
 export const POST_IMAGE_FRAME_CLASS =
-  'relative w-full aspect-[3/2] lg:aspect-[2/1] rounded-2xl overflow-hidden';
+  'relative w-full rounded-2xl overflow-hidden';
 
 /** モバイル feed（PostCard mx-3 px-4）と同じ表示幅: 100vw − 56px、最大 424px */
 export const POST_IMAGE_FEED_WIDTH_CLASS =
@@ -37,13 +39,14 @@ export function PostImageFrame({
       style={background ? { background } : undefined}
     >
       {native ? (
-        <img src={src} alt={alt} className="absolute inset-0 h-full w-full object-cover" />
+        <img src={src} alt={alt} className="block h-auto w-full" />
       ) : (
         <Image
           src={src}
           alt={alt}
-          fill
-          className="object-cover"
+          width={0}
+          height={0}
+          className="h-auto w-full"
           sizes="(max-width: 1024px) 100vw, 480px"
         />
       )}
