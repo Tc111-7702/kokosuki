@@ -6,7 +6,7 @@
 export const POST_IMAGE_FRAME_CLASS = 'flex w-full justify-center';
 
 /** 縦長写真の高さ上限（1:1 基準の目安。縦長が大きくなりすぎるのを防ぐ・調整可）。 */
-export const POST_IMAGE_MAX_HEIGHT_CLASS = 'max-h-[420px]';
+export const POST_IMAGE_MAX_HEIGHT_CLASS = 'max-h-[320px]';
 
 /** モバイル feed（PostCard mx-3 px-4）と同じ表示幅: 100vw − 56px、最大 424px */
 export const POST_IMAGE_FEED_WIDTH_CLASS =

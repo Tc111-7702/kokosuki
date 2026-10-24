@@ -396,7 +396,7 @@ function MobileConfirmSummary({ form }: { form: FormState }) {
             <img
               src={form.imageUrl}
               alt=""
-              className="block h-auto w-auto max-w-full max-h-[420px] rounded-xl"
+              className="block h-auto w-auto max-w-full max-h-[320px] rounded-xl"
             />
           </div>
         ) : null}
