@@ -199,7 +199,7 @@ export function PostCard({
       </div>
 
       {post.memo && (
-        <p className="text-xs lg:text-sm text-gray-800 mb-2 leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+        <p className="pl-[42px] text-xs lg:text-sm text-gray-800 mb-2 leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
           {post.memo}
         </p>
       )}
