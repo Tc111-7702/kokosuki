@@ -110,12 +110,12 @@ export function PostCard({
 
   return (
     <article
-      className={(flushX ? 'mx-0' : 'mx-3') + ' ' + (compactY ? 'my-1' : 'my-2.5') + ' post-card-shell px-4 py-3 rounded-2xl shadow-sm transition-shadow ' + (interactive && !isDiscontinued ? 'hover:shadow-md cursor-pointer' : '')}
+      className={(flushX ? 'mx-0' : 'mx-3') + ' ' + (compactY ? 'my-1' : 'my-2.5') + ' post-card-shell pl-2 pr-2 py-3 rounded-2xl shadow-sm transition-shadow ' + (interactive && !isDiscontinued ? 'hover:shadow-md cursor-pointer' : '')}
       style={shellStyle}
       onClick={() => interactive && !isDiscontinued && onSelect?.(post)}
     >
       <div className="relative mb-2">
-        <div className="flex items-start gap-2.5 min-w-0 pr-5">
+        <div className="flex items-start gap-2 min-w-0 pr-5">
           <button
             type="button"
             onClick={e => { e.stopPropagation(); router.push('/mypage/' + post.user.id); }}

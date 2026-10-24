@@ -27,6 +27,8 @@ interface HomeSearchBarProps {
   filterActive?: boolean;
   /** 検索絞り込み解除（× とは別） */
   onDismissFilter?: () => void;
+  /** 入力欄の初期値（マップの検索を店舗詳細に引き継ぐ等） */
+  initialValue?: string;
 }
 
 function filterSuggestionsForScope(
@@ -59,6 +61,7 @@ export function HomeSearchBar({
   onApplyFilter,
   filterActive = false,
   onDismissFilter,
+  initialValue = '',
 }: HomeSearchBarProps) {
   const router = useRouter();
   const { openGacha } = useGachaDetail();
@@ -68,7 +71,7 @@ export function HomeSearchBar({
   );
   const isScopeMode = scopeSet != null && onApplyFilter != null;
 
-  const [value, setValue] = useState('');
+  const [value, setValue] = useState(initialValue);
   const [searchSuggestions, setSearchSuggestions] = useState<Suggestion[]>([]);
   const [focused, setFocused] = useState(false);
   const [navigating, setNavigating] = useState(false);
