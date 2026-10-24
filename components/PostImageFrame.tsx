@@ -4,8 +4,8 @@ import { useState } from 'react';
 
 /** 投稿一覧（PostCard）の画像枠。
  *  1:1 を基準に、横長〜正方形は横幅をデバイス幅に合わせて高さ自動、
- *  1:1 より縦長の写真は高さを基準値で固定して比率を保ったまま横幅を縮める（中央寄せ）。 */
-export const POST_IMAGE_FRAME_CLASS = 'flex w-full justify-center';
+ *  1:1 より縦長の写真は高さを基準値で固定して比率を保ったまま横幅を縮める（左寄せ＝横長と左端を揃える）。 */
+export const POST_IMAGE_FRAME_CLASS = 'flex w-full justify-start';
 
 /** 縦長写真の高さ上限（1:1 基準の目安。縦長が大きくなりすぎるのを防ぐ・調整可）。 */
 export const POST_IMAGE_MAX_HEIGHT_CLASS = 'max-h-[320px]';
@@ -34,7 +34,7 @@ export function PostImageFrame({
   overlay,
   className = '',
 }: PostImageFrameProps) {
-  // 縦長(高さ>幅)のときだけ高さを基準値で固定し、横幅を比率に応じて縮める（中央寄せ）。
+  // 縦長(高さ>幅)のときだけ高さを基準値で固定し、横幅を比率に応じて縮める（左寄せ）。
   // 横長・正方形は横幅いっぱい・高さ自動（キャップしない）。縦横は画像ロード時に判定する。
   const [portrait, setPortrait] = useState(false);
   const imgClass = portrait
