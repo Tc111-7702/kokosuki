@@ -865,7 +865,9 @@ export default function MapPage() {
           spot={selectedSpot}
           gachaMap={gachaMapRef.current}
           filterGachaIds={filterGachaIds}
-          searchOverrideIds={searchOverrideIds}
+          // マーカークリック由来の searchOverrideIds が無い場合でも、コンテンツ検索中は
+          // 全体の検索一致ID(searchContentGachaIds)で店舗カードの「検索中」を出す。
+          searchOverrideIds={searchOverrideIds ?? (searchContentGachaIds.length > 0 ? searchContentGachaIds : null)}
           searchLabel={contentSearchLabel}
           highlightGachaId={highlightGachaId}
           currentPos={currentPos}
