@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { X } from 'lucide-react';
 
 /** 投稿一覧（PostCard）の画像枠。
  *  1:1 を基準に、横長〜正方形は横幅をデバイス幅に合わせて高さ自動、
@@ -25,6 +27,8 @@ type PostImageFrameProps = {
   overlay?: React.ReactNode;
   /** 後方互換のため受け付けるが未使用（元比率を確実に保つため常にネイティブ img で表示） */
   native?: boolean;
+  /** クリックで全画面ライトボックス（Twitter の画像拡大風）を開く */
+  zoomable?: boolean;
   className?: string;
 };
 
@@ -33,11 +37,27 @@ export function PostImageFrame({
   alt,
   background,
   overlay,
+  zoomable = false,
   className = '',
 }: PostImageFrameProps) {
   // 縦長(高さ>幅)のときだけ高さを基準値で固定し、横幅を比率に応じて縮める（左寄せ）。
   // 横長・正方形は横幅いっぱい・高さ自動（キャップしない）。縦横は画像ロード時に判定する。
   const [portrait, setPortrait] = useState(false);
+  const [zoomed, setZoomed] = useState(false);
+
+  // 拡大中は Esc で閉じ、背面スクロールを止める。
+  useEffect(() => {
+    if (!zoomed) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setZoomed(false); };
+    window.addEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [zoomed]);
+
   const imgClass = portrait
     ? `block h-auto w-auto max-w-full ${POST_IMAGE_MAX_HEIGHT_CLASS}`
     : 'block h-auto w-full';
@@ -50,7 +70,8 @@ export function PostImageFrame({
         <img
           src={src}
           alt={alt}
-          className={imgClass}
+          className={`${imgClass}${zoomable ? ' cursor-zoom-in' : ''}`}
+          onClick={zoomable ? (e) => { e.stopPropagation(); setZoomed(true); } : undefined}
           onLoad={(e) => {
             const im = e.currentTarget;
             setPortrait(im.naturalHeight > im.naturalWidth);
@@ -58,6 +79,32 @@ export function PostImageFrame({
         />
         {overlay}
       </div>
+
+      {zoomable && zoomed && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 z-[1000] flex items-center justify-center bg-black"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setZoomed(false)}
+        >
+          <button
+            type="button"
+            aria-label="閉じる"
+            onClick={(e) => { e.stopPropagation(); setZoomed(false); }}
+            className="absolute left-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white transition-colors hover:bg-black/60"
+          >
+            <X size={22} />
+          </button>
+          {/* 画面横いっぱい・周囲は黒。縦長は画面内に収める。画像クリックでは閉じない。 */}
+          <img
+            src={src}
+            alt={alt}
+            className="max-h-screen max-w-full object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>,
+        document.body,
+      )}
     </div>
   );
 }

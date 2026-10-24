@@ -209,6 +209,7 @@ export function PostCard({
           src={post.imageUrl}
           alt={post.gacha.seriesName}
           background={gradient}
+          zoomable
           // 画像の左端をユーザー名の左に揃える（アバター32px＋gap10px＝42px 分インデント）
           className="mb-2 pl-[42px]"
         />
