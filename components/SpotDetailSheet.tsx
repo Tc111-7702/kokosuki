@@ -323,13 +323,12 @@ export default function SpotDetailSheet({
               {knownCount > 0 && (
                 <span style={{ fontSize: 10, color: '#16a34a', fontWeight: 600 }}>在庫情報あり {knownCount}件</span>
               )}
-              {!isSearchMode && (
-                filterGachaIds.length > 0 && onClearFilter ? (
-                  <button onClick={onClearFilter} style={{ fontSize: 10, fontWeight: 700, color: '#F2B800', background: '#FFF8E1', border: '1px solid #F2B800', borderRadius: 99, padding: '2px 8px', cursor: 'pointer' }}>フィルター解除</button>
-                ) : onOpenFilter ? (
-                  <button onClick={onOpenFilter} style={{ fontSize: 10, fontWeight: 700, color: '#888', background: '#F5F3ED', border: '1px solid #E0E0E0', borderRadius: 99, padding: '2px 8px', cursor: 'pointer' }}>フィルター</button>
-                ) : null
-              )}
+              {/* 検索中でもフィルター/解除ボタンを表示する */}
+              {filterGachaIds.length > 0 && onClearFilter ? (
+                <button onClick={onClearFilter} style={{ fontSize: 10, fontWeight: 700, color: '#F2B800', background: '#FFF8E1', border: '1px solid #F2B800', borderRadius: 99, padding: '2px 8px', cursor: 'pointer' }}>フィルター解除</button>
+              ) : onOpenFilter ? (
+                <button onClick={onOpenFilter} style={{ fontSize: 10, fontWeight: 700, color: '#888', background: '#F5F3ED', border: '1px solid #E0E0E0', borderRadius: 99, padding: '2px 8px', cursor: 'pointer' }}>フィルター</button>
+              ) : null}
             </div>
           </div>
 
