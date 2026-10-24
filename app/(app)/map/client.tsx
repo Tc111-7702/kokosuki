@@ -656,6 +656,9 @@ export default function MapPage() {
 
   const applyPageFilter = useCallback((ids: string[]) => {
     setFilterGachaIds(ids); filterRef.current = ids;
+    // 検索中はフィルターだけ更新し、検索（結果・ピン・状態）は解除しない。
+    // 店舗カード/詳細の「フィルター中」表示だけが更新される。
+    if (hasSearchResultRef.current) return;
     clearSearchResults();
     const pos = tempSearchPosRef.current ?? currentPosRef.current;
     if (mapRef.current && pos) {
