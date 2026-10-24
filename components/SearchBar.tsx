@@ -30,6 +30,10 @@ export default function SearchBar({ onSearch, onClear, hasSearchResult, currentP
   useEffect(() => {
     currentPosRef.current = currentPos;
   }, [currentPos]);
+  // 検索が解除されたら（店舗詳細側からの解除も含む）入力欄も空にする
+  useEffect(() => {
+    if (!hasSearchResult) setValue('');
+  }, [hasSearchResult]);
 
   const fetchSuggestions = useCallback((v: string) => {
     if (timerRef.current) clearTimeout(timerRef.current);
