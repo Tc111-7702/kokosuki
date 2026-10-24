@@ -168,6 +168,12 @@ export default function SpotDetailSheet({
     : [];
   const allGachas    = !isSearchMode && !isFiltered ? byHighlight(toCards(spot.gachaIds)) : [];
 
+  // 店舗カードの表示カードは合計10枚までに制限（件数ラベルは全件のまま表示）。
+  const CARD_LIMIT   = 10;
+  const shownSearch  = searchGachas.slice(0, CARD_LIMIT);
+  const shownFilter  = filterGachas.slice(0, Math.max(0, CARD_LIMIT - shownSearch.length));
+  const shownAll     = allGachas.slice(0, CARD_LIMIT);
+
   const knownCount = [...searchGachas, ...filterGachas, ...allGachas].filter(g => spot.stockMap[g.id]).length;
   const isEmpty    = searchGachas.length + filterGachas.length + allGachas.length === 0;
 
@@ -339,7 +345,7 @@ export default function SpotDetailSheet({
               </p>
             </div>
           ) : !isSearchMode && !isFiltered ? (
-            gachaRow(allGachas, false)
+            gachaRow(shownAll, false)
           ) : (
             <>
               {/* 検索中・フィルター中は1行に横並び（件数は見出しにまとめて表示） */}
@@ -353,13 +359,13 @@ export default function SpotDetailSheet({
                   className={isMobile ? 'spot-gacha-scroll' : ''}
                   style={{ display: 'flex', gap: isMobile ? 12 : 32, padding: isMobile ? '10px 16px 6px' : '12px 16px', overflowX: 'auto', scrollbarWidth: 'none', alignItems: 'stretch' }}
                 >
-                  {searchGachas.map((g, rank) => (
+                  {shownSearch.map((g, rank) => (
                     <GachaCard key={`s-${g.id}`} gacha={toGachaItem(g)} rank={rank} showRank={false} isMobile={isMobile} narrow={isNarrow} variant="favorite" stockStatus={spot.stockMap[g.id] ?? null} highlight />
                   ))}
-                  {searchGachas.length > 0 && filterGachas.length > 0 && (
+                  {shownSearch.length > 0 && shownFilter.length > 0 && (
                     <div style={{ width: 1, alignSelf: 'stretch', background: sheetBorderColor, flexShrink: 0 }} />
                   )}
-                  {filterGachas.map((g, rank) => (
+                  {shownFilter.map((g, rank) => (
                     <GachaCard key={`f-${g.id}`} gacha={toGachaItem(g)} rank={rank} showRank={false} isMobile={isMobile} narrow={isNarrow} variant="favorite" stockStatus={spot.stockMap[g.id] ?? null} highlight={false} />
                   ))}
                 </div>
