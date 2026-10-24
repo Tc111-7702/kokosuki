@@ -243,10 +243,10 @@ export default function FilterDrawer({
     onClose();
   };
 
-  // お気に入り（いいね済み）ガチャだけにフィルターを置き換えて即適用する。
+  // お気に入り（いいね済み）かつ発売中のガチャだけにフィルターを置き換えて即適用する。
   const applyFavoritesOnly = async () => {
     try {
-      const r = await fetch('/api/gacha/liked-ids');
+      const r = await fetch('/api/gacha/liked-ids?onSale=1');
       const d = r.ok ? await r.json() : null;
       const ids: string[] = Array.isArray(d?.ids) ? d.ids : [];
       setSelectedGachaIds(new Set(ids));
