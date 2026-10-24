@@ -282,7 +282,7 @@ function EveryoneTab({ onMarkedRead }: { onMarkedRead?: () => void }) {
             }}
           >
             <div className="flex-1 min-w-0 min-h-0">
-              <p className="text-[13px] font-bold truncate" style={{ color: '#111' }}>
+              <p className="text-[13px] font-bold break-words" style={{ color: '#111' }}>
                 {a.title}
               </p>
               <p className={`text-[12px] mt-0.5 ${isMobile ? 'truncate' : ''}`} style={{ color: '#666' }}>

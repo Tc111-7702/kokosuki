@@ -310,7 +310,8 @@ export default function ProfilePage() {
         <div className="flex-shrink-0 bg-white flex items-center justify-between px-4" style={{ height: 52, borderBottom: '1.5px solid #EDE9D8' }}>
           <h1 className="text-[16px] font-black" style={{ color: '#111' }}>マイページ</h1>
           <button onClick={() => router.push('/settings')} className="p-2 active:opacity-60" aria-label="設定">
-            <Settings size={21} color="#555" />
+            {/* ダークモードでは白、ライトは従来のグレー（lucide は currentColor 追従） */}
+            <Settings size={21} className="text-[#555] dark:text-white" />
           </button>
         </div>
       ) : (
