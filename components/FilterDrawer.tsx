@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useSyncExternalStore } from 'react';
-import { X, ChevronRight, ChevronLeft, Check } from 'lucide-react';
+import { X, ChevronRight, ChevronLeft, Check, Heart } from 'lucide-react';
 import { getThemeSnapshot, subscribeTheme } from '@/lib/appThemeStore';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { DESKTOP_PAGE_NAV_WIDTH } from '@/lib/layout';
@@ -243,6 +243,20 @@ export default function FilterDrawer({
     onClose();
   };
 
+  // お気に入り（いいね済み）ガチャだけにフィルターを置き換えて即適用する。
+  const applyFavoritesOnly = async () => {
+    try {
+      const r = await fetch('/api/gacha/liked-ids');
+      const d = r.ok ? await r.json() : null;
+      const ids: string[] = Array.isArray(d?.ids) ? d.ids : [];
+      setSelectedGachaIds(new Set(ids));
+      onApply(ids);
+      onClose();
+    } catch {
+      // noop
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -257,6 +271,16 @@ export default function FilterDrawer({
             <span className="filter-drawer-header-title text-[18px] font-black flex-1">
               IP選択
             </span>
+            {/* お気に入りガチャのみフィルター: gachaFilterIds をお気に入り全部に書き換えて適用 */}
+            <button
+              type="button"
+              onClick={applyFavoritesOnly}
+              className="flex items-center gap-1 flex-shrink-0 rounded-full px-3 py-1.5 text-[12px] font-bold active:scale-95 transition-transform"
+              style={{ background: '#F2B800', color: '#fff' }}
+            >
+              <Heart size={13} fill="#fff" color="#fff" />
+              お気に入りのみ
+            </button>
           </div>
 
           {/* 検索バーと人気IPタグは同じ枠。下線はタグの下 */}
