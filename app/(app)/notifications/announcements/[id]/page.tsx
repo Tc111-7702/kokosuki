@@ -58,7 +58,7 @@ function AnnouncementArticle({ item }: { item: AnnouncementDetail }) {
     <article className="flex flex-col gap-4 md:gap-5 max-w-[960px] w-full mx-auto">
       <div className="flex flex-col md:flex-row md:items-start gap-4 md:gap-5">
         <div className="flex flex-col gap-4 md:gap-5 flex-1 min-w-0">
-          <h2 className="text-[20px] font-black leading-snug" style={{ color: '#111' }}>
+          <h2 className="text-[20px] font-black leading-snug break-words" style={{ color: '#111' }}>
             {item.title}
           </h2>
           <p
