@@ -23,17 +23,30 @@ function hasImageUrl(url: string): boolean {
 }
 
 const ANNOUNCEMENT_DETAIL_IMAGE_W = 520;
+/** 縦長画像の高さ上限（1:1 基準の目安）。 */
+const ANNOUNCEMENT_IMAGE_MAX_H = 'max-h-[360px]';
 
+// 投稿のフィードと同じ方針: 横長〜正方形は横幅いっぱい・高さ自動、1:1 より縦長は
+// 高さを基準値で固定して比率を保ったまま横幅を縮める（左寄せ・クロップしない）。
 function AnnouncementImage({ src, alt }: { src: string; alt: string }) {
+  const [portrait, setPortrait] = useState(false);
+  const imgClass = portrait
+    ? `block h-auto w-auto max-w-full ${ANNOUNCEMENT_IMAGE_MAX_H}`
+    : 'block h-auto w-full';
   return (
-    <div className="relative w-full overflow-hidden aspect-[3/2]">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={src}
-        alt={alt}
-        className="absolute inset-0 w-full h-full object-cover"
-        referrerPolicy="no-referrer"
-      />
+    <div className="flex w-full justify-start">
+      <div className="relative max-w-full overflow-hidden rounded-xl">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={src}
+          alt={alt}
+          className={imgClass}
+          onLoad={(e) =>
+            setPortrait(e.currentTarget.naturalHeight > e.currentTarget.naturalWidth)
+          }
+          referrerPolicy="no-referrer"
+        />
+      </div>
     </div>
   );
 }
