@@ -199,7 +199,7 @@ export function PostCard({
       </div>
 
       {post.memo && (
-        <p className="text-xs lg:text-sm text-gray-800 mb-2 leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+        <p className="pl-[42px] text-xs lg:text-sm text-gray-800 mb-2 leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
           {post.memo}
         </p>
       )}
@@ -209,7 +209,9 @@ export function PostCard({
           src={post.imageUrl}
           alt={post.gacha.seriesName}
           background={gradient}
-          className="mb-2"
+          zoomable
+          // 画像の左端をユーザー名の左に揃える（アバター32px＋gap10px＝42px 分インデント）
+          className="mb-2 pl-[42px]"
         />
       )}
 
