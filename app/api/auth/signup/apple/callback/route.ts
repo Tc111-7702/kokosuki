@@ -38,6 +38,9 @@ function decodeIdTokenEmail(idToken: string): { email: string | null; emailVerif
 /** POST /api/auth/signup/apple/callback — Apple からの form_post を受けて分岐 */
 export async function POST(req: Request) {
   const backToSignin = new URL('/signup/signin', req.url);
+  // Apple は form_post で POST してくるため、ページへのリダイレクトは 303(See Other) を使う。
+  // 既定の 307 はメソッドを保持するため、リダイレクト先ページに再度 POST され 405 になる。
+  const redirectToPage = (url: URL) => NextResponse.redirect(url, 303);
   // state の破棄は生の Set-Cookie で行う（NextResponse の再シリアライズでセッションCookieが落ちるため）。
   const clearState = (res: NextResponse) => {
     res.headers.append(
@@ -54,21 +57,21 @@ export async function POST(req: Request) {
   const oauthError = form ? (form.get('error') as string | null) : null;
 
   if (oauthError || !code || !state) {
-    return clearState(NextResponse.redirect(backToSignin));
+    return clearState(redirectToPage(backToSignin));
   }
 
   // state 照合（CSRF 対策）
   const cookieHeader = req.headers.get('cookie') ?? '';
   const stateCookie = readCookie(cookieHeader, SIGNUP_APPLE_STATE_COOKIE);
   if (!stateCookie || stateCookie !== state) {
-    return clearState(NextResponse.redirect(backToSignin));
+    return clearState(redirectToPage(backToSignin));
   }
 
   const clientId = process.env.APPLE_CLIENT_ID;
   const clientSecret = getAppleClientSecret();
   const baseURL = process.env.BETTER_AUTH_URL ?? 'http://localhost:3000';
   if (!clientId || !clientSecret) {
-    return clearState(NextResponse.redirect(backToSignin));
+    return clearState(redirectToPage(backToSignin));
   }
 
   // 認可コードをトークンに交換（server-to-server, client_secret=署名JWT 使用）
@@ -91,7 +94,7 @@ export async function POST(req: Request) {
     idToken = null;
   }
   if (!idToken) {
-    return clearState(NextResponse.redirect(backToSignin));
+    return clearState(redirectToPage(backToSignin));
   }
 
   // 既存ユーザーなら better-auth でサインイン（id_token を検証し、信頼済みなら Apple をリンク）。
@@ -100,12 +103,12 @@ export async function POST(req: Request) {
     .catch(() => null);
 
   if (!signInResp) {
-    return clearState(NextResponse.redirect(backToSignin));
+    return clearState(redirectToPage(backToSignin));
   }
 
   if (signInResp.ok) {
     // 既存ユーザー → 即時ログイン成立。sessionStorage のお気に入りを消すため finish ページへ。
-    const res = NextResponse.redirect(new URL('/auth/apple/finish', req.url));
+    const res = redirectToPage(new URL('/auth/apple/finish', req.url));
     for (const setCookie of signInResp.headers.getSetCookie()) {
       res.headers.append('set-cookie', setCookie);
     }
@@ -118,18 +121,18 @@ export async function POST(req: Request) {
   const errMessage = typeof errBody?.message === 'string' ? errBody.message : '';
   const isNewUser = errCode === 'OAUTH_LINK_ERROR' && /signup/i.test(errMessage);
   if (!isNewUser) {
-    return clearState(NextResponse.redirect(backToSignin));
+    return clearState(redirectToPage(backToSignin));
   }
 
   const { email, emailVerified } = decodeIdTokenEmail(idToken);
   if (!email || !emailVerified) {
-    return clearState(NextResponse.redirect(backToSignin));
+    return clearState(redirectToPage(backToSignin));
   }
 
   // 念のため二重チェック（既存なら上の signInSocial でログインしているはず）。
   const existing = await db.findUserIdByEmail(email);
   if (existing) {
-    return clearState(NextResponse.redirect(backToSignin));
+    return clearState(redirectToPage(backToSignin));
   }
 
   // 未登録 → OTP 送信 + SignupPending 作成（/api/auth/signup/send-otp と同じ処理）。
@@ -142,13 +145,13 @@ export async function POST(req: Request) {
     });
   } catch (e) {
     console.error('[signup apple callback] otp send failed', e);
-    return clearState(NextResponse.redirect(backToSignin));
+    return clearState(redirectToPage(backToSignin));
   }
 
   const token = generateSignupPendingToken();
   await upsertSignupPending(email, token);
 
-  const res = NextResponse.redirect(new URL('/signup/otp', req.url));
+  const res = redirectToPage(new URL('/signup/otp', req.url));
   res.cookies.set(SIGNUP_PENDING_COOKIE_NAME, token, signupPendingCookieOptions());
   return clearState(res);
 }
