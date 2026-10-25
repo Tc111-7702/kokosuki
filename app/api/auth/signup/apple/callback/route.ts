@@ -57,6 +57,7 @@ export async function POST(req: Request) {
   const oauthError = form ? (form.get('error') as string | null) : null;
 
   if (oauthError || !code || !state) {
+    console.log('[apple signup cb] 1 missing params', { oauthError, hasCode: !!code, hasState: !!state });
     return clearState(redirectToPage(backToSignin));
   }
 
@@ -64,6 +65,7 @@ export async function POST(req: Request) {
   const cookieHeader = req.headers.get('cookie') ?? '';
   const stateCookie = readCookie(cookieHeader, SIGNUP_APPLE_STATE_COOKIE);
   if (!stateCookie || stateCookie !== state) {
+    console.log('[apple signup cb] 2 state mismatch', { cookiePresent: !!stateCookie, match: stateCookie === state });
     return clearState(redirectToPage(backToSignin));
   }
 
@@ -71,6 +73,7 @@ export async function POST(req: Request) {
   const clientSecret = getAppleClientSecret();
   const baseURL = process.env.BETTER_AUTH_URL ?? 'http://localhost:3000';
   if (!clientId || !clientSecret) {
+    console.log('[apple signup cb] 3 missing client config', { hasClientId: !!clientId, hasClientSecret: !!clientSecret });
     return clearState(redirectToPage(backToSignin));
   }
 
@@ -90,7 +93,16 @@ export async function POST(req: Request) {
     });
     const tokenData = await tokenRes.json().catch(() => null);
     idToken = typeof tokenData?.id_token === 'string' ? tokenData.id_token : null;
-  } catch {
+    // 鍵・redirect_uri の不一致はここで error(invalid_client / invalid_grant 等)として出る。
+    console.log('[apple signup cb] 4 token exchange', {
+      status: tokenRes.status,
+      hasIdToken: !!idToken,
+      error: tokenData?.error,
+      errorDescription: tokenData?.error_description,
+      redirectUriUsed: `${baseURL}/api/auth/signup/apple/callback`,
+    });
+  } catch (e) {
+    console.error('[apple signup cb] 4 token exchange threw', e);
     idToken = null;
   }
   if (!idToken) {
@@ -100,7 +112,10 @@ export async function POST(req: Request) {
   // 既存ユーザーなら better-auth でサインイン（id_token を検証し、信頼済みなら Apple をリンク）。
   const signInResp = await auth.api
     .signInSocial({ body: { provider: 'apple', idToken: { token: idToken } }, asResponse: true })
-    .catch(() => null);
+    .catch((e) => {
+      console.error('[apple signup cb] 5 signInSocial threw', e);
+      return null;
+    });
 
   if (!signInResp) {
     return clearState(redirectToPage(backToSignin));
@@ -108,6 +123,7 @@ export async function POST(req: Request) {
 
   if (signInResp.ok) {
     // 既存ユーザー → 即時ログイン成立。sessionStorage のお気に入りを消すため finish ページへ。
+    console.log('[apple signup cb] 6 existing user -> login');
     const res = redirectToPage(new URL('/auth/apple/finish', req.url));
     for (const setCookie of signInResp.headers.getSetCookie()) {
       res.headers.append('set-cookie', setCookie);
@@ -120,11 +136,13 @@ export async function POST(req: Request) {
   const errCode = typeof errBody?.code === 'string' ? errBody.code : '';
   const errMessage = typeof errBody?.message === 'string' ? errBody.message : '';
   const isNewUser = errCode === 'OAUTH_LINK_ERROR' && /signup/i.test(errMessage);
+  console.log('[apple signup cb] 7 signInSocial not ok', { status: signInResp.status, errCode, errMessage, isNewUser });
   if (!isNewUser) {
     return clearState(redirectToPage(backToSignin));
   }
 
   const { email, emailVerified } = decodeIdTokenEmail(idToken);
+  console.log('[apple signup cb] 8 decoded email', { hasEmail: !!email, emailVerified });
   if (!email || !emailVerified) {
     return clearState(redirectToPage(backToSignin));
   }
@@ -132,6 +150,7 @@ export async function POST(req: Request) {
   // 念のため二重チェック（既存なら上の signInSocial でログインしているはず）。
   const existing = await db.findUserIdByEmail(email);
   if (existing) {
+    console.log('[apple signup cb] 9 existing on double-check -> signin');
     return clearState(redirectToPage(backToSignin));
   }
 
@@ -151,6 +170,7 @@ export async function POST(req: Request) {
   const token = generateSignupPendingToken();
   await upsertSignupPending(email, token);
 
+  console.log('[apple signup cb] 10 new user -> otp sent -> /signup/otp');
   const res = redirectToPage(new URL('/signup/otp', req.url));
   res.cookies.set(SIGNUP_PENDING_COOKIE_NAME, token, signupPendingCookieOptions());
   return clearState(res);
