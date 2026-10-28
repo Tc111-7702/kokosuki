@@ -3,8 +3,17 @@ name: CI
 on:
   pull_request:
     branches: [main]
-  push:
-    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
+      - '.vscode/**'
+
+# 同一ブランチへ連続 push したら古い実行をキャンセル（無駄な並走を削減）。
+# push:[main] は PR 検証と重複するため削除（マージ時の二重実行を解消）。
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   lint-and-build:
